@@ -11,7 +11,9 @@ import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
-
+import WorkHubLayout from "../components/layout/WorkHubLayout";
+import WorkHubPage from "../pages/work-hub/home/WorkHubPage";
+import TasksManagerPage from "../pages/work-hub/task/TasksManagerPage";
 
 export const router = createBrowserRouter([
   {
@@ -44,16 +46,30 @@ export const router = createBrowserRouter([
         path: ROUTES.CHAT.ROOT,
         element: <ChatLayout />,
         children: [
-            {
-                index: true,
-                element: <ChatPage />,
-            }
-        ]
+          {
+            index: true,
+            element: <ChatPage />,
+          },
+        ],
+      },
+      {
+        path: "/work-hub/*",
+        element: <WorkHubLayout />,
+        children: [
+          {
+            index: true,
+            element: <WorkHubPage />,
+          },
+          {
+            path: "tasks",
+            element: <TasksManagerPage />,
+          },
+        ],
       },
       {
         path: ROUTES.NOT_FOUND,
-        element: <NotFoundPage />
-      }
+        element: <NotFoundPage />,
+      },
     ],
   },
 ]);
