@@ -11,6 +11,7 @@ import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
+import { NotesPage } from "../pages/note/NotesPage";
 
 
 export const router = createBrowserRouter([
@@ -49,6 +50,10 @@ export const router = createBrowserRouter([
                 element: <ChatPage />,
             }
         ]
+      },
+      {
+        path: ROUTES.NOTE,
+        element: <NotesPage />
       },
       {
         path: ROUTES.NOT_FOUND,

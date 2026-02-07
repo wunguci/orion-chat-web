@@ -13,6 +13,7 @@ export const ROUTES = {
         ROOT: '/chat',
         CONVERSATION: (id: string) => `/chat/conversation/${id}`
     },
+    NOTE: '/notes',
     SETTINGS: '/settings',
     PROFILE: '/profile',
     NOT_FOUND: '*',
