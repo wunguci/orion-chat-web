@@ -11,7 +11,7 @@ import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
-
+import VideoCallPage from "../pages/video-call/VideoCallPage";
 
 export const router = createBrowserRouter([
   {
@@ -44,16 +44,20 @@ export const router = createBrowserRouter([
         path: ROUTES.CHAT.ROOT,
         element: <ChatLayout />,
         children: [
-            {
-                index: true,
-                element: <ChatPage />,
-            }
-        ]
+          {
+            index: true,
+            element: <ChatPage />,
+          },
+        ],
       },
       {
         path: ROUTES.NOT_FOUND,
-        element: <NotFoundPage />
-      }
+        element: <NotFoundPage />,
+      },
+      {
+        path: "/video-call/*",
+        element: <VideoCallPage />,
+      },
     ],
   },
 ]);
