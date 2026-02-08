@@ -7,11 +7,9 @@ import {
   Smartphone,
   ChevronRight,
   Upload,
-  Trash2,
   Volume2,
   Eye,
   Shield,
-  CheckCircle,
   X,
   Sun,
   Moon,
@@ -23,11 +21,8 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 import "./SettingModal.css";
-import avatarImg from "../../../public/avatar.jpg";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser, faCog, faBell } from "@fortawesome/free-solid-svg-icons";
-import { faHeart } from "@fortawesome/free-regular-svg-icons";
-import { faFacebook } from "@fortawesome/free-brands-svg-icons";
+import { faUser } from "@fortawesome/free-solid-svg-icons";
 import InputTextWithLabel from "../common/InputTextWithLabel";
 import ToggleSwitch from "../common/ToggleSwitch";
 import ToggleSwitchButton from "../common/ToggleSwitchButton";
@@ -131,32 +126,32 @@ export default function SettingsModal({
         return (
           <div className="flex flex-col gap-12">
             <div className="flex flex-col gap-3">
-              <span className="text-[26px] font-bold text-[#505050]">
+              <span className="text-[26px] font-bold text-gray-primary">
                 Profile Settings
               </span>
 
               <div className="flex flex-col gap-8">
                 {/* Avatar Upload */}
-                <div className="bg-[#fdfaf9] rounded-2xl p-6 border border-[#fbe7df] flex items-center gap-4">
-                  <div className="w-25 h-25 rounded-full bg-gradient-to-br from-[#fcede6] to-[#fbe7df] flex items-center justify-center text-2xl">
+                <div className="bg-orange-bg-light rounded-2xl p-6 border border-orange-border-light flex items-center gap-4">
+                  <div className="w-25 h-25 rounded-full bg-gradient-to-br from-orange-bg-heavy to-orange-border-light flex items-center justify-center text-2xl">
                     <FontAwesomeIcon
                       icon={faUser}
                       className="text-white text-5xl"
                     />
                   </div>
                   <div className="flex flex-col gap-2.5">
-                    <span className="text-xl font-bold text-[#505050]">
+                    <span className="text-xl font-bold text-gray-primary">
                       Full Name
                     </span>
-                    <p className="text-sm font-semibold text-[#505050]">
+                    <p className="text-sm font-semibold text-gray-primary">
                       JPG, GIF or PNG. Max size of 800K
                     </p>
                     <div className="flex gap-2">
-                      <button className="flex items-center gap-2 px-6 py-2 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+                      <button className="flex items-center gap-2 px-6 py-2 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
                         <Upload size={20} />
                         Upload New
                       </button>
-                      <button className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-[#505050] hover:bg-gray-50 font-semibold">
+                      <button className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-gray-primary hover:bg-gray-50 font-semibold">
                         Remove
                       </button>
                     </div>
@@ -195,7 +190,7 @@ export default function SettingsModal({
 
             {/* Preferences */}
             <div className="flex flex-col gap-3">
-              <span className="text-[26px] font-bold text-[#505050]">
+              <span className="text-[26px] font-bold text-gray-primary">
                 Preferences
               </span>
               <div className="flex flex-col gap-5">
@@ -234,16 +229,16 @@ export default function SettingsModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-[#FBE7DF]">
+            <div className="flex justify-end gap-3 pt-4 border-t border-orange-border-light">
               <button
                 onClick={handleDiscard}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-[#505050] hover:bg-gray-50 font-semibold"
+                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-primary hover:bg-gray-50 font-semibold"
               >
                 Discard Changes
               </button>
               <button
                 onClick={handleSave}
-                className="px-6 py-3 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold"
+                className="px-6 py-3 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold"
               >
                 Save Changes
               </button>
@@ -255,17 +250,17 @@ export default function SettingsModal({
         return (
           <div className="flex flex-col gap-12">
             <div>
-              <span className="text-[26px] font-bold text-[#505050] mb-1">
+              <span className="text-[26px] font-bold text-gray-primary mb-1">
                 Privacy & Security
               </span>
-              <p className="text-[#505050]">
+              <p className="text-gray-primary">
                 Manage who can see your information and contact you
               </p>
             </div>
 
             {/* Who can see my info */}
             <div className="flex flex-col gap-3">
-              <span className="text-[22px] font-bold text-[#505050]">
+              <span className="text-[22px] font-bold text-gray-primary">
                 Who can see my info
               </span>
               <div className="flex flex-col gap-5">
@@ -288,11 +283,11 @@ export default function SettingsModal({
                 ].map(({ label, description, field }) => (
                   <div
                     key={field}
-                    className="flex flex-col gap-3 bg-[#FDFAF9] border border-[#FBE7DF] rounded-xl py-4 px-5 w-full"
+                    className="flex flex-col gap-3 bg-orange-bg-light border border-orange-border-light rounded-xl py-4 px-5 w-full"
                   >
                     <div className="flex flex-col gap-1">
-                      <p className="font-semibold text-[#505050]">{label}</p>
-                      <p className="text-sm text-[#505050]">{description}</p>
+                      <p className="font-semibold text-gray-primary">{label}</p>
+                      <p className="text-sm text-gray-primary">{description}</p>
                     </div>
                     <div className="flex gap-3">
                       {["everyone", "contacts", "nobody"].map((option) => (
@@ -319,18 +314,18 @@ export default function SettingsModal({
 
             {/* Message & Safety */}
             <div className="flex flex-col gap-3">
-              <span className="text-[22px] font-bold text-[#505050]">
+              <span className="text-[22px] font-bold text-gray-primary">
                 Message & Safety
               </span>
               <div className="flex flex-col gap-5">
-                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]">
+                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light">
                   <div className="flex items-center gap-3">
-                    <Eye size={24} className="text-[#ee652b]" />
+                    <Eye size={24} className="text-orange-primary" />
                     <div>
-                      <p className="font-semibold text-[#505050]">
+                      <p className="font-semibold text-gray-primary">
                         Read Receipts
                       </p>
-                      <p className="text-sm text-[#505050]">
+                      <p className="text-sm text-gray-primary">
                         If turned off, you won't send or receive Read Receipts.
                         Read receipts are always sent for group chats
                       </p>
@@ -342,34 +337,34 @@ export default function SettingsModal({
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]">
+                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light">
                   <div className="flex items-center gap-3">
-                    <Shield size={24} className="text-[#ee652b]" />
+                    <Shield size={24} className="text-orange-primary" />
                     <div>
-                      <p className="font-semibold text-[#505050]">
+                      <p className="font-semibold text-gray-primary">
                         Blocked Contacts
                       </p>
-                      <p className="text-sm text-[#505050]">
+                      <p className="text-sm text-gray-primary">
                         14 contacts blocked
                       </p>
                     </div>
                   </div>
-                  <ChevronRight size={24} className="text-[#ee652b]" />
+                  <ChevronRight size={24} className="text-orange-primary" />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]">
+                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light">
                   <div className="flex items-center gap-3">
-                    <Shield size={24} className="text-[#ee652b]" />
+                    <Shield size={24} className="text-orange-primary" />
                     <div>
-                      <p className="font-semibold text-[#505050]">
+                      <p className="font-semibold text-gray-primary">
                         Two-step Verification
                       </p>
-                      <p className="text-sm text-[#505050]">
+                      <p className="text-sm text-gray-primary">
                         Add extra security to your account
                       </p>
                     </div>
                   </div>
-                  <button className="px-6 py-2 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+                  <button className="px-6 py-2 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
                     Enable
                   </button>
                 </div>
@@ -382,17 +377,17 @@ export default function SettingsModal({
         return (
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-5">
-              <span className="text-[28px] font-bold text-[#505050]">
+              <span className="text-[28px] font-bold text-gray-primary">
                 Notifications
               </span>
 
               {/* Mute all notifications */}
-              <div className="flex items-center justify-between p-4 rounded-xl border border-[#fbe7df]">
+              <div className="flex items-center justify-between p-4 rounded-xl border border-orange-border-light">
                 <div>
-                  <p className="font-bold text-[#505050] text-lg">
+                  <p className="font-bold text-gray-primary text-lg">
                     Mute all notifications
                   </p>
-                  <p className="text-sm text-[#505050]">
+                  <p className="text-sm text-gray-primary">
                     Temporarily silence all desktop and sound alerts for a while
                   </p>
                 </div>
@@ -405,7 +400,7 @@ export default function SettingsModal({
 
             {/* Message Notifications */}
             <div className="flex flex-col gap-3">
-              <span className="text-[22px] font-bold text-[#505050]">
+              <span className="text-[22px] font-bold text-gray-primary">
                 Message Notifications
               </span>
               <div className="flex flex-col message-notifications">
@@ -427,13 +422,17 @@ export default function SettingsModal({
                 ].map(({ label, description, field, icon: Icon }) => (
                   <div
                     key={field}
-                    className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]"
+                    className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light"
                   >
                     <div className="flex items-center gap-3">
-                      <Icon size={24} className="text-[#ee652b]" />
+                      <Icon size={24} className="text-orange-primary" />
                       <div>
-                        <p className="font-semibold text-[#505050]">{label}</p>
-                        <p className="text-sm text-[#505050]">{description}</p>
+                        <p className="font-semibold text-gray-primary">
+                          {label}
+                        </p>
+                        <p className="text-sm text-gray-primary">
+                          {description}
+                        </p>
                       </div>
                     </div>
                     <ToggleSwitch
@@ -445,14 +444,14 @@ export default function SettingsModal({
                   </div>
                 ))}
 
-                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-b-2xl border border-[#fbe7df]">
+                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-b-2xl border border-orange-border-light">
                   <div className="flex items-center gap-3">
-                    <Play size={24} className="text-[#ee652b]" />
+                    <Play size={24} className="text-orange-primary" />
                     <div>
-                      <p className="font-semibold text-[#505050]">
+                      <p className="font-semibold text-gray-primary">
                         Notification Sound
                       </p>
-                      <p className="text-sm text-[#505050]">
+                      <p className="text-sm text-gray-primary">
                         Choose the sound for incoming direct messages
                       </p>
                     </div>
@@ -463,13 +462,13 @@ export default function SettingsModal({
                       onChange={(e) =>
                         handleInputChange("notificationSound", e.target.value)
                       }
-                      className="px-4 py-2 border border-gray-200 rounded-lg text-[#505050] focus:outline-none"
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-gray-primary focus:outline-none"
                     >
                       <option>Crystal Clear</option>
                       <option>Bell</option>
                       <option>Chime</option>
                     </select>
-                    <button className="p-2 bg-[#ee652b] text-white rounded-full hover:bg-[#d65421]">
+                    <button className="p-2 bg-orange-primary text-white rounded-full hover:bg-orange-primary/90">
                       <Play size={20} />
                     </button>
                   </div>
@@ -479,7 +478,7 @@ export default function SettingsModal({
 
             {/* Group Notifications */}
             <div className="flex flex-col gap-3">
-              <span className="text-[22px] font-bold text-[#505050]">
+              <span className="text-[22px] font-bold text-gray-primary">
                 Group Notifications
               </span>
               <div className="flex flex-col message-notifications">
@@ -499,11 +498,11 @@ export default function SettingsModal({
                 ].map(({ label, description, field }) => (
                   <div
                     key={field}
-                    className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]"
+                    className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light"
                   >
                     <div>
-                      <p className="font-semibold text-[#505050]">{label}</p>
-                      <p className="text-sm text-[#505050]">{description}</p>
+                      <p className="font-semibold text-gray-primary">{label}</p>
+                      <p className="text-sm text-gray-primary">{description}</p>
                     </div>
                     <ToggleSwitch
                       checked={
@@ -518,14 +517,18 @@ export default function SettingsModal({
 
             {/* Call */}
             <div className="flex flex-col gap-3">
-              <span className="text-[22px] font-bold text-[#505050]">Call</span>
+              <span className="text-[22px] font-bold text-gray-primary">
+                Call
+              </span>
               <div className="flex flex-col message-notifications">
-                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]">
+                <div className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light">
                   <div className="flex items-center gap-3">
-                    <Bell size={24} className="text-[#ee652b]" />
+                    <Bell size={24} className="text-orange-primary" />
                     <div>
-                      <p className="font-semibold text-[#505050]">Ringtone</p>
-                      <p className="text-sm text-[#505050]">
+                      <p className="font-semibold text-gray-primary">
+                        Ringtone
+                      </p>
+                      <p className="text-sm text-gray-primary">
                         Sound played during incoming voice and video call
                       </p>
                     </div>
@@ -536,24 +539,24 @@ export default function SettingsModal({
                       onChange={(e) =>
                         handleInputChange("ringtone", e.target.value)
                       }
-                      className="px-4 py-2 border border-gray-200 rounded-lg text-[#505050] focus:outline-none"
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-gray-primary focus:outline-none"
                     >
                       <option>Classic Ring</option>
                       <option>Modern Bell</option>
                       <option>Soft Chime</option>
                     </select>
-                    <button className="p-2 bg-[#ee652b] text-white rounded-full hover:bg-[#d65421]">
+                    <button className="p-2 bg-orange-primary text-white rounded-full hover:bg-orange-primary/90">
                       <Play size={20} />
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]">
+                <div className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light">
                   <div>
-                    <p className="font-semibold text-[#505050]">
+                    <p className="font-semibold text-gray-primary">
                       Incoming Call Window
                     </p>
-                    <p className="text-sm text-[#505050]">
+                    <p className="text-sm text-gray-primary">
                       Show call controls even when the apps in background
                     </p>
                   </div>
@@ -571,17 +574,17 @@ export default function SettingsModal({
         return (
           <div className="flex flex-col gap-8">
             <div>
-              <span className="text-[28px] font-bold text-[#505050]">
+              <span className="text-[28px] font-bold text-gray-primary">
                 Appearance & Theme
               </span>
-              <p className="text-[#505050]">
+              <p className="text-gray-primary">
                 Customize how your chat experience looks and feels
               </p>
             </div>
 
             {/* Theme Mode */}
             <div className="flex flex-col gap-3">
-              <span className="text-[22px] font-bold text-[#505050]">
+              <span className="text-[22px] font-bold text-gray-primary">
                 Theme Mode
               </span>
               <div className="grid grid-cols-3 gap-4">
@@ -596,7 +599,7 @@ export default function SettingsModal({
                     className={clsx(
                       "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 transition-colors",
                       formData.themeMode === value
-                        ? "border-[#ee652b] bg-white"
+                        ? "border-orange-primary bg-white"
                         : "border-gray-200 bg-white hover:border-gray-300",
                     )}
                   >
@@ -604,16 +607,16 @@ export default function SettingsModal({
                       size={32}
                       className={clsx(
                         formData.themeMode === value
-                          ? "text-[#ee652b]"
-                          : "text-[#FBE7DF]",
+                          ? "text-orange-primary"
+                          : "text-orange-border-light",
                       )}
                     />
                     <span
                       className={clsx(
                         "font-semibold",
                         formData.themeMode === value
-                          ? "text-[#ee652b]"
-                          : "text-[#505050]",
+                          ? "text-orange-primary"
+                          : "text-gray-primary",
                       )}
                     >
                       {label}
@@ -625,7 +628,7 @@ export default function SettingsModal({
 
             {/* Chat Wallpaper */}
             <div className="flex flex-col gap-3">
-              <span className="text-[22px] font-bold text-[#505050]">
+              <span className="text-[22px] font-bold text-gray-primary">
                 Chat Wallpaper
               </span>
               <div className="grid grid-cols-7 gap-4">
@@ -646,7 +649,7 @@ export default function SettingsModal({
                     className={clsx(
                       "h-32 rounded-2xl border-4 transition-all",
                       formData.selectedWallpaper === value
-                        ? "border-[#ee652b] scale-105"
+                        ? "border-orange-primary scale-105"
                         : "border-transparent hover:border-gray-300",
                     )}
                     style={{ backgroundColor: color }}
@@ -657,7 +660,7 @@ export default function SettingsModal({
 
             {/* Text Size */}
             <div className="flex flex-col gap-3 items-start w-full">
-              <span className="text-[22px] font-bold text-[#505050]">
+              <span className="text-[22px] font-bold text-gray-primary">
                 Text Size
               </span>
               <div className="grid grid-cols-3 gap-4 w-full">
@@ -668,15 +671,15 @@ export default function SettingsModal({
                     className={clsx(
                       "px-6 py-3 rounded-xl border-2 transition-colors capitalize font-semibold",
                       formData.textSize === size
-                        ? "border-[#ee652b] bg-white text-[#ee652b]"
-                        : "border-gray-200 bg-white text-[#505050] hover:border-gray-300",
+                        ? "border-orange-primary bg-white text-orange-primary"
+                        : "border-gray-200 bg-white text-gray-primary hover:border-gray-300",
                     )}
                   >
                     {size}
                   </button>
                 ))}
               </div>
-              <p className="text-sm text-[#505050] text-center">
+              <p className="text-sm text-gray-primary text-center">
                 Adjusting the font size will change the scale all chat text
                 across the app.
               </p>
@@ -686,20 +689,20 @@ export default function SettingsModal({
             <div className="flex justify-between items-center pt-5 border-t border-gray-200">
               <button
                 onClick={handleDiscard}
-                className="text-[#505050] hover:text-[#ee652b] font-semibold"
+                className="text-gray-primary hover:text-orange-primary font-semibold"
               >
                 Reset to default settings
               </button>
               <div className="flex gap-3">
                 <button
                   onClick={handleDiscard}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-[#505050] hover:bg-gray-50 font-semibold"
+                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-primary hover:bg-gray-50 font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-6 py-3 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold"
+                  className="px-6 py-3 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold"
                 >
                   Save Changes
                 </button>
@@ -712,43 +715,43 @@ export default function SettingsModal({
         return (
           <div className="space-y-8">
             <div>
-              <span className="text-[28px] font-bold text-[#505050] mb-1">
+              <span className="text-[28px] font-bold text-gray-primary mb-1">
                 Linked Devices
               </span>
-              <p className="text-[#505050]">
+              <p className="text-gray-primary">
                 Manage your active sessions and link new devices to keep your
                 conversations synced
               </p>
             </div>
 
             {/* Log out button */}
-            <button className="px-8 py-3 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+            <button className="px-8 py-3 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
               Log out from all other devices
             </button>
 
             {/* Link a New Device */}
-            <div className="flex items-center justify-between p-6 bg-white rounded-xl border border-[#fbe7df]">
+            <div className="flex items-center justify-between p-6 bg-white rounded-xl border border-orange-border-light">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-[#fcede6] rounded-xl">
-                  <QrCode size={28} className="text-[#ee652b]" />
+                <div className="p-3 bg-orange-bg-heavy rounded-xl">
+                  <QrCode size={28} className="text-orange-primary" />
                 </div>
                 <div>
-                  <p className="font-bold text-[#505050] text-lg">
+                  <p className="font-bold text-gray-primary text-lg">
                     Link a New Device
                   </p>
-                  <p className="text-sm text-[#505050]">
+                  <p className="text-sm text-gray-primary">
                     Scan the QR code with your mobile app to link a new devices
                   </p>
                 </div>
               </div>
-              <button className="px-6 py-2 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+              <button className="px-6 py-2 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
                 Link via QR Code
               </button>
             </div>
 
             {/* Active Sessions */}
             <div className="flex flex-col gap-3">
-              <span className="text-lg font-bold text-[#505050]">
+              <span className="text-lg font-bold text-gray-primary">
                 Active Sessions
               </span>
               <div className="flex flex-col gap-5">
@@ -774,27 +777,30 @@ export default function SettingsModal({
                 ].map((session, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]"
+                    className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-3 bg-[#fcede6] rounded-xl">
-                        <session.icon size={24} className="text-[#ee652b]" />
+                      <div className="p-3 bg-orange-bg-heavy rounded-xl">
+                        <session.icon
+                          size={24}
+                          className="text-orange-primary"
+                        />
                       </div>
                       <div>
-                        <p className="font-semibold text-[#505050]">
+                        <p className="font-semibold text-gray-primary">
                           {session.device}
                         </p>
-                        <p className="text-sm text-[#505050]">
+                        <p className="text-sm text-gray-primary">
                           {session.location}
                         </p>
                       </div>
                     </div>
                     {session.current ? (
-                      <span className="px-4 py-2 bg-[#fcede6] text-[#ee652b] rounded-lg font-semibold">
+                      <span className="px-4 py-2 bg-orange-bg-heavy text-orange-primary rounded-lg font-semibold">
                         Current Device
                       </span>
                     ) : (
-                      <button className="px-4 py-2 text-[#ee652b] hover:bg-[#fcede6] rounded-lg font-semibold">
+                      <button className="px-4 py-2 text-orange-primary hover:bg-orange-bg-heavy rounded-lg font-semibold">
                         Logout
                       </button>
                     )}
@@ -807,8 +813,8 @@ export default function SettingsModal({
             <div className="flex gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
               <Info size={24} className="text-blue-500 flex-shrink-0 mt-1" />
               <div>
-                <p className="font-bold text-[#505050] mb-1">Security Tip</p>
-                <p className="text-sm text-[#505050]">
+                <p className="font-bold text-gray-primary mb-1">Security Tip</p>
+                <p className="text-sm text-gray-primary">
                   If you see a session you don't recognize, log it out
                   immediately and change your account password
                 </p>
@@ -833,14 +839,16 @@ export default function SettingsModal({
           className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
           aria-label="Close"
         >
-          <X size={24} className="text-[#505050]" />
+          <X size={24} className="text-gray-primary" />
         </button>
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-80 bg-[#fdfaf9] border-r border-[#fbe7df] p-6 overflow-y-auto flex-shrink-0">
-            <h1 className="text-2xl font-bold text-[#505050] mb-2">Settings</h1>
-            <p className="text-[#505050] mb-8">
+          <div className="w-80 bg-orange-bg-light border-r border-orange-border-light p-6 overflow-y-auto flex-shrink-0">
+            <h1 className="text-2xl font-bold text-gray-primary mb-2">
+              Settings
+            </h1>
+            <p className="text-gray-primary mb-8">
               Manage your account and app experience
             </p>
 
@@ -852,23 +860,28 @@ export default function SettingsModal({
                   className={clsx(
                     "w-full flex items-start gap-3 p-4 rounded-2xl transition-all text-left",
                     activeTab === id
-                      ? "bg-[#fcede6] border-2 border-[#ee652b]"
-                      : "hover:bg-[#fcede6]",
+                      ? "bg-orange-bg-heavy border-2 border-orange-primary"
+                      : "hover:bg-orange-bg-heavy",
                   )}
                 >
                   <Icon
                     size={24}
                     className={clsx(
                       "mt-1 flex-shrink-0",
-                      activeTab === id ? "text-[#ee652b]" : "text-[#505050]",
+                      activeTab === id
+                        ? "text-orange-primary"
+                        : "text-gray-primary",
                     )}
                   />
                   <div className="flex-1">
-                    <p className="font-semibold text-[#505050]">{label}</p>
-                    <p className="text-sm text-[#505050]">{description}</p>
+                    <p className="font-semibold text-gray-primary">{label}</p>
+                    <p className="text-sm text-gray-primary">{description}</p>
                   </div>
                   {activeTab === id && (
-                    <ChevronRight size={24} className="text-[#ee652b] mt-1" />
+                    <ChevronRight
+                      size={24}
+                      className="text-orange-primary mt-1"
+                    />
                   )}
                 </button>
               ))}

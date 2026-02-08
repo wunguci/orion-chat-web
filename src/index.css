@@ -2,6 +2,14 @@
 @import "tailwindcss";
 
 /* ==================== CUSTOM CSS VARIABLES ==================== */
+@theme {
+  --color-orange-primary: #ee652b;
+  --color-orange-bg-heavy: #fcede6;
+  --color-orange-bg-light: #fdfaf9;
+  --color-orange-border-light: #fbe7df;
+  --color-gray-primary: #505050;
+}
+
 :root {
   /* Colors - Palette chính cho ứng dụng chat */
   --color-primary: #0068ff; /* Màu xanh chủ đạo (như Zalo) */
@@ -33,12 +41,6 @@
   --color-message-sent: #0068ff; /* Background tin nhắn đã gửi */
   --color-message-received: #f3f4f6; /* Background tin nhắn nhận */
   --color-message-hover: #f9fafb; /* Hover message */
-
-  --primary-orange: #ee652b;
-  --bg-orange-heavy: #fcede6;
-  --bg-orange-light: #fdfaf9;
-  --border-orange-light: #fbe7df;
-  --color-text-primary: #505050;
 
   /* Typography */
   --font-family-base:
