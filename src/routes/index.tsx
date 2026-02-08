@@ -11,7 +11,7 @@ import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
-
+import GroupChat from "../components/layout/GroupChat";
 
 export const router = createBrowserRouter([
   {
@@ -44,16 +44,26 @@ export const router = createBrowserRouter([
         path: ROUTES.CHAT.ROOT,
         element: <ChatLayout />,
         children: [
-            {
-                index: true,
-                element: <ChatPage />,
-            }
-        ]
+          {
+            index: true,
+            element: <ChatPage />,
+          },
+        ],
+      },
+      {
+        path: ROUTES.CHAT.GROUP,
+        element: <ChatLayout />,
+        children: [
+          {
+            index: true,
+            element: <GroupChat />,
+          },
+        ],
       },
       {
         path: ROUTES.NOT_FOUND,
-        element: <NotFoundPage />
-      }
+        element: <NotFoundPage />,
+      },
     ],
   },
 ]);

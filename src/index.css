@@ -8,6 +8,9 @@
   --color-orange-bg-light: #fdfaf9;
   --color-orange-border-light: #fbe7df;
   --color-gray-primary: #505050;
+  --color-gray-secondary: #94a3b8;
+
+  --color-blue-dark: #0052cc;
 }
 
 :root {

@@ -133,7 +133,7 @@ export default function SettingsModal({
               <div className="flex flex-col gap-8">
                 {/* Avatar Upload */}
                 <div className="bg-orange-bg-light rounded-2xl p-6 border border-orange-border-light flex items-center gap-4">
-                  <div className="w-25 h-25 rounded-full bg-gradient-to-br from-orange-bg-heavy to-orange-border-light flex items-center justify-center text-2xl">
+                  <div className="w-25 h-25 rounded-full bg-linear-to-br from-orange-bg-heavy to-orange-border-light flex items-center justify-center text-2xl">
                     <FontAwesomeIcon
                       icon={faUser}
                       className="text-white text-5xl"
