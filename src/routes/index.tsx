@@ -6,8 +6,8 @@ import { MainLayout } from "../components/layout/MainLayout";
 import { AuthLayout } from "../components/layout/AuthLayout";
 import { ChatLayout } from "../components/layout/ChatLayout";
 
-// Pages
-import { LoginPage } from "../pages/auth/LoginPage";
+// Page
+import LoginPage  from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
