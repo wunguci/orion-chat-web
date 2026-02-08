@@ -1,0 +1,29 @@
+import clsx from "clsx";
+import { CircleCheck } from "lucide-react";
+
+function SelectionButton({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={clsx(
+        "flex items-center justify-center gap-5 px-6 py-3 rounded-xl border-2 transition-colors w-full",
+        selected
+          ? "border-[#ee652b] bg-white text-[#ee652b]"
+          : "border-[0.5px] border-[#FBE7DF] bg-white text-[#505050] hover:border-gray-300",
+      )}
+    >
+      {selected && <CircleCheck size={20} className="fill-current" />}
+      {label}
+    </button>
+  );
+}
+
+export default SelectionButton;

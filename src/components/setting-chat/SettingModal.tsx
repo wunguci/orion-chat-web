@@ -1,0 +1,884 @@
+import React, { useState } from "react";
+import {
+  User,
+  Lock,
+  Bell,
+  Palette,
+  Smartphone,
+  ChevronRight,
+  Upload,
+  Trash2,
+  Volume2,
+  Eye,
+  Shield,
+  CheckCircle,
+  X,
+  Sun,
+  Moon,
+  Monitor,
+  QrCode,
+  Chrome,
+  Info,
+  Play,
+} from "lucide-react";
+import clsx from "clsx";
+import "./SettingModal.css";
+import avatarImg from "../../../public/avatar.jpg";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUser, faCog, faBell } from "@fortawesome/free-solid-svg-icons";
+import { faHeart } from "@fortawesome/free-regular-svg-icons";
+import { faFacebook } from "@fortawesome/free-brands-svg-icons";
+import InputTextWithLabel from "../common/InputTextWithLabel";
+import ToggleSwitch from "../common/ToggleSwitch";
+import ToggleSwitchButton from "../common/ToggleSwitchButton";
+import SelectionButton from "../common/SelectionButton";
+
+type TabType =
+  | "profile"
+  | "privacy"
+  | "notifications"
+  | "appearance"
+  | "devices";
+
+interface SettingsModalProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function SettingsModal({
+  isOpen = true,
+  onClose,
+}: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<TabType>("profile");
+  const [formData, setFormData] = useState({
+    displayName: "Huynh Zang",
+    username: "@zangthanks",
+    statusMessage: "Working on something cozy",
+    pushNotifications: true,
+    readReceipts: true,
+    soundEffects: true,
+    lastSeenVisibility: "everyone",
+    profilePhotoVisibility: "contacts",
+    aboutInfoVisibility: "nobody",
+    muteAllNotifications: false,
+    showDesktopNotifications: true,
+    showMessagePreview: true,
+    notificationSound: "Crystal Clear",
+    enableGroupNotifications: true,
+    mentionsOnly: true,
+    ringtone: "Classic Ring",
+    incomingCallWindow: true,
+    themeMode: "light",
+    selectedWallpaper: "teal",
+    textSize: "medium",
+  });
+
+  const [hasChanges, setHasChanges] = useState(false);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setHasChanges(true);
+  };
+
+  const handleSave = () => {
+    setHasChanges(false);
+  };
+
+  const handleDiscard = () => {
+    setHasChanges(false);
+  };
+
+  const tabs = [
+    {
+      id: "profile",
+      label: "Profile",
+      icon: User,
+      description: "Avatar, name, and bio",
+    },
+    {
+      id: "privacy",
+      label: "Privacy",
+      icon: Lock,
+      description: "Blocked users, encryption",
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: Bell,
+      description: "Mute, sounds, and badges",
+    },
+    {
+      id: "appearance",
+      label: "Appearance",
+      icon: Palette,
+      description: "Themes, wallpapers, fonts",
+    },
+    {
+      id: "devices",
+      label: "Devices",
+      icon: Smartphone,
+      description: "Active sessions and logins",
+    },
+  ];
+
+  const toggleOption = (field: string) => {
+    handleInputChange(field, !formData[field as keyof typeof formData]);
+  };
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "profile":
+        return (
+          <div className="flex flex-col gap-12">
+            <div className="flex flex-col gap-3">
+              <span className="text-[26px] font-bold text-[#505050]">
+                Profile Settings
+              </span>
+
+              <div className="flex flex-col gap-8">
+                {/* Avatar Upload */}
+                <div className="bg-[#fdfaf9] rounded-2xl p-6 border border-[#fbe7df] flex items-center gap-4">
+                  <div className="w-25 h-25 rounded-full bg-gradient-to-br from-[#fcede6] to-[#fbe7df] flex items-center justify-center text-2xl">
+                    <FontAwesomeIcon
+                      icon={faUser}
+                      className="text-white text-5xl"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2.5">
+                    <span className="text-xl font-bold text-[#505050]">
+                      Full Name
+                    </span>
+                    <p className="text-sm font-semibold text-[#505050]">
+                      JPG, GIF or PNG. Max size of 800K
+                    </p>
+                    <div className="flex gap-2">
+                      <button className="flex items-center gap-2 px-6 py-2 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+                        <Upload size={20} />
+                        Upload New
+                      </button>
+                      <button className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-[#505050] hover:bg-gray-50 font-semibold">
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="flex flex-col gap-7">
+                  <div className="grid grid-cols-2 gap-6">
+                    <InputTextWithLabel
+                      label="Display Name"
+                      value={formData.displayName}
+                      placeholder="Enter your display name"
+                      handleInputChange={handleInputChange}
+                      fieldName="displayName"
+                    />
+                    <InputTextWithLabel
+                      label="Username"
+                      value={formData.username}
+                      placeholder="Enter your username"
+                      handleInputChange={handleInputChange}
+                      fieldName="username"
+                    />
+                  </div>
+
+                  <InputTextWithLabel
+                    label="Status Message"
+                    value={formData.statusMessage}
+                    placeholder="Enter your status message"
+                    handleInputChange={handleInputChange}
+                    fieldName="statusMessage"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Preferences */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[26px] font-bold text-[#505050]">
+                Preferences
+              </span>
+              <div className="flex flex-col gap-5">
+                {[
+                  {
+                    label: "Push Notifications",
+                    description: "Receive alerts for new messages",
+                    field: "pushNotifications",
+                    icon: Bell,
+                  },
+                  {
+                    label: "Read Receipts",
+                    description: "Others can see when you've read messages",
+                    field: "readReceipts",
+                    icon: Eye,
+                  },
+                  {
+                    label: "Sound Effects",
+                    description: "Play sounds for incoming messages",
+                    field: "soundEffects",
+                    icon: Volume2,
+                  },
+                ].map(({ label, description, field, icon: Icon }) => (
+                  <ToggleSwitchButton
+                    key={field}
+                    description={description}
+                    label={label}
+                    checked={
+                      formData[field as keyof typeof formData] as boolean
+                    }
+                    icon={Icon}
+                    onChange={() => toggleOption(field)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-[#FBE7DF]">
+              <button
+                onClick={handleDiscard}
+                className="px-6 py-3 border border-gray-300 rounded-lg text-[#505050] hover:bg-gray-50 font-semibold"
+              >
+                Discard Changes
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-6 py-3 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        );
+
+      case "privacy":
+        return (
+          <div className="flex flex-col gap-12">
+            <div>
+              <span className="text-[26px] font-bold text-[#505050] mb-1">
+                Privacy & Security
+              </span>
+              <p className="text-[#505050]">
+                Manage who can see your information and contact you
+              </p>
+            </div>
+
+            {/* Who can see my info */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[22px] font-bold text-[#505050]">
+                Who can see my info
+              </span>
+              <div className="flex flex-col gap-5">
+                {[
+                  {
+                    label: "Last seen visibility",
+                    description: "Select who can see when you were last online",
+                    field: "lastSeenVisibility",
+                  },
+                  {
+                    label: "Profile Photo",
+                    description: "Select who can see when your profile picture",
+                    field: "profilePhotoVisibility",
+                  },
+                  {
+                    label: "About info",
+                    description: "Select who can see when your status and bio",
+                    field: "aboutInfoVisibility",
+                  },
+                ].map(({ label, description, field }) => (
+                  <div
+                    key={field}
+                    className="flex flex-col gap-3 bg-[#FDFAF9] border border-[#FBE7DF] rounded-xl py-4 px-5 w-full"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <p className="font-semibold text-[#505050]">{label}</p>
+                      <p className="text-sm text-[#505050]">{description}</p>
+                    </div>
+                    <div className="flex gap-3">
+                      {["everyone", "contacts", "nobody"].map((option) => (
+                        <SelectionButton
+                          key={option}
+                          label={
+                            option === "everyone"
+                              ? "Everyone"
+                              : option === "contacts"
+                                ? "My Contacts"
+                                : "Nobody"
+                          }
+                          selected={
+                            formData[field as keyof typeof formData] === option
+                          }
+                          onClick={() => handleInputChange(field, option)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Message & Safety */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[22px] font-bold text-[#505050]">
+                Message & Safety
+              </span>
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]">
+                  <div className="flex items-center gap-3">
+                    <Eye size={24} className="text-[#ee652b]" />
+                    <div>
+                      <p className="font-semibold text-[#505050]">
+                        Read Receipts
+                      </p>
+                      <p className="text-sm text-[#505050]">
+                        If turned off, you won't send or receive Read Receipts.
+                        Read receipts are always sent for group chats
+                      </p>
+                    </div>
+                  </div>
+                  <ToggleSwitch
+                    checked={formData.readReceipts}
+                    onChange={() => toggleOption("readReceipts")}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]">
+                  <div className="flex items-center gap-3">
+                    <Shield size={24} className="text-[#ee652b]" />
+                    <div>
+                      <p className="font-semibold text-[#505050]">
+                        Blocked Contacts
+                      </p>
+                      <p className="text-sm text-[#505050]">
+                        14 contacts blocked
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight size={24} className="text-[#ee652b]" />
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]">
+                  <div className="flex items-center gap-3">
+                    <Shield size={24} className="text-[#ee652b]" />
+                    <div>
+                      <p className="font-semibold text-[#505050]">
+                        Two-step Verification
+                      </p>
+                      <p className="text-sm text-[#505050]">
+                        Add extra security to your account
+                      </p>
+                    </div>
+                  </div>
+                  <button className="px-6 py-2 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+                    Enable
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "notifications":
+        return (
+          <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-5">
+              <span className="text-[28px] font-bold text-[#505050]">
+                Notifications
+              </span>
+
+              {/* Mute all notifications */}
+              <div className="flex items-center justify-between p-4 rounded-xl border border-[#fbe7df]">
+                <div>
+                  <p className="font-bold text-[#505050] text-lg">
+                    Mute all notifications
+                  </p>
+                  <p className="text-sm text-[#505050]">
+                    Temporarily silence all desktop and sound alerts for a while
+                  </p>
+                </div>
+                <ToggleSwitch
+                  checked={formData.muteAllNotifications}
+                  onChange={() => toggleOption("muteAllNotifications")}
+                />
+              </div>
+            </div>
+
+            {/* Message Notifications */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[22px] font-bold text-[#505050]">
+                Message Notifications
+              </span>
+              <div className="flex flex-col message-notifications">
+                {[
+                  {
+                    label: "Show Desktop Notifications",
+                    description:
+                      "Receive a pop-up alert when you get a direct message",
+                    field: "showDesktopNotifications",
+                    icon: Bell,
+                  },
+                  {
+                    label: "Show Message Preview",
+                    description:
+                      "Display the sender and message snippet in alerts",
+                    field: "showMessagePreview",
+                    icon: Eye,
+                  },
+                ].map(({ label, description, field, icon: Icon }) => (
+                  <div
+                    key={field}
+                    className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon size={24} className="text-[#ee652b]" />
+                      <div>
+                        <p className="font-semibold text-[#505050]">{label}</p>
+                        <p className="text-sm text-[#505050]">{description}</p>
+                      </div>
+                    </div>
+                    <ToggleSwitch
+                      checked={
+                        formData[field as keyof typeof formData] as boolean
+                      }
+                      onChange={() => toggleOption(field)}
+                    />
+                  </div>
+                ))}
+
+                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-b-2xl border border-[#fbe7df]">
+                  <div className="flex items-center gap-3">
+                    <Play size={24} className="text-[#ee652b]" />
+                    <div>
+                      <p className="font-semibold text-[#505050]">
+                        Notification Sound
+                      </p>
+                      <p className="text-sm text-[#505050]">
+                        Choose the sound for incoming direct messages
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <select
+                      value={formData.notificationSound}
+                      onChange={(e) =>
+                        handleInputChange("notificationSound", e.target.value)
+                      }
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-[#505050] focus:outline-none"
+                    >
+                      <option>Crystal Clear</option>
+                      <option>Bell</option>
+                      <option>Chime</option>
+                    </select>
+                    <button className="p-2 bg-[#ee652b] text-white rounded-full hover:bg-[#d65421]">
+                      <Play size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Group Notifications */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[22px] font-bold text-[#505050]">
+                Group Notifications
+              </span>
+              <div className="flex flex-col message-notifications">
+                {[
+                  {
+                    label: "Enable Group Notifications",
+                    description:
+                      "Receive notifications for activity in group chats",
+                    field: "enableGroupNotifications",
+                  },
+                  {
+                    label: "Mentions Only",
+                    description:
+                      "Only notify me if someone @mentions me in a group",
+                    field: "mentionsOnly",
+                  },
+                ].map(({ label, description, field }) => (
+                  <div
+                    key={field}
+                    className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]"
+                  >
+                    <div>
+                      <p className="font-semibold text-[#505050]">{label}</p>
+                      <p className="text-sm text-[#505050]">{description}</p>
+                    </div>
+                    <ToggleSwitch
+                      checked={
+                        formData[field as keyof typeof formData] as boolean
+                      }
+                      onChange={() => toggleOption(field)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Call */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[22px] font-bold text-[#505050]">Call</span>
+              <div className="flex flex-col message-notifications">
+                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]">
+                  <div className="flex items-center gap-3">
+                    <Bell size={24} className="text-[#ee652b]" />
+                    <div>
+                      <p className="font-semibold text-[#505050]">Ringtone</p>
+                      <p className="text-sm text-[#505050]">
+                        Sound played during incoming voice and video call
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <select
+                      value={formData.ringtone}
+                      onChange={(e) =>
+                        handleInputChange("ringtone", e.target.value)
+                      }
+                      className="px-4 py-2 border border-gray-200 rounded-lg text-[#505050] focus:outline-none"
+                    >
+                      <option>Classic Ring</option>
+                      <option>Modern Bell</option>
+                      <option>Soft Chime</option>
+                    </select>
+                    <button className="p-2 bg-[#ee652b] text-white rounded-full hover:bg-[#d65421]">
+                      <Play size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-[#fdfaf9] border border-[#fbe7df]">
+                  <div>
+                    <p className="font-semibold text-[#505050]">
+                      Incoming Call Window
+                    </p>
+                    <p className="text-sm text-[#505050]">
+                      Show call controls even when the apps in background
+                    </p>
+                  </div>
+                  <ToggleSwitch
+                    checked={formData.incomingCallWindow}
+                    onChange={() => toggleOption("incomingCallWindow")}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "appearance":
+        return (
+          <div className="flex flex-col gap-8">
+            <div>
+              <span className="text-[28px] font-bold text-[#505050]">
+                Appearance & Theme
+              </span>
+              <p className="text-[#505050]">
+                Customize how your chat experience looks and feels
+              </p>
+            </div>
+
+            {/* Theme Mode */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[22px] font-bold text-[#505050]">
+                Theme Mode
+              </span>
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { value: "light", label: "Light", icon: Sun },
+                  { value: "dark", label: "Dark", icon: Moon },
+                  { value: "system", label: "System", icon: Monitor },
+                ].map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => handleInputChange("themeMode", value)}
+                    className={clsx(
+                      "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 transition-colors",
+                      formData.themeMode === value
+                        ? "border-[#ee652b] bg-white"
+                        : "border-gray-200 bg-white hover:border-gray-300",
+                    )}
+                  >
+                    <Icon
+                      size={32}
+                      className={clsx(
+                        formData.themeMode === value
+                          ? "text-[#ee652b]"
+                          : "text-[#FBE7DF]",
+                      )}
+                    />
+                    <span
+                      className={clsx(
+                        "font-semibold",
+                        formData.themeMode === value
+                          ? "text-[#ee652b]"
+                          : "text-[#505050]",
+                      )}
+                    >
+                      {label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Chat Wallpaper */}
+            <div className="flex flex-col gap-3">
+              <span className="text-[22px] font-bold text-[#505050]">
+                Chat Wallpaper
+              </span>
+              <div className="grid grid-cols-7 gap-4">
+                {[
+                  { value: "teal", color: "#2ab3b3" },
+                  { value: "orange", color: "#ee652b" },
+                  { value: "purple", color: "#6366f1" },
+                  { value: "green", color: "#a1f258" },
+                  { value: "red", color: "#ab2346" },
+                  { value: "gray", color: "#c1cad8" },
+                  { value: "light-gray", color: "#dfdddd" },
+                ].map(({ value, color }) => (
+                  <button
+                    key={value}
+                    onClick={() =>
+                      handleInputChange("selectedWallpaper", value)
+                    }
+                    className={clsx(
+                      "h-32 rounded-2xl border-4 transition-all",
+                      formData.selectedWallpaper === value
+                        ? "border-[#ee652b] scale-105"
+                        : "border-transparent hover:border-gray-300",
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Text Size */}
+            <div className="flex flex-col gap-3 items-start w-full">
+              <span className="text-[22px] font-bold text-[#505050]">
+                Text Size
+              </span>
+              <div className="grid grid-cols-3 gap-4 w-full">
+                {["small", "medium", "large"].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => handleInputChange("textSize", size)}
+                    className={clsx(
+                      "px-6 py-3 rounded-xl border-2 transition-colors capitalize font-semibold",
+                      formData.textSize === size
+                        ? "border-[#ee652b] bg-white text-[#ee652b]"
+                        : "border-gray-200 bg-white text-[#505050] hover:border-gray-300",
+                    )}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm text-[#505050] text-center">
+                Adjusting the font size will change the scale all chat text
+                across the app.
+              </p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center pt-5 border-t border-gray-200">
+              <button
+                onClick={handleDiscard}
+                className="text-[#505050] hover:text-[#ee652b] font-semibold"
+              >
+                Reset to default settings
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDiscard}
+                  className="px-6 py-3 border border-gray-300 rounded-lg text-[#505050] hover:bg-gray-50 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="px-6 py-3 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "devices":
+        return (
+          <div className="space-y-8">
+            <div>
+              <span className="text-[28px] font-bold text-[#505050] mb-1">
+                Linked Devices
+              </span>
+              <p className="text-[#505050]">
+                Manage your active sessions and link new devices to keep your
+                conversations synced
+              </p>
+            </div>
+
+            {/* Log out button */}
+            <button className="px-8 py-3 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+              Log out from all other devices
+            </button>
+
+            {/* Link a New Device */}
+            <div className="flex items-center justify-between p-6 bg-white rounded-xl border border-[#fbe7df]">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-[#fcede6] rounded-xl">
+                  <QrCode size={28} className="text-[#ee652b]" />
+                </div>
+                <div>
+                  <p className="font-bold text-[#505050] text-lg">
+                    Link a New Device
+                  </p>
+                  <p className="text-sm text-[#505050]">
+                    Scan the QR code with your mobile app to link a new devices
+                  </p>
+                </div>
+              </div>
+              <button className="px-6 py-2 bg-[#ee652b] text-white rounded-lg hover:bg-[#d65421] font-semibold">
+                Link via QR Code
+              </button>
+            </div>
+
+            {/* Active Sessions */}
+            <div className="flex flex-col gap-3">
+              <span className="text-lg font-bold text-[#505050]">
+                Active Sessions
+              </span>
+              <div className="flex flex-col gap-5">
+                {[
+                  {
+                    device: "Macbook Pro - Chrome",
+                    location: "San Francisco, USA | IP: 192.168.1.1",
+                    current: true,
+                    icon: Chrome,
+                  },
+                  {
+                    device: "iPhone 15 Pro",
+                    location: "Londo, UK | Last active: 2 hours ago",
+                    current: false,
+                    icon: Smartphone,
+                  },
+                  {
+                    device: "Window Desktop - Edge",
+                    location: "New York, USA | Last active: Oct 24, 2024",
+                    current: false,
+                    icon: Monitor,
+                  },
+                ].map((session, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-[#fcede6] rounded-xl">
+                        <session.icon size={24} className="text-[#ee652b]" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[#505050]">
+                          {session.device}
+                        </p>
+                        <p className="text-sm text-[#505050]">
+                          {session.location}
+                        </p>
+                      </div>
+                    </div>
+                    {session.current ? (
+                      <span className="px-4 py-2 bg-[#fcede6] text-[#ee652b] rounded-lg font-semibold">
+                        Current Device
+                      </span>
+                    ) : (
+                      <button className="px-4 py-2 text-[#ee652b] hover:bg-[#fcede6] rounded-lg font-semibold">
+                        Logout
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Security Tip */}
+            <div className="flex gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+              <Info size={24} className="text-blue-500 flex-shrink-0 mt-1" />
+              <div>
+                <p className="font-bold text-[#505050] mb-1">Security Tip</p>
+                <p className="text-sm text-[#505050]">
+                  If you see a session you don't recognize, log it out
+                  immediately and change your account password
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 overflow-hidden setting-modal-isolate animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col relative setting-modal-content animate-scale-in overflow-hidden">
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          aria-label="Close"
+        >
+          <X size={24} className="text-[#505050]" />
+        </button>
+
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <div className="w-80 bg-[#fdfaf9] border-r border-[#fbe7df] p-6 overflow-y-auto flex-shrink-0">
+            <h1 className="text-2xl font-bold text-[#505050] mb-2">Settings</h1>
+            <p className="text-[#505050] mb-8">
+              Manage your account and app experience
+            </p>
+
+            <div className="space-y-3">
+              {tabs.map(({ id, label, icon: Icon, description }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id as TabType)}
+                  className={clsx(
+                    "w-full flex items-start gap-3 p-4 rounded-2xl transition-all text-left",
+                    activeTab === id
+                      ? "bg-[#fcede6] border-2 border-[#ee652b]"
+                      : "hover:bg-[#fcede6]",
+                  )}
+                >
+                  <Icon
+                    size={24}
+                    className={clsx(
+                      "mt-1 flex-shrink-0",
+                      activeTab === id ? "text-[#ee652b]" : "text-[#505050]",
+                    )}
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-[#505050]">{label}</p>
+                    <p className="text-sm text-[#505050]">{description}</p>
+                  </div>
+                  {activeTab === id && (
+                    <ChevronRight size={24} className="text-[#ee652b] mt-1" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 p-8 overflow-y-auto">{renderContent()}</div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,126 @@
+:root {
+  --primary-orange: #ee652b;
+  --bg-orange-heavy: #fcede6;
+  --bg-orange-light: #fdfaf9;
+  --border-orange-light: #fbe7df;
+  --color-text-primary: #505050;
+
+  --primary-blue: #3b82f6;
+  --bg-blue-light: #eff6ff;
+  --border-blue: #dbeafe;
+
+  --wallpaper-light-green: #2ab3b3;
+  --wallpaper-orange: #ee652b;
+  --wallpaper-purple: #6366f1;
+  --wallpaper-green: #a1f258;
+  --wallpaper-heavy-red: #ab2346;
+  --wallpaper-heavy-gray: #c1cad8;
+  --wallpaper-light-gray: #dfdddd;
+}
+
+.setting-modal-isolate {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+.setting-modal-content {
+  line-height: 1.5;
+
+  color: #1f2937;
+}
+
+.setting-modal-isolate button {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.setting-modal-isolate input,
+.setting-modal-isolate textarea,
+.setting-modal-isolate select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.setting-modal-isolate input:focus,
+.setting-modal-isolate textarea:focus,
+.setting-modal-isolate button:focus,
+.setting-modal-isolate select:focus {
+  outline: none;
+}
+
+.setting-modal-isolate a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.setting-modal-isolate ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.setting-modal-isolate ::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 9999px;
+}
+
+.setting-modal-isolate ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+  transition: background 150ms ease-in-out;
+}
+
+.setting-modal-isolate ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.setting-modal-isolate * {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+/* Modal Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.message-notifications > div:first-child {
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+}
+
+.message-notifications > div:last-child {
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
