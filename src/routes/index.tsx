@@ -8,7 +8,7 @@ import { ChatLayout } from "../components/layout/ChatLayout";
 
 // Page
 import LoginPage  from "../pages/auth/LoginPage";
-import { RegisterPage } from "../pages/auth/RegisterPage";
+import  RegisterPage  from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import GroupChat from "../components/layout/GroupChat";
