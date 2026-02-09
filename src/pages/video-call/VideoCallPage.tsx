@@ -56,7 +56,7 @@ const VideoCallPage: React.FC = () => {
       id: "2",
       name: "Sarah Johnson",
       avatar: "SJ",
-      avatarBg: "#ec4899",
+      avatarBg: "#4207f2",
       isMuted: false,
       isVideoOff: false,
       isSpeaking: true,
@@ -85,7 +85,7 @@ const VideoCallPage: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "1",
-      author: "John Doe",
+      author: "Phan Phước Hiệp",
       avatar: "JD",
       avatarBg: "#80a1ba",
       time: "2:30 PM",
@@ -93,15 +93,15 @@ const VideoCallPage: React.FC = () => {
     },
     {
       id: "2",
-      author: "Sarah Johnson",
+      author: "Giang",
       avatar: "SJ",
-      avatarBg: "#ec4899",
+      avatarBg: "#4869ec",
       time: "2:31 PM",
       text: "Yes, let's go through the project updates first",
     },
     {
       id: "3",
-      author: "Michael Chen",
+      author: "Michael Vũ",
       avatar: "MC",
       avatarBg: "#f59e0b",
       time: "2:32 PM",
@@ -109,7 +109,6 @@ const VideoCallPage: React.FC = () => {
     },
   ]);
 
-  // Call duration timer
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = Math.floor(
@@ -128,7 +127,6 @@ const VideoCallPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-hide controls
   const handleMouseMove = () => {
     setControlsVisible(true);
 
@@ -151,13 +149,11 @@ const VideoCallPage: React.FC = () => {
     };
   }, []);
 
-  // Show notification
   const showNotification = (message: string) => {
     setNotification(message);
     setTimeout(() => setNotification(null), 3000);
   };
 
-  // Handlers
   const toggleMic = () => {
     setMicEnabled(!micEnabled);
   };
@@ -234,77 +230,93 @@ const VideoCallPage: React.FC = () => {
 
   return (
     <div className="w-screen h-screen flex flex-col relative bg-black overflow-hidden">
-      {/* Header */}
       <div
-        className={`absolute top-0 left-0 right-0 px-8 py-5 bg-gradient-to-b from-slate-900/95 to-transparent flex justify-between items-center z-[100] transition-opacity duration-300 ${
+        className={`absolute top-0 left-0 right-0 px-6 py-4 bg-gradient-to-b from-black/90 via-black/60 to-transparent flex justify-between items-center z-[100] transition-all duration-300 ${
           controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
-        <div className="flex items-center gap-4">
-          <h3 className="text-lg font-semibold text-[#fff7dd]">
-            Meeting with Sarah Johnson
+        <div className="flex items-center gap-3">
+          <h3 className="text-lg font-semibold text-white tracking-tight">
+            Meeting with Phan Phước Hiệp
           </h3>
-          <div className="flex items-center gap-2 px-4 py-1.5 bg-[#80a1ba]/20 rounded-full text-sm text-[#fff7dd]">
-            <i className="fas fa-clock"></i>
-            <span>{callDuration}</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm text-white/90 border border-white/10">
+            <i className="fas fa-clock text-xs"></i>
+            <span className="font-medium">{callDuration}</span>
           </div>
           {recording && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500 rounded-full text-xs text-red-500 animate-pulse">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 border border-red-500/50 rounded-lg text-xs text-red-400 animate-pulse backdrop-blur-sm">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-              <span>Recording</span>
+              <span className="font-medium">Recording</span>
             </div>
           )}
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex gap-2">
           <button
-            className="w-10 h-10 rounded-lg bg-[#80a1ba]/20 border border-[#80a1ba]/30 text-[#fff7dd] flex items-center justify-center hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:scale-105 transition-all backdrop-blur-[10px]"
-            title="Settings"
+            onClick={() => switchView("1-1")}
+            className={`group relative w-12 h-12 rounded-lg flex flex-col items-center justify-center transition-all duration-200 ${
+              currentView === "1-1"
+                ? "bg-blue-500 shadow-lg shadow-blue-500/50 scale-105"
+                : "bg-white/10 hover:bg-white/20 hover:scale-105"
+            }`}
+            title="1-1 View"
           >
-            <i className="fas fa-cog"></i>
+            <i
+              className={`fas fa-user text-base ${
+                currentView === "1-1"
+                  ? "text-white"
+                  : "text-white/70 group-hover:text-white"
+              }`}
+            ></i>
+            <span
+              className={`text-[9px] mt-0.5 font-medium ${
+                currentView === "1-1"
+                  ? "text-white"
+                  : "text-white/60 group-hover:text-white/90"
+              }`}
+            >
+              1-1
+            </span>
+          </button>
+          <button
+            onClick={() => switchView("grid")}
+            className={`group relative w-12 h-12 rounded-lg flex flex-col items-center justify-center transition-all duration-200 ${
+              currentView === "grid"
+                ? "bg-blue-500 shadow-lg shadow-blue-500/50 scale-105"
+                : "bg-white/10 hover:bg-white/20 hover:scale-105"
+            }`}
+            title="Grid View"
+          >
+            <i
+              className={`fas fa-th text-base ${
+                currentView === "grid"
+                  ? "text-white"
+                  : "text-white/70 group-hover:text-white"
+              }`}
+            ></i>
+            <span
+              className={`text-[9px] mt-0.5 font-medium ${
+                currentView === "grid"
+                  ? "text-white"
+                  : "text-white/60 group-hover:text-white/90"
+              }`}
+            >
+              Grid
+            </span>
           </button>
           <button
             onClick={toggleFullscreen}
-            className="w-10 h-10 rounded-lg bg-[#80a1ba]/20 border border-[#80a1ba]/30 text-[#fff7dd] flex items-center justify-center hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:scale-105 transition-all backdrop-blur-[10px]"
+            className="w-12 h-12 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 text-white/90 flex items-center justify-center hover:bg-white/20 hover:border-white/40 hover:scale-110 transition-all duration-200"
             title="Fullscreen"
           >
-            <i className="fas fa-expand"></i>
+            <i className="fas fa-expand text-sm"></i>
           </button>
         </div>
       </div>
 
-      {/* View Toggle */}
-      <div className="absolute top-5 right-5 flex gap-2 p-1.5 bg-slate-900/80 rounded-lg backdrop-blur-[10px] z-[90]">
-        <button
-          onClick={() => switchView("1-1")}
-          className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all ${
-            currentView === "1-1"
-              ? "bg-[#80a1ba] border-[#80a1ba] text-white"
-              : "bg-transparent border-transparent text-[#b4debd] hover:bg-[#91c4c3]/15 hover:text-[#fff7dd]"
-          }`}
-          title="1-1 View"
-        >
-          <i className="fas fa-user"></i>
-        </button>
-        <button
-          onClick={() => switchView("grid")}
-          className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all ${
-            currentView === "grid"
-              ? "bg-[#80a1ba] border-[#80a1ba] text-white"
-              : "bg-transparent border-transparent text-[#b4debd] hover:bg-[#91c4c3]/15 hover:text-[#fff7dd]"
-          }`}
-          title="Grid View"
-        >
-          <i className="fas fa-th"></i>
-        </button>
-      </div>
-
-      {/* Main Video Area */}
       <div className="flex-1 flex items-center justify-center relative bg-black">
-        {/* 1-1 Call View */}
         {currentView === "1-1" && (
           <div className="w-full h-full relative">
             <div className="w-full h-full relative">
-              {/* Main Video */}
               <div
                 className="w-full h-full object-cover bg-cover bg-center"
                 style={{
@@ -313,44 +325,50 @@ const VideoCallPage: React.FC = () => {
                 }}
               ></div>
 
-              {/* Participant Overlay */}
-              <div className="absolute top-5 left-5 flex items-center gap-2.5 px-4 py-2.5 bg-slate-900/80 rounded-lg backdrop-blur-[10px]">
+              <div className="absolute top-20 left-6 flex items-center gap-3 px-4 py-3 bg-black/80 backdrop-blur-xl rounded-xl shadow-2xl border border-white/20 z-[110] transition-all duration-300 hover:bg-black/90">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-[13px] text-white"
-                  style={{ background: "#ec4899" }}
+                  className="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-sm text-white shadow-lg"
+                  style={{ background: "#48c3ec" }}
                 >
                   SJ
                 </div>
-                <span className="text-sm font-medium text-[#fff7dd]">
-                  Sarah Johnson
-                </span>
-                <div className="flex gap-2 ml-2.5">
-                  <div className="w-6 h-6 rounded-md bg-[#80a1ba]/20 flex items-center justify-center text-[11px]">
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white">
+                    Sarah Johnson
+                  </span>
+                  <span className="text-xs text-white/60">Speaking...</span>
+                </div>
+                <div className="flex gap-1.5 ml-2 pl-2 border-l border-white/20">
+                  <div className="w-7 h-7 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center justify-center text-[11px] text-green-400">
                     <i className="fas fa-microphone"></i>
                   </div>
-                  <div className="w-6 h-6 rounded-md bg-[#80a1ba]/20 flex items-center justify-center text-[11px]">
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-[11px] text-blue-400">
                     <i className="fas fa-video"></i>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Self Video PiP */}
             <div
-              className="absolute bottom-5 right-5 w-60 h-[180px] rounded-xl overflow-hidden border-2 border-[#80a1ba] shadow-[0_8px_32px_rgba(0,0,0,0.5)] transition-all cursor-pointer hover:scale-105 hover:border-[#80a1ba] bg-cover bg-center"
+              className="absolute bottom-24 right-6 w-64 h-[180px] rounded-2xl overflow-hidden border-3 border-white/30 shadow-2xl transition-all duration-300 cursor-pointer hover:scale-105 hover:border-blue-500 hover:shadow-blue-500/30 bg-cover bg-center group"
               style={{
                 backgroundImage:
                   "url(https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/07/anh-sieu-xe.jpg)",
               }}
             >
-              <div className="absolute bottom-2 left-2 px-2.5 py-1 bg-slate-900/90 rounded-md text-[11px] font-medium text-[#fff7dd]">
-                You
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute bottom-3 left-3 px-3 py-1.5 bg-black/80 backdrop-blur-sm rounded-lg text-xs font-semibold text-white border border-white/20">
+                You (Host)
+              </div>
+              <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <button className="w-8 h-8 rounded-lg bg-black/80 backdrop-blur-sm border border-white/20 text-white flex items-center justify-center hover:bg-red-500 transition-colors">
+                  <i className="fas fa-expand-alt text-xs"></i>
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Group Call Grid View */}
         {currentView === "grid" && (
           <div className="grid grid-cols-2 grid-rows-2 gap-4 p-5 w-full h-full overflow-y-auto">
             {participants.map((participant, index) => (
@@ -366,7 +384,6 @@ const VideoCallPage: React.FC = () => {
                     "url(https://hoanghamobile.com/tin-tuc/wp-content/uploads/2024/07/anh-sieu-xe.jpg)",
                 }}
               >
-                {/* Participant Info */}
                 <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center px-3.5 py-2.5 bg-slate-900/90 rounded-lg backdrop-blur-[10px]">
                   <div className="flex items-center gap-2.5">
                     <div
@@ -402,98 +419,111 @@ const VideoCallPage: React.FC = () => {
         )}
       </div>
 
-      {/* Control Bar */}
       <div
-        className={`absolute bottom-0 left-0 right-0 px-8 py-8 bg-gradient-to-t from-slate-900/95 to-transparent flex justify-center items-center gap-4 z-[100] transition-opacity duration-300 ${
+        className={`absolute bottom-0 left-0 right-0 px-8 py-6 bg-gradient-to-t from-black/95 via-black/80 to-transparent flex justify-center items-center gap-3 z-[100] transition-all duration-300 ${
           controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         <button
           onClick={toggleMic}
-          className={`w-14 h-14 rounded-2xl border flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1 ${
+          className={`group w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl ${
             !micEnabled
-              ? "bg-[#80a1ba] border-[#80a1ba] text-white"
-              : "bg-[#80a1ba]/20 border-[#80a1ba]/30 text-[#fff7dd]"
+              ? "bg-red-500 shadow-lg shadow-red-500/50"
+              : "bg-white/15 hover:bg-white/25 border border-white/30"
           }`}
         >
           <i
-            className={`fas fa-microphone${!micEnabled ? "-slash" : ""} text-xl`}
+            className={`fas fa-microphone${!micEnabled ? "-slash" : ""} text-lg ${
+              !micEnabled ? "text-white" : "text-white/90"
+            }`}
           ></i>
-          <span className="text-[10px] mt-1 font-medium">Mic</span>
         </button>
 
         <button
           onClick={toggleVideo}
-          className={`w-14 h-14 rounded-2xl border flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1 ${
+          className={`group w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl ${
             !videoEnabled
-              ? "bg-[#80a1ba] border-[#80a1ba] text-white"
-              : "bg-[#80a1ba]/20 border-[#80a1ba]/30 text-[#fff7dd]"
+              ? "bg-red-500 shadow-lg shadow-red-500/50"
+              : "bg-white/15 hover:bg-white/25 border border-white/30"
           }`}
         >
           <i
-            className={`fas fa-video${!videoEnabled ? "-slash" : ""} text-xl`}
+            className={`fas fa-video${!videoEnabled ? "-slash" : ""} text-lg ${
+              !videoEnabled ? "text-white" : "text-white/90"
+            }`}
           ></i>
-          <span className="text-[10px] mt-1 font-medium">Video</span>
         </button>
 
         <button
           onClick={toggleScreenShare}
-          className="w-14 h-14 rounded-2xl bg-[#80a1ba]/20 border border-[#80a1ba]/30 text-[#fff7dd] flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1"
+          className="group w-14 h-14 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white/90 flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl"
         >
-          <i className="fas fa-desktop text-xl"></i>
-          <span className="text-[10px] mt-1 font-medium">Share</span>
+          <i className="fas fa-desktop text-lg"></i>
         </button>
 
         <button
           onClick={toggleRecording}
-          className={`w-14 h-14 rounded-2xl border flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1 ${
+          className={`group w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl ${
             recording
-              ? "bg-[#80a1ba] border-[#80a1ba] text-white"
-              : "bg-[#80a1ba]/20 border-[#80a1ba]/30 text-[#fff7dd]"
+              ? "bg-red-500 shadow-lg shadow-red-500/50 animate-pulse"
+              : "bg-white/15 hover:bg-white/25 border border-white/30"
           }`}
         >
-          <i className="fas fa-record-vinyl text-xl"></i>
-          <span className="text-[10px] mt-1 font-medium">Record</span>
+          <i
+            className={`fas fa-circle text-lg ${
+              recording ? "text-white" : "text-red-400"
+            }`}
+          ></i>
         </button>
+
+        <div className="h-10 w-px bg-white/20 mx-2"></div>
 
         <button
           onClick={endCall}
-          className="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center transition-all mx-5 hover:bg-red-600 hover:scale-110 hover:shadow-[0_8px_24px_rgba(239,68,68,0.5)]"
+          className="w-16 h-16 rounded-full bg-red-500 text-white flex items-center justify-center transition-all duration-200 hover:bg-red-600 hover:scale-110 hover:shadow-2xl hover:shadow-red-500/50"
         >
-          <i className="fas fa-phone-slash text-2xl"></i>
+          <i className="fas fa-phone-slash text-xl"></i>
         </button>
+
+        <div className="h-10 w-px bg-white/20 mx-2"></div>
 
         <button
           onClick={() => togglePanel("participants")}
-          className="w-14 h-14 rounded-2xl bg-[#80a1ba]/20 border border-[#80a1ba]/30 text-[#fff7dd] flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1"
+          className={`group w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl ${
+            participantsPanelOpen
+              ? "bg-blue-500 shadow-lg shadow-blue-500/50"
+              : "bg-white/15 hover:bg-white/25 border border-white/30"
+          }`}
         >
-          <i className="fas fa-users text-xl"></i>
-          <span className="text-[10px] mt-1 font-medium">People</span>
+          <i className="fas fa-users text-lg text-white/90"></i>
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white border-2 border-black">
+            {participants.length}
+          </span>
         </button>
 
         <button
           onClick={() => togglePanel("chat")}
-          className="w-14 h-14 rounded-2xl bg-[#80a1ba]/20 border border-[#80a1ba]/30 text-[#fff7dd] flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1"
+          className={`group w-14 h-14 rounded-full flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl ${
+            chatPanelOpen
+              ? "bg-blue-500 shadow-lg shadow-blue-500/50"
+              : "bg-white/15 hover:bg-white/25 border border-white/30"
+          }`}
         >
-          <i className="fas fa-comment text-xl"></i>
-          <span className="text-[10px] mt-1 font-medium">Chat</span>
+          <i className="fas fa-comment text-lg text-white/90"></i>
         </button>
 
         <button
           onClick={raiseHand}
-          className="w-14 h-14 rounded-2xl bg-[#80a1ba]/20 border border-[#80a1ba]/30 text-[#fff7dd] flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1"
+          className="group w-14 h-14 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white/90 flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl"
         >
-          <i className="fas fa-hand-paper text-xl"></i>
-          <span className="text-[10px] mt-1 font-medium">Raise</span>
+          <i className="fas fa-hand-paper text-lg"></i>
         </button>
 
-        <button className="w-14 h-14 rounded-2xl bg-[#80a1ba]/20 border border-[#80a1ba]/30 text-[#fff7dd] flex flex-col items-center justify-center transition-all backdrop-blur-[10px] hover:bg-[#91c4c3]/15 hover:border-[#80a1ba] hover:-translate-y-1">
-          <i className="fas fa-ellipsis-h text-xl"></i>
-          <span className="text-[10px] mt-1 font-medium">More</span>
+        <button className="group w-14 h-14 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white/90 flex flex-col items-center justify-center transition-all duration-200 backdrop-blur-xl hover:-translate-y-1 hover:shadow-xl">
+          <i className="fas fa-ellipsis-h text-lg"></i>
         </button>
       </div>
 
-      {/* Chat Sidebar */}
       <div
         className={`absolute top-0 h-full w-[400px] bg-[#1e293b] border-l border-[#80a1ba] z-[200] flex flex-col transition-all duration-300 ${
           chatPanelOpen ? "right-0" : "-right-[400px]"
@@ -555,7 +585,6 @@ const VideoCallPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Participants Sidebar */}
       <div
         className={`absolute top-0 h-full w-[400px] bg-[#1e293b] border-l border-[#80a1ba] z-[200] flex flex-col transition-all duration-300 ${
           participantsPanelOpen ? "right-0" : "-right-[400px]"
@@ -615,15 +644,12 @@ const VideoCallPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Notification */}
       {notification && (
         <div className="absolute top-[100px] right-5 px-4 py-3.5 bg-slate-900/95 border border-[#80a1ba] rounded-xl text-[#fff7dd] text-sm shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-[10px] animate-[slideInRight_0.3s_ease] z-[150]">
           {notification}
         </div>
       )}
 
-      {/* Add FontAwesome */}
       <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
