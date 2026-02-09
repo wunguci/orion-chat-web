@@ -12,7 +12,7 @@ function ToggleSwitch({
       onClick={onChange}
       className={clsx(
         "relative w-14 h-8 rounded-full transition-colors",
-        checked ? "bg-[#ee652b]" : "bg-gray-300",
+        checked ? "bg-orange-primary" : "bg-gray-300",
       )}
     >
       <div
