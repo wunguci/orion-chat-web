@@ -7,11 +7,12 @@ import { AuthLayout } from "../components/layout/AuthLayout";
 import { ChatLayout } from "../components/layout/ChatLayout";
 
 // Page
-import LoginPage  from "../pages/auth/LoginPage";
-import  RegisterPage  from "../pages/auth/RegisterPage";
+import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import GroupChat from "../components/layout/GroupChat";
+import VideoCallPage from "../pages/video-call/VideoCallPage";
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +64,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.NOT_FOUND,
         element: <NotFoundPage />,
+      },
+      {
+        path: "/video-call/*",
+        element: <VideoCallPage />,
       },
     ],
   },
