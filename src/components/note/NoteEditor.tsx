@@ -13,8 +13,6 @@ interface NoteEditorProps {
     onDelete: (id: string) => void;
 }
 
-
-
 const NoteEditor: React.FC<NoteEditorProps> = ({note, categories, addCategory, updateNote, onDelete}) => {
     if (!note) {
         return (

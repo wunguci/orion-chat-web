@@ -59,28 +59,79 @@ const NotesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const activeNote = useMemo(
-    () => notes.find(n => n.id === activeNoteId),
+    () => notes.find((n) => n.id === activeNoteId),
     [notes, activeNoteId],
   );
+
+  // Add category
+  const addCategory = (newCat: string) => {
+    if (newCat && !categories.includes(newCat)) {
+      setCategories((prev) => [...prev, newCat]);
+    }
+  };
+
+  // Search note
+  const filteredNotes = useMemo(() => {
+    return notes
+      .filter(
+        (n) =>
+          n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          n.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          n.category.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+      .sort((a, b) => (a.isPinned === b.isPinned ? 0 : a.isPinned ? -1 : 1));
+  }, [notes, searchQuery]);
+
+  // Update node
+  const updateNote = (id: string, updates: Partial<Note>) => {
+    setNotes((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, ...updates } : n)),
+    );
+  };
+
+  // Create note
+  const createNote = () => {
+    const newNote: Note = {
+      id: Date.now().toString(),
+      title: "New Note",
+      content: "",
+      category: "General",
+      timestamp: `${new Date().getHours().toString().padStart(2, "0")}:${new Date().getMinutes().toString().padStart(2, "0")} • ${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
+      isPinned: false,
+      folder: "Personal notes",
+    };
+    setNotes([newNote, ...notes]);
+    setActiveNoteId(newNote.id);
+  };
+
+  // Delete note
+  const deleteNote = (id: string) => {
+    const filtered = notes.filter((n) => n.id !== id);
+    setNotes(filtered);
+    if (activeNoteId === id) {
+      // Khi xóa note đang active, có thể chọn note tiếp theo hoặc để trống
+      setActiveNoteId(filtered.length > 0 ? filtered[0].id : null);
+    }
+  };
 
   return (
     //   <div className="flex h-screen bg-white dark:bg-slate-900 transition-colors">
     <div className="flex h-screen bg-white transition-colors">
       <NotesList
-        notes={notes}
-        activeNoteId={activeNoteId || ''}
+        notes={filteredNotes}
+        activeNoteId={activeNoteId || ""}
         setActiveNoteId={setActiveNoteId}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onCreateNote={() => {}}
+        onCreateNote={createNote}
       />
 
       <NoteEditor
         note={activeNote}
         categories={categories}
-        addCategory={() => {}}
-        updateNote={() => {}}
-        onDelete={() => {}}
+        addCategory={addCategory}
+        updateNote={updateNote}
+        onDelete={deleteNote}
       />
     </div>
   );
