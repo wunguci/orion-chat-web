@@ -11,7 +11,7 @@ import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
-import { NotesPage } from "../pages/note/NotesPage";
+import NotesPage from "../pages/note/NotesPage";
 
 
 export const router = createBrowserRouter([
@@ -21,7 +21,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to={ROUTES.AUTH.LOGIN} replace />,
+        element: <Navigate to={ROUTES.HOME} replace />,
       },
       {
         path: ROUTES.AUTH.ROOT,

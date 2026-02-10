@@ -8,6 +8,8 @@ import {
 } from "react-icons/md";
 import type { IconType } from "react-icons";
 import { Avatar } from "./Avatar";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ROUTES } from "../../types/routes.types";
 
 type ViewMode = "chat" | "contacts" | "notes" | "calendar";
 
@@ -17,6 +19,14 @@ interface SidebarProps {
 }
 
 const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Helper function để check active view dựa trên URL
+  const isActive = (path: string) => {
+    return location.pathname.startsWith(path);
+  };
+
   // Mock user data
   const currentUser = {
     name: "Trần Vũ",
@@ -42,8 +52,11 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
       <nav className="flex-1 flex flex-col gap-4 mt-6">
         <NavItem
           icon={MdChat}
-          active={currentView === "chat"}
-          onClick={() => setView("chat")}
+          active={isActive(ROUTES.CHAT.ROOT)}
+          onClick={() => {
+            setView("chat");
+            navigate(ROUTES.CHAT.ROOT);
+          }}
           label="Chat"
         />
         <NavItem
@@ -54,8 +67,11 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
         />
         <NavItem
           icon={MdNote}
-          active={currentView === "notes"}
-          onClick={() => setView("notes")}
+          active={isActive(ROUTES.NOTE)}
+          onClick={() => {
+            setView("notes");
+            navigate(ROUTES.NOTE);
+          }}
           label="Notes"
         />
         <NavItem
@@ -95,10 +111,10 @@ const NavItem: React.FC<NavItemProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all cursor-pointer ${
+      className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
         active
-          ? "bg-teal-50 dark:bg-teal-900/30 text-primary shadow-sm"
-          : "text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+          ? "bg-teal-400 text-primary shadow-sm"
+          : "text-slate-400 hover:bg-slate-200"
       }`}
       title={label}
       aria-label={label}

@@ -62,7 +62,7 @@ export const Avatar: React.FC<AvatarProps> = ({
       <div
         className={cn(
           "rounded-full flex items-center justify-center font-medium overflow-hidden",
-          "bg-gradient-to-br from-blue-400 to-blue-600 text-white",
+          "bg-linear-to-br from-teal-400 to-teal-600 text-white",
           sizeClasses[size],
           onClick && "cursor-pointer hover:opacity-80 transition-opacity",
         )}
