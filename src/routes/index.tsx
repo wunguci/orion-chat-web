@@ -13,6 +13,7 @@ import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import GroupChat from "../components/layout/GroupChat";
 import VideoCallPage from "../pages/video-call/VideoCallPage";
+import NotesPage from "../pages/note/NotesPage";
 
 export const router = createBrowserRouter([
   {
@@ -21,7 +22,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to={ROUTES.AUTH.LOGIN} replace />,
+        element: <Navigate to={ROUTES.HOME} replace />,
       },
       {
         path: ROUTES.AUTH.ROOT,
@@ -60,6 +61,10 @@ export const router = createBrowserRouter([
             element: <GroupChat />,
           },
         ],
+      },
+      {
+        path: ROUTES.NOTE,
+        element: <NotesPage />
       },
       {
         path: ROUTES.NOT_FOUND,
