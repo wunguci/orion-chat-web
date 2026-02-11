@@ -114,15 +114,15 @@ const NavItem: React.FC<NavItemProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
+      className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-slate-200 ${
         active
           ? "bg-teal-400 text-primary shadow-sm"
-          : "text-slate-400 hover:bg-slate-200"
+          : "text-slate-400 hover:bg-slate-300"
       }`}
       title={label}
       aria-label={label}
     >
-      <Icon className="w-5 h-5" />
+      <Icon className="w-5 h-5 text-white" />
     </button>
   );
 };

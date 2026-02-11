@@ -7,10 +7,11 @@ export interface Friend {
 }
 
 export interface FriendRequest {
-    id: string;
-    name: string;
-    timeAgo: string;
-    avatar: string;
+  id: string;
+  name: string;
+  timeAgo: string;
+  avatar: string;
+  message?: string;
 }
 
 export interface SuggestedFriend {
@@ -24,5 +25,5 @@ export interface RecentlyActive {
     id: string;
     name: string;
     avatar: string;
-    isActive: boolean;
+    isActive?: boolean;
 }
