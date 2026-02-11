@@ -1,6 +1,17 @@
 /* Import Tailwind directives */
 @import "tailwindcss";
 
+@theme {
+  --color-orange-primary: #ee652b;
+  --color-orange-bg-heavy: #fcede6;
+  --color-orange-bg-light: #fdfaf9;
+  --color-orange-border-light: #fbe7df;
+  --color-gray-primary: #505050;
+  --color-gray-secondary: #94a3b8;
+
+  --color-blue-dark: #0052cc;
+}
+
 /* ==================== CUSTOM CSS VARIABLES ==================== */
 :root {
   /* Colors - Palette chính cho ứng dụng chat */
@@ -30,12 +41,12 @@
   --color-away: #f59e0b; /* Orange - away */
 
   /* Chat specific colors */
-  --color-message-sent: #0068FF;      /* Background tin nhắn đã gửi */
-  --color-message-received: #F3F4F6;  /* Background tin nhắn nhận */
-  --color-message-hover: #F9FAFB;     /* Hover message */
+  --color-message-sent: #0068ff; /* Background tin nhắn đã gửi */
+  --color-message-received: #f3f4f6; /* Background tin nhắn nhận */
+  --color-message-hover: #f9fafb; /* Hover message */
 
-  --color-login: #2AB3B3;          /* Màu button trang đăng nhập */
-  
+  --color-login: #2ab3b3; /* Màu button trang đăng nhập */
+
   /* Typography */
   --font-family-base:
     "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
@@ -95,11 +106,10 @@
 
   /* Scrollbar */
   --scrollbar-width: 6px;
-  --scrollbar-track: #F3F4F6;
-  --scrollbar-thumb: #D1D5DB;
-  --scrollbar-thumb-hover: #9CA3AF;
+  --scrollbar-track: #f3f4f6;
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-thumb-hover: #9ca3af;
 }
-
 
 /* ==================== HELPER CLASSES ==================== */
 .animate-fade-in {
