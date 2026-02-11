@@ -14,12 +14,12 @@ function ToggleSwitchButton({
   onChange: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-[#fdfaf9] rounded-xl border border-[#fbe7df]">
+    <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light">
       <div className="flex items-center gap-3">
-        <Icon size={24} className="text-[#ee652b]" />
+        <Icon size={24} className="text-orange-primary" />
         <div>
-          <p className="font-semibold text-[#505050]">{label}</p>
-          <p className="text-sm text-[#505050]">{description}</p>
+          <p className="font-semibold text-gray-primary">{label}</p>
+          <p className="text-sm text-gray-primary">{description}</p>
         </div>
       </div>
       <ToggleSwitch checked={checked} onChange={onChange} />

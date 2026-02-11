@@ -24,9 +24,18 @@ import {
   UserRoundPlus,
   UserRoundPlusIcon,
   BookUser,
+  ArrowLeft,
+  Users,
+  RefreshCw,
+  HelpCircle,
+  KeyRound,
+  UserPlus,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import SettingsModal from "../setting-chat/SettingModal";
+import ToggleSwitch from "../common/ToggleSwitch";
+import Checkbox from "../common/Checkbox";
+import AddMemberModal from "./AddMemberModal";
 
 interface Message {
   id: string;
@@ -163,10 +172,26 @@ export default function GroupChat() {
   const [messageInput, setMessageInput] = useState("");
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isGroupManagement, setIsGroupManagement] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [isCreateGroup, setIsCreateGroup] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     images: true,
     files: true,
     links: true,
+  });
+  const [groupPermissions, setGroupPermissions] = useState({
+    changeNameAvatar: true,
+    pinMessages: true,
+    createNotes: true,
+    createPolls: true,
+    sendMessages: true,
+  });
+  const [groupSettings, setGroupSettings] = useState({
+    approveNewMembers: false,
+    markLeaderMessages: true,
+    allowReadRecentMessages: true,
+    allowJoinLink: true,
   });
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -196,11 +221,21 @@ export default function GroupChat() {
     };
   }, [isSidebarOpen]);
 
+  const handleAddMembers = (selectedMembers: string[]) => {
+    console.log("Selected members:", selectedMembers);
+  };
+
   return (
     <div className="flex h-screen bg-white">
       <SettingsModal
         isOpen={isSettingOpen}
         onClose={() => setIsSettingOpen(false)}
+      />
+      <AddMemberModal
+        isCreateGroup={isCreateGroup}
+        isOpen={isAddMemberModalOpen}
+        onClose={() => setIsAddMemberModalOpen(false)}
+        onConfirm={handleAddMembers}
       />
       {/* Sidebar Left - Chat List */}
       <div className="p-4 border-t border-orange-border-light flex flex-col justify-between">
@@ -223,19 +258,34 @@ export default function GroupChat() {
       </div>
       <div className="w-80 border-r border-orange-border-light bg-orange-bg-light flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-orange-border-light">
-          {/* Search */}
-          <div className="relative">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-            />
-            <input
-              type="text"
-              placeholder="Tìm kiếm..."
-              className="w-full pl-10 pr-4 py-2 bg-white rounded-lg border border-orange-border-light text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-orange-primary"
-            />
+        <div className="flex justify-between items-center gap-2 p-4">
+          <div className=" border-b border-orange-border-light">
+            {/* Search */}
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                placeholder="Tìm kiếm..."
+                className="w-full pl-10 pr-4 py-2 bg-white rounded-lg border border-orange-border-light text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-orange-primary"
+              />
+            </div>
           </div>
+
+          <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600">
+            <UserPlus size={20} />
+          </button>
+          <button
+            className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600"
+            onClick={() => {
+              setIsAddMemberModalOpen(true);
+              setIsCreateGroup(true);
+            }}
+          >
+            <UserRoundPlus size={20} />
+          </button>
         </div>
 
         {/* Chat List */}
@@ -298,7 +348,13 @@ export default function GroupChat() {
           </div>
 
           <div className="flex gap-2">
-            <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600">
+            <button
+              onClick={() => {
+                setIsAddMemberModalOpen(true);
+                setIsCreateGroup(false);
+              }}
+              className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600"
+            >
               <UserRoundPlusIcon size={20} />
             </button>
             <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600">
@@ -409,232 +465,479 @@ export default function GroupChat() {
           ref={sidebarRef}
           className="w-90 border-l border-orange-border-light bg-orange-bg-light flex flex-col overflow-y-auto"
         >
-          {/* Header */}
-          <div className="p-6 border-b border-orange-border-light flex flex-col gap-3">
-            <span className="text-lg font-semibold text-gray-primary">
-              Thông tin nhóm
-            </span>
+          {!isGroupManagement ? (
+            <>
+              {/* Header */}
+              <div className="p-6 border-b border-orange-border-light flex flex-col gap-3">
+                <span className="text-lg font-semibold text-gray-primary">
+                  Thông tin nhóm
+                </span>
 
-            <div className="flex flex-col gap-3 items-center">
-              <img
-                src={selectedChat.avatar || "/placeholder.svg"}
-                alt={selectedChat.name}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-              <span className="font-semibold text-gray-primary">
-                {selectedChat.name}
-              </span>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="p-4 flex gap-3 justify-center border-b border-orange-border-light">
-            <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
-              <Bell size={20} className="text-orange-primary" />
-              <span className="text-xs text-gray-primary">Tắt thông báo</span>
-            </button>
-            <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
-              <Pin size={20} className="text-orange-primary" />
-              <span className="text-xs text-gray-primary">Ghi hội thoại</span>
-            </button>
-            <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
-              <UserRoundPlus size={20} className="text-orange-primary" />
-              <span className="text-xs text-gray-primary">Thêm thành viên</span>
-            </button>
-            <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
-              <Settings size={20} className="text-orange-primary" />
-              <span className="text-xs text-gray-primary">Quản lý nhóm</span>
-            </button>
-          </div>
-
-          {/* Images Section */}
-          <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-primary">
-                Images/Video
-              </span>
-              <button
-                onClick={() => toggleSection("images")}
-                className="p-1 hover:bg-white rounded transition-colors"
-              >
-                <ChevronRight
-                  size={20}
-                  className={`text-gray-primary transition-transform ${expandedSections.images ? "rotate-90" : ""}`}
-                />
-              </button>
-            </div>
-
-            {expandedSections.images && (
-              <>
-                <div className="grid grid-cols-4 gap-2">
-                  {images.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={img || "/placeholder.svg"}
-                      alt="chat"
-                      className="w-full h-16 rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
-                    />
-                  ))}
-                  {images.length < 4 && (
-                    <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
-                      +{images.length}
-                    </div>
-                  )}
-                </div>
-                <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
-                  Xem tất cả
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* File/Folder Section */}
-          <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-primary">
-                File/Folder
-              </span>
-              <button
-                onClick={() => toggleSection("files")}
-                className="p-1 hover:bg-white rounded transition-colors"
-              >
-                <ChevronRight
-                  size={20}
-                  className={`text-gray-primary transition-transform ${expandedSections.files ? "rotate-90" : ""}`}
-                />
-              </button>
-            </div>
-
-            {expandedSections.files && (
-              <>
-                <div className="grid grid-cols-4 gap-2">
-                  {images.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={img || "/placeholder.svg"}
-                      alt="chat"
-                      className="w-full h-16 rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
-                    />
-                  ))}
-                  {images.length < 4 && (
-                    <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
-                      +{images.length}
-                    </div>
-                  )}
-                </div>
-                <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
-                  Xem tất cả
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Link Section */}
-          <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-primary">Link</span>
-              <button
-                onClick={() => toggleSection("links")}
-                className="p-1 hover:bg-white rounded transition-colors"
-              >
-                <ChevronRight
-                  size={20}
-                  className={`text-gray-primary transition-transform ${expandedSections.links ? "rotate-90" : ""}`}
-                />
-              </button>
-            </div>
-
-            {expandedSections.links && (
-              <>
-                <div className="grid grid-cols-4 gap-2">
-                  {images.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={img || "/placeholder.svg"}
-                      alt="chat"
-                      className="w-full h-16 rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
-                    />
-                  ))}
-                  {images.length < 4 && (
-                    <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
-                      +{images.length}
-                    </div>
-                  )}
-                </div>
-                <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
-                  Xem tất cả
-                </button>
-              </>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            {/* Member Section Left Bar */}
-            <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
-              <span className="font-semibold">Thành viên</span>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                <UserRound size={20} />
-                <span className="text-[15px]">5 thành viên</span>
-              </button>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                <Link size={20} />
-                <div className="flex flex-col items-start">
-                  <span className="text-[15px]">Link tham gia nhóm</span>
-                  <span className="text-[12px] text-blue-dark text-left">
-                    orionchat.com/groupchat-test
+                <div className="flex flex-col gap-3 items-center">
+                  <img
+                    src={selectedChat.avatar || "/placeholder.svg"}
+                    alt={selectedChat.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <span className="font-semibold text-gray-primary">
+                    {selectedChat.name}
                   </span>
                 </div>
-                <div className="ml-auto flex items-center gap-3">
-                  <Copy size={18} />
-                  <Share size={18} />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="p-4 flex gap-3 justify-center border-b border-orange-border-light">
+                <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
+                  <Bell size={20} className="text-orange-primary" />
+                  <span className="text-xs text-gray-primary">
+                    Tắt thông báo
+                  </span>
+                </button>
+                <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
+                  <Pin size={20} className="text-orange-primary" />
+                  <span className="text-xs text-gray-primary">
+                    Ghi hội thoại
+                  </span>
+                </button>
+                <button
+                  onClick={() => setIsAddMemberModalOpen(true)}
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1"
+                >
+                  <UserRoundPlus size={20} className="text-orange-primary" />
+                  <span className="text-xs text-gray-primary">
+                    Thêm thành viên
+                  </span>
+                </button>
+                <button
+                  onClick={() => setIsGroupManagement(true)}
+                  className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1"
+                >
+                  <Settings size={20} className="text-orange-primary" />
+                  <span className="text-xs text-gray-primary">
+                    Quản lý nhóm
+                  </span>
+                </button>
+              </div>
+
+              {/* Images Section */}
+              <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-primary">
+                    Images/Video
+                  </span>
+                  <button
+                    onClick={() => toggleSection("images")}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                  >
+                    <ChevronRight
+                      size={20}
+                      className={`text-gray-primary transition-transform ${expandedSections.images ? "rotate-90" : ""}`}
+                    />
+                  </button>
                 </div>
-              </button>
-            </div>
 
-            {/* Group News */}
-            <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
-              <span className="font-semibold">Bảng tin nhóm</span>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                <AlarmClockCheck size={20} />
-                <span className="text-[15px]">Danh sách nhắc hẹn</span>
-              </button>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                <NotebookText size={20} />
-                <span className="text-[15px]">Ghi chú, ghim, bình chọn</span>
-              </button>
-            </div>
+                {expandedSections.images && (
+                  <>
+                    <div className="grid grid-cols-4 gap-2">
+                      {images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img || "/placeholder.svg"}
+                          alt="chat"
+                          className="w-full h-16 rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                        />
+                      ))}
+                      {images.length < 4 && (
+                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
+                          +{images.length}
+                        </div>
+                      )}
+                    </div>
+                    <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
+                      Xem tất cả
+                    </button>
+                  </>
+                )}
+              </div>
 
-            {/* Auto Delete Messages */}
-            <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
-              <span className="font-semibold">Thiết lập bảo mật</span>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                <Clock7 size={20} />
-                <div className="flex flex-col items-start">
-                  <span className="text-[15px]">Tin nhắn tự xóa</span>
-                  <span className="text-[12px] text-gray-secondary">
-                    Không bao giờ
+              {/* File/Folder Section */}
+              <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-primary">
+                    File/Folder
+                  </span>
+                  <button
+                    onClick={() => toggleSection("files")}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                  >
+                    <ChevronRight
+                      size={20}
+                      className={`text-gray-primary transition-transform ${expandedSections.files ? "rotate-90" : ""}`}
+                    />
+                  </button>
+                </div>
+
+                {expandedSections.files && (
+                  <>
+                    <div className="grid grid-cols-4 gap-2">
+                      {images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img || "/placeholder.svg"}
+                          alt="chat"
+                          className="w-full h-16 rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                        />
+                      ))}
+                      {images.length < 4 && (
+                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
+                          +{images.length}
+                        </div>
+                      )}
+                    </div>
+                    <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
+                      Xem tất cả
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Link Section */}
+              <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-primary">Link</span>
+                  <button
+                    onClick={() => toggleSection("links")}
+                    className="p-1 hover:bg-white rounded transition-colors"
+                  >
+                    <ChevronRight
+                      size={20}
+                      className={`text-gray-primary transition-transform ${expandedSections.links ? "rotate-90" : ""}`}
+                    />
+                  </button>
+                </div>
+
+                {expandedSections.links && (
+                  <>
+                    <div className="grid grid-cols-4 gap-2">
+                      {images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img || "/placeholder.svg"}
+                          alt="chat"
+                          className="w-full h-16 rounded-lg object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                        />
+                      ))}
+                      {images.length < 4 && (
+                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
+                          +{images.length}
+                        </div>
+                      )}
+                    </div>
+                    <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
+                      Xem tất cả
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {/* Member Section Left Bar */}
+                <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
+                  <span className="font-semibold">Thành viên</span>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <UserRound size={20} />
+                    <span className="text-[15px]">5 thành viên</span>
+                  </button>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <Link size={20} />
+                    <div className="flex flex-col items-start">
+                      <span className="text-[15px]">Link tham gia nhóm</span>
+                      <span className="text-[12px] text-blue-dark text-left">
+                        orionchat.com/groupchat-test
+                      </span>
+                    </div>
+                    <div className="ml-auto flex items-center gap-3">
+                      <Copy size={18} />
+                      <Share size={18} />
+                    </div>
+                  </button>
+                </div>
+
+                {/* Group News */}
+                <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
+                  <span className="font-semibold">Bảng tin nhóm</span>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <AlarmClockCheck size={20} />
+                    <span className="text-[15px]">Danh sách nhắc hẹn</span>
+                  </button>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <NotebookText size={20} />
+                    <span className="text-[15px]">
+                      Ghi chú, ghim, bình chọn
+                    </span>
+                  </button>
+                </div>
+
+                {/* Auto Delete Messages */}
+                <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
+                  <span className="font-semibold">Thiết lập bảo mật</span>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <Clock7 size={20} />
+                    <div className="flex flex-col items-start">
+                      <span className="text-[15px]">Tin nhắn tự xóa</span>
+                      <span className="text-[12px] text-gray-secondary">
+                        Không bao giờ
+                      </span>
+                    </div>
+                  </button>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <EyeOff size={20} />
+                    <span className="text-[15px]">Ẩn trò chuyện</span>
+                  </button>
+                </div>
+
+                <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                  <MessageSquareWarning size={20} />
+                  <span className="text-[15px]">Báo xấu</span>
+                </button>
+                <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-500">
+                  <Trash2 size={20} />
+                  <span className="text-[15px]">Xóa lịch sử trò chuyện</span>
+                </button>
+                <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-500">
+                  <LogOut size={20} />
+                  <span className="text-[15px]">Rời nhóm</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Group Management View */}
+              <div className="flex flex-col h-full">
+                {/* Header with Back Button */}
+                <div className="p-4 border-b border-orange-border-light flex items-center gap-3">
+                  <button
+                    onClick={() => setIsGroupManagement(false)}
+                    className="p-2 hover:bg-white rounded-lg transition-colors"
+                  >
+                    <ArrowLeft size={20} className="text-gray-primary" />
+                  </button>
+                  <span className="text-lg font-semibold text-gray-primary">
+                    Quản lý nhóm
                   </span>
                 </div>
-              </button>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                <EyeOff size={20} />
-                <span className="text-[15px]">Ẩn trò chuyện</span>
-              </button>
-            </div>
 
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-gray-primary">
-              <MessageSquareWarning size={20} />
-              <span className="text-[15px]">Báo xấu</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-500">
-              <Trash2 size={20} />
-              <span className="text-[15px]">Xóa lịch sử trò chuyện</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-500">
-              <LogOut size={20} />
-              <span className="text-[15px]">Rời nhóm</span>
-            </button>
-          </div>
+                {/* Permissions Section */}
+                <div className="p-4 border-b border-orange-border-light flex flex-col gap-4">
+                  <span className="font-semibold text-gray-primary">
+                    Cho phép các thành viên trong nhóm:
+                  </span>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-primary">
+                        Thay đổi tên & ảnh đại diện của nhóm
+                      </span>
+                      <Checkbox
+                        checked={groupPermissions.changeNameAvatar}
+                        onChange={() =>
+                          setGroupPermissions({
+                            ...groupPermissions,
+                            changeNameAvatar:
+                              !groupPermissions.changeNameAvatar,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-primary">
+                        Ghim tin nhắn, ghi chú, bình chọn lên đầu hội thoại
+                      </span>
+                      <Checkbox
+                        checked={groupPermissions.pinMessages}
+                        onChange={() =>
+                          setGroupPermissions({
+                            ...groupPermissions,
+                            pinMessages: !groupPermissions.pinMessages,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-primary">
+                        Tạo mới ghi chú, nhắc hẹn
+                      </span>
+                      <Checkbox
+                        checked={groupPermissions.createNotes}
+                        onChange={() =>
+                          setGroupPermissions({
+                            ...groupPermissions,
+                            createNotes: !groupPermissions.createNotes,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-primary">
+                        Tạo mới bình chọn
+                      </span>
+                      <Checkbox
+                        checked={groupPermissions.createPolls}
+                        onChange={() =>
+                          setGroupPermissions({
+                            ...groupPermissions,
+                            createPolls: !groupPermissions.createPolls,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-primary">
+                        Gửi tin nhắn
+                      </span>
+                      <Checkbox
+                        checked={groupPermissions.sendMessages}
+                        onChange={() =>
+                          setGroupPermissions({
+                            ...groupPermissions,
+                            sendMessages: !groupPermissions.sendMessages,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Toggle Settings */}
+                <div className="p-4 border-b border-orange-border-light flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-primary">
+                        Chế độ phê duyệt thành viên mới
+                      </span>
+                      <HelpCircle size={16} className="text-gray-400" />
+                    </div>
+                    <div className="scale-75 origin-right">
+                      <ToggleSwitch
+                        checked={groupSettings.approveNewMembers}
+                        onChange={() =>
+                          setGroupSettings({
+                            ...groupSettings,
+                            approveNewMembers: !groupSettings.approveNewMembers,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-primary">
+                        Đánh dấu tin nhắn từ trưởng/phó nhóm
+                      </span>
+                      <HelpCircle size={16} className="text-gray-400" />
+                    </div>
+                    <div className="scale-75 origin-right">
+                      <ToggleSwitch
+                        checked={groupSettings.markLeaderMessages}
+                        onChange={() =>
+                          setGroupSettings({
+                            ...groupSettings,
+                            markLeaderMessages:
+                              !groupSettings.markLeaderMessages,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-primary">
+                        Cho phép thành viên mới đọc tin nhắn gần nhất
+                      </span>
+                      <HelpCircle size={16} className="text-gray-400" />
+                    </div>
+                    <div className="scale-75 origin-right">
+                      <ToggleSwitch
+                        checked={groupSettings.allowReadRecentMessages}
+                        onChange={() =>
+                          setGroupSettings({
+                            ...groupSettings,
+                            allowReadRecentMessages:
+                              !groupSettings.allowReadRecentMessages,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-primary">
+                        Cho phép dùng link tham gia nhóm
+                      </span>
+                      <HelpCircle size={16} className="text-gray-400" />
+                    </div>
+                    <div className="scale-75 origin-right">
+                      <ToggleSwitch
+                        checked={groupSettings.allowJoinLink}
+                        onChange={() =>
+                          setGroupSettings({
+                            ...groupSettings,
+                            allowJoinLink: !groupSettings.allowJoinLink,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Group Link */}
+                <div className="p-4 border-b border-orange-border-light">
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+                    <span className="flex-1 text-sm text-blue-600">
+                      zalo.me/g/zwnrhx701
+                    </span>
+                    <button className="p-1 hover:bg-orange-bg-light rounded transition-colors">
+                      <Copy size={18} className="text-gray-primary" />
+                    </button>
+                    <button className="p-1 hover:bg-orange-bg-light rounded transition-colors">
+                      <Share size={18} className="text-gray-primary" />
+                    </button>
+                    <button className="p-1 hover:bg-orange-bg-light rounded transition-colors">
+                      <RefreshCw size={18} className="text-gray-primary" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Block from Group */}
+                <div className="p-4 border-b border-orange-border-light flex flex-col gap-2">
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <Users size={20} />
+                    <span className="text-[15px]">Chặn khỏi nhóm</span>
+                  </button>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <KeyRound size={20} />
+                    <span className="text-[15px]">Trưởng & phó nhóm</span>
+                  </button>
+                </div>
+
+                {/* Group Link */}
+                <div className="p-4 mt-auto mb-2">
+                  <div className="flex items-center justify-center p-2 bg-[#FDECEC] rounded-md">
+                    <span className="text-[16px] text-[#DC264C] font-semibold">
+                      Giải tán nhóm
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
