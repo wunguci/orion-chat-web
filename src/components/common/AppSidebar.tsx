@@ -1,17 +1,17 @@
 import type React from "react";
 import {
   MdChat,
-  MdContacts,
   MdNote,
   MdCalendarToday,
   MdSettings,
 } from "react-icons/md";
+import { FaUsers } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
 
-type ViewMode = "chat" | "contacts" | "notes" | "calendar";
+type ViewMode = "chat" | "friends" | "notes" | "calendar";
 
 interface SidebarProps {
   currentView: ViewMode;
@@ -60,10 +60,13 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
           label="Chat"
         />
         <NavItem
-          icon={MdContacts}
-          active={currentView === "contacts"}
-          onClick={() => setView("contacts")}
-          label="Contacts"
+          icon={FaUsers}
+          active={isActive(ROUTES.FRIENDS)}
+          onClick={() => {
+            setView("friends");
+            navigate(ROUTES.FRIENDS);
+          }}
+          label="Friends"
         />
         <NavItem
           icon={MdNote}
@@ -111,15 +114,15 @@ const NavItem: React.FC<NavItemProps> = ({
   return (
     <button
       onClick={onClick}
-      className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
+      className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer bg-slate-200 ${
         active
           ? "bg-teal-400 text-primary shadow-sm"
-          : "text-slate-400 hover:bg-slate-200"
+          : "text-slate-400 hover:bg-slate-300"
       }`}
       title={label}
       aria-label={label}
     >
-      <Icon className="w-5 h-5" />
+      <Icon className="w-5 h-5 text-white" />
     </button>
   );
 };

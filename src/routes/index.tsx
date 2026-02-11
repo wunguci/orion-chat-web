@@ -14,6 +14,7 @@ import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import GroupChat from "../components/layout/GroupChat";
 import VideoCallPage from "../pages/video-call/VideoCallPage";
 import NotesPage from "../pages/note/NotesPage";
+import FriendListPage from "../pages/friend/FriendListPage";
 
 export const router = createBrowserRouter([
   {
@@ -64,7 +65,11 @@ export const router = createBrowserRouter([
       },
       {
         path: ROUTES.NOTE,
-        element: <NotesPage />
+        element: <NotesPage />,
+      },
+      {
+        path: ROUTES.FRIENDS,
+        element: <FriendListPage />,
       },
       {
         path: ROUTES.NOT_FOUND,
