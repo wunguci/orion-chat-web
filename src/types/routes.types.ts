@@ -16,6 +16,8 @@ export const ROUTES = {
   },
   NOTE: "/notes",
   FRIENDS: "/friends",
+  AICHAT: "/aichat",
+  CALENDAR: "/calendar",
   SETTINGS: "/settings",
   PROFILE: "/profile",
   NOT_FOUND: "*",

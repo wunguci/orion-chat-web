@@ -15,6 +15,7 @@ import GroupChat from "../components/layout/GroupChat";
 import VideoCallPage from "../pages/video-call/VideoCallPage";
 import NotesPage from "../pages/note/NotesPage";
 import FriendListPage from "../pages/friend/FriendListPage";
+import AIChatPage from "../pages/ai-chat/AIChatPage";
 
 export const router = createBrowserRouter([
   {
@@ -70,6 +71,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.FRIENDS,
         element: <FriendListPage />,
+      },
+      {
+        path: ROUTES.AICHAT,
+        element: <AIChatPage />,
       },
       {
         path: ROUTES.NOT_FOUND,

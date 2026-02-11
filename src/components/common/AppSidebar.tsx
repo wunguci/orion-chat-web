@@ -5,13 +5,13 @@ import {
   MdCalendarToday,
   MdSettings,
 } from "react-icons/md";
-import { FaUsers } from "react-icons/fa";
+import { FaUsers, FaBrain } from "react-icons/fa";
 import type { IconType } from "react-icons";
 import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
 
-type ViewMode = "chat" | "friends" | "notes" | "calendar";
+type ViewMode = "chat" | "friends" | "notes" | "calendar" | "aichat";
 
 interface SidebarProps {
   currentView: ViewMode;
@@ -43,7 +43,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
           alt={currentUser.name}
           size="md"
           status={currentUser.status}
-          onClick={() => console.log("Avatar clicked - navigate to profile")}
+          onClick={() => navigate(ROUTES.PROFILE)}
           className="cursor-pointer hover:opacity-80 transition-opacity"
         />
       </div>
@@ -79,9 +79,21 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
         />
         <NavItem
           icon={MdCalendarToday}
-          active={currentView === "calendar"}
-          onClick={() => setView("calendar")}
+          active={isActive(ROUTES.CALENDAR)}
+          onClick={() => {
+            setView("calendar");
+            navigate(ROUTES.CALENDAR);
+          }}
           label="Calendar"
+        />
+        <NavItem
+          icon={FaBrain}
+          active={isActive(ROUTES.AICHAT)}
+          onClick={() => {
+            setView("aichat");
+            navigate(ROUTES.AICHAT);
+          }}
+          label="AI Chat"
         />
       </nav>
 
