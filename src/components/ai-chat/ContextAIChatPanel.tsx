@@ -51,7 +51,7 @@ const ContextAIChatPanel: React.FC<ContextAIChatPanelProps> = ({
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+        <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 hide-scrollbar">
           {filteredChats.length > 0 ? (
             <AIChatList
               chats={filteredChats}

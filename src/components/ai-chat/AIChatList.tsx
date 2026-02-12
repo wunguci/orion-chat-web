@@ -22,6 +22,33 @@ const AIChatList: React.FC<AIChatListProps> = ({
   const [editingID, setEditingID] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
+  // start renaming
+  const startEditing = (e: React.MouseEvent, chat: ChatSession) => {
+    e.stopPropagation();
+    setEditingID(chat.id);
+    setEditValue(chat.title);
+  };
+
+  // save rename
+  const handleSave = () => {
+    if (editingID && editValue.trim()) {
+      onRenameChat(editingID, editValue.trim());
+    }
+    setEditingID(null);
+  };
+
+  // key down for rename
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSave();
+    if (e.key === "Escape") setEditingID(null);
+  };
+
+  // delete chat
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    onDeleteChat(id);
+  };
+
   return (
     <div className="p-4 pb-2">
       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 px-2">
@@ -49,8 +76,8 @@ const AIChatList: React.FC<AIChatListProps> = ({
           focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-sm transition-all placeholder:text-slate-800"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
-                  //   onBlur={handleSave}
-                  //   onKeyDown={handleKeyDown}
+                  onBlur={handleSave}
+                  onKeyDown={handleKeyDown}
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
@@ -70,14 +97,14 @@ const AIChatList: React.FC<AIChatListProps> = ({
             {editingID !== chat.id && (
               <div className="flex gap-1 group-hover:opacity-100 transition-all shrink-0">
                 <button
-                  //   onClick={(e) => startEditing(e, chat)}
+                  onClick={(e) => startEditing(e, chat)}
                   className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-teal-500 transition-colors cursor-pointer"
                   title="Rename"
                 >
                   <MdOutlineModeEdit className="text-[16px]" />
                 </button>
                 <button
-                  //   onClick={(e) => handleDelete(e, chat.id)}
+                  onClick={(e) => handleDelete(e, chat.id)}
                   className="p-1.5 hover:bg-rose-100 rounded-lg text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
                   title="Delete"
                 >

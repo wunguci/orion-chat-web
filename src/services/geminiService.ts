@@ -13,7 +13,9 @@ export class GeminiService {
   private ai: GoogleGenAI;
 
   constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+    this.ai = new GoogleGenAI({
+      apiKey: import.meta.env.VITE_GEMINI_API_KEY as string,
+    });
   }
 
   async *streamChat(

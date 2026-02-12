@@ -1,4 +1,10 @@
 import React from "react";
+import {
+  MdDeleteForever,
+  MdOutlineWarning,
+  MdInfo,
+  MdCheckCircle,
+} from "react-icons/md";
 
 export type DialogType = "danger" | "warning" | "info" | "success";
 
@@ -15,25 +21,25 @@ interface DialogProps {
 
 const typeConfigs = {
   danger: {
-    icon: "delete_forever",
+    icon: <MdDeleteForever />,
     bg: "bg-rose-50",
     text: "text-rose-500",
     btn: "bg-rose-500 hover:bg-rose-600 shadow-rose-200",
   },
   warning: {
-    icon: "warning",
+    icon: <MdOutlineWarning />,
     bg: "bg-amber-50",
     text: "text-amber-500",
     btn: "bg-amber-500 hover:bg-amber-600 shadow-amber-200",
   },
   info: {
-    icon: "info",
+    icon: <MdInfo />,
     bg: "bg-sky-50",
     text: "text-sky-500",
     btn: "bg-sky-500 hover:bg-sky-600 shadow-sky-200",
   },
   success: {
-    icon: "check_circle",
+    icon: <MdCheckCircle />,
     bg: "bg-emerald-50",
     text: "text-emerald-500",
     btn: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200",
@@ -73,13 +79,13 @@ export const Dialog: React.FC<DialogProps> = ({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+            className="flex-1 py-3 px-4 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 py-3 px-4 rounded-xl font-bold text-white transition-all shadow-lg ${config.btn} active:scale-95`}
+            className={`flex-1 py-3 px-4 rounded-xl font-bold text-white transition-all shadow-lg ${config.btn} active:scale-95 cursor-pointer`}
           >
             {confirmText}
           </button>
