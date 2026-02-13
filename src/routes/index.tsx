@@ -16,6 +16,7 @@ import VideoCallPage from "../pages/video-call/VideoCallPage";
 import NotesPage from "../pages/note/NotesPage";
 import FriendListPage from "../pages/friend/FriendListPage";
 import AIChatPage from "../pages/ai-chat/AIChatPage";
+import CalendarPage from "../pages/calendar/CalendarPage";
 
 export const router = createBrowserRouter([
   {
@@ -75,6 +76,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.AICHAT,
         element: <AIChatPage />,
+      },
+      {
+        path: ROUTES.CALENDAR,
+        element: <CalendarPage />,
       },
       {
         path: ROUTES.NOT_FOUND,
