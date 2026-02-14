@@ -1,5 +1,9 @@
 import React from "react";
 import type { CalendarEvent } from "../../../types/calendar";
+import {
+  MdOutlineCalendarToday,
+  MdOutlineLocationOn,
+} from "react-icons/md";
 
 interface DayViewProps {
   currentDate: Date;
@@ -18,7 +22,7 @@ export const DayView: React.FC<DayViewProps> = ({
   );
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-white p-8">
+    <div className="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-white p-4 hide-scrollbar">
       <div className="max-w-5xl mx-auto w-full space-y-12">
         <header className="flex items-center justify-between">
           <div className="space-y-1">
@@ -44,7 +48,7 @@ export const DayView: React.FC<DayViewProps> = ({
             );
             return (
               <div key={h} className="group flex gap-8">
-                <div className="w-20 pt-1 text-[11px] font-black text-slate-300 text-right uppercase tracking-tighter">
+                <div className="w-20 pt-1 text-[11px] font-black text-slate-500 text-right uppercase tracking-tighter">
                   {h === 0
                     ? "12 AM"
                     : h < 12
@@ -58,7 +62,7 @@ export const DayView: React.FC<DayViewProps> = ({
                     <div
                       key={event.id}
                       onClick={() => onEditEvent(event)}
-                      className="p-8 rounded-[40px] text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer relative overflow-hidden group/card"
+                      className="py-4 px-8 rounded-[40px] text-white shadow-xl hover:shadow-2xl transition-all cursor-pointer relative overflow-hidden group/card"
                       style={{ backgroundColor: event.color }}
                     >
                       <div className="flex justify-between items-start relative z-10">
@@ -68,9 +72,7 @@ export const DayView: React.FC<DayViewProps> = ({
                           </h4>
                           <div className="flex items-center gap-4 text-xs font-bold opacity-80">
                             <span className="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-xl">
-                              <span className="material-symbols-outlined text-sm">
-                                schedule
-                              </span>
+                              <MdOutlineCalendarToday className="text-sm" />
                               {new Date(event.start).toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -78,9 +80,7 @@ export const DayView: React.FC<DayViewProps> = ({
                             </span>
                             {event.location && (
                               <span className="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-xl">
-                                <span className="material-symbols-outlined text-sm">
-                                  location_on
-                                </span>
+                                <MdOutlineLocationOn className="text-sm"/>
                                 {event.location}
                               </span>
                             )}

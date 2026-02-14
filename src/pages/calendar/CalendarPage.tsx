@@ -4,6 +4,10 @@ import CalendarSidebar from "../../components/calendar/CalendarSidebar";
 import CalendarHeader from "../../components/calendar/CalendarHeader";
 import { type CalendarEvent } from "../../types/calendar";
 import { DayView } from "../../components/calendar/views/DayView";
+import { WeekView } from "../../components/calendar/views/WeekView";
+import { MonthView } from "../../components/calendar/views/MonthView";
+import { YearView } from "../../components/calendar/views/YearView";
+import { EventEditor } from "../../components/calendar/EventEditor";
 
 type ViewMode = "Day" | "Week" | "Month" | "Year";
 
@@ -135,7 +139,7 @@ const CalendarPage: React.FC = () => {
         />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
-          {/* {viewMode === "Week" && (
+          {viewMode === "Week" && (
             <WeekView
               currentDate={currentDate}
               events={events}
@@ -150,8 +154,8 @@ const CalendarPage: React.FC = () => {
               onResizeEvent={handleResizeEvent}
               onMoveEvent={handleMoveEvent}
             />
-          )} */}
-          {/* {viewMode === "Month" && (
+          )}
+          {viewMode === "Month" && (
             <MonthView
               currentDate={currentDate}
               events={events}
@@ -159,7 +163,7 @@ const CalendarPage: React.FC = () => {
                 setEditorState({ isOpen: true, existingEvent: e })
               }
             />
-          )} */}
+          )}
           {viewMode === "Day" && (
             <DayView
               currentDate={currentDate}
@@ -169,18 +173,18 @@ const CalendarPage: React.FC = () => {
               }
             />
           )}
-          {/* {viewMode === "Year" && <YearView currentDate={currentDate} />} */}
+          {viewMode === "Year" && <YearView currentDate={currentDate} />}
         </div>
       </div>
 
       {editorState.isOpen && (
         <div className="fixed inset-0 z-110 flex items-center justify-center bg-slate-900/40 backdrop-blur-md animate-fade-in">
-          {/* <EventEditor
+          <EventEditor
             initialDate={editorState.initialDate}
             existingEvent={editorState.existingEvent}
             onClose={() => setEditorState({ isOpen: false })}
             onSave={handleSaveEvent}
-          /> */}
+          />
         </div>
       )}
     </div>

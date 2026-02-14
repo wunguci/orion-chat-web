@@ -28,19 +28,19 @@ const CalendarHeader: React.FC<CalendarHeaderProps> = ({
         <div className="flex items-center bg-slate-100 rounded-2xl gap-2 shadow-inner">
           <button
             onClick={() => navigate("prev")}
-            className="p-2 hover:bg-white hover:shadow-sm rounded-xl text-slate-400 hover:text-slate-900 transition-all cursor-pointer"
+            className="p-2 hover:bg-white hover:shadow-sm rounded-xl text-slate-400 hover:text-teal-500 transition-all cursor-pointer"
           >
             <FaChevronLeft className="text-xl" />
           </button>
           <button
             onClick={() => setCurrentDate(new Date())}
-            className="px-4 py-2 bg-white text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
+            className="px-4 py-2 bg-white text-slate-700 hover:text-teal-500 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
           >
             Today
           </button>
           <button
             onClick={() => navigate("next")}
-            className="p-2 hover:bg-white hover:shadow-sm rounded-xl text-slate-400 hover:text-slate-900 transition-all cursor-pointer"
+            className="p-2 hover:bg-white hover:shadow-sm rounded-xl text-slate-400 hover:text-teal-500 transition-all cursor-pointer"
           >
             <FaChevronRight className="text-xl" />
           </button>
