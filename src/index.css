@@ -234,3 +234,26 @@
   border-radius: 4px !important;
   margin: 2px !important;
 }
+
+/* Contact list scroll container */
+.contact-list-scroll {
+  max-height: calc(100vh - 180px); /* điều chỉnh theo header/sidebar của app */
+  overflow-y: auto;
+  padding-right: 6px; /* tạo khoảng cho scrollbar */
+}
+
+/* Custom scrollbar for contact list */
+.contact-list-scroll::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+}
+.contact-list-scroll::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 9999px;
+}
+.contact-list-scroll::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+.contact-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
