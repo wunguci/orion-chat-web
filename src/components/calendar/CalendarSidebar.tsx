@@ -40,7 +40,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
   };
 
   return (
-    <aside className="w-80 bg-white border-r border-slate-200 flex flex-col py-6 text-slate-600 shrink-0 overflow-y-auto custom-scrollbar z-20 shadow-sm">
+    <aside className="w-80 flex flex-col border-r border-slate-200 py-6 bg-white z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
       <div className="px-6 border-b border-slate-200 pb-4 mb-4">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
