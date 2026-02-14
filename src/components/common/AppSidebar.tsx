@@ -50,9 +50,17 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
                     className="cursor-pointer hover:opacity-80 transition-opacity"
                 />
             </div>
-
             {/* Navigation Items */}
             <nav className="flex-1 flex flex-col gap-4 mt-6">
+                {/* <NavItem
+                    icon={MdContacts}
+                    active={isActive(ROUTES.CHAT.CONTACTS)}
+                    onClick={() => {
+                        setView('contacts');
+                        navigate(ROUTES.CHAT.CONTACTS);
+                    }}
+                    label="Contacts"
+                /> */}
                 <NavItem
                     icon={MdChat}
                     active={isActive(ROUTES.CHAT.ROOT)}
@@ -63,13 +71,13 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
                     label="Chat"
                 />
                 <NavItem
-                    icon={MdContacts}
-                    active={isActive(ROUTES.CHAT.CONTACTS)}
+                    icon={FaUsers}
+                    active={isActive(ROUTES.FRIENDS)}
                     onClick={() => {
-                        setView('contacts');
-                        navigate(ROUTES.CHAT.CONTACTS);
+                        setView('friends');
+                        navigate(ROUTES.FRIENDS);
                     }}
-                    label="Contacts"
+                    label="Friends"
                 />
                 <NavItem
                     icon={MdNote}
@@ -82,59 +90,23 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
                 />
                 <NavItem
                     icon={MdCalendarToday}
-                    active={currentView === 'calendar'}
-                    onClick={() => setView('calendar')}
+                    active={isActive(ROUTES.CALENDAR)}
+                    onClick={() => {
+                        setView('calendar');
+                        navigate(ROUTES.CALENDAR);
+                    }}
                     label="Calendar"
                 />
+                <NavItem
+                    icon={FaBrain}
+                    active={isActive(ROUTES.AICHAT)}
+                    onClick={() => {
+                        setView('aichat');
+                        navigate(ROUTES.AICHAT);
+                    }}
+                    label="AI Chat"
+                />
             </nav>
-      {/* Navigation Items */}
-      <nav className="flex-1 flex flex-col gap-4 mt-6">
-        <NavItem
-          icon={MdChat}
-          active={isActive(ROUTES.CHAT.ROOT)}
-          onClick={() => {
-            setView("chat");
-            navigate(ROUTES.CHAT.ROOT);
-          }}
-          label="Chat"
-        />
-        <NavItem
-          icon={FaUsers}
-          active={isActive(ROUTES.FRIENDS)}
-          onClick={() => {
-            setView("friends");
-            navigate(ROUTES.FRIENDS);
-          }}
-          label="Friends"
-        />
-        <NavItem
-          icon={MdNote}
-          active={isActive(ROUTES.NOTE)}
-          onClick={() => {
-            setView("notes");
-            navigate(ROUTES.NOTE);
-          }}
-          label="Notes"
-        />
-        <NavItem
-          icon={MdCalendarToday}
-          active={isActive(ROUTES.CALENDAR)}
-          onClick={() => {
-            setView("calendar");
-            navigate(ROUTES.CALENDAR);
-          }}
-          label="Calendar"
-        />
-        <NavItem
-          icon={FaBrain}
-          active={isActive(ROUTES.AICHAT)}
-          onClick={() => {
-            setView("aichat");
-            navigate(ROUTES.AICHAT);
-          }}
-          label="AI Chat"
-        />
-      </nav>
 
             {/* Settings at bottom */}
             <div className="mt-auto">
