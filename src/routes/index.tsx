@@ -14,6 +14,7 @@ import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import WorkHubLayout from "../components/layout/WorkHubLayout";
 import WorkHubPage from "../pages/work-hub/home/WorkHubPage";
 import TasksManagerPage from "../pages/work-hub/task/TasksManagerPage";
+import CreateWorkHub from "../pages/work-hub/create/CreateWorkHub";
 
 export const router = createBrowserRouter([
   {
@@ -51,6 +52,10 @@ export const router = createBrowserRouter([
             element: <ChatPage />,
           },
         ],
+      },
+      {
+        path: "/work-hub/create",
+        element: <CreateWorkHub />,
       },
       {
         path: "/work-hub/*",
