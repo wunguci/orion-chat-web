@@ -1,13 +1,12 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
 import SideBarWorkHub from "../common/SideBarWorkHub";
 
 const WorkHubLayout = () => {
-  return (
-    <div className="flex h-screen overflow-hidden bg-[#0f172a]">
-      {/* Sidebar */}
-      <SideBarWorkHub />
+  const { workspaceId } = useParams<{ workspaceId: string }>();
 
-      {/* Main content */}
+  return (
+    <div className="flex h-screen overflow-hidden bg-[var(--wh-green-bg-light)]">
+      <SideBarWorkHub workspaceId={workspaceId || "ws1"} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Outlet />
       </div>

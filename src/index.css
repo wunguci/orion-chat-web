@@ -93,16 +93,47 @@
   --header-height: 64px;
   --message-input-height: auto;
 
+  /* ==================== WORKHUB GREEN THEME ==================== */
+  /* Primary greens */
+  --wh-green-primary: #226262;
+  --wh-green-primary-hover: #1a4f4f;
+  --wh-green-primary-active: #143d3d;
+  --wh-green-primary-light: #2d7a7a;
+
+  /* Background greens */
+  --wh-green-bg-heavy: #d6f2f2;
+  --wh-green-bg-light: #f4ffff;
+  --wh-green-bg-medium: #e8f8f8;
+
+  /* Border greens */
+  --wh-green-border-light: #d6f2f2;
+  --wh-green-border-medium: #b0e0e0;
+  --wh-green-border-dark: #226262;
+
+  /* Text greens */
+  --wh-green-text-primary: #226262;
+  --wh-green-text-secondary: #2d7a7a;
+  --wh-green-text-muted: #5a9e9e;
+
+  /* Status colors */
+  --wh-status-todo: #94a3b8;
+  --wh-status-inprogress: #f59e0b;
+  --wh-status-review: #6c2eff;
+  --wh-status-done: #10b981;
+
+  /* Priority colors */
+  --wh-priority-low: #3b82f6;
+  --wh-priority-medium: #f59e0b;
+  --wh-priority-high: #f97316;
+  --wh-priority-critical: #ef4444;
+
+  /* WorkHub layout */
+  --wh-sidebar-width: 280px;
+  --wh-header-height: 64px;
+
   /* Scrollbar */
   --scrollbar-width: 6px;
   --scrollbar-track: #f3f4f6;
   --scrollbar-thumb: #d1d5db;
   --scrollbar-thumb-hover: #9ca3af;
-}
-
-/* ==================== BASE STYLES ==================== */
-* {
-  box-sizing: border-box;
-  /* margin: 0;
-  padding: 0; */
 }

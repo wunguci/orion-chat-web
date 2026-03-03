@@ -13,8 +13,16 @@ import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import WorkHubLayout from "../components/layout/WorkHubLayout";
 import WorkHubPage from "../pages/work-hub/home/WorkHubPage";
-import TasksManagerPage from "../pages/work-hub/task/TasksManagerPage";
 import CreateWorkHub from "../pages/work-hub/create/CreateWorkHub";
+import BoardPage from "../pages/work-hub/boards/BoardPage";
+import MembersPage from "../pages/work-hub/members/MembersPage";
+import WorkspaceSettingsPage from "../pages/work-hub/settings/WorkspaceSettingsPage";
+import AIInsightsPage from "../pages/work-hub/insights/AIInsightsPage";
+import DocumentsPage from "../pages/work-hub/documents/DocumentsPage";
+import DocumentEditorPage from "../pages/work-hub/documents/DocumentEditorPage";
+import FilesPage from "../pages/work-hub/files/FilesPage";
+import ChannelsPage from "../pages/work-hub/channels/ChannelsPage";
+import DirectMessagesPage from "../pages/work-hub/messages/DirectMessagesPage";
 
 export const router = createBrowserRouter([
   {
@@ -58,7 +66,7 @@ export const router = createBrowserRouter([
         element: <CreateWorkHub />,
       },
       {
-        path: "/work-hub/*",
+        path: "/work-hub/:workspaceId",
         element: <WorkHubLayout />,
         children: [
           {
@@ -66,8 +74,40 @@ export const router = createBrowserRouter([
             element: <WorkHubPage />,
           },
           {
-            path: "tasks",
-            element: <TasksManagerPage />,
+            path: "boards/:boardId",
+            element: <BoardPage />,
+          },
+          {
+            path: "members",
+            element: <MembersPage />,
+          },
+          {
+            path: "settings",
+            element: <WorkspaceSettingsPage />,
+          },
+          {
+            path: "insights",
+            element: <AIInsightsPage />,
+          },
+          {
+            path: "documents",
+            element: <DocumentsPage />,
+          },
+          {
+            path: "documents/:documentId",
+            element: <DocumentEditorPage />,
+          },
+          {
+            path: "files",
+            element: <FilesPage />,
+          },
+          {
+            path: "channels",
+            element: <ChannelsPage />,
+          },
+          {
+            path: "messages",
+            element: <DirectMessagesPage />,
           },
         ],
       },
