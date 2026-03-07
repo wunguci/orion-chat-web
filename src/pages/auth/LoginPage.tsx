@@ -63,12 +63,12 @@ export default function Login() {
                                 >
                                     PASSWORD
                                 </label>
-                                <a
-                                    href="#"
+                                <Link
+                                    to="/auth/forgot-password"
                                     className="text-sm text-[#006275] hover:underline font-semibold"
                                 >
                                     Forgot?
-                                </a>
+                                </Link>
                             </div>
 
                             <div className="relative">
