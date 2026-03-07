@@ -18,6 +18,7 @@ import FriendPage from '../pages/contacts/ContactPage';
 import FriendListPage from '../pages/friend/FriendListPage';
 import AIChatPage from '../pages/ai-chat/AIChatPage';
 import CalendarPage from '../pages/calendar/CalendarPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 
 export const router = createBrowserRouter([
     {
@@ -43,6 +44,10 @@ export const router = createBrowserRouter([
                     {
                         path: ROUTES.AUTH.REGISTER,
                         element: <RegisterPage />,
+                    },
+                    {
+                        path: ROUTES.AUTH.FORGOT_PASSWORD,
+                        element: <ForgotPasswordPage />,
                     },
                 ],
             },
