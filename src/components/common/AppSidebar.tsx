@@ -139,7 +139,7 @@ const NavItem: React.FC<NavItemProps> = ({
             onClick={onClick}
             className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
                 active
-                    ? 'bg-teal-400 text-primary shadow-sm'
+                    ? 'bg-green-message text-white shadow-sm'
                     : 'text-slate-400 hover:bg-slate-200'
             }`}
             title={label}
