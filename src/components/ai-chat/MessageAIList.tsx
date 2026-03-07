@@ -25,7 +25,7 @@ export const MessageAIList: React.FC<MessageAIListProps> = ({
         ))}
         {isTyping && (
           <div className="flex gap-4 animate-fade-in">
-            <div className="size-8 rounded-lg bg-teal-500 text-white flex items-center justify-center shrink-0">
+            <div className="size-8 rounded-lg bg-green-primary text-white flex items-center justify-center shrink-0">
               <MdSync className="text-xl animate-spin"/>
             </div>
             <div className="flex-1">

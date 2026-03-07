@@ -251,7 +251,7 @@ const AIChatPage: React.FC = () => {
             <p className="font-medium">Select or create a new chat to begin.</p>
             <button
               onClick={() => createNewChat()}
-              className="px-6 py-2 bg-teal-500 text-white rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform cursor-pointer"
+              className="px-6 py-2 bg-green-primary text-white rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform cursor-pointer"
             >
               New Chat
             </button>
