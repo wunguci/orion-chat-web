@@ -29,7 +29,7 @@ const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
   return (
     <div className="relative group/cat">
       <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl cursor-pointer hover:bg-slate-100 border border-slate-100 transition-all">
-        <MdCategory className="text-[18px] text-teal-500" />
+        <MdCategory className="text-[18px] text-green-primary" />
         <span className="text-[14px] font-bold text-slate-700 uppercase tracking-wide">
           {activeCategory}
         </span>
@@ -44,7 +44,7 @@ const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
               onClick={() => onSelect(cat)}
               className={`w-full px-4 py-2.5 text-left text-[13px] font-semibold rounded-xl transition-colors mb-0.5 cursor-pointer ${
                 activeCategory === cat
-                  ? "bg-teal-50 text-teal-500"
+                  ? "bg-teal-50 text-green-primary"
                   : "text-slate-600 hover:bg-slate-50"
               }`}
             >
@@ -61,14 +61,14 @@ const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
               onChange={(e) => setNewCatInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               placeholder="New category..."
-              className="flex-1 bg-transparent border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 text-[12px] p-1 font-medium text-slate-600 placeholder:text-slate-400"
+              className="flex-1 bg-transparent border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 text-[12px] p-1 font-medium text-slate-600 placeholder:text-slate-500"
             />
 
             <button
               onClick={handleAdd}
-              className="w-6 h-6 flex items-center justify-center bg-teal-500 text-white rounded-lg hover:scale-105 transition-transform cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center bg-green-primary text-white rounded-lg cursor-pointer  hover:scale-105 transition-transform"
             >
-              <IoIosAdd className="text-[16px]" />
+              <IoIosAdd className="text-[16px] text-white"/>
             </button>
           </div>
         </div>

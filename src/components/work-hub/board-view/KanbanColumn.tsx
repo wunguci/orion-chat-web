@@ -1,0 +1,94 @@
+import type { BoardColumn, Task } from "../../../types/work-hub.types";
+import KanbanCard from "./KanbanCard";
+
+interface KanbanColumnProps {
+  column: BoardColumn;
+  tasks: Task[];
+  onDrop: (taskId: string) => void;
+  onTaskClick: (taskId: string) => void;
+  onAddTask: () => void;
+  onDragStart: (taskId: string) => void;
+  isDragOver: boolean;
+  onDragEnter: () => void;
+  onDragLeave: () => void;
+}
+
+const KanbanColumn = ({
+  column,
+  tasks,
+  onDrop,
+  onTaskClick,
+  onAddTask,
+  onDragStart,
+  isDragOver,
+  onDragEnter,
+  onDragLeave,
+}: KanbanColumnProps) => {
+  return (
+    <div
+      className={`flex flex-col min-w-[300px] max-w-[350px] rounded-xl transition-all ${
+        isDragOver
+          ? "bg-[var(--wh-green-bg-heavy)] border-2 border-dashed border-[var(--wh-green-primary)]"
+          : "bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)]"
+      }`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+      }}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        onDragEnter();
+      }}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => {
+        e.preventDefault();
+        const taskId = e.dataTransfer.getData("text/plain");
+        if (taskId) {
+          onDrop(taskId);
+        }
+        onDragLeave();
+      }}
+    >
+      {/* Column Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--wh-green-border-light)]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: column.color }} />
+          <h3 className="font-semibold text-sm text-gray-800">{column.name}</h3>
+          <span className="bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] px-2 py-0.5 rounded-full text-xs font-semibold">
+            {tasks.length}
+          </span>
+        </div>
+        <button
+          onClick={onAddTask}
+          className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-[var(--wh-green-primary)] hover:bg-[var(--wh-green-bg-heavy)] transition-colors"
+          title="Add task"
+        >
+          <i className="fas fa-plus text-xs"></i>
+        </button>
+      </div>
+
+      {/* Tasks */}
+      <div className="flex flex-col gap-2.5 p-3 flex-1 overflow-y-auto max-h-[600px]">
+        {tasks.length > 0 ? (
+          tasks.map((task) => (
+            <KanbanCard
+              key={task.id}
+              task={task}
+              onClick={onTaskClick}
+              onDragStart={(id) => {
+                onDragStart(id);
+              }}
+            />
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            <i className="fas fa-inbox text-2xl mb-2 opacity-40"></i>
+            <p className="text-xs">No tasks</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default KanbanColumn;

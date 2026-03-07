@@ -8,38 +8,43 @@
   --color-orange-border-light: #fbe7df;
   --color-gray-primary: #505050;
   --color-gray-secondary: #94a3b8;
-
+  --color-gray-border: #EFF4F8;
+  --color-green-primary: #226262;
+  --color-green-secondary: #1D5757;
+  --color-green-bg-heavy: #D6F2F2;
+  --color-green-bg-light: #F4FFFF;
+  --color-green-border-light: #D6F2F2;
   --color-blue-dark: #0052cc;
 }
 
 /* ==================== CUSTOM CSS VARIABLES ==================== */
 :root {
   /* Colors - Palette chính cho ứng dụng chat */
-  --color-primary: #0068ff; /* Màu xanh chủ đạo (như Zalo) */
-  --color-primary-dark: #0052cc; /* Primary hover/active */
-  --color-primary-light: #e6f2ff; /* Primary background nhạt */
-
-  --color-secondary: #e3ecf9; /* Background nhẹ */
-  --color-background: #ffffff; /* Background chính */
-  --color-surface: #ffffff; /* Surface của card */
-
-  --color-text-primary: #1f2937; /* Text màu đen chính */
-  --color-text-secondary: #6b7280; /* Text màu xám */
-  --color-text-tertiary: #9ca3af; /* Text màu xám nhạt */
-
-  --color-border: #e5e7eb; /* Border màu xám */
-  --color-border-light: #f3f4f6; /* Border nhạt hơn */
-
-  --color-success: #10b981; /* Màu xanh lá */
-  --color-danger: #ef4444; /* Màu đỏ */
-  --color-warning: #f59e0b; /* Màu vàng */
-  --color-info: #3b82f6; /* Màu xanh dương */
-
+  --color-primary: #0068FF;           /* Màu xanh chủ đạo (như Zalo) */
+  --color-primary-dark: #0052CC;      /* Primary hover/active */
+  --color-primary-light: #E6F2FF;     /* Primary background nhạt */
+  
+  --color-secondary: #F5F7FA;         /* Background nhẹ */
+  --color-background: #FFFFFF;        /* Background chính */
+  --color-surface: #FFFFFF;           /* Surface của card */
+  
+  --color-text-primary: #1F2937;      /* Text màu đen chính */
+  --color-text-secondary: #6B7280;    /* Text màu xám */
+  --color-text-tertiary: #9CA3AF;     /* Text màu xám nhạt */
+  
+  --color-border: #E5E7EB;            /* Border màu xám */
+  --color-border-light: #F3F4F6;      /* Border nhạt hơn */
+  
+  --color-success: #10B981;           /* Màu xanh lá */
+  --color-danger: #EF4444;            /* Màu đỏ */
+  --color-warning: #F59E0B;           /* Màu vàng */
+  --color-info: #3B82F6;              /* Màu xanh dương */
+  
   /* Online status colors */
-  --color-online: #10b981; /* Green - online */
-  --color-offline: #9ca3af; /* Gray - offline */
-  --color-away: #f59e0b; /* Orange - away */
-
+  --color-online: #10B981;            /* Green - online */
+  --color-offline: #9CA3AF;           /* Gray - offline */
+  --color-away: #F59E0B;              /* Orange - away */
+  
   /* Chat specific colors */
   --color-message-sent: #0068ff; /* Background tin nhắn đã gửi */
   --color-message-received: #f3f4f6; /* Background tin nhắn nhận */
@@ -103,6 +108,45 @@
   --sidebar-width: 360px;
   --header-height: 64px;
   --message-input-height: auto;
+
+
+  /* ==================== WORKHUB GREEN THEME ==================== */
+  /* Primary greens */
+  --wh-green-primary: #226262;
+  --wh-green-primary-hover: #1a4f4f;
+  --wh-green-primary-active: #143d3d;
+  --wh-green-primary-light: #2d7a7a;
+
+  /* Background greens */
+  --wh-green-bg-heavy: #d6f2f2;
+  --wh-green-bg-light: #f4ffff;
+  --wh-green-bg-medium: #e8f8f8;
+
+  /* Border greens */
+  --wh-green-border-light: #d6f2f2;
+  --wh-green-border-medium: #b0e0e0;
+  --wh-green-border-dark: #226262;
+
+  /* Text greens */
+  --wh-green-text-primary: #226262;
+  --wh-green-text-secondary: #2d7a7a;
+  --wh-green-text-muted: #5a9e9e;
+
+  /* Status colors */
+  --wh-status-todo: #94a3b8;
+  --wh-status-inprogress: #f59e0b;
+  --wh-status-review: #6c2eff;
+  --wh-status-done: #10b981;
+
+  /* Priority colors */
+  --wh-priority-low: #3b82f6;
+  --wh-priority-medium: #f59e0b;
+  --wh-priority-high: #f97316;
+  --wh-priority-critical: #ef4444;
+
+  /* WorkHub layout */
+  --wh-sidebar-width: 280px;
+  --wh-header-height: 64px;
 
   /* Scrollbar */
   --scrollbar-width: 6px;

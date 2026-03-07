@@ -41,9 +41,9 @@ const AISkillList: React.FC<AISkillListProps> = ({ onSkillClick }) => {
           <button
             key={skill.label}
             onClick={() => onSkillClick(skill.prompt)}
-            className="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl hover:border-teal-500 hover:shadow-sm transition-all text-left group cursor-pointer"
+            className="flex items-center gap-2 p-2.5 bg-white border border-slate-200 rounded-xl hover:border-green-primary hover:shadow-sm transition-all text-left group cursor-pointer"
           >
-            <span className="text-teal-600 text-xl group-hover:scale-110 transition-transform shrink-0">
+            <span className="text-green-secondary text-xl group-hover:scale-110 transition-transform shrink-0">
               {skill.icon}
             </span>
             <span className="text-[11px] font-bold text-slate-700 truncate">

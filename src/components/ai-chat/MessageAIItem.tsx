@@ -14,7 +14,7 @@ export const MessageAIItem: React.FC<MessageAIItemProps> = ({ message }) => {
   return (
     <div className={`flex gap-4 ${isUser ? 'flex-row-reverse' : ''} animate-fade-in`}>
       <div className={`size-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden ${
-        isUser ? 'bg-slate-200' : 'bg-teal-500 text-white'
+        isUser ? 'bg-slate-200' : 'bg-green-primary text-white'
       }`}>
         {isUser ? (
           <Avatar alt="Trần Vũ"/>
@@ -25,7 +25,7 @@ export const MessageAIItem: React.FC<MessageAIItemProps> = ({ message }) => {
       <div className={`flex-1 flex flex-col ${isUser ? 'items-end' : ''}`}>
         <div className={`p-6 rounded-2xl shadow-sm border max-w-[85%] ${
           isUser 
-            ? 'bg-teal-500 text-white rounded-tr-none border-transparent' 
+            ? 'bg-green-primary text-white rounded-tr-none border-transparent' 
             : 'bg-white rounded-tl-none border-slate-100 text-slate-800'
         }`}>
           <p className="leading-relaxed whitespace-pre-wrap text-sm md:text-base">{message.content}</p>

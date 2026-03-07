@@ -27,7 +27,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, isActive, onClick }) => {
         onClick={onClick}
         className={`p-4 border rounded-xl cursor-pointer transistion-all duration-200 group relative ${
           isActive
-            ? "bg-white border-slate-200 shadow-sm ring-1 ring-teal-500/10"
+            ? "bg-white border-slate-200 shadow-sm ring-1 ring-green-primary/10"
             : "bg-transparent hover:bg-slate-50 border-transparent"
         }`}
       >
@@ -39,7 +39,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, isActive, onClick }) => {
           >
             {note.title || "Untitled Note"}
           </h3>
-          {note.isPinned && <MdPushPin className="text-primary text-[18px]" />}
+          {note.isPinned && <MdPushPin className="text-green-primary text-[18px]" />}
         </div>
 
         <div className="mb-2">

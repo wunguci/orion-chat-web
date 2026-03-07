@@ -31,7 +31,7 @@ const NotesList: React.FC<NotesListProps> = ({
             </h1>
             <button
               onClick={onCreateNote}
-              className="w-8 h-8 flex items-center justify-center bg-teal-500 text-white rounded-lg hover:bg-teal-700 transition-all active:scale-90 shadow-lg shadow-teal-500/20 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center bg-green-primary text-white rounded-lg hover:bg-green-secondary transition-all active:scale-90 shadow-lg shadow-green-500/20 cursor-pointer"
             >
               <FaPlus className="w-4 h-4" />
             </button>

@@ -135,7 +135,7 @@ const AIChatInput: React.FC<AIChatInputProps> = ({
             <button
               key={action.label}
               onClick={() => onSend(action.prompt)}
-              className="whitespace-nowrap px-4 py-2 rounded-lg bg-white shadow-sm border border-slate-200 text-slate-600 text-xs font-bold flex items-center gap-2 hover:border-teal-500 hover:text-teal-500 transition-all shrink-0 active:scale-95 cursor-pointer"
+              className="whitespace-nowrap px-4 py-2 rounded-lg bg-white shadow-sm border border-slate-200 text-slate-600 text-xs font-bold flex items-center gap-2 hover:border-green-primary hover:text-green-primary transition-all shrink-0 active:scale-95 cursor-pointer"
             >
               <span className="text-sm">{action.icon}</span> {action.label}
             </button>
@@ -143,14 +143,14 @@ const AIChatInput: React.FC<AIChatInputProps> = ({
         </div>
 
         <div className="relative group">
-          <div className="absolute inset-0 bg-teal-500/10 blur-3xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+          <div className="absolute inset-0 bg-green-primary/10 blur-3xl rounded-3xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
 
           <form
             onSubmit={handleSubmit}
-            className="relative bg-white border-2 border-slate-200 rounded-2xl p-2 flex flex-col gap-1 focus-within:border-teal-500 transition-all shadow-xl"
+            className="relative bg-white border-2 border-slate-200 rounded-2xl p-2 flex flex-col gap-1 focus-within:border-green-primary transition-all shadow-xl"
           >
             {attachedFile && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl w-fit text-xs font-bold text-slate-600 animate-fade-in mx-2 mt-1 border border-teal-500/10">
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl w-fit text-xs font-bold text-slate-600 animate-fade-in mx-2 mt-1 border border-green-primary/10">
                 <span className="text-sm">attachment</span>
                 <span className="truncate max-w-50">{attachedFile.name}</span>
                 <button
@@ -173,7 +173,7 @@ const AIChatInput: React.FC<AIChatInputProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-slate-400 hover:text-teal-500 transition-colors active:scale-90 shrink-0 cursor-pointer"
+                className="p-2 text-slate-400 hover:text-green-primary transition-colors active:scale-90 shrink-0 cursor-pointer"
               >
                 <IoIosAddCircleOutline className="text-3xl" />
               </button>
@@ -197,7 +197,7 @@ const AIChatInput: React.FC<AIChatInputProps> = ({
                 <button
                   type="button"
                   onClick={toggleRecording}
-                  className={`p-3 transition-colors active:scale-90 shrink-0 cursor-pointer ${isRecording ? "text-rose-500 animate-pulse" : "text-slate-400 hover:text-teal-500"}`}
+                  className={`p-3 transition-colors active:scale-90 shrink-0 cursor-pointer ${isRecording ? "text-rose-500 animate-pulse" : "text-slate-400 hover:text-green-primary"}`}
                 >
                   <span className="text-3xl">
                     {isRecording ? <FaRegStopCircle /> : <MdMicNone />}
@@ -206,7 +206,7 @@ const AIChatInput: React.FC<AIChatInputProps> = ({
                 <button
                   type="submit"
                   disabled={isTyping || (!input.trim() && !attachedFile)}
-                  className="size-10 flex items-center justify-center bg-teal-500 text-white rounded-xl shadow-lg shadow-teal-500/20 hover:shadow-teal-500/40 active:scale-95 transition-all disabled:opacity-30 disabled:shadow-none shrink-0 cursor-pointer"
+                  className="size-10 flex items-center justify-center bg-green-primary hover:bg-green-secondary text-white rounded-xl shadow-lg shadow-green-primary/20 hover:shadow-green-primary/40 active:scale-95 transition-all disabled:opacity-30 disabled:shadow-none shrink-0 cursor-pointer"
                 >
                   <IoSend className="text-lg" />
                 </button>

@@ -21,7 +21,7 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ request }) => {
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            className="w-10 h-10 flex items-center justify-center bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors shadow-sm shadow-primary/20 cursor-pointer"
+            className="w-10 h-10 flex items-center justify-center bg-green-primary text-white rounded-xl hover:bg-green-secondary transition-colors shadow-sm shadow-primary/20 cursor-pointer"
             title="Accept"
           >
             <FaCheck className="text-xl" />
