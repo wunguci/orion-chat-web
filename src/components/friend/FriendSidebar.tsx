@@ -51,7 +51,7 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({ searchQuery, setSearchQue
       <section className="w-80 flex flex-col border-r border-slate-200 bg-white z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
         <div className="p-5 border-b border-slate-200 ">
           <div className="flex items-center justify-between mb-5">
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-extrabold text-slate-700 tracking-tight">
               Friends
             </h1>
           </div>
@@ -63,7 +63,7 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({ searchQuery, setSearchQue
             onClick={() => setActiveSubTab("All")}
             className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
               activeSubTab === "All"
-                ? "border-teal-500 text-primary"
+                ? "border-green-primary text-green-primary"
                 : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
           >
@@ -73,7 +73,7 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({ searchQuery, setSearchQue
             onClick={() => setActiveSubTab("Online")}
             className={`flex-1 py-2 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
               activeSubTab === "Online"
-                ? "border-teal-500 text-primary"
+                ? "border-green-primary text-green-primary"
                 : "border-transparent text-slate-400 hover:text-slate-600"
             }`}
           >

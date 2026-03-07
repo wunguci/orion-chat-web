@@ -109,7 +109,7 @@ const MainContent: React.FC = () => {
               <h2 className="text-xl font-bold tracking-tight">
                 Friend Requests
               </h2>
-              <span className="bg-teal-100 text-teal-800 text-xs font-bold px-2 py-1 rounded-full">
+              <span className="bg-teal-100 text-green-secondary text-xs font-bold px-2 py-1 rounded-full">
                 {FRIEND_REQUESTS.length} Pending
               </span>
             </div>
