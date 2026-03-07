@@ -48,7 +48,7 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
           </h1>
           <button
             onClick={onCreateClick}
-            className="w-35 h-12 flex items-center justify-evenly bg-teal-500 text-white rounded-lg hover:bg-teal-700 transition-all active:scale-90 shadow-lg shadow-teal-500/20 cursor-pointer"
+            className="w-35 h-12 flex items-center justify-evenly bg-green-primary text-white rounded-lg hover:bg-green-secondary transition-all active:scale-90 shadow-lg shadow-green-primary/20 cursor-pointer"
           >
             <FaPlus className="w-4 h-4" />
             Create event
@@ -106,9 +106,9 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                 className={`group/date relative p-1.5 text-xs rounded-xl cursor-pointer transition-all font-bold flex flex-col items-center justify-center
                   ${
                     isSelected
-                      ? "bg-teal-500 text-white shadow-lg shadow-teal-500/30 scale-110 z-10"
+                      ? "bg-green-primary text-white shadow-lg shadow-green-primary/30 scale-110 z-10"
                       : isToday
-                        ? "text-teal-500 border border-teal-500/20"
+                        ? "text-green-primary border border-green-primary/20"
                         : isCurrentMonth
                           ? "text-slate-600 hover:bg-slate-100"
                           : "text-slate-200 hover:text-slate-400"
@@ -165,7 +165,7 @@ const CalendarToggle: React.FC<{ label: string; color: string }> = ({
       <input
         type="checkbox"
         defaultChecked
-        className="rounded border-slate-300 text-teal-500 focus:ring-0 focus:ring-offset-0 size-4 transition-all"
+        className="rounded border-slate-300 text-green-primary focus:ring-0 focus:ring-offset-0 size-4 transition-all"
       />
     </div>
   </label>

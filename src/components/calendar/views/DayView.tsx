@@ -26,17 +26,17 @@ export const DayView: React.FC<DayViewProps> = ({
       <div className="max-w-5xl mx-auto w-full space-y-12">
         <header className="flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-sm font-black text-teal-500 uppercase tracking-[0.3em]">
+            <span className="text-sm font-black text-green-primary uppercase tracking-[0.3em]">
               {currentDate.toLocaleDateString("en-US", { weekday: "long" })}
             </span>
-            <h2 className="text-6xl font-black text-slate-900">
+            <h2 className="text-4xl font-black text-slate-700">
               {currentDate.toLocaleDateString("en-US", {
                 day: "numeric",
                 month: "long",
               })}
             </h2>
           </div>
-          <button className="px-8 py-4 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-3xl shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer">
+          <button className="px-8 py-4 bg-slate-700 text-white font-black text-xs uppercase tracking-widest rounded-3xl shadow-2xl hover:scale-105 active:scale-95 transition-all cursor-pointer">
             Schedule New
           </button>
         </header>
@@ -57,7 +57,7 @@ export const DayView: React.FC<DayViewProps> = ({
                         ? "12 PM"
                         : `${h - 12} PM`}
                 </div>
-                <div className="flex-1 min-h-15 border-l-2 border-slate-50 group-hover:border-teal-500/20 transition-colors pl-8 pb-8 space-y-4">
+                <div className="flex-1 min-h-15 border-l-2 border-slate-50 group-hover:border-green-primary/20 transition-colors pl-8 pb-8 space-y-4">
                   {hourEvents.map((event) => (
                     <div
                       key={event.id}
@@ -80,7 +80,7 @@ export const DayView: React.FC<DayViewProps> = ({
                             </span>
                             {event.location && (
                               <span className="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-xl">
-                                <MdOutlineLocationOn className="text-sm"/>
+                                <MdOutlineLocationOn className="text-sm" />
                                 {event.location}
                               </span>
                             )}

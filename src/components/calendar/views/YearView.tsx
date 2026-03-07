@@ -53,7 +53,7 @@ export const YearView: React.FC<YearViewProps> = ({ currentDate }) => {
                 return (
                   <div
                     key={i}
-                    className={`p-1 rounded-xl text-[12px] font-black transition-all cursor-pointer flex justify-center ${isToday ? "bg-teal-500 hover:bg-teal-600 text-white shadow-lg shadow-teal-500/30 scale-125" : "text-slate-600 hover:bg-slate-50"}`}
+                    className={`p-1 rounded-xl text-[12px] font-black transition-all cursor-pointer flex justify-center ${isToday ? "bg-green-primary hover:bg-green-secondary text-white shadow-lg shadow-green-primary/30 scale-125" : "text-slate-600 hover:bg-slate-50"}`}
                   >
                     {i + 1}
                   </div>

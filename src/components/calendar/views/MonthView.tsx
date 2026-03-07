@@ -29,7 +29,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
       {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
         <div
           key={d}
-          className="py-2 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center"
+          className="py-2 text-[10px] font-black text-slate-700 uppercase tracking-widest text-center"
         >
           {d}
         </div>
@@ -44,10 +44,10 @@ export const MonthView: React.FC<MonthViewProps> = ({
         return (
           <div
             key={i}
-            className={`bg-white rounded-3xl p-3 min-h-0 flex flex-col gap-1 shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer ${!isCurrentMonth ? "opacity-30" : ""} ${isToday ? "ring-2 ring-teal-500 ring-offset-2" : ""}`}
+            className={`bg-white rounded-3xl p-3 min-h-0 flex flex-col gap-1 shadow-sm border border-slate-100 hover:shadow-md transition-all cursor-pointer ${!isCurrentMonth ? "opacity-30" : ""} ${isToday ? "ring-2 ring-green-primary ring-offset-2" : ""}`}
           >
             <span
-              className={`text-xs font-black mb-1 ${isToday ? "text-teal-500" : "text-slate-900"}`}
+              className={`text-xs font-black mb-1 ${isToday ? "text-green-primary" : "text-slate-700"}`}
             >
               {day.getDate()}
             </span>

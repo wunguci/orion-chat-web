@@ -159,14 +159,14 @@ export const EventEditor: React.FC<EventEditorProps> = ({
     <div className="w-120 bg-white rounded-[40px] shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-slate-100 overflow-visible animate-scale-up ">
       {/* Header Section */}
       <div className="px-8 pt-5 pb-4 flex items-center justify-between">
-        <h2 className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em]">
+        <h2 className="text-[12px] font-black text-slate-500 uppercase tracking-[0.3em]">
           {existingEvent ? "Edit Schedule" : "New Appointment"}
         </h2>
         <button
           onClick={onClose}
           className="size-10 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-500 hover:text-slate-900 transition-all active:scale-90 cursor-pointer"
         >
-          <IoClose className="text-xl" />
+          <IoClose className="text-2xl" />
         </button>
       </div>
 
@@ -178,11 +178,11 @@ export const EventEditor: React.FC<EventEditorProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full py-3 pl-6 bg-slate-100 border-none outline-none appearance-none shadow-none ring-0
-          focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-2xl transition-all placeholder:text-slate-600 font-semibold"
+          focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-2xl transition-all placeholder:text-slate-500 font-semibold"
             placeholder="Event Title..."
           />
-          <div className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-widest pl-0.5">
-            <MdOutlineCalendarToday className="text-[16px] text-teal-500" />
+          <div className="flex items-center gap-2 text-[11px] font-black text-slate-500 uppercase tracking-widest pl-0.5">
+            <MdOutlineCalendarToday className="text-[16px] text-green-primary" />
             {formatDateDisplay(startDate)}
           </div>
         </div>
@@ -191,7 +191,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
         <div className="space-y-6">
           {/* Time & Duration */}
           <div className="flex items-center gap-5">
-            <div className="size-10 rounded-[14px] bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+            <div className="size-10 rounded-[14px] bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
               <MdOutlineCalendarToday className="text-[20px]" />
             </div>
             <div className="flex-1 flex items-center gap-3">
@@ -200,7 +200,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
                   type="time"
                   value={formatTimeInput(startDate)}
                   onChange={(e) => handleTimeChange("start", e.target.value)}
-                  className="w-full bg-slate-50 border border-transparent rounded-2xl py-3 px-4 text-xs font-black text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0        focus:outline-none focus:ring-0 transition-all cursor-pointer"
+                  className="w-full bg-slate-100 border border-transparent rounded-2xl py-3 px-4 text-xs font-black text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 transition-all cursor-pointer"
                 />
               </div>
               <MdArrowForward className="text-slate-500 text-[18px]" />
@@ -209,7 +209,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
                   type="time"
                   value={formatTimeInput(endDate)}
                   onChange={(e) => handleTimeChange("end", e.target.value)}
-                  className="w-full bg-slate-50 border border-transparent rounded-2xl py-3 px-4 text-xs font-black text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0           focus:outline-none focus:ring-0 transition-all cursor-pointer"
+                  className="w-full bg-slate-100 border border-transparent rounded-2xl py-3 px-4 text-xs font-black text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 transition-all cursor-pointer"
                 />
               </div>
             </div>
@@ -217,14 +217,14 @@ export const EventEditor: React.FC<EventEditorProps> = ({
 
           {/* Location / Link */}
           <div className="flex items-center gap-5">
-            <div className="size-10 rounded-[14px] bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+            <div className="size-10 rounded-[14px] bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
               <MdOutlineLocationOn className="text-[20px]" />
             </div>
             <div className="flex-1 relative">
               <input
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full bg-slate-50 border border-transparent rounded-2xl py-3 px-5 text-xs font-bold text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 transition-all placeholder:text-slate-500"
+                className="w-full bg-slate-100 border border-transparent rounded-2xl py-3 px-5 text-xs font-bold text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 transition-all placeholder:text-slate-500"
                 placeholder="Add address or meeting link"
               />
             </div>
@@ -232,14 +232,14 @@ export const EventEditor: React.FC<EventEditorProps> = ({
 
           {/* Premium Alert/Notification Dropdown */}
           <div className="flex items-center gap-5">
-            <div className="size-10 rounded-[14px] bg-slate-50 flex items-center justify-center text-slate-400 shrink-0">
+            <div className="size-10 rounded-[14px] bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
               <MdOutlineNotificationsActive className="text-[20px]" />
             </div>
             <div className="flex-1 relative" ref={notifRef}>
               <button
                 type="button"
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className={`w-full flex items-center justify-between bg-slate-50 border border-transparent rounded-2xl py-3 px-5 text-xs font-black text-slate-500 hover:bg-slate-100 transition-all cursor-pointer ${isNotifOpen ? "ring-4 ring-teal-500/5 border-teal-500/20 bg-white" : ""}`}
+                className={`w-full flex items-center justify-between bg-slate-100 border border-transparent rounded-2xl py-3 px-5 text-xs font-black text-slate-500 hover:bg-slate-100 transition-all cursor-pointer ${isNotifOpen ? "ring-4 ring-teal-500/5 border-teal-500/20 bg-white" : ""}`}
               >
                 <span>{currentNotifLabel}</span>
                 <MdExpandMore
@@ -257,11 +257,11 @@ export const EventEditor: React.FC<EventEditorProps> = ({
                         setNotification(opt.value);
                         setIsNotifOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs transition-all  cursor-pointer hover:bg-slate-50 ${notification === opt.value ? "text-teal-500 font-black" : "text-slate-500 font-bold"}`}
+                      className={`w-full flex items-center justify-between px-5 py-3 text-left text-xs transition-all  cursor-pointer hover:bg-slate-50 ${notification === opt.value ? "text-green-primary font-black" : "text-slate-500 font-bold"}`}
                     >
                       {opt.label}
                       {notification === opt.value && (
-                        <MdCheckCircleOutline className="text-teal-500 text-sm" />
+                        <MdCheckCircleOutline className="text-green-primary text-sm" />
                       )}
                     </button>
                   ))}
@@ -277,7 +277,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
               Participants
             </span>
-            <div className="h-px flex-1 mx-4 bg-slate-50"></div>
+            <div className="h-px flex-1 mx-4 bg-slate-100"></div>
           </div>
           <div className="flex gap-3">
             {SUGGESTED_PARTICIPANTS.map((p) => {
@@ -288,7 +288,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
                 <button
                   key={p.id}
                   onClick={() => toggleParticipant(p)}
-                  className={`size-12 rounded-2xl overflow-hidden border-2 transition-all active:scale-90 cursor-pointer ${isSelected ? "border-teal-500 ring-4 ring-teal-500/10 shadow-lg" : "border-transparent opacity-30 grayscale hover:opacity-100 hover:grayscale-0"}`}
+                  className={`size-12 rounded-2xl overflow-hidden border-2 transition-all active:scale-90 cursor-pointer ${isSelected ? "border-green-primary ring-4 ring-green-primary/10 shadow-lg" : "border-transparent opacity-30 grayscale hover:opacity-100 hover:grayscale-0"}`}
                   title={p.name}
                 >
                   <img
@@ -299,7 +299,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
                 </button>
               );
             })}
-            <button className="size-12 rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center  cursor-pointer text-slate-500 hover:text-teal-500 hover:border-teal-500/40 hover:bg-teal-500/5 transition-all active:scale-95">
+            <button className="size-12 rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center  cursor-pointer text-slate-500 hover:text-green-primary hover:border-green-primary/40 hover:bg-green-primary/5 transition-all active:scale-95">
               <MdOutlinePersonAddAlt className="text-[20px]" />
             </button>
           </div>
@@ -311,14 +311,14 @@ export const EventEditor: React.FC<EventEditorProps> = ({
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
               Theme
             </span>
-            <div className="h-px flex-1 mx-4 bg-slate-50"></div>
+            <div className="h-px flex-1 mx-4 bg-slate-100"></div>
           </div>
           <div className="flex gap-3 px-1">
             {COLORS.map((c) => (
               <button
                 key={c.value}
                 onClick={() => setSelectedColor(c)}
-                className={`size-7 rounded-full transition-all flex items-center justify-center border-4 border-white shadow-sm cursor-pointer ${selectedColor.value === c.value ? "ring-2 ring-teal-500 scale-125 shadow-xl" : "opacity-40 hover:opacity-100 hover:scale-110"}`}
+                className={`size-7 rounded-full transition-all flex items-center justify-center border-4 border-white shadow-sm cursor-pointer ${selectedColor.value === c.value ? "ring-2 ring-green-primary scale-125 shadow-xl" : "opacity-40 hover:opacity-100 hover:scale-110"}`}
                 style={{ backgroundColor: c.value }}
               >
                 {selectedColor.value === c.value && (
@@ -339,7 +339,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
           </button>
           <button
             onClick={handleSave}
-            className="flex-[1.8] py-4 px-6 bg-slate-900 text-white font-black text-[11px] uppercase tracking-widest rounded-3xl shadow-2xl shadow-slate-200 hover:bg-slate-800 hover:shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-[1.8] py-4 px-6 bg-green-primary text-white font-black text-[11px] uppercase tracking-widest rounded-3xl shadow-2xl shadow-slate-200 hover:bg-green-secondary hover:shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <MdOutlineTaskAlt className="text-[18px]" />
             {existingEvent ? "Save Changes" : "Confirm Event"}

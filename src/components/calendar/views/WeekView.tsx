@@ -81,12 +81,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
               className="flex-1 py-6 flex flex-col items-center border-r border-slate-50 last:border-r-0 "
             >
               <span
-                className={`text-[10px] font-black uppercase tracking-[0.2em] ${isToday ? "text-teal-500" : "text-slate-400"}`}
+                className={`text-[10px] font-black uppercase tracking-[0.2em] ${isToday ? "text-green-primary" : "text-slate-400"}`}
               >
                 {day.toLocaleDateString("en-US", { weekday: "short" })}
               </span>
               <span
-                className={`text-2xl font-black mt-2 size-12 flex items-center justify-center rounded-2xl transition-all ${isToday ? "bg-teal-500 text-white shadow-xl shadow-teal-50/30" : "text-slate-700"}`}
+                className={`text-2xl font-black mt-2 size-12 flex items-center justify-center rounded-2xl transition-all ${isToday ? "bg-green-primary text-white shadow-xl shadow-green-primary/30" : "text-slate-700"}`}
               >
                 {day.getDate()}
               </span>
@@ -122,7 +122,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
               {hours.map((h) => (
                 <div
                   key={h}
-                  className="h-20 border-b border-slate-50/50 hover:bg-teal-50/5 transition-colors cursor-pointer"
+                  className="h-20 border-b border-slate-50/50 hover:bg-green-primary/5 transition-colors cursor-pointer"
                   onClick={() => {
                     const d = new Date(day);
                     d.setHours(h, 0, 0, 0);
@@ -206,7 +206,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                               }}
                               className="size-6 flex items-center justify-center hover:bg-rose-500/50 rounded-lg material-symbols-outlined text-sm cursor-pointer"
                             >
-                                <RiDeleteBinLine />
+                              <RiDeleteBinLine />
                             </button>
                           </div>
                         </div>
