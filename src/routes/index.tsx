@@ -7,17 +7,15 @@ import { AuthLayout } from "../components/layout/AuthLayout";
 import { ChatLayout } from "../components/layout/ChatLayout";
 
 // Pages
-import { LoginPage } from "../pages/auth/LoginPage";
-import { RegisterPage } from "../pages/auth/RegisterPage";
 import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
-import GroupChat from '../components/layout/GroupChat';
-import VideoCallPage from '../pages/video-call/VideoCallPage';
-import NotesPage from '../pages/note/NotesPage';
-import FriendPage from '../pages/contacts/ContactPage';
-import FriendListPage from '../pages/friend/FriendListPage';
-import AIChatPage from '../pages/ai-chat/AIChatPage';
-import CalendarPage from '../pages/calendar/CalendarPage';
+import GroupChat from "../components/layout/GroupChat";
+import VideoCallPage from "../pages/video-call/VideoCallPage";
+import NotesPage from "../pages/note/NotesPage";
+import FriendPage from "../pages/contacts/ContactPage";
+import FriendListPage from "../pages/friend/FriendListPage";
+import AIChatPage from "../pages/ai-chat/AIChatPage";
+import CalendarPage from "../pages/calendar/CalendarPage";
 import WorkHubLayout from "../components/layout/WorkHubLayout";
 import WorkHubPage from "../pages/work-hub/home/WorkHubPage";
 import CreateWorkHub from "../pages/work-hub/create/CreateWorkHub";
@@ -30,6 +28,8 @@ import DocumentEditorPage from "../pages/work-hub/documents/DocumentEditorPage";
 import FilesPage from "../pages/work-hub/files/FilesPage";
 import ChannelsPage from "../pages/work-hub/channels/ChannelsPage";
 import DirectMessagesPage from "../pages/work-hub/messages/DirectMessagesPage";
+import RegisterPage from "../pages/auth/RegisterPage";
+import LoginPage from "../pages/auth/LoginPage";
 
 export const router = createBrowserRouter([
   {
@@ -103,7 +103,7 @@ export const router = createBrowserRouter([
         element: <NotFoundPage />,
       },
       {
-        path: '/video-call/*',
+        path: "/video-call/*",
         element: <VideoCallPage />,
       },
       {
