@@ -30,7 +30,6 @@ import ChannelsPage from '../pages/work-hub/channels/ChannelsPage';
 import DirectMessagesPage from '../pages/work-hub/messages/DirectMessagesPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import LoginPage from '../pages/auth/LoginPage';
-import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 
 export const router = createBrowserRouter([
     {
@@ -47,79 +46,15 @@ export const router = createBrowserRouter([
                 children: [
                     {
                         index: true,
-                        element: <Navigate to={ROUTES.CHAT.ROOT} replace />,
+                        element: <Navigate to={ROUTES.AUTH.LOGIN} replace />,
                     },
                     {
-                        path: ROUTES.AUTH.ROOT,
-                        element: <AuthLayout />,
-                        children: [
-                            {
-                                index: true,
-                                element: (
-                                    <Navigate to={ROUTES.AUTH.LOGIN} replace />
-                                ),
-                            },
-                            {
-                                path: ROUTES.AUTH.LOGIN,
-                                element: <LoginPage />,
-                            },
-                            {
-                                path: ROUTES.AUTH.REGISTER,
-                                element: <RegisterPage />,
-                            },
-                            {
-                                path: ROUTES.AUTH.FORGOT_PASSWORD,
-                                element: <ForgotPasswordPage />,
-                            },
-                        ],
+                        path: ROUTES.AUTH.LOGIN,
+                        element: <LoginPage />,
                     },
                     {
-                        path: ROUTES.CHAT.ROOT,
-                        element: <ChatLayout />,
-                        children: [
-                            {
-                                index: true,
-                                element: <ChatPage />,
-                            },
-                        ],
-                    },
-                    {
-                        path: ROUTES.CHAT.GROUP,
-                        element: <ChatLayout />,
-                        children: [
-                            {
-                                index: true,
-                                element: <GroupChat />,
-                            },
-                        ],
-                    },
-                    {
-                        path: ROUTES.CHAT.CONTACTS,
-                        element: <FriendPage />,
-                    },
-                    {
-                        path: ROUTES.NOTE,
-                        element: <NotesPage />,
-                    },
-                    {
-                        path: ROUTES.FRIENDS,
-                        element: <FriendListPage />,
-                    },
-                    {
-                        path: ROUTES.AICHAT,
-                        element: <AIChatPage />,
-                    },
-                    {
-                        path: ROUTES.CALENDAR,
-                        element: <CalendarPage />,
-                    },
-                    {
-                        path: ROUTES.NOT_FOUND,
-                        element: <NotFoundPage />,
-                    },
-                    {
-                        path: '/video-call/*',
-                        element: <VideoCallPage />,
+                        path: ROUTES.AUTH.REGISTER,
+                        element: <RegisterPage />,
                     },
                 ],
             },
