@@ -17,7 +17,7 @@ const EditorTitleNote: React.FC<EditorTitleNoteProps> = ({
       </div>
       <input
         type="text"
-        className="h-12 flex-1 text-3xl font-extrabold bg-transparent border-none focus:ring-0 p-0 placeholder-slate-200 text-slate-900 tracking-tight rounded-lg px-4"
+        className="h-12 flex-1 text-3xl font-bold bg-transparent border-none focus:ring-0 p-0 placeholder-slate-200 text-slate-700 tracking-tight rounded-lg px-4"
         placeholder="Untitled Note"
         value={value}
         onChange={(e) => onChange(e.target.value)}

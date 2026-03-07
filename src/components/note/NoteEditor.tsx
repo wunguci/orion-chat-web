@@ -71,7 +71,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 text-slate-300">
         <div className="w-24 h-24 bg-white rounded-lg flex items-center justify-center shadow-sm mb-4 border border-slate-100">
-          <MdEditNote className="text-6xl opacity-20 text-teal-500" />
+          <MdEditNote className="text-6xl opacity-20 text-green-primary" />
         </div>
         <h2 className="text-xl font-bold text-slate-80 mb-2">
           No note selected
@@ -117,7 +117,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
             onClick={togglePin}
             className={`flex items-center gap-2 text-[14px] font-semibold transition-all group cursor-pointer ${
               note.isPinned
-                ? "text-teal-500"
+                ? "text-green-primary"
                 : "text-slate-400 hover:text-slate-600"
             }`}
           >
