@@ -8,7 +8,14 @@
   --color-orange-border-light: #fbe7df;
   --color-gray-primary: #505050;
   --color-gray-secondary: #94a3b8;
-
+  --color-gray-border: #EFF4F8;
+  --color-green-primary: #226262;
+  --color-green-secondary: #94a3b8;
+  --color-green-bg-heavy: #D6F2F2;
+  --color-green-hover: #004444;
+  --color-green-message: #007c7c;
+  --color-green-bg-light: #F4FFFF;
+  --color-green-border-light: #D6F2F2;
   --color-blue-dark: #0052cc;
 }
 
@@ -17,7 +24,7 @@
   /* Colors - Palette chính cho ứng dụng chat */
   --color-primary: #0068FF;           /* Màu xanh chủ đạo (như Zalo) */
   --color-primary-dark: #0052CC;      /* Primary hover/active */
-  --color-primary-light: #E6F2FF;     /* Primary background nhạt */
+  --color-primary-light: #007c7c;     /* Primary background nhạt */
   
   --color-secondary: #F5F7FA;         /* Background nhẹ */
   --color-background: #FFFFFF;        /* Background chính */

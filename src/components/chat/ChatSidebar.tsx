@@ -44,7 +44,7 @@ export const ChatSidebar: React.FC = () => {
                 {chats.map((c, i) => (
                     <div
                         key={i}
-                        className="flex items-center gap-3 px-3 py-3 hover:bg-teal-100 cursor-pointer rounded"
+                        className="flex items-center gap-3 px-3 py-3 hover:bg-green-bg-heavy cursor-pointer rounded"
                     >
                         {c.avatar && (
                             <img

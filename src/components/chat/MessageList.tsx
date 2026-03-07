@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import MessageItem from './MessageItem';
+import type { Reaction } from './MessageItem';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
+
+type ReactionMap = Record<
+    number,
+    Record<string, { count: number; reactedByMe: boolean }>
+>;
 
 type Message = {
     side: 'left' | 'right';
@@ -18,6 +24,43 @@ const AVATAR_RIGHT =
 
 export const MessageList: React.FC = () => {
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+    const [reactionMap, setReactionMap] = useState<ReactionMap>({});
+
+    const handleReact = (msgIndex: number, emoji: string) => {
+        setReactionMap((prev) => {
+            const msgReactions = prev[msgIndex] ?? {};
+            const existing = msgReactions[emoji];
+            if (existing?.reactedByMe) {
+                // toggle off
+                const newCount = existing.count - 1;
+                if (newCount === 0) {
+                    const rest = Object.fromEntries(
+                        Object.entries(msgReactions).filter(
+                            ([k]) => k !== emoji,
+                        ),
+                    );
+                    return { ...prev, [msgIndex]: rest };
+                }
+                return {
+                    ...prev,
+                    [msgIndex]: {
+                        ...msgReactions,
+                        [emoji]: { count: newCount, reactedByMe: false },
+                    },
+                };
+            }
+            return {
+                ...prev,
+                [msgIndex]: {
+                    ...msgReactions,
+                    [emoji]: {
+                        count: (existing?.count ?? 0) + 1,
+                        reactedByMe: true,
+                    },
+                },
+            };
+        });
+    };
 
     const messages: Message[] = [
         {
@@ -91,6 +134,16 @@ export const MessageList: React.FC = () => {
                                     ? () => setViewerIndex(imgIdx)
                                     : undefined
                             }
+                            reactions={Object.entries(
+                                reactionMap[i] ?? {},
+                            ).map<Reaction>(
+                                ([emoji, { count, reactedByMe }]) => ({
+                                    emoji,
+                                    count,
+                                    reactedByMe,
+                                }),
+                            )}
+                            onReact={(emoji) => handleReact(i, emoji)}
                         />
                     );
                 })}

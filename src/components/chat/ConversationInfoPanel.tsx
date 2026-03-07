@@ -24,7 +24,7 @@ export const ConversationInfoPanel: React.FC = () => {
     const mediaTabs: MediaTab[] = ['Images', 'Files', 'Links'];
 
     return (
-        <aside className="w-80 bg-white text-slate-100 h-screen flex flex-col overflow-y-auto">
+        <aside className="w-80 h-screen flex flex-col overflow-y-auto">
             {/* Header */}
             <div className="text-center font-bold text-base py-5 px-4 text-(--color-text-primary) border-b border-slate-200 ">
                 Conversation Info
