@@ -3,15 +3,27 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMessage } from '@fortawesome/free-solid-svg-icons';
 import { Eye, EyeOff } from 'lucide-react';
+import ProfileModal from '../../components/friend/ProfileModal';
 
 export default function LoginPage() {
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
+
+    const handleLogin = (e: React.FormEvent) => {
+        e.preventDefault();
+        setShowProfile(true);
+    };
 
     return (
         <div className="relative min-h-screen bg-white">
+            {/* Profile Modal - for testing */}
+            <ProfileModal
+                isOpen={showProfile}
+                onClose={() => setShowProfile(false)}
+            />
             <div className="absolute top-8 left-10 flex items-center gap-3">
                 <div className="text-2xl bg-[#CFDCDA] p-2 rounded-2xl">
                     <FontAwesomeIcon
@@ -35,7 +47,7 @@ export default function LoginPage() {
                     </div>
 
                     {/* Form */}
-                    <form className="space-y-6">
+                    <form className="space-y-6" onSubmit={handleLogin}>
                         {/* Phone */}
                         <div>
                             <label

@@ -30,34 +30,35 @@ import ChannelsPage from '../pages/work-hub/channels/ChannelsPage';
 import DirectMessagesPage from '../pages/work-hub/messages/DirectMessagesPage';
 import RegisterPage from '../pages/auth/RegisterPage';
 import LoginPage from '../pages/auth/LoginPage';
+import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 
 export const router = createBrowserRouter([
     {
-        path: ROUTES.HOME,
-        element: <MainLayout />,
+        path: ROUTES.AUTH.ROOT,
+        element: <AuthLayout />,
         children: [
             {
                 index: true,
                 element: <Navigate to={ROUTES.AUTH.LOGIN} replace />,
             },
             {
-                path: ROUTES.AUTH.ROOT,
-                element: <AuthLayout />,
-                children: [
-                    {
-                        index: true,
-                        element: <Navigate to={ROUTES.AUTH.LOGIN} replace />,
-                    },
-                    {
-                        path: ROUTES.AUTH.LOGIN,
-                        element: <LoginPage />,
-                    },
-                    {
-                        path: ROUTES.AUTH.REGISTER,
-                        element: <RegisterPage />,
-                    },
-                ],
+                path: ROUTES.AUTH.LOGIN,
+                element: <LoginPage />,
             },
+            {
+                path: ROUTES.AUTH.REGISTER,
+                element: <RegisterPage />,
+            },
+            {
+                path: ROUTES.AUTH.FORGOT_PASSWORD,
+                element: <ForgotPasswordPage />,
+            },
+        ],
+    },
+    {
+        path: ROUTES.HOME,
+        element: <MainLayout />,
+        children: [
             {
                 path: ROUTES.CHAT.ROOT,
                 element: <ChatLayout />,
