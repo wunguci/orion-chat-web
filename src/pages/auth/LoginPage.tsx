@@ -25,23 +25,23 @@ export default function LoginPage() {
                 onClose={() => setShowProfile(false)}
             />
             <div className="absolute top-8 left-10 flex items-center gap-3">
-                <div className="text-2xl bg-[#CFDCDA] p-2 rounded-2xl">
+                <div className="text-2xl bg-green-bg-heavy p-3 rounded-full">
                     <FontAwesomeIcon
-                        className="text-[#006275]"
+                        className="text-green-primary"
                         icon={faMessage}
                     />
                 </div>
-                <h2 className="text-2xl font-bold text-[#006275]">Chat</h2>
+                <h2 className="text-2xl font-bold text-green-primary">Chat</h2>
             </div>
 
             <div className="flex min-h-screen items-center justify-center">
                 <div className="w-full max-w-md space-y-8">
                     {/* Title */}
                     <div className="text-center">
-                        <h3 className="text-4xl font-bold text-[#006275]">
+                        <h3 className="text-4xl font-bold text-green-primary">
                             LOG IN
                         </h3>
-                        <p className="mt-2 text-gray-300">
+                        <p className="mt-2 text-gray-400">
                             Please enter your details to continue
                         </p>
                     </div>
@@ -130,7 +130,7 @@ export default function LoginPage() {
                                         transition-colors duration-200 ease-in-out focus:outline-none
                                         ${
                                             rememberMe
-                                                ? 'bg-[#006275]'
+                                                ? 'bg-green-primary'
                                                 : 'bg-gray-300'
                                         }
                                     `}
@@ -150,7 +150,7 @@ export default function LoginPage() {
                             </div>
                             <label
                                 htmlFor="remember"
-                                className="text-sm text-gray-700 mb-1 select-none font-medium cursor-pointer"
+                                className="text-sm text-green-primary mb-1 select-none font-medium cursor-pointer"
                             >
                                 Remember me
                             </label>
@@ -159,18 +159,18 @@ export default function LoginPage() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            className="w-full py-3 px-4 bg-(--color-login) text-white rounded-4xl"
+                            className="w-full py-3 px-4 bg-white font-medium border border-green-primary text-green-primary rounded-4xl hover:bg-green-primary hover:text-white transition-colors duration-200"
                         >
                             Log in
                         </button>
                     </form>
 
                     {/* Register */}
-                    <p className="text-center text-gray-600 text-sm mt-6">
+                    <p className="text-center text-gray-400 text-sm mt-6">
                         Don't have an account?{' '}
                         <Link
                             to="/auth/register"
-                            className="text-[#006275] hover:underline font-semibold"
+                            className="text-green-primary hover:underline font-semibold"
                         >
                             Register now
                         </Link>
