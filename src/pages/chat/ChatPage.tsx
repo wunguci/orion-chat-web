@@ -12,9 +12,10 @@ import {
     sendMessage,
     onReceiveMessage,
     offReceiveMessage,
+    uploadFile,
+    sendFileMessage,
 } from '../../services/socket';
 
-// Tạo userId đơn giản từ localStorage (chưa có auth thật)
 const USER_ID = (() => {
     let id = localStorage.getItem('chat_user_id');
     if (!id) {
@@ -23,6 +24,7 @@ const USER_ID = (() => {
     }
     return id;
 })();
+
 const USERNAME = (() => {
     let name = localStorage.getItem('chat_username');
     if (!name) {
@@ -49,7 +51,6 @@ export const ChatPage: React.FC = () => {
         };
     }, []);
 
-    // Tự scroll xuống khi có tin nhắn mới
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [socketMessages]);
@@ -59,6 +60,18 @@ export const ChatPage: React.FC = () => {
             senderId: USER_ID,
             senderName: USERNAME,
             content: text,
+            timestamp: new Date().toISOString(),
+        });
+    };
+
+    const handleSendFile = async (file: File) => {
+        const result = await uploadFile(file);
+        sendFileMessage({
+            senderId: USER_ID,
+            senderName: USERNAME,
+            fileUrl: result.url,
+            fileName: result.name,
+            fileType: result.type,
             timestamp: new Date().toISOString(),
         });
     };
@@ -74,7 +87,7 @@ export const ChatPage: React.FC = () => {
                     currentUserId={USER_ID}
                 />
                 <div ref={bottomRef} />
-                <ChatInput onSend={handleSend} />
+                <ChatInput onSend={handleSend} onSendFile={handleSendFile} />
             </div>
 
             <ConversationInfoPanel />

@@ -49,3 +49,31 @@ export const offReceiveMessage = () => socket?.off('receive_message');
 export const onOnlineUsers = (
     callback: (users: { userId: string; username: string }[]) => void,
 ) => socket?.on('online_users', callback);
+
+export const uploadFile = async (
+    file: File,
+): Promise<{
+    url: string;
+    name: string;
+    type: string;
+}> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch(`${SERVER_URL}/upload`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!res.ok) throw new Error('Upload thất bại');
+    return res.json();
+};
+
+export const sendFileMessage = (data: {
+    senderId: string;
+    senderName: string;
+    fileUrl: string;
+    fileName: string;
+    fileType: string;
+    timestamp: string;
+}) => socket?.emit('send_message', { ...data, content: '', isFile: true });

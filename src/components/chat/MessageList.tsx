@@ -4,6 +4,8 @@ import type { Reaction } from './MessageItem';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
 
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+
 type ReactionMap = Record<
     number,
     Record<string, { count: number; reactedByMe: boolean }>
@@ -28,9 +30,12 @@ export type SocketMessage = {
     senderName: string;
     content: string;
     timestamp: string;
+    isFile?: boolean;
+    fileUrl?: string;
+    fileName?: string;
+    fileType?: string;
 };
 
-// Sửa khai báo component
 export const MessageList: React.FC<{
     socketMessages?: SocketMessage[];
     currentUserId?: string;
@@ -43,7 +48,6 @@ export const MessageList: React.FC<{
             const msgReactions = prev[msgIndex] ?? {};
             const existing = msgReactions[emoji];
             if (existing?.reactedByMe) {
-                // toggle off
                 const newCount = existing.count - 1;
                 if (newCount === 0) {
                     const rest = Object.fromEntries(
@@ -113,7 +117,6 @@ export const MessageList: React.FC<{
         },
     ];
 
-    // Collect all image messages for the viewer
     const allImages: ViewerImage[] = messages
         .filter((m): m is Message & { image: string } => !!m.image)
         .map((m) => ({
@@ -124,7 +127,6 @@ export const MessageList: React.FC<{
             senderAvatar: m.side === 'right' ? AVATAR_RIGHT : AVATAR_LEFT,
         }));
 
-    // Build a lookup: message index → allImages index
     let imgCounter = -1;
 
     return (
@@ -159,46 +161,77 @@ export const MessageList: React.FC<{
                         />
                     );
                 })}
-            </div>
-            {/* Messages từ WebSocket */}
-            {socketMessages.length > 0 && (
-                <div className="px-4 pt-2 space-y-3 border-t border-slate-200 mt-2">
-                    {socketMessages.map((msg) => {
-                        const isMe = msg.senderId === currentUserId;
-                        return (
-                            <div
-                                key={msg.id}
-                                className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
-                            >
+
+                {/* Messages từ WebSocket */}
+                {socketMessages.length > 0 && (
+                    <div className="px-4 pt-2 space-y-3 border-t border-slate-200 mt-2">
+                        {socketMessages.map((msg) => {
+                            const isMe = msg.senderId === currentUserId;
+                            return (
                                 <div
-                                    className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
-                                        isMe
-                                            ? 'bg-teal-500 text-white rounded-tr-none'
-                                            : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
-                                    }`}
+                                    key={msg.id}
+                                    className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
                                 >
-                                    {!isMe && (
-                                        <p className="text-xs font-semibold text-teal-600 mb-1">
-                                            {msg.senderName}
-                                        </p>
-                                    )}
-                                    <p>{msg.content}</p>
-                                    <p
-                                        className={`text-[10px] mt-1 ${isMe ? 'text-teal-100' : 'text-slate-400'}`}
+                                    <div
+                                        className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
+                                            isMe
+                                                ? 'bg-teal-500 text-white rounded-tr-none'
+                                                : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
+                                        }`}
                                     >
-                                        {new Date(
-                                            msg.timestamp,
-                                        ).toLocaleTimeString('vi-VN', {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
-                                    </p>
+                                        {!isMe && (
+                                            <p className="text-xs font-semibold text-teal-600 mb-1">
+                                                {msg.senderName}
+                                            </p>
+                                        )}
+
+                                        {/* Nội dung: file hoặc text */}
+                                        {msg.isFile && msg.fileUrl ? (
+                                            msg.fileType?.startsWith(
+                                                'image/',
+                                            ) ? (
+                                                <img
+                                                    src={`${SERVER_URL}${msg.fileUrl}`}
+                                                    alt={msg.fileName}
+                                                    className="max-w-[200px] rounded-xl cursor-pointer"
+                                                    onClick={() =>
+                                                        window.open(
+                                                            `${SERVER_URL}${msg.fileUrl}`,
+                                                            '_blank',
+                                                        )
+                                                    }
+                                                />
+                                            ) : (
+                                                <a
+                                                    href={`${SERVER_URL}${msg.fileUrl}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 text-blue-500 underline text-sm"
+                                                >
+                                                    📎 {msg.fileName}
+                                                </a>
+                                            )
+                                        ) : (
+                                            <p>{msg.content}</p>
+                                        )}
+
+                                        <p
+                                            className={`text-[10px] mt-1 ${isMe ? 'text-teal-100' : 'text-slate-400'}`}
+                                        >
+                                            {new Date(
+                                                msg.timestamp,
+                                            ).toLocaleTimeString('vi-VN', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
 
             {viewerIndex !== null && (
                 <ImageViewer
