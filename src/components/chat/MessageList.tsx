@@ -22,7 +22,19 @@ const AVATAR_LEFT =
 const AVATAR_RIGHT =
     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzKrfajYmPihSbKzKqPGaYkLY5xim-QYmbKw&s';
 
-export const MessageList: React.FC = () => {
+export type SocketMessage = {
+    id: string;
+    senderId: string;
+    senderName: string;
+    content: string;
+    timestamp: string;
+};
+
+// Sửa khai báo component
+export const MessageList: React.FC<{
+    socketMessages?: SocketMessage[];
+    currentUserId?: string;
+}> = ({ socketMessages = [], currentUserId }) => {
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
     const [reactionMap, setReactionMap] = useState<ReactionMap>({});
 
@@ -148,6 +160,45 @@ export const MessageList: React.FC = () => {
                     );
                 })}
             </div>
+            {/* Messages từ WebSocket */}
+            {socketMessages.length > 0 && (
+                <div className="px-4 pt-2 space-y-3 border-t border-slate-200 mt-2">
+                    {socketMessages.map((msg) => {
+                        const isMe = msg.senderId === currentUserId;
+                        return (
+                            <div
+                                key={msg.id}
+                                className={`flex gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                            >
+                                <div
+                                    className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
+                                        isMe
+                                            ? 'bg-teal-500 text-white rounded-tr-none'
+                                            : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
+                                    }`}
+                                >
+                                    {!isMe && (
+                                        <p className="text-xs font-semibold text-teal-600 mb-1">
+                                            {msg.senderName}
+                                        </p>
+                                    )}
+                                    <p>{msg.content}</p>
+                                    <p
+                                        className={`text-[10px] mt-1 ${isMe ? 'text-teal-100' : 'text-slate-400'}`}
+                                    >
+                                        {new Date(
+                                            msg.timestamp,
+                                        ).toLocaleTimeString('vi-VN', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {viewerIndex !== null && (
                 <ImageViewer

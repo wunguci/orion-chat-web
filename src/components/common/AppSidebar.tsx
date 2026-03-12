@@ -12,7 +12,13 @@ import { Avatar } from './Avatar';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES } from '../../types/routes.types';
 
-type ViewMode = 'chat' | 'contacts' | 'notes' | 'calendar';
+type ViewMode =
+    | 'chat'
+    | 'contacts'
+    | 'notes'
+    | 'calendar'
+    | 'friends'
+    | 'aichat';
 
 interface SidebarProps {
     currentView: ViewMode;
@@ -25,7 +31,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
 
     // Helper function để check active view dựa trên URL
     const isActive = (path: string) => {
-      return location.pathname === path;
+        return location.pathname === path;
     };
 
     // Mock user data

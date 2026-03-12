@@ -41,7 +41,9 @@ const MENU_ITEMS: {
     },
 ];
 
-export const ChatInput: React.FC = () => {
+export const ChatInput: React.FC<{ onSend?: (text: string) => void }> = ({
+    onSend,
+}) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [attachments, setAttachments] = useState<AttachFile[]>([]);
     const [text, setText] = useState('');
@@ -86,7 +88,7 @@ export const ChatInput: React.FC = () => {
 
     const handleSend = () => {
         if (!text.trim() && attachments.length === 0) return;
-        // TODO: wire to actual send logic
+        if (text.trim()) onSend?.(text.trim());
         attachments.forEach((a) => URL.revokeObjectURL(a.url));
         setAttachments([]);
         setText('');
