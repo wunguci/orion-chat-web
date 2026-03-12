@@ -1,16 +1,27 @@
 import { Outlet } from "react-router-dom";
 import AppSidebar from "../common/AppSidebar";
+import { CallProvider } from "../../contexts/CallContext";
+import { IncomingCallModal } from "../call/IncomingCallModal";
+import { CallModal } from "../call/CallModal";
 
 export const MainLayout = () => {
-  return (
-    <div className="flex h-screen overflow-hidden bg-white">
-      {/* Sidebar  */}
-      <AppSidebar currentView="chat" setView={() => {}} />
+  const userId = localStorage.getItem("userId") || "user-001";
 
-      {/* Main content  */}
-      <div className="flex-1 overflow-hidden">
-        <Outlet />
+  return (
+    <CallProvider userId={userId}>
+      <div className="flex h-screen overflow-hidden bg-white">
+        {/* Sidebar  */}
+        <AppSidebar currentView="chat" setView={() => {}} />
+
+        {/* Main content  */}
+        <div className="flex-1 overflow-hidden">
+          <Outlet />
+        </div>
       </div>
-    </div>
+
+      {/* Global call modals */}
+      <IncomingCallModal />
+      <CallModal />
+    </CallProvider>
   );
 };
