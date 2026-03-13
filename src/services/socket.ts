@@ -1,9 +1,13 @@
 import { io, Socket } from "socket.io-client";
 
-// Use environment variable or fallback to localhost
-// For development with multiple computers, set VITE_SOCKET_URL in .env file
-// Example: VITE_SOCKET_URL=http://192.168.1.100:3000
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+const RAW_SOCKET_URL =
+  import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+
+const normalizeSocketBaseUrl = (url: string) =>
+  url.replace(/\/$/, "").replace(/\/call$/, "");
+
+const SOCKET_BASE_URL = normalizeSocketBaseUrl(RAW_SOCKET_URL);
+const CALL_NAMESPACE_URL = `${SOCKET_BASE_URL}/call`;
 
 class SocketService {
   private socket: Socket | null = null;
@@ -16,9 +20,10 @@ class SocketService {
       return this.socket;
     }
 
-    this.socket = io(SOCKET_URL, {
+    this.socket = io(SOCKET_BASE_URL, {
       query: { userId },
       auth: { token }, // nếu có authentication
+      transports: ["websocket"],
     });
 
     this.socket.on("connect", () => {
@@ -52,13 +57,16 @@ class SocketService {
       this.callSocket = null;
     }
 
-    console.log(`[SocketService] Connecting call socket for userId: ${userId}`);
+    console.log(
+      `[SocketService] Connecting call socket for userId: ${userId} via ${CALL_NAMESPACE_URL}`,
+    );
     this.currentUserId = userId;
 
-    this.callSocket = io(`${SOCKET_URL}/call`, {
+    this.callSocket = io(CALL_NAMESPACE_URL, {
       query: { userId },
       auth: { token },
       forceNew: true, // Force new connection
+      transports: ["websocket"],
     });
 
     this.callSocket.on("connect", () => {
