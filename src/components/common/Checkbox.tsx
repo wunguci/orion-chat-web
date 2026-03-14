@@ -12,7 +12,7 @@ function Checkbox({ checked, onChange, label }: CheckboxProps) {
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="w-5 h-5 rounded border-orange-border-light text-orange-primary focus:ring-orange-primary accent-orange-primary focus:ring-2 cursor-pointer"
+        className="w-5 h-5 rounded border-green-border-light text-green-primary focus:ring-green-primary accent-green-primary focus:ring-2 cursor-pointer"
       />
     </label>
   );

@@ -134,7 +134,7 @@ export default function AddMemberModal({
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-orange-border-light flex items-center justify-between">
+        <div className="p-6 border-b border-green-border-light flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-primary">
             {isCreateGroup ? "Tạo nhóm mới" : "Thêm thành viên"}
           </h2>
@@ -147,7 +147,7 @@ export default function AddMemberModal({
         </div>
 
         {/* Search */}
-        <div className="p-6 border-b border-orange-border-light">
+        <div className="p-6 border-b border-green-border-light">
           <div className="relative">
             <Search
               size={20}
@@ -158,13 +158,13 @@ export default function AddMemberModal({
               placeholder="Nhập tên, số điện thoại, hoặc danh sách số điện thoại"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white rounded-lg border border-gray-300 text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-orange-primary"
+              className="w-full pl-10 pr-4 py-3 bg-white rounded-lg border border-gray-300 text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-green-primary"
             />
           </div>
         </div>
 
         {/* Categories */}
-        <div className="px-6 py-4 border-b border-orange-border-light overflow-x-auto">
+        <div className="px-6 py-4 border-b border-green-border-light overflow-x-auto">
           <div className="flex gap-2">
             {categories.map((category) => (
               <button
@@ -172,7 +172,7 @@ export default function AddMemberModal({
                 onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                   selectedCategory === category
-                    ? "bg-orange-primary text-white"
+                    ? "bg-green-primary text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -197,7 +197,7 @@ export default function AddMemberModal({
                 {contacts.map((contact) => (
                   <label
                     key={contact.id}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-orange-bg-light cursor-pointer transition-colors"
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-green-bg-light cursor-pointer transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -208,7 +208,7 @@ export default function AddMemberModal({
                       }
                       onChange={() => toggleMember(contact.id)}
                       disabled={!isCreateGroup && contact.isParticipant}
-                      className="w-5 h-5 rounded-full border-2 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed accent-orange-primary"
+                      className="w-5 h-5 rounded-full border-2 border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed accent-green-primary"
                     />
                     <img
                       src={contact.avatar}
@@ -233,7 +233,7 @@ export default function AddMemberModal({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-orange-border-light flex justify-end gap-3">
+        <div className="p-6 border-t border-green-border-light flex justify-end gap-3">
           <button
             onClick={handleCancel}
             className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
@@ -243,7 +243,7 @@ export default function AddMemberModal({
           <button
             onClick={handleConfirm}
             disabled={selectedMembers.length === 0}
-            className="px-6 py-3 bg-orange-primary text-white rounded-lg hover:orange-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-3 bg-green-primary text-white rounded-lg hover:green-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Xác nhận
           </button>
