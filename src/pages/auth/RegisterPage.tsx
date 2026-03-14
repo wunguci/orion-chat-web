@@ -1,20 +1,142 @@
-/*eslint-disable */
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMessage } from '@fortawesome/free-solid-svg-icons';
 import { Eye, EyeOff } from 'lucide-react';
+import {
+    sendOtp,
+    verifyOtp,
+    completeRegister,
+    validatePhoneNumber,
+    validatePassword,
+    validateOtp,
+} from '../../services/authService';
 
 export default function RegisterPage() {
     const [step, setStep] = useState<1 | 2 | 3>(1);
 
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
+    const [passwordAgain, setPasswordAgain] = useState('');
     const [otp, setOtp] = useState(Array(6).fill(''));
     const [showPassword, setShowPassword] = useState(false);
 
     const [fullName, setFullName] = useState('');
     const [dob, setDob] = useState('');
     const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const [otpVerified, setOtpVerified] = useState(false);
+
+    /* Send OTP */
+    const handleSendOtp = async () => {
+        setError(null);
+        setMessage(null);
+
+        if (!validatePhoneNumber(phone)) {
+            setError('Số điện thoại phải có ít nhất 10 ký tự');
+            return;
+        }
+
+        if (!validatePassword(password)) {
+            setError('Mật khẩu phải có ít nhất 8 ký tự');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const result = await sendOtp(phone);
+            if (result.success) {
+                setMessage(result.message);
+                setStep(2);
+            }
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Lỗi khi gửi OTP. Vui lòng thử lại',
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* Verify OTP */
+    const handleVerifyOtp = async () => {
+        setError(null);
+        setMessage(null);
+
+        const otpCode = otp.join('');
+        if (!validateOtp(otpCode)) {
+            setError('Vui lòng nhập mã OTP 6 ký tự');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const result = await verifyOtp(phone, otpCode);
+            if (result.success) {
+                setMessage(result.message);
+                setOtpVerified(true);
+                setStep(3);
+            }
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Lỗi khi xác thực OTP. Vui lòng thử lại',
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    /* ==================== Step 3: Complete Register ==================== */
+    const handleCompleteRegister = async () => {
+        setError(null);
+        setMessage(null);
+
+        if (!otpVerified) {
+            setError('Vui lòng xác thực OTP trước khi tiếp tục');
+            return;
+        }
+
+        if (!fullName.trim()) {
+            setError('Vui lòng nhập họ và tên');
+            return;
+        }
+
+        if (!dob) {
+            setError('Vui lòng chọn ngày sinh');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const result = await completeRegister({
+                phoneNumber: phone,
+                password,
+                fullName,
+                birthDate: dob,
+                gender,
+            });
+
+            if (result.success) {
+                setTimeout(() => {
+                    window.location.href = '/auth/login';
+                }, 2000);
+            }
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Lỗi khi đăng ký. Vui lòng thử lại',
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="relative min-h-screen bg-white">
@@ -43,6 +165,18 @@ export default function RegisterPage() {
                                 Enter your phone number to get started with our
                                 social community
                             </p>
+
+                            {/* Error/Message */}
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                                    {error}
+                                </div>
+                            )}
+                            {message && (
+                                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm">
+                                    {message}
+                                </div>
+                            )}
 
                             <div>
                                 <label
@@ -97,6 +231,43 @@ export default function RegisterPage() {
                                 </div>
                             </div>
 
+                            <div>
+                                <label
+                                    htmlFor="passwordAgain"
+                                    className="block text-sm font-medium text-gray-700 mb-2"
+                                >
+                                    PASSWORD AGAIN
+                                </label>
+
+                                <div className="relative">
+                                    <input
+                                        id="passwordAgain"
+                                        type={
+                                            showPassword ? 'text' : 'password'
+                                        }
+                                        placeholder="••••••••••••"
+                                        value={passwordAgain}
+                                        onChange={(e) =>
+                                            setPasswordAgain(e.target.value)
+                                        }
+                                        className="w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-gray-50/70 hover:border hover:border-(--color-login) focus:bg-white focus:ring-2 focus:ring-(--color-login) focus:border focus:border-(--color-login) outline-none transition-all placeholder-gray-400"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setShowPassword(!showPassword)
+                                        }
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff size={20} />
+                                        ) : (
+                                            <Eye size={20} />
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="bg-[#F5F8F8] p-4 rounded-xl">
                                 <h4 className="text-sm font-semibold text-[#5F8C84] mb-3">
                                     REQUIREMENTS
@@ -105,7 +276,7 @@ export default function RegisterPage() {
                                     {(() => {
                                         const hasLength = password.length >= 8;
                                         const hasSpecial =
-                                            /[!@#$%^&*(),.?"':{}|<>\[\]\\/~`_+=;-]/.test(
+                                            /[!@#$%^&*(),.?"':{}|<>[\]\\/~`_+=;-]/.test(
                                                 password,
                                             );
                                         const hasNumber = /\d/.test(password);
@@ -193,10 +364,11 @@ export default function RegisterPage() {
                             </p>
 
                             <button
-                                onClick={() => setStep(2)}
-                                className="w-full py-3 bg-[#006275] text-white rounded-full"
+                                onClick={handleSendOtp}
+                                disabled={loading}
+                                className="w-full py-3 bg-[#006275] hover:bg-[#004d5e] disabled:opacity-50 text-white rounded-full transition-colors"
                             >
-                                Send OTP →
+                                {loading ? 'Đang gửi...' : 'Send OTP →'}
                             </button>
                         </>
                     )}
@@ -206,8 +378,21 @@ export default function RegisterPage() {
                         <>
                             <p className="text-center text-gray-400">
                                 We've sent a 6-digit code to your registered
-                                mobile number 01* *** **89
+                                mobile number{' '}
+                                {phone.slice(-4).padStart(11, '*')}
                             </p>
+
+                            {/* Error/Message */}
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                                    {error}
+                                </div>
+                            )}
+                            {message && (
+                                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm">
+                                    {message}
+                                </div>
+                            )}
 
                             {/* OTP Inputs */}
                             <div className="flex justify-center gap-3">
@@ -236,14 +421,19 @@ export default function RegisterPage() {
 
                             {/* Next */}
                             <button
-                                onClick={() => setStep(3)}
-                                className="w-full py-3 bg-[#006275] text-white rounded-full"
+                                onClick={handleVerifyOtp}
+                                disabled={loading}
+                                className="w-full py-3 bg-[#006275] hover:bg-[#004d5e] disabled:opacity-50 text-white rounded-full transition-colors"
                             >
-                                Next →
+                                {loading ? 'Đang xác thực...' : 'Next →'}
                             </button>
                             {/* Back */}
                             <button
-                                onClick={() => setStep(1)}
+                                onClick={() => {
+                                    setStep(1);
+                                    setError(null);
+                                    setMessage(null);
+                                }}
                                 className="flex items-center justify-center w-full gap-2 text-sm text-[#006275] hover:underline self-start"
                             >
                                 ← Back
@@ -261,6 +451,18 @@ export default function RegisterPage() {
                             <p className="text-center text-gray-400">
                                 Add details so people recognize you.
                             </p>
+
+                            {/* Error/Message */}
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                                    {error}
+                                </div>
+                            )}
+                            {message && (
+                                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm">
+                                    {message}
+                                </div>
+                            )}
                             <div>
                                 <label
                                     htmlFor="phone"
@@ -307,7 +509,12 @@ export default function RegisterPage() {
                                                     key={g}
                                                     type="button"
                                                     onClick={() =>
-                                                        setGender(g as any)
+                                                        setGender(
+                                                            g as
+                                                                | 'male'
+                                                                | 'female'
+                                                                | 'other',
+                                                        )
                                                     }
                                                     className={`relative z-10 px-5 py-2 rounded-lg text-sm transition-colors disabled:opacity-50 ${
                                                         gender === g
@@ -324,8 +531,12 @@ export default function RegisterPage() {
                                 </div>
                             </div>
 
-                            <button className="w-full py-3 bg-[#006275] text-white rounded-full">
-                                Complete
+                            <button
+                                onClick={handleCompleteRegister}
+                                disabled={loading}
+                                className="w-full py-3 bg-[#006275] hover:bg-[#004d5e] disabled:opacity-50 text-white rounded-full transition-colors"
+                            >
+                                {loading ? 'Đang đăng ký...' : 'Complete'}
                             </button>
                             <p className="text-center text-gray-400">
                                 By tapping "Complete", you agree to our Terms of

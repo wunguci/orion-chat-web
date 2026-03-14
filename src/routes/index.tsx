@@ -34,6 +34,10 @@ import ForgotPasswordPage from '../pages/auth/ForgotPasswordPage';
 
 export const router = createBrowserRouter([
     {
+        path: '/',
+        element: <Navigate to={ROUTES.AUTH.LOGIN} replace />,
+    },
+    {
         path: ROUTES.AUTH.ROOT,
         element: <AuthLayout />,
         children: [

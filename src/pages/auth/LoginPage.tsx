@@ -1,29 +1,81 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMessage } from '@fortawesome/free-solid-svg-icons';
 import { Eye, EyeOff } from 'lucide-react';
-import ProfileModal from '../../components/friend/ProfileModal';
+import {
+    login,
+    validatePhoneNumber,
+    validatePassword,
+} from '../../services/authService';
+import { setToken, setUser } from '../../utils/token';
 
 export default function LoginPage() {
+    const navigate = useNavigate();
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
-    const [showProfile, setShowProfile] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setShowProfile(true);
+        setError(null);
+        setMessage(null);
+
+        if (!validatePhoneNumber(phone)) {
+            setError('Số điện thoại phải có ít nhất 10 ký tự');
+            return;
+        }
+
+        if (!validatePassword(password)) {
+            setError('Mật khẩu phải có ít nhất 8 ký tự');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const result = await login(phone, password);
+            if (result.success) {
+                setMessage('Đăng nhập thành công! Chuyển hướng...');
+
+                // Store JWT token
+                setToken(result.data.token);
+
+                // Store user data (without token)
+                const userData = {
+                    phoneNumber: result.data.phoneNumber,
+                    fullName: result.data.fullName,
+                    birthDate: result.data.birthDate,
+                    gender: result.data.gender,
+                };
+                setUser(userData);
+
+                // Remember me - could save to localStorage if needed
+                if (rememberMe) {
+                    localStorage.setItem('rememberMe', 'true');
+                }
+
+                setTimeout(() => {
+                    navigate('/chat');
+                }, 2000);
+            }
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Lỗi khi đăng nhập. Vui lòng thử lại',
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div className="relative min-h-screen bg-white">
-            {/* Profile Modal - for testing */}
-            <ProfileModal
-                isOpen={showProfile}
-                onClose={() => setShowProfile(false)}
-            />
             <div className="absolute top-8 left-10 flex items-center gap-3">
                 <div className="text-2xl bg-green-bg-heavy p-3 rounded-full">
                     <FontAwesomeIcon
@@ -45,6 +97,18 @@ export default function LoginPage() {
                             Please enter your details to continue
                         </p>
                     </div>
+
+                    {/* Error/Message */}
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                            {error}
+                        </div>
+                    )}
+                    {message && (
+                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-2 rounded-lg text-sm">
+                            {message}
+                        </div>
+                    )}
 
                     {/* Form */}
                     <form className="space-y-6" onSubmit={handleLogin}>
@@ -159,9 +223,10 @@ export default function LoginPage() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            className="w-full py-3 px-4 bg-white font-medium border border-green-primary text-green-primary rounded-4xl hover:bg-green-primary hover:text-white transition-colors duration-200"
+                            disabled={loading}
+                            className="w-full py-3 px-4 bg-green-primary hover:bg-green-primary/90 disabled:opacity-50 text-white rounded-4xl font-medium transition-colors"
                         >
-                            Log in
+                            {loading ? 'Đang đăng nhập...' : 'Log in'}
                         </button>
                     </form>
 
