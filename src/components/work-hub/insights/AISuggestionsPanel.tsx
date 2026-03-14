@@ -29,7 +29,7 @@ const AISuggestionsPanel = ({ suggestions }: AISuggestionsPanelProps) => {
       {suggestions.length > 0 ? (
         <div className="space-y-3">
           {suggestions.map((suggestion) => {
-            const color = typeColors[suggestion.type] || "#226262";
+            const color = typeColors[suggestion.type] || "#0d9488";
             return (
               <div
                 key={suggestion.id}
@@ -40,11 +40,17 @@ const AISuggestionsPanel = ({ suggestions }: AISuggestionsPanelProps) => {
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: `${color}18`, color }}
                   >
-                    <i className={`fas ${typeIcons[suggestion.type] || "fa-lightbulb"} text-sm`}></i>
+                    <i
+                      className={`fas ${typeIcons[suggestion.type] || "fa-lightbulb"} text-sm`}
+                    ></i>
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-gray-800 mb-1">{suggestion.title}</h4>
-                    <p className="text-xs text-gray-500 mb-2">{suggestion.description}</p>
+                    <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                      {suggestion.title}
+                    </h4>
+                    <p className="text-xs text-gray-500 mb-2">
+                      {suggestion.description}
+                    </p>
                     <button
                       className="text-xs font-medium px-3 py-1 rounded-lg text-white transition-colors hover:opacity-90"
                       style={{ backgroundColor: color }}

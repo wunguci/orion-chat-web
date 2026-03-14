@@ -56,7 +56,7 @@ const FilesPage = () => {
     if (mime.includes("zip") || mime.includes("archive"))
       return { icon: "fa-file-archive", color: "#6b7280" };
     if (mime.includes("yaml") || mime.includes("json") || mime.includes("text"))
-      return { icon: "fa-file-code", color: "#226262" };
+      return { icon: "fa-file-code", color: "#0d9488" };
     return { icon: "fa-file", color: "#9ca3af" };
   };
 
