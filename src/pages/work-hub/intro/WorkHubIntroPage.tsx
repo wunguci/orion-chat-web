@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MdOutlineWork,
@@ -34,13 +35,166 @@ const features = [
   },
 ];
 
+/* ── Folder Pop Loader ── */
+const FolderPopLoader = () => (
+  <div className="flex flex-col items-center gap-5 flex-1 h-full">
+    <style>{`
+      .folder-wrap {
+        width: 72px;
+        height: 68px;
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .folder-body {
+        width: 64px;
+        height: 44px;
+        background: #14b8a6;
+        border-radius: 0 8px 8px 8px;
+        position: absolute;
+        bottom: 0;
+        animation: folder-bounce 1.4s cubic-bezier(0.4,0,0.2,1) infinite;
+        transform-origin: center bottom;
+      }
+      .folder-tab {
+        width: 28px;
+        height: 12px;
+        background: #0d9488;
+        border-radius: 5px 5px 0 0;
+        position: absolute;
+        bottom: 44px;
+        left: 0;
+        animation: folder-bounce 1.4s cubic-bezier(0.4,0,0.2,1) infinite;
+        transform-origin: center bottom;
+      }
+      .folder-lid {
+        width: 64px;
+        height: 10px;
+        background: #0d9488;
+        border-radius: 4px 4px 0 0;
+        position: absolute;
+        bottom: 44px;
+        left: 0;
+        animation: lid-open 1.4s cubic-bezier(0.4,0,0.2,1) infinite;
+        transform-origin: center bottom;
+      }
+      .folder-doc {
+        width: 36px;
+        height: 28px;
+        background: white;
+        border-radius: 4px;
+        position: absolute;
+        bottom: 14px;
+        left: 14px;
+        opacity: 0;
+        animation: doc-pop 1.4s ease-in-out infinite;
+      }
+      .folder-doc::before {
+        content: '';
+        position: absolute;
+        top: 7px;
+        left: 6px;
+        right: 6px;
+        height: 2px;
+        background: #99f6e4;
+        border-radius: 2px;
+      }
+      .folder-doc::after {
+        content: '';
+        position: absolute;
+        top: 13px;
+        left: 6px;
+        right: 10px;
+        height: 2px;
+        background: #99f6e4;
+        border-radius: 2px;
+      }
+
+      @keyframes folder-bounce {
+        0%,100% { transform: scaleX(1) scaleY(1); }
+        30%      { transform: scaleX(0.92) scaleY(1.08); }
+        50%      { transform: scaleX(1.06) scaleY(0.94); }
+        65%      { transform: scaleX(0.98) scaleY(1.02); }
+      }
+      @keyframes lid-open {
+        0%,15%,80%,100% { transform: rotateX(0deg) scaleX(1) scaleY(1); }
+        35%,60%         { transform: rotateX(-45deg); }
+        30%             { transform: scaleX(0.92) scaleY(1.08); }
+        50%             { transform: rotateX(-45deg) scaleX(1.06) scaleY(0.94); }
+      }
+      @keyframes doc-pop {
+        0%,18%   { opacity: 0; transform: translateY(8px) scale(0.9); }
+        38%,62%  { opacity: 1; transform: translateY(-12px) scale(1); }
+        80%,100% { opacity: 0; transform: translateY(8px) scale(0.9); }
+      }
+    `}</style>
+
+    <div className="folder-wrap">
+      <div className="folder-tab" />
+      <div className="folder-lid" />
+      <div className="folder-body">
+        <div className="folder-doc" />
+      </div>
+    </div>
+
+    <p className="text-slate-400 text-sm tracking-wide animate-pulse">
+      Loading Work Hub…
+    </p>
+  </div>
+);
+
 const WorkHubIntroPage = () => {
   const navigate = useNavigate();
+  const [phase, setPhase] = useState<"loading" | "reveal">("loading");
+  const [heroVisible, setHeroVisible] = useState(false);
+  const [visibleCards, setVisibleCards] = useState<boolean[]>(
+    new Array(features.length).fill(false),
+  );
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase("reveal"), 2000);
+    return () => clearTimeout(t1);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "reveal") return;
+    const t2 = setTimeout(() => setHeroVisible(true), 80);
+    const timers = features.map((_, i) =>
+      setTimeout(
+        () =>
+          setVisibleCards((prev) => {
+            const next = [...prev];
+            next[i] = true;
+            return next;
+          }),
+        300 + i * 130,
+      ),
+    );
+    return () => {
+      clearTimeout(t2);
+      timers.forEach(clearTimeout);
+    };
+  }, [phase]);
+
+  if (phase === "loading") {
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f5f7fa]">
+        <FolderPopLoader />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto bg-[#f5f7fa]">
       {/* Hero Section */}
-      <div className="max-w-4xl mx-auto px-8 pt-20 pb-14 text-center">
+      <div
+        className="max-w-4xl mx-auto px-8 pt-20 pb-14 text-center transition-all duration-700 ease-out"
+        style={{
+          opacity: heroVisible ? 1 : 0,
+          transform: heroVisible ? "translateY(0)" : "translateY(24px)",
+        }}
+      >
         <div className="w-20 h-20 mx-auto mb-8 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
           <MdOutlineWork className="w-10 h-10 text-white" />
         </div>
@@ -65,16 +219,31 @@ const WorkHubIntroPage = () => {
 
       {/* Feature Cards */}
       <div className="max-w-5xl mx-auto px-8 pb-20">
-        <h2 className="text-center text-sm font-semibold text-slate-400 uppercase tracking-wider mb-8">
+        <h2
+          className="text-center text-sm font-semibold text-slate-400 uppercase tracking-wider mb-8 transition-all duration-700 ease-out"
+          style={{
+            opacity: heroVisible ? 1 : 0,
+            transform: heroVisible ? "translateY(0)" : "translateY(16px)",
+            transitionDelay: "150ms",
+          }}
+        >
           What you can do with Work Hub
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {features.map((feature) => {
+          {features.map((feature, i) => {
             const Icon = feature.icon;
             return (
               <div
                 key={feature.title}
-                className="bg-white border border-slate-200 rounded-2xl p-8 hover:shadow-md transition-all"
+                className="bg-white border border-slate-200 rounded-2xl p-8 hover:shadow-md transition-shadow duration-200"
+                style={{
+                  opacity: visibleCards[i] ? 1 : 0,
+                  transform: visibleCards[i]
+                    ? "translateY(0)"
+                    : "translateY(28px)",
+                  transition:
+                    "opacity 0.5s ease-out, transform 0.5s ease-out, box-shadow 0.2s",
+                }}
               >
                 <div className="w-14 h-14 bg-teal-50 rounded-xl flex items-center justify-center text-teal-500 mb-5">
                   <Icon className="w-7 h-7" />

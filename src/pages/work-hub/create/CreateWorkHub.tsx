@@ -346,67 +346,80 @@ const CreateWorkHub = () => {
       className="flex-1 h-full overflow-y-auto bg-[var(--wh-green-bg-light)] font-sans"
     >
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-10 py-4 bg-white border-b border-[var(--wh-green-border-light)] shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[var(--wh-green-primary)] rounded-xl flex items-center justify-center font-bold text-lg text-white">
-            O
+      <header className="sticky top-0 z-50 relative bg-white border-b border-[var(--wh-green-border-light)] shadow-sm">
+        <div className="flex items-center justify-between px-10 py-4">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[var(--wh-green-primary)] rounded-xl flex items-center justify-center font-bold text-lg text-white">
+              O
+            </div>
+            <span className="text-xl font-bold text-gray-800">Orion</span>
           </div>
-          <span className="text-xl font-bold text-gray-800">Orion</span>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <button className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
+              <i className="fas fa-question-circle"></i> Help
+            </button>
+
+            <button
+              onClick={() => navigate("/work-hub/ws1")}
+              className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+            >
+              <i className="fas fa-times"></i> Cancel
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
-            <i className="fas fa-question-circle"></i> Help
-          </button>
-          <button
-            onClick={() => navigate("/work-hub/ws1")}
-            className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
-          >
-            <i className="fas fa-times"></i> Cancel
-          </button>
+
+        {/* Progress bar */}
+        <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gray-200">
+          <div
+            className="h-full bg-[var(--wh-green-primary)] transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-10 py-16">
         {/* Progress Bar */}
-        <div className="mb-14">
-          <div className="relative flex justify-between mb-8">
-            <div className="absolute top-5 left-0 right-0 h-0.5 bg-[var(--wh-green-border-light)]" />
-            <div
-              className="absolute top-5 left-0 h-0.5 bg-[var(--wh-green-primary)] transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
             {PROGRESS_STEPS.map((step) => {
-              const isCompleted = step.number < currentStep;
               const isActive = step.number === currentStep;
+              const isCompleted = step.number < currentStep;
+
               return (
                 <div
                   key={step.number}
-                  className="relative z-10 flex flex-col items-center flex-1"
+                  className="flex items-center gap-2 flex-1"
                 >
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold mb-3 border-2 transition-all duration-300 ${
-                      isCompleted
-                        ? "bg-[var(--wh-green-primary)] border-[var(--wh-green-primary)] text-white"
-                        : isActive
-                          ? "bg-[var(--wh-green-primary)] border-[var(--wh-green-primary)] text-white"
-                          : "bg-white border-[var(--wh-green-border-medium)] text-gray-400"
-                    }`}
+                    className={`flex items-center justify-center w-8 h-8 text-sm font-semibold rounded-full transition-all
+              ${
+                isCompleted
+                  ? "bg-[var(--wh-green-primary)] text-white"
+                  : isActive
+                    ? "bg-[var(--wh-green-primary)] text-white"
+                    : "bg-gray-200 text-gray-500"
+              }`}
                   >
                     {isCompleted ? (
-                      <i className="fas fa-check text-sm"></i>
+                      <i className="fas fa-check text-xs"></i>
                     ) : (
                       step.number
                     )}
                   </div>
+
                   <span
-                    className={`text-xs font-medium text-center ${
-                      isActive
-                        ? "text-[var(--wh-green-primary)]"
-                        : "text-gray-400"
-                    }`}
+                    className={`text-xs font-medium whitespace-nowrap
+              ${isActive ? "text-[var(--wh-green-primary)]" : "text-gray-400"}`}
                   >
                     {step.label}
                   </span>
+
+                  {step.number !== TOTAL_STEPS && (
+                    <div className="flex-1 h-[2px] bg-gray-200 mx-2"></div>
+                  )}
                 </div>
               );
             })}
@@ -608,7 +621,7 @@ const CreateWorkHub = () => {
                       key={color.value}
                       title={color.label}
                       onClick={() => updateStep2({ color: color.value })}
-                      className={`aspect-square rounded-xl border-[3px] relative transition-all hover:scale-110 ${
+                      className={`aspect-square rounded-xl border-[3px] relative transition-all hover:scale-102 ${
                         selected
                           ? "border-[var(--wh-green-primary)] shadow-md"
                           : "border-transparent"
@@ -701,7 +714,7 @@ const CreateWorkHub = () => {
           </div>
         )}
 
-        {/* STEP 3 – Team Setup */}
+        {/* STEP 3 – Settup */}
         {currentStep === 3 && (
           <div className="bg-white border border-[var(--wh-green-border-light)] rounded-2xl p-10 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
@@ -828,7 +841,7 @@ const CreateWorkHub = () => {
           </div>
         )}
 
-        {/* STEP 4 – Review & Create */}
+        {/* STEP 4 – Xem lại và Táo */}
         {currentStep === 4 && (
           <div className="bg-white border border-[var(--wh-green-border-light)] rounded-2xl p-10 shadow-sm">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
