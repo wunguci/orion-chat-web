@@ -1,18 +1,42 @@
 import { useRef, useCallback, useEffect } from "react";
 
-// STUN servers config
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
+const getIceConfiguration = (): RTCConfiguration => {
+  const turnUrls = import.meta.env.VITE_TURN_URLS as string | undefined;
+  const turnUsername = import.meta.env.VITE_TURN_USERNAME as string | undefined;
+  const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as
+    | string
+    | undefined;
+
+  const iceServers: RTCIceServer[] = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
     { urls: "stun:stun2.l.google.com:19302" },
-    // Thêm TURN server nếu cần (khoảng 10-15% users cần TURN)
-    // {
-    //   urls: 'turn:your-turn-server.com:3478',
-    //   username: 'username',
-    //   credential: 'password',
-    // },
-  ],
+  ];
+
+  if (turnUrls && turnUsername && turnCredential) {
+    const parsedTurnUrls = turnUrls
+      .split(",")
+      .map((url) => url.trim())
+      .filter(Boolean);
+
+    if (parsedTurnUrls.length > 0) {
+      iceServers.push({
+        urls: parsedTurnUrls,
+        username: turnUsername,
+        credential: turnCredential,
+      });
+      console.log("[WebRTC] TURN server enabled");
+    }
+  } else {
+    console.warn(
+      "[WebRTC] TURN server is not configured. Cross-network calls may fail on strict NAT/firewall.",
+    );
+  }
+
+  return {
+    iceServers,
+    iceCandidatePoolSize: 10,
+  };
 };
 
 interface UseWebRTCProps {
@@ -28,6 +52,29 @@ export const useWebRTC = ({
 }: UseWebRTCProps) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
+  const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+
+  const flushPendingIceCandidates = useCallback(async () => {
+    const peerConnection = peerConnectionRef.current;
+    if (!peerConnection || !peerConnection.remoteDescription) {
+      return;
+    }
+
+    if (pendingIceCandidatesRef.current.length === 0) {
+      return;
+    }
+
+    const pending = [...pendingIceCandidatesRef.current];
+    pendingIceCandidatesRef.current = [];
+
+    for (const candidate of pending) {
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error("Error flushing queued ICE candidate:", error);
+      }
+    }
+  }, []);
 
   // khởi tạo peer connection
   const initializePeerConnection = useCallback(() => {
@@ -35,7 +82,7 @@ export const useWebRTC = ({
       return peerConnectionRef.current;
     }
 
-    const peerConnection = new RTCPeerConnection(ICE_SERVERS);
+    const peerConnection = new RTCPeerConnection(getIceConfiguration());
 
     // xử lý ICE candidates
     peerConnection.onicecandidate = (event) => {
@@ -50,6 +97,9 @@ export const useWebRTC = ({
       console.log("Received remote track:", event.track.kind);
       if (event.streams && event.streams[0]) {
         onRemoteStream(event.streams[0]);
+      } else {
+        const fallbackRemoteStream = new MediaStream([event.track]);
+        onRemoteStream(fallbackRemoteStream);
       }
     };
 
@@ -99,7 +149,9 @@ export const useWebRTC = ({
             peerConnection.addTrack(track, stream);
           });
         } else {
-          console.warn('Peer connection not initialized yet when adding tracks');
+          console.warn(
+            "Peer connection not initialized yet when adding tracks",
+          );
         }
 
         return stream;
@@ -139,6 +191,8 @@ export const useWebRTC = ({
           new RTCSessionDescription(offer),
         );
 
+        await flushPendingIceCandidates();
+
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
@@ -148,7 +202,7 @@ export const useWebRTC = ({
         throw error;
       }
     },
-    [initializePeerConnection],
+    [flushPendingIceCandidates, initializePeerConnection],
   );
 
   // xử lý câu trả lời đã nhận
@@ -163,12 +217,14 @@ export const useWebRTC = ({
         await peerConnection.setRemoteDescription(
           new RTCSessionDescription(answer),
         );
+
+        await flushPendingIceCandidates();
       } catch (error) {
         console.log("Error handling answer:", error);
         throw error;
       }
     },
-    [],
+    [flushPendingIceCandidates],
   );
 
   // thêm trạng thái ICE
@@ -177,6 +233,11 @@ export const useWebRTC = ({
       const peerConnection = peerConnectionRef.current;
       if (!peerConnection) {
         console.warn("Peer connection not ready for ICE candidate");
+        return;
+      }
+
+      if (!peerConnection.remoteDescription) {
+        pendingIceCandidatesRef.current.push(candidate);
         return;
       }
 
@@ -193,16 +254,16 @@ export const useWebRTC = ({
   const toggleVideo = useCallback(async (enabled: boolean) => {
     const stream = localStreamRef.current;
     const peerConnection = peerConnectionRef.current;
-    
+
     if (!stream) {
-      console.warn('No local stream to toggle video');
+      console.warn("No local stream to toggle video");
       return;
     }
 
     if (enabled) {
       // Check if video tracks exist and are stopped
       const videoTracks = stream.getVideoTracks();
-      if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
+      if (videoTracks.length === 0 || videoTracks[0].readyState === "ended") {
         try {
           // Get new video stream
           const newStream = await navigator.mediaDevices.getUserMedia({
@@ -212,30 +273,30 @@ export const useWebRTC = ({
               facingMode: "user",
             },
           });
-          
+
           const newVideoTrack = newStream.getVideoTracks()[0];
-          
+
           // Replace track in peer connection
           if (peerConnection) {
             const senders = peerConnection.getSenders();
-            const videoSender = senders.find(s => s.track?.kind === 'video');
+            const videoSender = senders.find((s) => s.track?.kind === "video");
             if (videoSender) {
               await videoSender.replaceTrack(newVideoTrack);
             } else {
               peerConnection.addTrack(newVideoTrack, stream);
             }
           }
-          
+
           // Replace track in local stream
-          videoTracks.forEach(track => {
+          videoTracks.forEach((track) => {
             stream.removeTrack(track);
             track.stop();
           });
           stream.addTrack(newVideoTrack);
-          
-          console.log('Video track re-enabled with new stream');
+
+          console.log("Video track re-enabled with new stream");
         } catch (error) {
-          console.error('Error re-enabling video:', error);
+          console.error("Error re-enabling video:", error);
         }
       } else {
         // Just enable existing track
@@ -276,6 +337,8 @@ export const useWebRTC = ({
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
     }
+
+    pendingIceCandidatesRef.current = [];
   }, []);
 
   // cleanup o unmount

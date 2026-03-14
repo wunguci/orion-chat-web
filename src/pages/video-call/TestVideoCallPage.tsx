@@ -57,6 +57,9 @@ const TestVideoCallPage: React.FC = () => {
   React.useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch((error) => {
+        console.warn("Remote media autoplay was blocked:", error);
+      });
     }
   }, [remoteStream]);
 
@@ -316,7 +319,7 @@ const TestVideoCallPage: React.FC = () => {
             )}
 
             {/* Incoming Call */}
-            {incomingCall && status === "ringing" && (
+            {incomingCall && (
               <div className="bg-gray-800 rounded-xl p-6 border border-blue-500">
                 <h2 className="text-xl font-semibold mb-4">Incoming Call</h2>
                 <div className="space-y-4">

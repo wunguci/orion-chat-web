@@ -12,7 +12,7 @@ const CALL_NAMESPACE_URL = `${SOCKET_BASE_URL}/call`;
 class SocketService {
   private socket: Socket | null = null;
   private callSocket: Socket | null = null;
-  private currentUserId: string | null = null; // Track current userId
+  private currentUserId: string | null = null; // Track userId hiện tại
 
   // connect main socket
   connect(userId: string, token?: string) {
@@ -37,21 +37,21 @@ class SocketService {
     return this.socket;
   }
 
-  // connect call socket (namespace /call)
+  // kết nối call socket (namespace /call)
   connectCall(userId: string, token?: string) {
-    // If userId changed, disconnect old socket
+    // nếu userId thay đổi, ngắt kết nối socket cũ.
     if (this.currentUserId && this.currentUserId !== userId) {
       console.log(`[SocketService] UserId changed from ${this.currentUserId} to ${userId}, reconnecting...`);
       this.disconnectCall();
     }
 
-    // If already connected with same userId, return existing socket
+    // nếu đã kết nối với cùng userId, trả về socket hiện có.
     if (this.callSocket?.connected && this.currentUserId === userId) {
       console.log(`[SocketService] Already connected as ${userId}`);
       return this.callSocket;
     }
 
-    // Disconnect if exists but not connected
+    // ngắt kết nối nếu tồn tại nhưng chưa được kết nối.
     if (this.callSocket && !this.callSocket.connected) {
       this.callSocket.disconnect();
       this.callSocket = null;
@@ -65,7 +65,7 @@ class SocketService {
     this.callSocket = io(CALL_NAMESPACE_URL, {
       query: { userId },
       auth: { token },
-      forceNew: true, // Force new connection
+      forceNew: true, // buộc kết nối mới
       transports: ["websocket"],
     });
 

@@ -38,7 +38,6 @@ interface CallProviderProps {
   userId: string;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const CallProvider: React.FC<CallProviderProps> = ({
   children,
   userId,
@@ -63,8 +62,15 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     null,
   );
   const [pendingOffer, setPendingOffer] = useState<CallOfferData | null>(null);
+  const currentCallIdRef = useRef<string | null>(null);
+  const currentOtherUserIdRef = useRef<string | null>(null);
 
   const callSocketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    currentCallIdRef.current = callState.callId;
+    currentOtherUserIdRef.current = callState.otherUser?.id || null;
+  }, [callState.callId, callState.otherUser]);
 
   // webRTC hooks
   const {
@@ -89,12 +95,19 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     },
     onIceCandidate: (candidate) => {
       const socket = callSocketRef.current;
-      if (socket && callState.callId && callState.otherUser) {
+      const activeCallId = currentCallIdRef.current;
+      const targetUserId = currentOtherUserIdRef.current;
+
+      if (socket && activeCallId && targetUserId) {
         socket.emit("call:ice-candidate", {
-          callId: callState.callId,
-          targetUserId: callState.otherUser.id,
+          callId: activeCallId,
+          targetUserId,
           candidate,
         });
+      } else {
+        console.warn(
+          "[CallContext] Skip ICE emit: missing callId/targetUserId",
+        );
       }
     },
     onConnectionStateChange: (state) => {
@@ -133,65 +146,72 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
   // khởi tạo call socket
   useEffect(() => {
-    console.log('[CallContext] Initializing socket for userId:', userId);
+    console.log("[CallContext] Initializing socket for userId:", userId);
     const socket = socketService.connectCall(userId);
     callSocketRef.current = socket;
 
-    // Debug: Listen to ALL events
+    // debug: nghe tất cả các sự kiện
     socket.onAny((eventName, ...args) => {
       console.log(`[CallContext] >>> Received event: ${eventName}`, args);
     });
 
     // listen to incoming call
     const handleIncomingCall = (data: IncomingCallData) => {
-      console.log('[CallContext] Incoming call:', data);
-      console.log('[CallContext] Incoming call callerName:', data.callerName);
-      console.log('[CallContext] Incoming call callerAvatar:', data.callerAvatar);
+      console.log("[CallContext] Incoming call:", data);
+      console.log("[CallContext] Incoming call callerName:", data.callerName);
+      console.log(
+        "[CallContext] Incoming call callerAvatar:",
+        data.callerAvatar,
+      );
       setIncomingCall(data);
     };
     socket.on("call:incoming", handleIncomingCall);
 
-    // listen to call offer - SAVE offer, don't process yet
+    // listen to call offer - lưu offer, chưa xử lý
     const handleCallOffer = async (data: CallOfferData) => {
-      console.log('[CallContext] Received offer, saving for later:', data);
-      // Save offer to process when user accepts
+      console.log("[CallContext] Received offer, saving for later:", data);
+      // lưu offer để xử lý khi người dùng chấp nhận.
       setPendingOffer(data);
     };
     socket.on("call:offer", handleCallOffer);
 
     // listen to call answer
     const handleCallAnswer = async (data: CallAnswerData) => {
-      console.log('[CallContext] Received answer:', data);
+      console.log("[CallContext] Received answer:", data);
       try {
         await handleAnswer(data.answer);
       } catch (error) {
-        console.error('[CallContext] Error handling answer:', error);
+        console.error("[CallContext] Error handling answer:", error);
       }
     };
     socket.on("call:answer", handleCallAnswer);
 
     // listen to ICE candidates
     const handleIceCandidate = async (data: IceCandidateData) => {
-      console.log('[CallContext] Received ICE candidate');
+      console.log("[CallContext] Received ICE candidate");
       try {
         await addIceCandidate(data.candidate);
       } catch (error) {
-        console.error('[CallContext] Error adding ICE candidate:', error);
+        console.error("[CallContext] Error adding ICE candidate:", error);
       }
     };
     socket.on("call:ice-candidate", handleIceCandidate);
 
     // listen to call rejected
-    const handleCallRejected = () => {
-      console.log('[CallContext] Call rejected');
+    const handleCallRejected = (data?: {
+      callId?: string;
+      rejectedBy?: string;
+    }) => {
+      console.log("[CallContext] Call rejected:", data);
       setCallState((prev) => ({ ...prev, status: "rejected" }));
       cleanupCall();
     };
+    socket.on("call:reject", handleCallRejected);
     socket.on("call:rejected", handleCallRejected);
 
     // listen to call ended
     const handleCallEnded = () => {
-      console.log('[CallContext] Call ended');
+      console.log("[CallContext] Call ended");
       setCallState((prev) => ({ ...prev, status: "ended" }));
       cleanupCall();
     };
@@ -203,27 +223,28 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       mediaType: "video" | "audio";
       enabled: boolean;
     }) => {
-      console.log('[CallContext] Media toggled:', data);
+      console.log("[CallContext] Media toggled:", data);
     };
     socket.on("call:media-toggled", handleMediaToggled);
 
     // listen to errors
     const handleCallError = (error: { message: string; code?: string }) => {
-      console.error('[CallContext] Call error:', error);
-      
-      // Show user-friendly error
+      console.error("[CallContext] Call error:", error);
+
+      // Hiển thị lỗi thân thiện với user
       let errorMessage = error.message;
-      if (error.code === 'USER_OFFLINE') {
-        errorMessage = 'User is not online. Please make sure they are connected.';
+      if (error.code === "USER_OFFLINE") {
+        errorMessage =
+          "User is not online. Please make sure they are connected.";
       }
-      
+
       setCallState((prev) => ({
         ...prev,
         error: errorMessage,
         status: "failed",
       }));
-      
-      // Auto cleanup after 3 seconds
+
+      // tự động clean sau 3 giây
       setTimeout(() => {
         cleanupCall();
       }, 3000);
@@ -231,18 +252,19 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     socket.on("call:error", handleCallError);
 
     return () => {
-      console.log('[CallContext] Cleaning up socket listeners');
-      socket.offAny(); // Remove catch-all listener
+      console.log("[CallContext] Cleaning up socket listeners");
+      socket.offAny(); //  xóa trình lắng nghe bắt tất cả
       socket.off("call:incoming", handleIncomingCall);
       socket.off("call:offer", handleCallOffer);
       socket.off("call:answer", handleCallAnswer);
       socket.off("call:ice-candidate", handleIceCandidate);
+      socket.off("call:reject", handleCallRejected);
       socket.off("call:rejected", handleCallRejected);
       socket.off("call:ended", handleCallEnded);
       socket.off("call:media-toggled", handleMediaToggled);
       socket.off("call:error", handleCallError);
     };
-  }, [userId]); // Only re-run when userId changes
+  }, [userId, addIceCandidate, cleanupCall, handleAnswer]);
 
   // khởi tạo call
   const initiateCall = useCallback(
@@ -273,10 +295,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           },
         }));
 
-        // Initialize peer connection first
+        // khởi tạo peer connection first
         initializePeerConnection();
 
-        // lấy lường local
+        // lấy luồng local
         const stream = await getLocalStream(callType === "video", true);
         setCallState((prev) => ({ ...prev, localStream: stream }));
 
@@ -323,14 +345,17 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     if (!socket) return;
 
     try {
-      console.log('[CallContext] Accepting call with type:', incomingCall.callType);
-      console.log('[CallContext] Pending offer exists?', !!pendingOffer);
-      
+      console.log(
+        "[CallContext] Accepting call with type:",
+        incomingCall.callType,
+      );
+      console.log("[CallContext] Pending offer exists?", !!pendingOffer);
+
       setCallState((prev) => ({
         ...prev,
         callId: incomingCall.callId,
         conversationId: incomingCall.conversationId,
-        callType: incomingCall.callType, // Use call type from incoming call
+        callType: incomingCall.callType,
         status: "ringing",
         isInitiator: false,
         isCaller: false,
@@ -341,42 +366,46 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         },
       }));
 
-      // Process pending offer FIRST (before getting local stream)
+      // chuẩn bị kết nối peer và local trước khi tạo câu trả lời
       if (pendingOffer) {
-        console.log('[CallContext] Processing pending offer');
-        
-        // Initialize peer connection before handling offer
-        initializePeerConnection();
-        
-        const answer = await handleOffer(pendingOffer.offer);
-        console.log('[CallContext] Answer created:', answer);
+        console.log("[CallContext] Processing pending offer");
 
-        // NOW get local stream and add tracks
-        console.log('[CallContext] Getting local stream...');
-        let stream: MediaStream | null = null;
+        // Trước tiên  khởi tạo kết nối peer.
+        initializePeerConnection();
+
+        // Lấy luồng dữ liệu local và thêm các track TRƯỚC KHI tạo câu trả lời để SDP chứa luồng local.
+        console.log("[CallContext] Getting local stream...");
         try {
-          stream = await getLocalStream(
+          const stream = await getLocalStream(
             incomingCall.callType === "video",
             true,
           );
-          console.log('[CallContext] Local stream obtained:', stream);
+          console.log("[CallContext] Local stream obtained:", stream);
           setCallState((prev) => ({ ...prev, localStream: stream }));
         } catch (streamError) {
-          console.warn('[CallContext] Could not get local stream (device busy?):', streamError);
-          alert('Camera/Mic is busy. Make sure to close other tabs using it, or test in different browsers.');
+          console.warn(
+            "[CallContext] Could not get local stream (device busy?):",
+            streamError,
+          );
+          alert(
+            "Camera/Mic is busy. Make sure to close other tabs using it, or test in different browsers.",
+          );
         }
-        
-        // Send answer to caller
+
+        const answer = await handleOffer(pendingOffer.offer);
+        console.log("[CallContext] Answer created:", answer);
+
+        // trả lời cuộc gọi
         socket.emit("call:answer", {
           callId: pendingOffer.callId,
           callerId: pendingOffer.callerId,
           answer,
         });
-        console.log('[CallContext] Answer sent to caller');
-        
+        console.log("[CallContext] Answer sent to caller");
+
         setPendingOffer(null);
       } else {
-        console.warn('[CallContext] No pending offer to process!');
+        console.warn("[CallContext] No pending offer to process!");
       }
 
       // thông báo cho người gọi biết cuộc gọi đã được chấp nhận.
@@ -384,14 +413,14 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         callId: incomingCall.callId,
         targetUserId: incomingCall.callerId,
       });
-      console.log('[CallContext] Accept notification sent');
+      console.log("[CallContext] Accept notification sent");
 
       setIncomingCall(null);
       setPendingOffer(null);
     } catch (error) {
       console.error("[CallContext] Error accepting call:", error);
       console.error("[CallContext] Error details:", {
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
       setCallState((prev) => ({
@@ -400,7 +429,13 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         status: "failed",
       }));
     }
-  }, [incomingCall, pendingOffer, initializePeerConnection, getLocalStream, handleOffer]);
+  }, [
+    incomingCall,
+    pendingOffer,
+    initializePeerConnection,
+    getLocalStream,
+    handleOffer,
+  ]);
 
   // reject cuộc gọi đến
   const rejectCall = useCallback(() => {

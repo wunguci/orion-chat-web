@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useCall } from "../../hooks/useCall";
 import { FaUser } from "react-icons/fa";
 import {
@@ -7,6 +8,60 @@ import {
 
 export const IncomingCallModal: React.FC = () => {
   const { incomingCall, acceptCall, rejectCall } = useCall();
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const ringIntervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!incomingCall) {
+      if (ringIntervalRef.current) {
+        window.clearInterval(ringIntervalRef.current);
+        ringIntervalRef.current = null;
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => undefined);
+        audioContextRef.current = null;
+      }
+      return;
+    }
+
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioCtx) {
+      return;
+    }
+
+    const audioContext = new AudioCtx();
+    audioContextRef.current = audioContext;
+
+    const playBeep = () => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.value = 850;
+      gainNode.gain.value = 0.04;
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.start();
+      oscillator.stop(audioContext.currentTime + 0.2);
+    };
+
+    playBeep();
+    ringIntervalRef.current = window.setInterval(playBeep, 1200);
+
+    return () => {
+      if (ringIntervalRef.current) {
+        window.clearInterval(ringIntervalRef.current);
+        ringIntervalRef.current = null;
+      }
+      audioContext.close().catch(() => undefined);
+      audioContextRef.current = null;
+    };
+  }, [incomingCall]);
 
   if (!incomingCall) return null;
 
