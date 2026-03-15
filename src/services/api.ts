@@ -1,17 +1,32 @@
+import { getAuthHeader, logout } from "../utils/token";
+
 const API_BASE = "http://localhost:3000";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+      ...options?.headers,
+    },
     ...options,
   });
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));
+
+    if (
+      res.status === 401 &&
+      typeof error.message === "string" &&
+      error.message.toLowerCase().includes("token has expired")
+    ) {
+      logout();
+      throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+    }
+
     throw new Error(error.message || "API Error");
   }
 
-  // DELETE thường trả 200 với body rỗng
   const text = await res.text();
   return text ? JSON.parse(text) : ({} as T);
 }

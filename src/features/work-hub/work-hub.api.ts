@@ -3,6 +3,7 @@ import type {
   WorkspaceResponse,
   WorkspaceMemberResponse,
   TaskBoardResponse,
+  BoardColumnResponse,
   TaskResponse,
   LabelResponse,
   CreateWorkspaceRequest,
@@ -11,11 +12,22 @@ import type {
   UpdateMemberRoleRequest,
   CreateBoardRequest,
   UpdateBoardRequest,
+  CreateColumnRequest,
+  UpdateColumnRequest,
   CreateTaskRequest,
   UpdateTaskRequest,
   MoveTaskRequest,
   CreateLabelRequest,
   UpdateLabelRequest,
+  SubTaskResponse,
+  CreateSubTaskRequest,
+  UpdateSubTaskRequest,
+  CommentResponse,
+  CreateCommentRequest,
+  AttachmentResponse,
+  CreateAttachmentRequest,
+  ActivityLogResponse,
+  CreateActivityLogRequest,
 } from "./work-hub.api.types";
 
 export const workHubApi = {
@@ -199,4 +211,136 @@ export const workHubApi = {
    */
   deleteLabel: (workspaceId: string, id: string) =>
     api.delete(`/workspaces/${workspaceId}/labels/${id}`),
+
+  /**
+   * POST /boards/:boardId/columns
+   * Tạo column mới
+   */
+  createColumn: (boardId: string, data: CreateColumnRequest) =>
+    api.post<BoardColumnResponse>(`/boards/${boardId}/columns`, data),
+
+  /**
+   * PATCH /boards/:boardId/columns/:columnId
+   * Cập nhật column
+   */
+  updateColumn: (
+    boardId: string,
+    columnId: string,
+    data: UpdateColumnRequest,
+  ) =>
+    api.patch<BoardColumnResponse>(
+      `/boards/${boardId}/columns/${columnId}`,
+      data,
+    ),
+
+  /**
+   * DELETE /boards/:boardId/columns/:columnId
+   * Xóa column
+   */
+  deleteColumn: (boardId: string, columnId: string) =>
+    api.delete(`/boards/${boardId}/columns/${columnId}`),
+
+  /**
+   * PATCH /boards/:boardId/columns/reorder
+   * Sắp xếp lại thứ tự columns
+   */
+  reorderColumns: (boardId: string, columnIds: string[]) =>
+    api.patch(`/boards/${boardId}/columns/reorder`, { columnIds }),
+
+  // ---- SubTask CRUD ----
+
+  /**
+   * GET /tasks/:taskId/subtasks
+   * Lấy tất cả subtasks của task
+   */
+  getSubTasks: (taskId: string) =>
+    api.get<SubTaskResponse[]>(`/tasks/${taskId}/subtasks`),
+
+  /**
+   * POST /tasks/:taskId/subtasks
+   * Tạo subtask mới
+   */
+  createSubTask: (taskId: string, data: CreateSubTaskRequest) =>
+    api.post<SubTaskResponse>(`/tasks/${taskId}/subtasks`, data),
+
+  /**
+   * PATCH /subtasks/:subTaskId
+   * Cập nhật subtask
+   */
+  updateSubTask: (subTaskId: string, data: UpdateSubTaskRequest) =>
+    api.patch<SubTaskResponse>(`/subtasks/${subTaskId}`, data),
+
+  /**
+   * DELETE /subtasks/:subTaskId
+   * Xóa subtask
+   */
+  deleteSubTask: (subTaskId: string) => api.delete(`/subtasks/${subTaskId}`),
+
+  // ---- Comment CRUD ----
+
+  /**
+   * GET /tasks/:taskId/comments
+   * Lấy tất cả comments của task
+   */
+  getComments: (taskId: string) =>
+    api.get<CommentResponse[]>(`/tasks/${taskId}/comments`),
+
+  /**
+   * POST /tasks/:taskId/comments
+   * Tạo comment mới
+   */
+  createComment: (taskId: string, data: CreateCommentRequest) =>
+    api.post<CommentResponse>(`/tasks/${taskId}/comments`, data),
+
+  /**
+   * PATCH /comments/:commentId
+   * Cập nhật comment
+   */
+  updateComment: (commentId: string, data: { content: string }) =>
+    api.patch<CommentResponse>(`/comments/${commentId}`, data),
+
+  /**
+   * DELETE /comments/:commentId
+   * Xóa comment
+   */
+  deleteComment: (commentId: string) => api.delete(`/comments/${commentId}`),
+
+  // ---- Attachment CRUD ----
+
+  /**
+   * GET /tasks/:taskId/attachments
+   * Lấy tất cả attachments của task
+   */
+  getAttachments: (taskId: string) =>
+    api.get<AttachmentResponse[]>(`/tasks/${taskId}/attachments`),
+
+  /**
+   * POST /tasks/:taskId/attachments
+   * Tạo attachment mới
+   */
+  createAttachment: (taskId: string, data: CreateAttachmentRequest) =>
+    api.post<AttachmentResponse>(`/tasks/${taskId}/attachments`, data),
+
+  /**
+   * DELETE /attachments/:attachmentId
+   * Xóa attachment
+   */
+  deleteAttachment: (attachmentId: string) =>
+    api.delete(`/attachments/${attachmentId}`),
+
+  // ---- Activity Log ----
+
+  /**
+   * GET /tasks/:taskId/activities
+   * Lấy tất cả activity logs của task
+   */
+  getActivities: (taskId: string) =>
+    api.get<ActivityLogResponse[]>(`/tasks/${taskId}/activities`),
+
+  /**
+   * POST /tasks/:taskId/activities
+   * Tạo activity log mới
+   */
+  createActivity: (taskId: string, data: CreateActivityLogRequest) =>
+    api.post<ActivityLogResponse>(`/tasks/${taskId}/activities`, data),
 };
