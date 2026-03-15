@@ -3,8 +3,9 @@ import type {
   TaskFormData,
   TaskStatus,
   TaskPriority,
+  User,
+  Label,
 } from "../../types/work-hub.types";
-import { MOCK_USERS, MOCK_LABELS } from "../../data/work-hub-mock";
 import Modal from "../common/Modal";
 
 interface TaskModalProps {
@@ -13,6 +14,8 @@ interface TaskModalProps {
   onSave: (data: TaskFormData) => void;
   initialStatus?: TaskStatus;
   editData?: TaskFormData;
+  users?: User[]; // bổ sung - danh sách user cho assignee dropdown
+  labels?: Label[]; // bổ sung - danh sách label để chọn
 }
 
 const TaskModal = ({
@@ -21,6 +24,8 @@ const TaskModal = ({
   onSave,
   initialStatus = "todo",
   editData,
+  users = [],
+  labels = [],
 }: TaskModalProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -85,7 +90,7 @@ const TaskModal = ({
     );
   };
 
-  const selectedUsers = MOCK_USERS.filter((u) => assigneeIds.includes(u.id));
+  const selectedUsers = users.filter((u) => assigneeIds.includes(u.id));
 
   return (
     <Modal
@@ -221,7 +226,7 @@ const TaskModal = ({
             </button>
             {showAssigneeDropdown && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[var(--wh-green-border-light)] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                {MOCK_USERS.map((user) => (
+                {users.map((user) => (
                   <div
                     key={user.id}
                     onClick={() => toggleAssignee(user.id)}
@@ -251,7 +256,7 @@ const TaskModal = ({
             Labels
           </label>
           <div className="flex flex-wrap gap-2">
-            {MOCK_LABELS.map((label) => (
+            {labels.map((label) => (
               <button
                 key={label.id}
                 onClick={() => toggleLabel(label.id)}

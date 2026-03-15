@@ -1,9 +1,8 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  MOCK_WORKSPACES,
-  MOCK_CHANNELS,
-  MOCK_DM_THREADS,
-} from "../../data/work-hub-mock";
+import type { Workspace } from "../../types/work-hub.types";
+import { workHubApi } from "../../features/work-hub/work-hub.api";
+import { mapWorkspace } from "../../features/work-hub/work-hub.mappers";
 
 interface SideBarWorkHubProps {
   workspaceId: string;
@@ -11,8 +10,16 @@ interface SideBarWorkHubProps {
 
 const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
   const location = useLocation();
-  const workspace =
-    MOCK_WORKSPACES.find((w) => w.id === workspaceId) || MOCK_WORKSPACES[0];
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+
+  // Fetch workspace từ API
+  useEffect(() => {
+    if (!workspaceId) return;
+    workHubApi
+      .getWorkspace(workspaceId)
+      .then((data) => setWorkspace(mapWorkspace(data)))
+      .catch(() => setWorkspace(null));
+  }, [workspaceId]);
 
   const navItems = [
     {
@@ -44,16 +51,25 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
 
   const boards = workspace?.boards || [];
 
-  const channels = MOCK_CHANNELS.filter((c) => c.workspaceId === workspaceId);
-  const totalChannelUnread = channels.reduce(
-    (sum, c) => sum + c.unreadCount,
-    0,
-  );
-
-  const dmThreads = MOCK_DM_THREADS.filter(
-    (t) => t.workspaceId === workspaceId,
-  );
-  const totalDmUnread = dmThreads.reduce((sum, t) => sum + t.unreadCount, 0);
+  // Channels và DM threads chưa có API, tạm để rỗng
+  const channels: {
+    id: string;
+    name: string;
+    type: string;
+    unreadCount: number;
+  }[] = [];
+  const totalChannelUnread = 0;
+  const dmThreads: {
+    id: string;
+    unreadCount: number;
+    participants: {
+      id: string;
+      name: string;
+      avatar: string;
+      status: string;
+    }[];
+  }[] = [];
+  const totalDmUnread = 0;
   const currentUserId = "u1";
 
   const isActive = (path: string) => {

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { workHubApi } from "../../../features/work-hub/work-hub.api";
 
 // ==================== INTERFACES ====================
 
@@ -68,8 +69,6 @@ interface ProgressStep {
   number: number;
   label: string;
 }
-
-// ==================== DATA ====================
 
 const TOTAL_STEPS = 4;
 
@@ -253,6 +252,153 @@ function getRandomAvatarColor(): string {
   ];
 }
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TEST_OWNER_FULL_NAME = "PHan phước HIệp";
+
+function getStorageItem(key: string): string | null {
+  try {
+    return localStorage.getItem(key) ?? sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function parseJson(value: string | null): Record<string, unknown> | null {
+  if (!value) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (parsed && typeof parsed === "object")
+      return parsed as Record<string, unknown>;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getIdFromObject(data: Record<string, unknown> | null): string | null {
+  if (!data) return null;
+
+  const direct = data.userId ?? data.id ?? data.sub;
+  if (typeof direct === "string" && direct) return direct;
+
+  const user = data.user;
+  if (user && typeof user === "object") {
+    const nested = user as Record<string, unknown>;
+    const nestedId = nested.userId ?? nested.id ?? nested.sub;
+    if (typeof nestedId === "string" && nestedId) return nestedId;
+  }
+
+  return null;
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const decoded = atob(padded);
+    return parseJson(decoded);
+  } catch {
+    return null;
+  }
+}
+
+function getCurrentUserId(): string | null {
+  const objectKeys = ["auth", "user", "currentUser", "profile", "authUser"];
+  for (const key of objectKeys) {
+    const id = getIdFromObject(parseJson(getStorageItem(key)));
+    if (id) return id;
+  }
+
+  const tokenKeys = [
+    "accessToken",
+    "token",
+    "authToken",
+    "jwt",
+    "access_token",
+  ];
+  for (const key of tokenKeys) {
+    const token = getStorageItem(key);
+    if (!token) continue;
+    const id = getIdFromObject(decodeJwtPayload(token));
+    if (id) return id;
+  }
+
+  const auth = parseJson(getStorageItem("auth"));
+  const tokenInAuth = auth?.accessToken ?? auth?.token;
+  if (typeof tokenInAuth === "string") {
+    const id = getIdFromObject(decodeJwtPayload(tokenInAuth));
+    if (id) return id;
+  }
+
+  return null;
+}
+
+async function getFallbackOwnerIdFromBackend(): Promise<string | null> {
+  try {
+    const res = await fetch("http://localhost:3000/users");
+    if (!res.ok) return null;
+
+    const users: unknown = await res.json();
+    if (!Array.isArray(users)) return null;
+
+    for (const user of users) {
+      if (!user || typeof user !== "object") continue;
+      const id = (user as Record<string, unknown>).userId;
+      if (typeof id === "string" && UUID_REGEX.test(id)) {
+        return id;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function getTestOwnerIdByName(fullName: string): Promise<string | null> {
+  try {
+    const res = await fetch("http://localhost:3000/users");
+    if (!res.ok) return null;
+
+    const users: unknown = await res.json();
+    if (!Array.isArray(users)) return null;
+
+    const target = normalizeName(fullName);
+    for (const user of users) {
+      if (!user || typeof user !== "object") continue;
+
+      const mapped = user as Record<string, unknown>;
+      const id = mapped.userId;
+      const name = mapped.fullName;
+
+      if (
+        typeof id === "string" &&
+        UUID_REGEX.test(id) &&
+        typeof name === "string" &&
+        normalizeName(name) === target
+      ) {
+        return id;
+      }
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 // ==================== COMPONENT ====================
 
 const CreateWorkHub = () => {
@@ -319,13 +465,33 @@ const CreateWorkHub = () => {
       ),
     });
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!formData.agreedToTerms) return;
     setIsCreating(true);
-    setTimeout(() => {
+    try {
+      const ownerId =
+        (await getTestOwnerIdByName(TEST_OWNER_FULL_NAME)) ??
+        getCurrentUserId() ??
+        (await getFallbackOwnerIdFromBackend());
+      if (!ownerId || !UUID_REGEX.test(ownerId)) {
+        throw new Error(
+          `Cannot determine ownerId for test user: ${TEST_OWNER_FULL_NAME}. Please create this user first.`,
+        );
+      }
+
+      const response = await workHubApi.createWorkspace({
+        workspaceName: formData.step1.name,
+        description: formData.step1.description,
+        type: formData.step1.type.toUpperCase(),
+        color: formData.step2.color,
+        ownerId,
+      });
+      navigate(`/work-hub/${response.workspaceId}`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to create workspace");
+    } finally {
       setIsCreating(false);
-      navigate("/work-hub/ws1");
-    }, 2000);
+    }
   };
 
   const selectedTypeName =
@@ -363,7 +529,7 @@ const CreateWorkHub = () => {
             </button>
 
             <button
-              onClick={() => navigate("/work-hub/ws1")}
+              onClick={() => navigate("/work-hub")}
               className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
             >
               <i className="fas fa-times"></i> Cancel

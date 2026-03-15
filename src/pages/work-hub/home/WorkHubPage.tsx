@@ -1,7 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type { Board, ActivityEntry } from "../../../types/work-hub.types";
-import { MOCK_WORKSPACES, MOCK_TASKS } from "../../../data/work-hub-mock";
+import type {
+  Board,
+  ActivityEntry,
+  Workspace,
+  Task,
+} from "../../../types/work-hub.types";
+import { workHubApi } from "../../../features/work-hub/work-hub.api";
+import {
+  mapWorkspace,
+  mapTask,
+} from "../../../features/work-hub/work-hub.mappers";
 import StatCard from "../../../components/work-hub/StatCard";
 import ProgressOverview from "../../../components/work-hub/ProgressOverview";
 import BoardCard from "../../../components/work-hub/workspace/BoardCard";
@@ -9,24 +18,36 @@ import BoardCard from "../../../components/work-hub/workspace/BoardCard";
 const WorkHubPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Find the workspace
-  const workspace = useMemo(
-    () => MOCK_WORKSPACES.find((ws) => ws.id === workspaceId),
-    [workspaceId],
-  );
+  // Fetch workspace và tasks từ API
+  useEffect(() => {
+    if (!workspaceId) return;
+    setLoading(true);
 
-  // Get all board IDs for this workspace
-  const boardIds = useMemo(
-    () => (workspace ? workspace.boards.map((b) => b.id) : []),
-    [workspace],
-  );
+    workHubApi
+      .getWorkspace(workspaceId)
+      .then(async (data) => {
+        const mapped = mapWorkspace(data);
+        setWorkspace(mapped);
 
-  // Filter tasks that belong to boards in this workspace
-  const workspaceTasks = useMemo(
-    () => MOCK_TASKS.filter((t) => boardIds.includes(t.boardId)),
-    [boardIds],
-  );
+        // Fetch tasks cho mỗi board
+        const allTasks: Task[] = [];
+        for (const board of mapped.boards) {
+          try {
+            const tasks = await workHubApi.getTasksByBoard(board.id);
+            allTasks.push(...tasks.map(mapTask));
+          } catch {
+            // skip board errors
+          }
+        }
+        setWorkspaceTasks(allTasks);
+      })
+      .catch(() => setWorkspace(null))
+      .finally(() => setLoading(false));
+  }, [workspaceId]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -118,6 +139,20 @@ const WorkHubPage = () => {
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
+
+  if (loading) {
+    return (
+      <div
+        className="flex-1 flex items-center justify-center"
+        style={{ backgroundColor: "var(--wh-green-bg-light)" }}
+      >
+        <i
+          className="fas fa-spinner fa-spin text-3xl"
+          style={{ color: "var(--wh-green-primary)" }}
+        ></i>
+      </div>
+    );
+  }
 
   if (!workspace) {
     return (
