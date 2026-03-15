@@ -11,6 +11,7 @@ import { ChatPage } from "../pages/chat/ChatPage";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import GroupChat from "../components/layout/GroupChat";
 import VideoCallPage from "../pages/video-call/VideoCallPage";
+import TestVideoCallPage from "../pages/video-call/TestVideoCallPage";
 import NotesPage from "../pages/note/NotesPage";
 import FriendPage from "../pages/contacts/ContactPage";
 import FriendListPage from "../pages/friend/FriendListPage";
@@ -115,6 +116,10 @@ export const router = createBrowserRouter([
       {
         path: "/work-hub/create",
         element: <CreateWorkHub />,
+      },
+      {
+        path: "/test-video-call",
+        element: <TestVideoCallPage />,
       },
       {
         path: ROUTES.NOT_FOUND,
