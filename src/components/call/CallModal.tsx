@@ -17,7 +17,6 @@ export const CallModal: React.FC = () => {
     error,
   } = useCall();
 
-  const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   // Hàm play video an toàn - xử lý autoplay bị block
@@ -26,11 +25,9 @@ export const CallModal: React.FC = () => {
       await video.play();
     } catch (err) {
       console.warn("[CallModal] Autoplay blocked, retrying muted then unmuting...", err);
-      // Thử play muted trước (browser cho phép), rồi unmute
       video.muted = true;
       try {
         await video.play();
-        // Unmute sau khi đã play (user gesture đã có từ việc accept call)
         setTimeout(() => {
           video.muted = false;
         }, 100);
@@ -40,12 +37,15 @@ export const CallModal: React.FC = () => {
     }
   }, []);
 
-  // gắn luồng local vào video element
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
+  // Dùng ref callback cho local video - tự động gán srcObject mỗi khi element mount
+  const localVideoRefCallback = useCallback(
+    (videoEl: HTMLVideoElement | null) => {
+      if (videoEl && localStream) {
+        videoEl.srcObject = localStream;
+      }
+    },
+    [localStream],
+  );
 
   // gắn luồng remote vào video element
   useEffect(() => {
@@ -92,7 +92,7 @@ export const CallModal: React.FC = () => {
           <div className="absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden shadow-lg">
             {isVideoEnabled ? (
               <video
-                ref={localVideoRef}
+                ref={localVideoRefCallback}
                 autoPlay
                 playsInline
                 muted

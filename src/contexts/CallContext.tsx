@@ -164,18 +164,19 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
       // Lấy local stream - nếu thất bại vẫn tiếp tục (audio call có thể không cần video)
       try {
-        const stream = await getLocalStream(callData.callType === "video", true);
+        const stream = await getLocalStream(
+          callData.callType === "video",
+          true,
+        );
         console.log("[CallContext] Local stream obtained:", stream);
         setCallState((prev) => ({ ...prev, localStream: stream }));
       } catch (streamError) {
-        console.error(
-          "[CallContext] Could not get local stream:",
-          streamError,
-        );
+        console.error("[CallContext] Could not get local stream:", streamError);
         // Thông báo cho user nhưng vẫn tiếp tục để ít nhất nhận được stream từ người kia
         setCallState((prev) => ({
           ...prev,
-          error: "Không thể truy cập camera/mic. Bạn vẫn có thể nghe/thấy người kia.",
+          error:
+            "Không thể truy cập camera/mic. Bạn vẫn có thể nghe/thấy người kia.",
         }));
       }
 
@@ -202,10 +203,18 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   const processAcceptedOfferRef = useRef(processAcceptedOffer);
   const cleanupCallRef = useRef(cleanupCall);
 
-  useEffect(() => { addIceCandidateRef.current = addIceCandidate; }, [addIceCandidate]);
-  useEffect(() => { handleAnswerRef.current = handleAnswer; }, [handleAnswer]);
-  useEffect(() => { processAcceptedOfferRef.current = processAcceptedOffer; }, [processAcceptedOffer]);
-  useEffect(() => { cleanupCallRef.current = cleanupCall; }, [cleanupCall]);
+  useEffect(() => {
+    addIceCandidateRef.current = addIceCandidate;
+  }, [addIceCandidate]);
+  useEffect(() => {
+    handleAnswerRef.current = handleAnswer;
+  }, [handleAnswer]);
+  useEffect(() => {
+    processAcceptedOfferRef.current = processAcceptedOffer;
+  }, [processAcceptedOffer]);
+  useEffect(() => {
+    cleanupCallRef.current = cleanupCall;
+  }, [cleanupCall]);
 
   // khởi tạo call socket - chỉ depend trên userId để tránh listener bị tear down/rebuild
   useEffect(() => {
@@ -229,11 +238,17 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     const handleCallOffer = async (data: CallOfferData) => {
       console.log("[CallContext] Received offer:", data);
 
-      if (acceptedCallIdRef.current === data.callId && incomingCallRef.current) {
+      if (
+        acceptedCallIdRef.current === data.callId &&
+        incomingCallRef.current
+      ) {
         try {
           await processAcceptedOfferRef.current(data, incomingCallRef.current);
         } catch (error) {
-          console.error("[CallContext] Error processing accepted offer:", error);
+          console.error(
+            "[CallContext] Error processing accepted offer:",
+            error,
+          );
         }
         return;
       }
@@ -265,7 +280,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     socket.on("call:ice-candidate", handleIceCandidate);
 
     // listen to call accepted (caller side - cập nhật UI khi receiver chấp nhận)
-    const handleCallAccepted = (data: { callId: string; receiverId: string }) => {
+    const handleCallAccepted = (data: {
+      callId: string;
+      receiverId: string;
+    }) => {
       console.log("[CallContext] Call accepted by receiver:", data);
       setCallState((prev) => {
         if (prev.isCaller && prev.status === "calling") {
@@ -450,7 +468,9 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         console.log("[CallContext] Processing pending offer");
         await processAcceptedOffer(pendingOffer, incomingCall);
       } else {
-        console.warn("[CallContext] No pending offer yet. Waiting for caller offer...");
+        console.warn(
+          "[CallContext] No pending offer yet. Waiting for caller offer...",
+        );
       }
 
       // thông báo cho người gọi biết cuộc gọi đã được chấp nhận.
@@ -475,11 +495,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         status: "failed",
       }));
     }
-  }, [
-    incomingCall,
-    pendingOffer,
-    processAcceptedOffer,
-  ]);
+  }, [incomingCall, pendingOffer, processAcceptedOffer]);
 
   // reject cuộc gọi đến
   const rejectCall = useCallback(() => {
