@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useCall } from "../../hooks/useCall";
 import { CallControls } from "./CallControls";
 import { FaUser } from "react-icons/fa";
@@ -17,25 +17,44 @@ export const CallModal: React.FC = () => {
     error,
   } = useCall();
 
-  const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
-  // gắn luồng local vào video element
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
+  // Hàm play video an toàn - xử lý autoplay bị block
+  const safePlay = useCallback(async (video: HTMLVideoElement) => {
+    try {
+      await video.play();
+    } catch (err) {
+      console.warn("[CallModal] Autoplay blocked, retrying muted then unmuting...", err);
+      video.muted = true;
+      try {
+        await video.play();
+        setTimeout(() => {
+          video.muted = false;
+        }, 100);
+      } catch (err2) {
+        console.error("[CallModal] Cannot play video even muted:", err2);
+      }
     }
-  }, [localStream]);
+  }, []);
+
+  // Dùng ref callback cho local video - tự động gán srcObject mỗi khi element mount
+  const localVideoRefCallback = useCallback(
+    (videoEl: HTMLVideoElement | null) => {
+      if (videoEl && localStream) {
+        videoEl.srcObject = localStream;
+      }
+    },
+    [localStream],
+  );
 
   // gắn luồng remote vào video element
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch((error) => {
-        console.warn("Remote media autoplay was blocked:", error);
-      });
+    const videoEl = remoteVideoRef.current;
+    if (videoEl && remoteStream) {
+      videoEl.srcObject = remoteStream;
+      safePlay(videoEl);
     }
-  }, [remoteStream]);
+  }, [remoteStream, safePlay]);
 
   // không hiển thị modal nếu idle
   if (status === "idle") return null;
@@ -61,9 +80,9 @@ export const CallModal: React.FC = () => {
             </h2>
             <p className="text-gray-400">
               {status === "calling" && "Calling..."}
-              {status === "ringing" && "Ringing..."}
+              {status === "ringing" && "Connecting..."}
               {status === "connected" && "Connected"}
-              {status === "failed" && error}
+              {status === "failed" && (error || "Connection failed")}
             </p>
           </div>
         )}
@@ -73,7 +92,7 @@ export const CallModal: React.FC = () => {
           <div className="absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden shadow-lg">
             {isVideoEnabled ? (
               <video
-                ref={localVideoRef}
+                ref={localVideoRefCallback}
                 autoPlay
                 playsInline
                 muted

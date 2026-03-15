@@ -6,6 +6,8 @@ const getIceConfiguration = (): RTCConfiguration => {
   const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as
     | string
     | undefined;
+  const forceRelay =
+    (import.meta.env.VITE_FORCE_TURN_RELAY as string | undefined) === "true";
 
   const iceServers: RTCIceServer[] = [
     { urls: "stun:stun.l.google.com:19302" },
@@ -17,7 +19,11 @@ const getIceConfiguration = (): RTCConfiguration => {
     const parsedTurnUrls = turnUrls
       .split(",")
       .map((url) => url.trim())
-      .filter(Boolean);
+      .filter(
+        (url) =>
+          Boolean(url) &&
+          (url.startsWith("turn:") || url.startsWith("turns:")),
+      );
 
     if (parsedTurnUrls.length > 0) {
       iceServers.push({
@@ -25,7 +31,10 @@ const getIceConfiguration = (): RTCConfiguration => {
         username: turnUsername,
         credential: turnCredential,
       });
-      console.log("[WebRTC] TURN server enabled");
+      console.log("[WebRTC] TURN server enabled", {
+        forceRelay,
+        turnUrlCount: parsedTurnUrls.length,
+      });
     }
   } else {
     console.warn(
@@ -36,6 +45,7 @@ const getIceConfiguration = (): RTCConfiguration => {
   return {
     iceServers,
     iceCandidatePoolSize: 10,
+    iceTransportPolicy: forceRelay ? "relay" : "all",
   };
 };
 
@@ -43,16 +53,60 @@ interface UseWebRTCProps {
   onRemoteStream: (stream: MediaStream) => void;
   onIceCandidate: (candidate: RTCIceCandidate) => void;
   onConnectionStateChange: (state: RTCPeerConnectionState) => void;
+  onIceRestart?: () => Promise<RTCSessionDescriptionInit | null>;
 }
 
 export const useWebRTC = ({
   onRemoteStream,
   onIceCandidate,
   onConnectionStateChange,
+  onIceRestart,
 }: UseWebRTCProps) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const pendingIceCandidatesRef = useRef<RTCIceCandidateInit[]>([]);
+  const iceRestartCountRef = useRef(0);
+
+  // Dùng refs cho callbacks để tránh recreate PeerConnection khi callbacks thay đổi
+  const onRemoteStreamRef = useRef(onRemoteStream);
+  const onIceCandidateRef = useRef(onIceCandidate);
+  const onConnectionStateChangeRef = useRef(onConnectionStateChange);
+  const onIceRestartRef = useRef(onIceRestart);
+
+  useEffect(() => {
+    onRemoteStreamRef.current = onRemoteStream;
+  }, [onRemoteStream]);
+
+  useEffect(() => {
+    onIceCandidateRef.current = onIceCandidate;
+  }, [onIceCandidate]);
+
+  useEffect(() => {
+    onConnectionStateChangeRef.current = onConnectionStateChange;
+  }, [onConnectionStateChange]);
+
+  useEffect(() => {
+    onIceRestartRef.current = onIceRestart;
+  }, [onIceRestart]);
+
+  // ICE restart - tạo lại offer với iceRestart flag
+  const restartIce = useCallback(async () => {
+    const peerConnection = peerConnectionRef.current;
+    if (!peerConnection) return;
+
+    try {
+      const offer = await peerConnection.createOffer({ iceRestart: true });
+      await peerConnection.setLocalDescription(offer);
+
+      // Gửi offer mới qua signaling (callback từ CallContext)
+      if (onIceRestartRef.current) {
+        await onIceRestartRef.current();
+      }
+      console.log("[WebRTC] ICE restart offer created");
+    } catch (error) {
+      console.error("[WebRTC] ICE restart failed:", error);
+    }
+  }, []);
 
   const flushPendingIceCandidates = useCallback(async () => {
     const peerConnection = peerConnectionRef.current;
@@ -84,11 +138,11 @@ export const useWebRTC = ({
 
     const peerConnection = new RTCPeerConnection(getIceConfiguration());
 
-    // xử lý ICE candidates
+    // xử lý ICE candidates - dùng ref để luôn dùng callback mới nhất
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         console.log(`New ICE candidate:`, event.candidate);
-        onIceCandidate(event.candidate);
+        onIceCandidateRef.current(event.candidate);
       }
     };
 
@@ -96,27 +150,58 @@ export const useWebRTC = ({
     peerConnection.ontrack = (event) => {
       console.log("Received remote track:", event.track.kind);
       if (event.streams && event.streams[0]) {
-        onRemoteStream(event.streams[0]);
+        onRemoteStreamRef.current(event.streams[0]);
       } else {
         const fallbackRemoteStream = new MediaStream([event.track]);
-        onRemoteStream(fallbackRemoteStream);
+        onRemoteStreamRef.current(fallbackRemoteStream);
       }
     };
 
-    // xử lý thay đổi trạng thái kết nối
+    // xử lý thay đổi trạng thái kết nối + ICE restart tự động
     peerConnection.onconnectionstatechange = () => {
-      console.log("Connection state:", peerConnection.connectionState);
-      onConnectionStateChange(peerConnection.connectionState);
+      const state = peerConnection.connectionState;
+      console.log("Connection state:", state);
+      onConnectionStateChangeRef.current(state);
+
+      // ICE restart khi bị "failed" (tối đa 3 lần)
+      if (state === "failed" && iceRestartCountRef.current < 3) {
+        iceRestartCountRef.current += 1;
+        console.log(`[WebRTC] Connection failed, attempting ICE restart (${iceRestartCountRef.current}/3)`);
+        restartIce();
+      }
     };
 
     // xử lý trạng thái kết nối ICE
     peerConnection.oniceconnectionstatechange = () => {
-      console.log(`ICE connection state:`, peerConnection.iceConnectionState);
+      const iceState = peerConnection.iceConnectionState;
+      console.log(`ICE connection state:`, iceState);
+
+      // ICE restart khi disconnected quá lâu
+      if (iceState === "disconnected") {
+        console.log("[WebRTC] ICE disconnected, waiting 3s before restart...");
+        setTimeout(() => {
+          if (
+            peerConnectionRef.current &&
+            peerConnectionRef.current.iceConnectionState === "disconnected"
+          ) {
+            console.log("[WebRTC] Still disconnected, restarting ICE...");
+            restartIce();
+          }
+        }, 3000);
+      }
+    };
+
+    peerConnection.onicecandidateerror = (event) => {
+      console.error("ICE candidate error:", {
+        url: event.url,
+        errorCode: event.errorCode,
+        errorText: event.errorText,
+      });
     };
 
     peerConnectionRef.current = peerConnection;
     return peerConnection;
-  }, [onRemoteStream, onIceCandidate, onConnectionStateChange]);
+  }, [restartIce]); // Không phụ thuộc callbacks vì dùng refs
 
   // nhận luồng local media
   const getLocalStream = useCallback(
@@ -227,16 +312,14 @@ export const useWebRTC = ({
     [flushPendingIceCandidates],
   );
 
-  // thêm trạng thái ICE
+  // thêm trạng thái ICE - queue nếu PC chưa sẵn sàng
   const addIceCandidate = useCallback(
     async (candidate: RTCIceCandidateInit) => {
       const peerConnection = peerConnectionRef.current;
-      if (!peerConnection) {
-        console.warn("Peer connection not ready for ICE candidate");
-        return;
-      }
 
-      if (!peerConnection.remoteDescription) {
+      // Nếu PC chưa tồn tại HOẶC chưa có remote description → queue lại
+      if (!peerConnection || !peerConnection.remoteDescription) {
+        console.log("[WebRTC] Queuing ICE candidate (PC not ready)");
         pendingIceCandidatesRef.current.push(candidate);
         return;
       }
@@ -279,7 +362,9 @@ export const useWebRTC = ({
           // Replace track in peer connection
           if (peerConnection) {
             const senders = peerConnection.getSenders();
-            const videoSender = senders.find((s) => s.track?.kind === "video");
+            const videoSender = senders.find(
+              (s) => s.track?.kind === "video" || (!s.track && s !== senders.find((ss) => ss.track?.kind === "audio")),
+            );
             if (videoSender) {
               await videoSender.replaceTrack(newVideoTrack);
             } else {
@@ -358,5 +443,6 @@ export const useWebRTC = ({
     toggleVideo,
     toggleAudio,
     cleanup,
+    restartIce,
   };
 };
