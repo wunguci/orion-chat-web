@@ -1,5 +1,4 @@
 import {
-  MessageSquare,
   Settings,
   Search,
   Video,
@@ -23,7 +22,6 @@ import {
   Share,
   UserRoundPlus,
   UserRoundPlusIcon,
-  BookUser,
   ArrowLeft,
   Users,
   RefreshCw,
@@ -32,10 +30,10 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import SettingsModal from "../setting-chat/SettingModal";
 import ToggleSwitch from "../common/ToggleSwitch";
 import Checkbox from "../common/Checkbox";
 import AddMemberModal from "./AddMemberModal";
+import AppSidebar from "../common/AppSidebar";
 
 interface Message {
   id: string;
@@ -170,7 +168,9 @@ const images = [
 export default function GroupChat() {
   const [selectedChat, setSelectedChat] = useState<Chat>(chats[0]);
   const [messageInput, setMessageInput] = useState("");
-  const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<
+    "chat" | "contacts" | "notes" | "calendar" | "friends" | "aichat"
+  >("chat");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isGroupManagement, setIsGroupManagement] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -227,39 +227,17 @@ export default function GroupChat() {
 
   return (
     <div className="flex h-screen bg-white">
-      <SettingsModal
-        isOpen={isSettingOpen}
-        onClose={() => setIsSettingOpen(false)}
-      />
       <AddMemberModal
         isCreateGroup={isCreateGroup}
         isOpen={isAddMemberModalOpen}
         onClose={() => setIsAddMemberModalOpen(false)}
         onConfirm={handleAddMembers}
       />
-      {/* Sidebar Left - Chat List */}
-      <div className="p-4 border-t border-orange-border-light flex flex-col justify-between">
-        <div className="flex flex-col justify-center w-full gap-4">
-          <img
-            src={selectedChat.avatar || "/placeholder.svg"}
-            alt={selectedChat.name}
-            className="w-12 h-12 rounded-full object-cover"
-          />
-          <button className="p-3 bg-orange-bg-light border border-orange-primary hover:bg-white rounded-lg transition-colors text-orange-primary">
-            <MessageSquare size={20} />
-          </button>
-          <button className="p-3 bg-orange-bg-light border border-orange-border-light hover:bg-white rounded-lg transition-colors text-gray-primary">
-            <BookUser size={24} />
-          </button>
-        </div>
-        <button className="p-3 hover:bg-white rounded-lg transition-colors text-gray-600">
-          <Settings onClick={() => setIsSettingOpen(true)} size={20} />
-        </button>
-      </div>
-      <div className="w-80 border-r border-orange-border-light bg-orange-bg-light flex flex-col">
+
+      <div className="w-80 border-r border-green-border-light flex flex-col">
         {/* Header */}
         <div className="flex justify-between items-center gap-2 p-4">
-          <div className=" border-b border-orange-border-light">
+          <div className=" border-b border-green-border-light">
             {/* Search */}
             <div className="relative">
               <Search
@@ -269,7 +247,7 @@ export default function GroupChat() {
               <input
                 type="text"
                 placeholder="Tìm kiếm..."
-                className="w-full pl-10 pr-4 py-2 bg-white rounded-lg border border-orange-border-light text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-orange-primary"
+                className="w-full pl-10 pr-4 py-2 bg-white rounded-lg border border-green-border-light text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-green-primary"
               />
             </div>
           </div>
@@ -294,7 +272,7 @@ export default function GroupChat() {
             <button
               key={chat.id}
               onClick={() => setSelectedChat(chat)}
-              className={`w-full p-4 border-b border-orange-border-light flex gap-3 items-start transition-colors ${
+              className={`w-full p-4 border-b border-green-border-light flex gap-3 items-start transition-colors ${
                 selectedChat.id === chat.id ? "bg-white" : "hover:bg-white/50"
               }`}
             >
@@ -308,7 +286,7 @@ export default function GroupChat() {
                   <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
                 )}
                 {chat.unread > 0 && (
-                  <div className="absolute -top-1 -right-1 bg-orange-primary text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 bg-green-primary text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
                     {chat.unread > 9 ? "9+" : chat.unread}
                   </div>
                 )}
@@ -332,7 +310,7 @@ export default function GroupChat() {
       {/* Center - Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="h-16 border-b border-orange-border-light bg-orange-bg-light px-6 flex items-center justify-between">
+        <div className="h-16 border-b border-green-border-light bg-green-bg-light px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
               src={selectedChat.avatar || "/placeholder.svg"}
@@ -410,8 +388,8 @@ export default function GroupChat() {
                     <div
                       className={`px-4 py-3 rounded-lg italic border-l-4 ${
                         msg.isOwn
-                          ? "bg-orange-primary text-white border-white"
-                          : "bg-orange-bg-heavy text-orange-primary border-orange-primary"
+                          ? "bg-green-primary text-white border-white"
+                          : "bg-green-bg-heavy text-green-primary border-green-primary"
                       }`}
                     >
                       {msg.content}
@@ -420,8 +398,8 @@ export default function GroupChat() {
                     <div
                       className={`px-4 py-2 rounded-lg ${
                         msg.isOwn
-                          ? "bg-orange-primary text-white"
-                          : "bg-orange-bg-heavy text-gray-primary"
+                          ? "bg-green-primary text-white"
+                          : "bg-green-bg-heavy text-gray-primary"
                       }`}
                     >
                       {msg.content}
@@ -436,7 +414,7 @@ export default function GroupChat() {
         </div>
 
         {/* Input Area */}
-        <div className="h-20 border-t border-orange-border-light bg-orange-bg-light px-6 flex items-center gap-3">
+        <div className="h-20 border-t border-green-border-light bg-green-bg-light px-6 flex items-center gap-3">
           <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600">
             <Plus size={20} />
           </button>
@@ -446,14 +424,14 @@ export default function GroupChat() {
             placeholder="Type your message here..."
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
-            className="flex-1 px-4 py-2 bg-white rounded-lg border border-orange-border-light text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-orange-primary"
+            className="flex-1 px-4 py-2 bg-white rounded-lg border border-green-border-light text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-green-primary"
           />
 
           <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600">
             <Smile size={20} />
           </button>
 
-          <button className="p-3 bg-orange-primary hover:bg-orange-700 rounded-lg transition-colors text-white">
+          <button className="p-3 bg-green-primary hover:bg-orange-700 rounded-lg transition-colors text-white">
             <Send size={18} />
           </button>
         </div>
@@ -463,12 +441,12 @@ export default function GroupChat() {
       {isSidebarOpen && (
         <div
           ref={sidebarRef}
-          className="w-90 border-l border-orange-border-light bg-orange-bg-light flex flex-col overflow-y-auto"
+          className="w-90 border-l border-green-border-light bg-green-bg-light flex flex-col overflow-y-auto"
         >
           {!isGroupManagement ? (
             <>
               {/* Header */}
-              <div className="p-6 border-b border-orange-border-light flex flex-col gap-3">
+              <div className="p-6 border-b border-green-border-light flex flex-col gap-3">
                 <span className="text-lg font-semibold text-gray-primary">
                   Thông tin nhóm
                 </span>
@@ -486,15 +464,15 @@ export default function GroupChat() {
               </div>
 
               {/* Action Buttons */}
-              <div className="p-4 flex gap-3 justify-center border-b border-orange-border-light">
+              <div className="p-4 flex gap-3 justify-center border-b border-green-border-light">
                 <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
-                  <Bell size={20} className="text-orange-primary" />
+                  <Bell size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
                     Tắt thông báo
                   </span>
                 </button>
                 <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
-                  <Pin size={20} className="text-orange-primary" />
+                  <Pin size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
                     Ghi hội thoại
                   </span>
@@ -503,7 +481,7 @@ export default function GroupChat() {
                   onClick={() => setIsAddMemberModalOpen(true)}
                   className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1"
                 >
-                  <UserRoundPlus size={20} className="text-orange-primary" />
+                  <UserRoundPlus size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
                     Thêm thành viên
                   </span>
@@ -512,7 +490,7 @@ export default function GroupChat() {
                   onClick={() => setIsGroupManagement(true)}
                   className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1"
                 >
-                  <Settings size={20} className="text-orange-primary" />
+                  <Settings size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
                     Quản lý nhóm
                   </span>
@@ -520,7 +498,7 @@ export default function GroupChat() {
               </div>
 
               {/* Images Section */}
-              <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
+              <div className="p-4 border-b flex flex-col gap-4 border-green-border-light">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-gray-primary">
                     Images/Video
@@ -548,12 +526,12 @@ export default function GroupChat() {
                         />
                       ))}
                       {images.length < 4 && (
-                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
+                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-green-border-light text-2xl font-bold text-green-primary">
                           +{images.length}
                         </div>
                       )}
                     </div>
-                    <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
+                    <button className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-white transition-colors text-green-primary text-[14px] my-1">
                       Xem tất cả
                     </button>
                   </>
@@ -561,7 +539,7 @@ export default function GroupChat() {
               </div>
 
               {/* File/Folder Section */}
-              <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
+              <div className="p-4 border-b flex flex-col gap-4 border-green-border-light">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-gray-primary">
                     File/Folder
@@ -589,12 +567,12 @@ export default function GroupChat() {
                         />
                       ))}
                       {images.length < 4 && (
-                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
+                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-green-border-light text-2xl font-bold text-green-primary">
                           +{images.length}
                         </div>
                       )}
                     </div>
-                    <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
+                    <button className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-white transition-colors text-green-primary text-[14px] my-1">
                       Xem tất cả
                     </button>
                   </>
@@ -602,7 +580,7 @@ export default function GroupChat() {
               </div>
 
               {/* Link Section */}
-              <div className="p-4 border-b flex flex-col gap-4 border-orange-border-light">
+              <div className="p-4 border-b flex flex-col gap-4 border-green-border-light">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-gray-primary">Link</span>
                   <button
@@ -628,12 +606,12 @@ export default function GroupChat() {
                         />
                       ))}
                       {images.length < 4 && (
-                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-orange-border-light text-2xl font-bold text-orange-primary">
+                        <div className="flex items-center justify-center h-16 rounded-lg bg-white border border-green-border-light text-2xl font-bold text-green-primary">
                           +{images.length}
                         </div>
                       )}
                     </div>
-                    <button className="py-2 rounded-lg font-semibold bg-white border border-orange-primary hover:bg-white transition-colors text-orange-primary text-[14px] my-1">
+                    <button className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-white transition-colors text-green-primary text-[14px] my-1">
                       Xem tất cả
                     </button>
                   </>
@@ -642,7 +620,7 @@ export default function GroupChat() {
 
               <div className="flex flex-col gap-2">
                 {/* Member Section Left Bar */}
-                <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
+                <div className="p-3 flex flex-col gap-1 bg-green-bg-light border-b border-green-border-light">
                   <span className="font-semibold">Thành viên</span>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <UserRound size={20} />
@@ -664,7 +642,7 @@ export default function GroupChat() {
                 </div>
 
                 {/* Group News */}
-                <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
+                <div className="p-3 flex flex-col gap-1 bg-green-bg-light border-b border-green-border-light">
                   <span className="font-semibold">Bảng tin nhóm</span>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <AlarmClockCheck size={20} />
@@ -679,7 +657,7 @@ export default function GroupChat() {
                 </div>
 
                 {/* Auto Delete Messages */}
-                <div className="p-3 flex flex-col gap-1 bg-orange-bg-light border-b border-orange-border-light">
+                <div className="p-3 flex flex-col gap-1 bg-green-bg-light border-b border-green-border-light">
                   <span className="font-semibold">Thiết lập bảo mật</span>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <Clock7 size={20} />
@@ -715,7 +693,7 @@ export default function GroupChat() {
               {/* Group Management View */}
               <div className="flex flex-col h-full">
                 {/* Header with Back Button */}
-                <div className="p-4 border-b border-orange-border-light flex items-center gap-3">
+                <div className="p-4 border-b border-green-border-light flex items-center gap-3">
                   <button
                     onClick={() => setIsGroupManagement(false)}
                     className="p-2 hover:bg-white rounded-lg transition-colors"
@@ -728,7 +706,7 @@ export default function GroupChat() {
                 </div>
 
                 {/* Permissions Section */}
-                <div className="p-4 border-b border-orange-border-light flex flex-col gap-4">
+                <div className="p-4 border-b border-green-border-light flex flex-col gap-4">
                   <span className="font-semibold text-gray-primary">
                     Cho phép các thành viên trong nhóm:
                   </span>
@@ -813,7 +791,7 @@ export default function GroupChat() {
                 </div>
 
                 {/* Toggle Settings */}
-                <div className="p-4 border-b border-orange-border-light flex flex-col gap-4">
+                <div className="p-4 border-b border-green-border-light flex flex-col gap-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-primary">
@@ -898,25 +876,25 @@ export default function GroupChat() {
                 </div>
 
                 {/* Group Link */}
-                <div className="p-4 border-b border-orange-border-light">
+                <div className="p-4 border-b border-green-border-light">
                   <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
                     <span className="flex-1 text-sm text-blue-600">
                       zalo.me/g/zwnrhx701
                     </span>
-                    <button className="p-1 hover:bg-orange-bg-light rounded transition-colors">
+                    <button className="p-1 hover:bg-green-bg-light rounded transition-colors">
                       <Copy size={18} className="text-gray-primary" />
                     </button>
-                    <button className="p-1 hover:bg-orange-bg-light rounded transition-colors">
+                    <button className="p-1 hover:bg-green-bg-light rounded transition-colors">
                       <Share size={18} className="text-gray-primary" />
                     </button>
-                    <button className="p-1 hover:bg-orange-bg-light rounded transition-colors">
+                    <button className="p-1 hover:bg-green-bg-light rounded transition-colors">
                       <RefreshCw size={18} className="text-gray-primary" />
                     </button>
                   </div>
                 </div>
 
                 {/* Block from Group */}
-                <div className="p-4 border-b border-orange-border-light flex flex-col gap-2">
+                <div className="p-4 border-b border-green-border-light flex flex-col gap-2">
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <Users size={20} />
                     <span className="text-[15px]">Chặn khỏi nhóm</span>
