@@ -1,26 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { MOCK_WORKSPACES } from "../../../data/work-hub-mock";
-import type { WorkspaceRole } from "../../../types/work-hub.types";
+import type {
+  Workspace,
+  WorkspaceRole,
+  WorkspaceMember,
+} from "../../../types/work-hub.types";
+import { workHubApi } from "../../../features/work-hub/work-hub.api";
+import {
+  mapWorkspace,
+  roleToBE,
+} from "../../../features/work-hub/work-hub.mappers";
 import MemberList from "../../../components/work-hub/workspace/MemberList";
 import InviteMemberDialog from "../../../components/work-hub/workspace/InviteMemberDialog";
 
 const MembersPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
-  const workspace =
-    MOCK_WORKSPACES.find((w) => w.id === workspaceId) || MOCK_WORKSPACES[0];
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [showInvite, setShowInvite] = useState(false);
-  const [members, setMembers] = useState(workspace.members);
 
-  const handleRemoveMember = (userId: string) => {
-    if (confirm("Are you sure you want to remove this member?")) {
+  // Fetch workspace data từ API
+  useEffect(() => {
+    if (!workspaceId) return;
+    setLoading(true);
+    workHubApi
+      .getWorkspace(workspaceId)
+      .then((data) => {
+        const mapped = mapWorkspace(data);
+        setWorkspace(mapped);
+        setMembers(mapped.members);
+      })
+      .catch(() => setWorkspace(null))
+      .finally(() => setLoading(false));
+  }, [workspaceId]);
+
+  const handleRemoveMember = async (userId: string) => {
+    if (
+      !workspaceId ||
+      !confirm("Are you sure you want to remove this member?")
+    )
+      return;
+    try {
+      await workHubApi.removeMember(workspaceId, userId);
       setMembers(members.filter((m) => m.user.id !== userId));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to remove member");
     }
   };
 
-  const handleChangeRole = (userId: string, role: WorkspaceRole) => {
-    setMembers(members.map((m) => (m.user.id === userId ? { ...m, role } : m)));
+  const handleChangeRole = async (userId: string, role: WorkspaceRole) => {
+    if (!workspaceId) return;
+    try {
+      await workHubApi.updateMemberRole(workspaceId, userId, {
+        role: roleToBE(role),
+      });
+      setMembers(
+        members.map((m) => (m.user.id === userId ? { ...m, role } : m)),
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to change role");
+    }
   };
 
   const handleInvite = (data: { type: string; value: string }) => {
