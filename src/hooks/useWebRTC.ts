@@ -6,6 +6,8 @@ const getIceConfiguration = (): RTCConfiguration => {
   const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as
     | string
     | undefined;
+  const forceRelay =
+    (import.meta.env.VITE_FORCE_TURN_RELAY as string | undefined) === "true";
 
   const iceServers: RTCIceServer[] = [
     { urls: "stun:stun.l.google.com:19302" },
@@ -17,7 +19,11 @@ const getIceConfiguration = (): RTCConfiguration => {
     const parsedTurnUrls = turnUrls
       .split(",")
       .map((url) => url.trim())
-      .filter(Boolean);
+      .filter(
+        (url) =>
+          Boolean(url) &&
+          (url.startsWith("turn:") || url.startsWith("turns:")),
+      );
 
     if (parsedTurnUrls.length > 0) {
       iceServers.push({
@@ -25,7 +31,10 @@ const getIceConfiguration = (): RTCConfiguration => {
         username: turnUsername,
         credential: turnCredential,
       });
-      console.log("[WebRTC] TURN server enabled");
+      console.log("[WebRTC] TURN server enabled", {
+        forceRelay,
+        turnUrlCount: parsedTurnUrls.length,
+      });
     }
   } else {
     console.warn(
@@ -36,6 +45,7 @@ const getIceConfiguration = (): RTCConfiguration => {
   return {
     iceServers,
     iceCandidatePoolSize: 10,
+    iceTransportPolicy: forceRelay ? "relay" : "all",
   };
 };
 
@@ -112,6 +122,14 @@ export const useWebRTC = ({
     // xử lý trạng thái kết nối ICE
     peerConnection.oniceconnectionstatechange = () => {
       console.log(`ICE connection state:`, peerConnection.iceConnectionState);
+    };
+
+    peerConnection.onicecandidateerror = (event) => {
+      console.error("ICE candidate error:", {
+        url: event.url,
+        errorCode: event.errorCode,
+        errorText: event.errorText,
+      });
     };
 
     peerConnectionRef.current = peerConnection;
