@@ -8,7 +8,14 @@
   --color-orange-border-light: #fbe7df;
   --color-gray-primary: #505050;
   --color-gray-secondary: #94a3b8;
-  --color-gray-border: #eff4f8;
+  --color-gray-border: #EFF4F8;
+  --color-green-primary: #226262;
+  --color-green-secondary: #94a3b8;
+  --color-green-bg-heavy: #D6F2F2;
+  --color-green-hover: #004444;
+  --color-green-message: #007c7c;
+  --color-green-bg-light: #F4FFFF;
+  --color-green-border-light: #D6F2F2;  --color-gray-border: #eff4f8;
   --color-green-primary: #0d9488;
   --color-green-secondary: #0f766e;
   --color-green-bg-heavy: #ccfbf1;
@@ -20,26 +27,26 @@
 /* ==================== CUSTOM CSS VARIABLES ==================== */
 :root {
   /* Colors - Palette chính cho ứng dụng chat */
-  --color-primary: #0068ff; /* Màu xanh chủ đạo (như Zalo) */
-  --color-primary-dark: #0052cc; /* Primary hover/active */
-  --color-primary-light: #e6f2ff; /* Primary background nhạt */
-
-  --color-secondary: #f5f7fa; /* Background nhẹ */
-  --color-background: #ffffff; /* Background chính */
-  --color-surface: #ffffff; /* Surface của card */
-
-  --color-text-primary: #1f2937; /* Text màu đen chính */
-  --color-text-secondary: #6b7280; /* Text màu xám */
-  --color-text-tertiary: #9ca3af; /* Text màu xám nhạt */
-
-  --color-border: #e5e7eb; /* Border màu xám */
-  --color-border-light: #f3f4f6; /* Border nhạt hơn */
-
-  --color-success: #10b981; /* Màu xanh lá */
-  --color-danger: #ef4444; /* Màu đỏ */
-  --color-warning: #f59e0b; /* Màu vàng */
-  --color-info: #3b82f6; /* Màu xanh dương */
-
+  --color-primary: #0068FF;           /* Màu xanh chủ đạo (như Zalo) */
+  --color-primary-dark: #0052CC;      /* Primary hover/active */
+  --color-primary-light: #007c7c;     /* Primary background nhạt */
+  
+  --color-secondary: #F5F7FA;         /* Background nhẹ */
+  --color-background: #FFFFFF;        /* Background chính */
+  --color-surface: #FFFFFF;           /* Surface của card */
+  
+  --color-text-primary: #1F2937;      /* Text màu đen chính */
+  --color-text-secondary: #6B7280;    /* Text màu xám */
+  --color-text-tertiary: #9CA3AF;     /* Text màu xám nhạt */
+  
+  --color-border: #E5E7EB;            /* Border màu xám */
+  --color-border-light: #F3F4F6;      /* Border nhạt hơn */
+  
+  --color-success: #10B981;           /* Màu xanh lá */
+  --color-danger: #EF4444;            /* Màu đỏ */
+  --color-warning: #F59E0B;           /* Màu vàng */
+  --color-info: #3B82F6;              /* Màu xanh dương */
+  
   /* Online status colors */
   --color-online: #10b981; /* Green - online */
   --color-offline: #9ca3af; /* Gray - offline */

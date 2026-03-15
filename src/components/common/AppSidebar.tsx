@@ -15,12 +15,18 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
 
 type ViewMode =
+    |
   | "chat"
-  | "contacts"
-  | "notes"
-  | "calendar"
+ 
+    | "contacts"
+ 
+    | "notes"
+ 
+    | "calendar"
   | "friends"
-  | "aichat";
+  | "aichat"
+    | 'friends'
+    | 'aichat';
 
 interface SidebarProps {
   currentView: ViewMode;
@@ -33,7 +39,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
 
   // Helper function để check active view dựa trên URL
   const isActive = (path: string) => {
-    return location.pathname === path;
+      return location.pathname === path;
   };
 
   // Mock user data
@@ -151,7 +157,7 @@ const NavItem: React.FC<NavItemProps> = ({
       onClick={onClick}
       className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
         active
-          ? "bg-teal-400 text-primary shadow-sm"
+          ? "bg-green-message text-white shadow-sm"
           : "text-slate-400 hover:bg-slate-200"
       }`}
       title={label}
