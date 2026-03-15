@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useCall } from "../../hooks/useCall";
 import { CallControls } from "./CallControls";
 import { FaUser } from "react-icons/fa";
@@ -20,6 +20,26 @@ export const CallModal: React.FC = () => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
+  // Hàm play video an toàn - xử lý autoplay bị block
+  const safePlay = useCallback(async (video: HTMLVideoElement) => {
+    try {
+      await video.play();
+    } catch (err) {
+      console.warn("[CallModal] Autoplay blocked, retrying muted then unmuting...", err);
+      // Thử play muted trước (browser cho phép), rồi unmute
+      video.muted = true;
+      try {
+        await video.play();
+        // Unmute sau khi đã play (user gesture đã có từ việc accept call)
+        setTimeout(() => {
+          video.muted = false;
+        }, 100);
+      } catch (err2) {
+        console.error("[CallModal] Cannot play video even muted:", err2);
+      }
+    }
+  }, []);
+
   // gắn luồng local vào video element
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -29,13 +49,12 @@ export const CallModal: React.FC = () => {
 
   // gắn luồng remote vào video element
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch((error) => {
-        console.warn("Remote media autoplay was blocked:", error);
-      });
+    const videoEl = remoteVideoRef.current;
+    if (videoEl && remoteStream) {
+      videoEl.srcObject = remoteStream;
+      safePlay(videoEl);
     }
-  }, [remoteStream]);
+  }, [remoteStream, safePlay]);
 
   // không hiển thị modal nếu idle
   if (status === "idle") return null;
@@ -61,9 +80,9 @@ export const CallModal: React.FC = () => {
             </h2>
             <p className="text-gray-400">
               {status === "calling" && "Calling..."}
-              {status === "ringing" && "Ringing..."}
+              {status === "ringing" && "Connecting..."}
               {status === "connected" && "Connected"}
-              {status === "failed" && error}
+              {status === "failed" && (error || "Connection failed")}
             </p>
           </div>
         )}

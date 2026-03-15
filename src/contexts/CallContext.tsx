@@ -118,13 +118,17 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     },
     onConnectionStateChange: (state) => {
       console.log("Connection state changed:", state);
-      if (state === "failed" || state === "disconnected") {
+      if (state === "failed") {
+        // Chỉ set failed khi thực sự "failed", không set khi "disconnected"
+        // ICE restart trong useWebRTC sẽ tự xử lý
         setCallState((prev) => ({
           ...prev,
           error: "Connection failed",
           status: "failed",
         }));
       }
+      // "disconnected" chỉ là tạm thời, WebRTC có thể tự recover
+      // useWebRTC sẽ tự ICE restart nếu vẫn disconnected sau 3s
     },
   });
 
@@ -158,15 +162,21 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
       initializePeerConnection();
 
+      // Lấy local stream - nếu thất bại vẫn tiếp tục (audio call có thể không cần video)
       try {
         const stream = await getLocalStream(callData.callType === "video", true);
         console.log("[CallContext] Local stream obtained:", stream);
         setCallState((prev) => ({ ...prev, localStream: stream }));
       } catch (streamError) {
-        console.warn(
-          "[CallContext] Could not get local stream (device busy?):",
+        console.error(
+          "[CallContext] Could not get local stream:",
           streamError,
         );
+        // Thông báo cho user nhưng vẫn tiếp tục để ít nhất nhận được stream từ người kia
+        setCallState((prev) => ({
+          ...prev,
+          error: "Không thể truy cập camera/mic. Bạn vẫn có thể nghe/thấy người kia.",
+        }));
       }
 
       const answer = await handleOffer(offerData.offer);
@@ -186,7 +196,18 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     [getLocalStream, handleOffer, initializePeerConnection],
   );
 
-  // khởi tạo call socket
+  // Dùng refs cho các callbacks để stabilize useEffect dependencies
+  const addIceCandidateRef = useRef(addIceCandidate);
+  const handleAnswerRef = useRef(handleAnswer);
+  const processAcceptedOfferRef = useRef(processAcceptedOffer);
+  const cleanupCallRef = useRef(cleanupCall);
+
+  useEffect(() => { addIceCandidateRef.current = addIceCandidate; }, [addIceCandidate]);
+  useEffect(() => { handleAnswerRef.current = handleAnswer; }, [handleAnswer]);
+  useEffect(() => { processAcceptedOfferRef.current = processAcceptedOffer; }, [processAcceptedOffer]);
+  useEffect(() => { cleanupCallRef.current = cleanupCall; }, [cleanupCall]);
+
+  // khởi tạo call socket - chỉ depend trên userId để tránh listener bị tear down/rebuild
   useEffect(() => {
     console.log("[CallContext] Initializing socket for userId:", userId);
     const socket = socketService.connectCall(userId);
@@ -200,11 +221,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     // listen to incoming call
     const handleIncomingCall = (data: IncomingCallData) => {
       console.log("[CallContext] Incoming call:", data);
-      console.log("[CallContext] Incoming call callerName:", data.callerName);
-      console.log(
-        "[CallContext] Incoming call callerAvatar:",
-        data.callerAvatar,
-      );
       setIncomingCall(data);
     };
     socket.on("call:incoming", handleIncomingCall);
@@ -215,7 +231,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
       if (acceptedCallIdRef.current === data.callId && incomingCallRef.current) {
         try {
-          await processAcceptedOffer(data, incomingCallRef.current);
+          await processAcceptedOfferRef.current(data, incomingCallRef.current);
         } catch (error) {
           console.error("[CallContext] Error processing accepted offer:", error);
         }
@@ -230,7 +246,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     const handleCallAnswer = async (data: CallAnswerData) => {
       console.log("[CallContext] Received answer:", data);
       try {
-        await handleAnswer(data.answer);
+        await handleAnswerRef.current(data.answer);
       } catch (error) {
         console.error("[CallContext] Error handling answer:", error);
       }
@@ -241,12 +257,24 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     const handleIceCandidate = async (data: IceCandidateData) => {
       console.log("[CallContext] Received ICE candidate");
       try {
-        await addIceCandidate(data.candidate);
+        await addIceCandidateRef.current(data.candidate);
       } catch (error) {
         console.error("[CallContext] Error adding ICE candidate:", error);
       }
     };
     socket.on("call:ice-candidate", handleIceCandidate);
+
+    // listen to call accepted (caller side - cập nhật UI khi receiver chấp nhận)
+    const handleCallAccepted = (data: { callId: string; receiverId: string }) => {
+      console.log("[CallContext] Call accepted by receiver:", data);
+      setCallState((prev) => {
+        if (prev.isCaller && prev.status === "calling") {
+          return { ...prev, status: "ringing" };
+        }
+        return prev;
+      });
+    };
+    socket.on("call:accept", handleCallAccepted);
 
     // listen to call rejected
     const handleCallRejected = (data?: {
@@ -255,7 +283,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     }) => {
       console.log("[CallContext] Call rejected:", data);
       setCallState((prev) => ({ ...prev, status: "rejected" }));
-      cleanupCall();
+      cleanupCallRef.current();
     };
     socket.on("call:reject", handleCallRejected);
     socket.on("call:rejected", handleCallRejected);
@@ -264,7 +292,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     const handleCallEnded = () => {
       console.log("[CallContext] Call ended");
       setCallState((prev) => ({ ...prev, status: "ended" }));
-      cleanupCall();
+      cleanupCallRef.current();
     };
     socket.on("call:ended", handleCallEnded);
 
@@ -282,7 +310,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     const handleCallError = (error: { message: string; code?: string }) => {
       console.error("[CallContext] Call error:", error);
 
-      // Hiển thị lỗi thân thiện với user
       let errorMessage = error.message;
       if (error.code === "USER_OFFLINE") {
         errorMessage =
@@ -295,33 +322,27 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         status: "failed",
       }));
 
-      // tự động clean sau 3 giây
       setTimeout(() => {
-        cleanupCall();
+        cleanupCallRef.current();
       }, 3000);
     };
     socket.on("call:error", handleCallError);
 
     return () => {
       console.log("[CallContext] Cleaning up socket listeners");
-      socket.offAny(); //  xóa trình lắng nghe bắt tất cả
+      socket.offAny();
       socket.off("call:incoming", handleIncomingCall);
       socket.off("call:offer", handleCallOffer);
       socket.off("call:answer", handleCallAnswer);
       socket.off("call:ice-candidate", handleIceCandidate);
+      socket.off("call:accept", handleCallAccepted);
       socket.off("call:reject", handleCallRejected);
       socket.off("call:rejected", handleCallRejected);
       socket.off("call:ended", handleCallEnded);
       socket.off("call:media-toggled", handleMediaToggled);
       socket.off("call:error", handleCallError);
     };
-  }, [
-    userId,
-    addIceCandidate,
-    cleanupCall,
-    handleAnswer,
-    processAcceptedOffer,
-  ]);
+  }, [userId]); // Chỉ depend trên userId - các callbacks dùng refs
 
   // khởi tạo call
   const initiateCall = useCallback(
