@@ -41,10 +41,14 @@ const MENU_ITEMS: {
     },
 ];
 
-export const ChatInput: React.FC = () => {
+export const ChatInput: React.FC<{
+    onSend?: (text: string) => void;
+    onSendFile?: (file: File) => Promise<void>;
+}> = ({ onSend, onSendFile }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [attachments, setAttachments] = useState<AttachFile[]>([]);
     const [text, setText] = useState('');
+    const [uploading, setUploading] = useState(false);
 
     const inputRefs = useRef<Record<MediaType, HTMLInputElement | null>>({
         image: null,
@@ -53,7 +57,6 @@ export const ChatInput: React.FC = () => {
     });
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Close menu on outside click
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (
@@ -84,12 +87,26 @@ export const ChatInput: React.FC = () => {
         });
     };
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!text.trim() && attachments.length === 0) return;
-        // TODO: wire to actual send logic
-        attachments.forEach((a) => URL.revokeObjectURL(a.url));
+        setUploading(true);
+
+        for (const attachment of attachments) {
+            try {
+                await onSendFile?.(attachment.file);
+                URL.revokeObjectURL(attachment.url);
+            } catch (err) {
+                console.error('Upload lỗi:', err);
+            }
+        }
+
+        if (text.trim()) {
+            onSend?.(text.trim());
+        }
+
         setAttachments([]);
         setText('');
+        setUploading(false);
     };
 
     const triggerPicker = (type: MediaType) => {
@@ -171,6 +188,7 @@ export const ChatInput: React.FC = () => {
                 <div ref={menuRef} className="relative shrink-0">
                     <button
                         onClick={() => setMenuOpen((o) => !o)}
+                        disabled={uploading}
                         className={`p-1.5 border rounded-full transition-colors ${menuOpen ? 'bg-teal-500 text-white border-teal-500' : 'border-slate-200 hover:bg-slate-100 text-slate-700'}`}
                     >
                         <IoMdAdd
@@ -203,13 +221,17 @@ export const ChatInput: React.FC = () => {
                             handleSend();
                         }
                     }}
-                    className="flex-1 bg-slate-100 text-slate-800 rounded-full px-4 py-2 outline-none text-sm placeholder:text-slate-400"
-                    placeholder="Type your message"
+                    disabled={uploading}
+                    className="flex-1 bg-gray-border text-gray-primary rounded-full px-4 py-2 outline-none text-sm placeholder:text-slate-400 disabled:opacity-50"
+                    placeholder={
+                        uploading ? 'Đang gửi...' : 'Type your message'
+                    }
                 />
 
                 <button
                     onClick={handleSend}
-                    className="bg-teal-500 text-white px-3 py-2 rounded-full hover:bg-teal-600 transition-colors shrink-0"
+                    disabled={uploading}
+                    className="bg-green-primary text-white px-3 py-2 rounded-full hover:bg-green-hover transition-colors shrink-0 disabled:opacity-50"
                 >
                     <IoMdSend className="w-4 h-4" />
                 </button>

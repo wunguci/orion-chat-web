@@ -1,25 +1,29 @@
-import type { Config } from "tailwindcss";
-
-export default {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  theme: {
-    extend: {
-      colors: {
-        orange: {
-          primary: "#ee652b",
-          "bg-heavy": "#fcede6",
-          "bg-light": "#fdfaf9",
-          "border-light": "#fbe7df",
-          "green-primary": "#0d9488",
-          "green-bg-heavy": "#ccfbf1",
-          "green-bg-light": "#f0fdfa",
-          "green-border-light": "#e2e8f0",
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+    content: [
+        './src/**/*.{js,jsx,ts,tsx}',
+        './app/**/*.{js,jsx,ts,tsx}',
+        './components/**/*.{js,jsx,ts,tsx}',
+    ],
+    theme: {
+        extend: {
+            colors: {
+                'orange-primary': '#ee652b',
+                'orange-bg-heavy': '#fcede6',
+                'orange-bg-light': '#fdfaf9',
+                'orange-border-light': '#fbe7df',
+                'gray-primary': '#505050',
+                'gray-border': '#EFF4F8',
+                'gray-secondary': '#94a3b8',
+                'blue-dark': '#0052cc',
+                'green-primary': '#226262',
+                'green-hover': '#004444',
+                'green-bg-heavy': '#D6F2F2',
+                'green-bg-light': '#F4FFFF',
+                'green-border-light': '#D6F2F2',
+                'green-message': '#007c7c',
+            },
         },
-        gray: {
-          primary: "#505050",
-        },
-      },
     },
-  },
-  plugins: [],
-} satisfies Config;
+    plugins: [],
+};

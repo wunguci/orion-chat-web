@@ -140,7 +140,7 @@ const ImageViewer: React.FC<Props> = ({ images, initialIndex, onClose }) => {
                                         onClick={() => goTo(index)}
                                         className={`w-full aspect-video overflow-hidden rounded ${
                                             index === current
-                                                ? 'ring-2 ring-teal-400'
+                                                ? 'ring-2 ring-green-message'
                                                 : 'opacity-60 hover:opacity-100'
                                         }`}
                                     >
