@@ -64,6 +64,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   const [pendingOffer, setPendingOffer] = useState<CallOfferData | null>(null);
   const currentCallIdRef = useRef<string | null>(null);
   const currentOtherUserIdRef = useRef<string | null>(null);
+  const incomingCallRef = useRef<IncomingCallData | null>(null);
+  const acceptedCallIdRef = useRef<string | null>(null);
 
   const callSocketRef = useRef<Socket | null>(null);
 
@@ -71,6 +73,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     currentCallIdRef.current = callState.callId;
     currentOtherUserIdRef.current = callState.otherUser?.id || null;
   }, [callState.callId, callState.otherUser]);
+
+  useEffect(() => {
+    incomingCallRef.current = incomingCall;
+  }, [incomingCall]);
 
   // webRTC hooks
   const {
@@ -142,7 +148,43 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     });
     setIncomingCall(null);
     setPendingOffer(null);
+    acceptedCallIdRef.current = null;
   }, [cleanupWebRTC]);
+
+  const processAcceptedOffer = useCallback(
+    async (offerData: CallOfferData, callData: IncomingCallData) => {
+      const socket = callSocketRef.current;
+      if (!socket) return;
+
+      initializePeerConnection();
+
+      try {
+        const stream = await getLocalStream(callData.callType === "video", true);
+        console.log("[CallContext] Local stream obtained:", stream);
+        setCallState((prev) => ({ ...prev, localStream: stream }));
+      } catch (streamError) {
+        console.warn(
+          "[CallContext] Could not get local stream (device busy?):",
+          streamError,
+        );
+      }
+
+      const answer = await handleOffer(offerData.offer);
+      console.log("[CallContext] Answer created:", answer);
+
+      socket.emit("call:answer", {
+        callId: offerData.callId,
+        callerId: offerData.callerId,
+        answer,
+      });
+      console.log("[CallContext] Answer sent to caller");
+
+      setPendingOffer(null);
+      setIncomingCall(null);
+      acceptedCallIdRef.current = null;
+    },
+    [getLocalStream, handleOffer, initializePeerConnection],
+  );
 
   // khởi tạo call socket
   useEffect(() => {
@@ -169,8 +211,17 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
     // listen to call offer - lưu offer, chưa xử lý
     const handleCallOffer = async (data: CallOfferData) => {
-      console.log("[CallContext] Received offer, saving for later:", data);
-      // lưu offer để xử lý khi người dùng chấp nhận.
+      console.log("[CallContext] Received offer:", data);
+
+      if (acceptedCallIdRef.current === data.callId && incomingCallRef.current) {
+        try {
+          await processAcceptedOffer(data, incomingCallRef.current);
+        } catch (error) {
+          console.error("[CallContext] Error processing accepted offer:", error);
+        }
+        return;
+      }
+
       setPendingOffer(data);
     };
     socket.on("call:offer", handleCallOffer);
@@ -264,7 +315,13 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       socket.off("call:media-toggled", handleMediaToggled);
       socket.off("call:error", handleCallError);
     };
-  }, [userId, addIceCandidate, cleanupCall, handleAnswer]);
+  }, [
+    userId,
+    addIceCandidate,
+    cleanupCall,
+    handleAnswer,
+    processAcceptedOffer,
+  ]);
 
   // khởi tạo call
   const initiateCall = useCallback(
@@ -350,6 +407,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         incomingCall.callType,
       );
       console.log("[CallContext] Pending offer exists?", !!pendingOffer);
+      acceptedCallIdRef.current = incomingCall.callId;
 
       setCallState((prev) => ({
         ...prev,
@@ -369,43 +427,9 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       // chuẩn bị kết nối peer và local trước khi tạo câu trả lời
       if (pendingOffer) {
         console.log("[CallContext] Processing pending offer");
-
-        // Trước tiên  khởi tạo kết nối peer.
-        initializePeerConnection();
-
-        // Lấy luồng dữ liệu local và thêm các track TRƯỚC KHI tạo câu trả lời để SDP chứa luồng local.
-        console.log("[CallContext] Getting local stream...");
-        try {
-          const stream = await getLocalStream(
-            incomingCall.callType === "video",
-            true,
-          );
-          console.log("[CallContext] Local stream obtained:", stream);
-          setCallState((prev) => ({ ...prev, localStream: stream }));
-        } catch (streamError) {
-          console.warn(
-            "[CallContext] Could not get local stream (device busy?):",
-            streamError,
-          );
-          alert(
-            "Camera/Mic is busy. Make sure to close other tabs using it, or test in different browsers.",
-          );
-        }
-
-        const answer = await handleOffer(pendingOffer.offer);
-        console.log("[CallContext] Answer created:", answer);
-
-        // trả lời cuộc gọi
-        socket.emit("call:answer", {
-          callId: pendingOffer.callId,
-          callerId: pendingOffer.callerId,
-          answer,
-        });
-        console.log("[CallContext] Answer sent to caller");
-
-        setPendingOffer(null);
+        await processAcceptedOffer(pendingOffer, incomingCall);
       } else {
-        console.warn("[CallContext] No pending offer to process!");
+        console.warn("[CallContext] No pending offer yet. Waiting for caller offer...");
       }
 
       // thông báo cho người gọi biết cuộc gọi đã được chấp nhận.
@@ -415,8 +439,9 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       });
       console.log("[CallContext] Accept notification sent");
 
-      setIncomingCall(null);
-      setPendingOffer(null);
+      if (pendingOffer) {
+        setIncomingCall(null);
+      }
     } catch (error) {
       console.error("[CallContext] Error accepting call:", error);
       console.error("[CallContext] Error details:", {
@@ -432,9 +457,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   }, [
     incomingCall,
     pendingOffer,
-    initializePeerConnection,
-    getLocalStream,
-    handleOffer,
+    processAcceptedOffer,
   ]);
 
   // reject cuộc gọi đến
