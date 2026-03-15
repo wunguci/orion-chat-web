@@ -13,8 +13,6 @@ import { FaUsers, FaBrain } from "react-icons/fa";
 import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
-import { useState } from "react";
-import SettingsModal from "../setting-chat/SettingModal";
 
 type ViewMode =
   | "chat"
@@ -32,7 +30,6 @@ interface SidebarProps {
 const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSettingOpen, setIsSettingOpen] = useState(false);
 
   // Helper function để check active view dựa trên URL
   const isActive = (path: string) => {
@@ -47,26 +44,21 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
   };
 
   return (
-    <>
-      <SettingsModal
-        isOpen={isSettingOpen}
-        onClose={() => setIsSettingOpen(false)}
-      />
-      <aside className="w-16 flex flex-col items-center py-6 border-r border-slate-200 white:border-slate-800 bg-white white:bg-slate-900 shrink-0 z-20">
-        {/* User Avatar */}
-        <div className="mb-8">
-          <Avatar
-            src={currentUser.avatar}
-            alt={currentUser.name}
-            size="md"
-            status={currentUser.status}
-            onClick={() => console.log("Avatar clicked - navigate to profile")}
-            className="cursor-pointer hover:opacity-80 transition-opacity"
-          />
-        </div>
-        {/* Navigation Items */}
-        <nav className="flex-1 flex flex-col gap-4 mt-6">
-          {/* <NavItem
+    <aside className="w-16 flex flex-col items-center py-6 border-r border-slate-200 white:border-slate-800 bg-white white:bg-slate-900 shrink-0 z-20">
+      {/* User Avatar */}
+      <div className="mb-8">
+        <Avatar
+          src={currentUser.avatar}
+          alt={currentUser.name}
+          size="md"
+          status={currentUser.status}
+          onClick={() => console.log("Avatar clicked - navigate to profile")}
+          className="cursor-pointer hover:opacity-80 transition-opacity"
+        />
+      </div>
+      {/* Navigation Items */}
+      <nav className="flex-1 flex flex-col gap-4 mt-6">
+        {/* <NavItem
                     icon={MdContacts}
                     active={isActive(ROUTES.CHAT.CONTACTS)}
                     onClick={() => {
@@ -75,64 +67,69 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
                     }}
                     label="Contacts"
                 /> */}
-          <NavItem
-            icon={MdChat}
-            active={isActive(ROUTES.CHAT.ROOT)}
-            onClick={() => {
-              setView("chat");
-              navigate(ROUTES.CHAT.ROOT);
-            }}
-            label="Chat"
-          />
-          <NavItem
-            icon={FaUsers}
-            active={isActive(ROUTES.FRIENDS)}
-            onClick={() => {
-              setView("friends");
-              navigate(ROUTES.FRIENDS);
-            }}
-            label="Friends"
-          />
-          <NavItem
-            icon={MdNote}
-            active={isActive(ROUTES.NOTE)}
-            onClick={() => {
-              setView("notes");
-              navigate(ROUTES.NOTE);
-            }}
-            label="Notes"
-          />
-          <NavItem
-            icon={MdCalendarToday}
-            active={isActive(ROUTES.CALENDAR)}
-            onClick={() => {
-              setView("calendar");
-              navigate(ROUTES.CALENDAR);
-            }}
-            label="Calendar"
-          />
-          <NavItem
-            icon={FaBrain}
-            active={isActive(ROUTES.AICHAT)}
-            onClick={() => {
-              setView("aichat");
-              navigate(ROUTES.AICHAT);
-            }}
-            label="AI Chat"
-          />
-        </nav>
+        <NavItem
+          icon={MdChat}
+          active={isActive(ROUTES.CHAT.ROOT)}
+          onClick={() => {
+            setView("chat");
+            navigate(ROUTES.CHAT.ROOT);
+          }}
+          label="Chat"
+        />
+        <NavItem
+          icon={FaUsers}
+          active={isActive(ROUTES.FRIENDS)}
+          onClick={() => {
+            setView("friends");
+            navigate(ROUTES.FRIENDS);
+          }}
+          label="Friends"
+        />
+        <NavItem
+          icon={MdNote}
+          active={isActive(ROUTES.NOTE)}
+          onClick={() => {
+            setView("notes");
+            navigate(ROUTES.NOTE);
+          }}
+          label="Notes"
+        />
+        <NavItem
+          icon={MdCalendarToday}
+          active={isActive(ROUTES.CALENDAR)}
+          onClick={() => {
+            setView("calendar");
+            navigate(ROUTES.CALENDAR);
+          }}
+          label="Calendar"
+        />
+        <NavItem
+          icon={FaBrain}
+          active={isActive(ROUTES.AICHAT)}
+          onClick={() => {
+            setView("aichat");
+            navigate(ROUTES.AICHAT);
+          }}
+          label="AI Chat"
+        />
+      </nav>
 
-        {/* Settings at bottom */}
-        <div className="mt-auto">
-          <NavItem
-            icon={MdSettings}
-            active={false}
-            onClick={() => setIsSettingOpen(true)}
-            label="Settings"
-          />
-        </div>
-      </aside>
-    </>
+      {/* Settings at bottom */}
+      <div className="mt-auto gap-4 flex flex-col items-center">
+        <NavItem
+          icon={MdOutlineWork}
+          active={location.pathname.startsWith(ROUTES.WORK_HUB.ROOT)}
+          onClick={() => navigate(ROUTES.WORK_HUB.ROOT)}
+          label="Work Hub"
+        />
+        <NavItem
+          icon={MdSettings}
+          active={false}
+          onClick={() => console.log("Settings clicked")}
+          label="Settings"
+        />
+      </div>
+    </aside>
   );
 };
 
@@ -154,7 +151,7 @@ const NavItem: React.FC<NavItemProps> = ({
       onClick={onClick}
       className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
         active
-          ? "bg-green-message text-white shadow-sm"
+          ? "bg-teal-400 text-primary shadow-sm"
           : "text-slate-400 hover:bg-slate-200"
       }`}
       title={label}
