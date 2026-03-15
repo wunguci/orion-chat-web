@@ -73,6 +73,10 @@ export interface TaskResponse {
   createdBy: UserResponse;
   assignees: TaskAssigneeResponse[];
   labels: LabelResponse[];
+  subtasks?: SubTaskResponse[];
+  comments?: CommentResponse[];
+  attachments?: AttachmentResponse[];
+  activityLogs?: ActivityLogResponse[];
 }
 
 // --- TaskAssignee ---
@@ -181,4 +185,99 @@ export interface UpdateLabelRequest {
   text?: string;
   color?: string;
   type?: string;
+}
+
+// --- Column ---
+export interface CreateColumnRequest {
+  name: string;
+  status: string;
+  color?: string;
+  taskLimit?: number;
+}
+
+export interface UpdateColumnRequest {
+  name?: string;
+  color?: string;
+  taskLimit?: number;
+}
+
+// --- SubTask ---
+export interface SubTaskResponse {
+  subTaskId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  order: number;
+  deadline: string | null;
+  assignee: UserResponse | null;
+  children: SubTaskResponse[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSubTaskRequest {
+  title: string;
+  description?: string;
+  status?: string;
+  parentSubTaskId?: string;
+  assigneeId?: string;
+  deadline?: string;
+}
+
+export interface UpdateSubTaskRequest {
+  title?: string;
+  description?: string;
+  status?: string;
+  assigneeId?: string;
+  deadline?: string;
+}
+
+// --- Comment ---
+export interface CommentResponse {
+  commentId: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  author: UserResponse;
+}
+
+export interface CreateCommentRequest {
+  content: string;
+  authorId: string;
+}
+
+// --- Attachment ---
+export interface AttachmentResponse {
+  attachmentId: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  uploadedAt: string;
+  uploadedBy: UserResponse;
+}
+
+export interface CreateAttachmentRequest {
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  uploadedById: string;
+}
+
+// --- Activity Log ---
+export interface ActivityLogResponse {
+  activityId: string;
+  action: string;
+  description: string;
+  metadata: Record<string, unknown> | null;
+  timestamp: string;
+  user: UserResponse;
+}
+
+export interface CreateActivityLogRequest {
+  action: string;
+  description: string;
+  userId: string;
+  metadata?: Record<string, unknown>;
 }

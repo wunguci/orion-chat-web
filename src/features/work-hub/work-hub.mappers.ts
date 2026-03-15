@@ -6,6 +6,10 @@ import type {
   BoardColumn,
   Task,
   Label,
+  SubTask,
+  Comment,
+  Attachment,
+  ActivityEntry,
   WorkspaceType,
   WorkspaceRole,
   TaskStatus,
@@ -21,6 +25,10 @@ import type {
   BoardColumnResponse,
   TaskResponse,
   LabelResponse,
+  SubTaskResponse,
+  CommentResponse,
+  AttachmentResponse,
+  ActivityLogResponse,
 } from "./work-hub.api.types";
 
 const STATUS_TO_FE: Record<string, TaskStatus> = {
@@ -134,6 +142,53 @@ export function mapLabel(l: LabelResponse): Label {
   };
 }
 
+export function mapSubTask(st: SubTaskResponse): SubTask {
+  return {
+    id: st.subTaskId,
+    parentId: "",
+    title: st.title,
+    description: st.description ?? undefined,
+    status: (STATUS_TO_FE[st.status] ?? "todo") as TaskStatus,
+    assignee: st.assignee ? mapUser(st.assignee) : undefined,
+    deadline: st.deadline ?? undefined,
+    children: (st.children ?? []).map(mapSubTask),
+    order: st.order,
+  };
+}
+
+export function mapComment(c: CommentResponse): Comment {
+  return {
+    id: c.commentId,
+    text: c.content,
+    author: mapUser(c.author),
+    createdAt: c.createdAt,
+    editedAt: c.updatedAt !== c.createdAt ? c.updatedAt : undefined,
+  };
+}
+
+export function mapAttachment(a: AttachmentResponse): Attachment {
+  return {
+    id: a.attachmentId,
+    name: a.fileName,
+    url: a.fileUrl,
+    type: a.fileType as "image" | "document" | "video" | "audio" | "other",
+    size: a.fileSize,
+    uploadedBy: mapUser(a.uploadedBy),
+    uploadedAt: a.uploadedAt,
+  };
+}
+
+export function mapActivityEntry(al: ActivityLogResponse): ActivityEntry {
+  return {
+    id: al.activityId,
+    type: al.action as ActivityEntry["type"],
+    user: mapUser(al.user),
+    description: al.description,
+    timestamp: al.timestamp,
+    metadata: al.metadata ?? undefined,
+  };
+}
+
 export function mapTask(t: TaskResponse): Task {
   return {
     id: t.taskId,
@@ -147,12 +202,12 @@ export function mapTask(t: TaskResponse): Task {
     labels: (t.labels ?? []).map(mapLabel),
     startDate: t.startDate ?? undefined,
     deadline: t.dueDate ?? undefined,
-    subtasks: [],
-    attachments: [],
-    comments: [],
+    subtasks: (t.subtasks ?? []).map(mapSubTask),
+    attachments: (t.attachments ?? []).map(mapAttachment),
+    comments: (t.comments ?? []).map(mapComment),
     viewCount: 0,
     viewedBy: [],
-    activityHistory: [],
+    activityHistory: (t.activityLogs ?? []).map(mapActivityEntry),
     createdBy: mapUser(t.createdBy),
     createdAt: t.createdAt,
     updatedAt: t.updatedAt,

@@ -14,6 +14,7 @@ import {
 import StatCard from "../../../components/work-hub/StatCard";
 import ProgressOverview from "../../../components/work-hub/ProgressOverview";
 import BoardCard from "../../../components/work-hub/workspace/BoardCard";
+import BoardFormDialog from "../../../components/work-hub/workspace/BoardFormDialog";
 
 const WorkHubPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -21,8 +22,9 @@ const WorkHubPage = () => {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBoardForm, setShowBoardForm] = useState(false);
+  const [editingBoard, setEditingBoard] = useState<Board | null>(null);
 
-  // Fetch workspace và tasks từ API
   useEffect(() => {
     if (!workspaceId) return;
     setLoading(true);
@@ -33,15 +35,12 @@ const WorkHubPage = () => {
         const mapped = mapWorkspace(data);
         setWorkspace(mapped);
 
-        // Fetch tasks cho mỗi board
         const allTasks: Task[] = [];
         for (const board of mapped.boards) {
           try {
             const tasks = await workHubApi.getTasksByBoard(board.id);
             allTasks.push(...tasks.map(mapTask));
-          } catch {
-            // skip board errors
-          }
+          } catch {}
         }
         setWorkspaceTasks(allTasks);
       })
@@ -49,7 +48,7 @@ const WorkHubPage = () => {
       .finally(() => setLoading(false));
   }, [workspaceId]);
 
-  // Calculate stats
+  // Tínhhhhh
   const stats = useMemo(() => {
     const total = workspaceTasks.length;
     const completed = workspaceTasks.filter((t) => t.status === "done").length;
@@ -66,10 +65,8 @@ const WorkHubPage = () => {
     return { total, completed, inProgress, overdue };
   }, [workspaceTasks]);
 
-  // Count tasks per status
   const todoCount = workspaceTasks.filter((t) => t.status === "todo").length;
 
-  // Compute task count per board
   const boardTaskCounts = useMemo(() => {
     const map: Record<string, { total: number; completed: number }> = {};
     if (!workspace) return map;
@@ -83,7 +80,6 @@ const WorkHubPage = () => {
     return map;
   }, [workspace, workspaceTasks]);
 
-  // Collect recent activities from all tasks, sort by timestamp desc, take last 5
   const recentActivities = useMemo(() => {
     const all: Array<ActivityEntry & { taskTitle: string }> = [];
     for (const task of workspaceTasks) {
@@ -98,7 +94,6 @@ const WorkHubPage = () => {
     return all.slice(0, 5);
   }, [workspaceTasks]);
 
-  // Activity icon mapping
   const getActivityIcon = (type: ActivityEntry["type"]): string => {
     const icons: Record<ActivityEntry["type"], string> = {
       created: "fa-plus-circle",
@@ -138,6 +133,49 @@ const WorkHubPage = () => {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const handleSaveBoard = async (data: {
+    name: string;
+    description: string;
+    color: string;
+    icon: string;
+  }) => {
+    if (!workspaceId) return;
+    try {
+      if (editingBoard) {
+        await workHubApi.updateBoard(workspaceId, editingBoard.id, {
+          boardName: data.name,
+          description: data.description,
+          backgroundColor: data.color,
+          icon: data.icon,
+        });
+      } else {
+        await workHubApi.createBoard(workspaceId, {
+          boardName: data.name,
+          description: data.description,
+          backgroundColor: data.color,
+          icon: data.icon,
+        });
+      }
+      const wsData = await workHubApi.getWorkspace(workspaceId);
+      setWorkspace(mapWorkspace(wsData));
+      setShowBoardForm(false);
+      setEditingBoard(null);
+    } catch (err) {
+      console.error("Failed to save board:", err);
+    }
+  };
+
+  const handleDeleteBoard = async (boardId: string) => {
+    if (!workspaceId || !confirm("Ban co chac muon xoa board nay?")) return;
+    try {
+      await workHubApi.deleteBoard(workspaceId, boardId);
+      const wsData = await workHubApi.getWorkspace(workspaceId);
+      setWorkspace(mapWorkspace(wsData));
+    } catch (err) {
+      console.error("Failed to delete board:", err);
+    }
   };
 
   if (loading) {
@@ -319,13 +357,26 @@ const WorkHubPage = () => {
               >
                 Boards
               </h2>
-              <span
-                className="text-sm"
-                style={{ color: "var(--wh-green-text-muted)" }}
-              >
-                {workspace.boards.length} board
-                {workspace.boards.length !== 1 ? "s" : ""}
-              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setEditingBoard(null);
+                    setShowBoardForm(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
+                  style={{ backgroundColor: "var(--wh-green-primary)" }}
+                >
+                  <i className="fas fa-plus text-xs"></i>
+                  Create Board
+                </button>
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--wh-green-text-muted)" }}
+                >
+                  {workspace.boards.length} board
+                  {workspace.boards.length !== 1 ? "s" : ""}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -339,6 +390,11 @@ const WorkHubPage = () => {
                   onClick={() =>
                     navigate(`/work-hub/${workspaceId}/boards/${board.id}`)
                   }
+                  onEdit={(b) => {
+                    setEditingBoard(b);
+                    setShowBoardForm(true);
+                  }}
+                  onDelete={handleDeleteBoard}
                 />
               ))}
             </div>
@@ -435,6 +491,17 @@ const WorkHubPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Board Form Dialog */}
+      <BoardFormDialog
+        isOpen={showBoardForm}
+        onClose={() => {
+          setShowBoardForm(false);
+          setEditingBoard(null);
+        }}
+        onSave={handleSaveBoard}
+        board={editingBoard ?? undefined}
+      />
     </div>
   );
 };

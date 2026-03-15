@@ -15,6 +15,7 @@ import {
 } from "../../../features/work-hub/work-hub.mappers";
 import { useTask } from "../../../hooks/useTask";
 import { useViewMode } from "../../../hooks/useViewMode";
+import { getUser } from "../../../utils/token";
 import ViewSwitcher from "../../../components/work-hub/ViewSwitcher";
 import KanbanBoard from "../../../components/work-hub/board-view/KanbanBoard";
 import ListView from "../../../components/work-hub/list-view/ListView";
@@ -35,7 +36,6 @@ const BoardPage = () => {
   const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch workspace, board, labels từ API
   useEffect(() => {
     if (!workspaceId) return;
     setLoading(true);
@@ -66,14 +66,23 @@ const BoardPage = () => {
     fetchData();
   }, [workspaceId, boardId]);
 
-  // Current user (lấy user đầu tiên trong members làm tạm)
-  const currentUser = users[0] || {
-    id: "",
-    name: "User",
-    email: "",
-    avatar: "/avatar-user.png",
-    status: "online" as const,
-  };
+  const authUser = getUser();
+  const currentUser: User = authUser
+    ? {
+        id: authUser.id,
+        name: authUser.fullName,
+        email: "",
+        phone: authUser.phoneNumber,
+        avatar: authUser.avatarUrl || "/avatar-user.png",
+        status: "online" as const,
+      }
+    : users[0] || {
+        id: "",
+        name: "User",
+        email: "",
+        avatar: "/avatar-user.png",
+        status: "online" as const,
+      };
 
   const {
     tasks,
@@ -156,6 +165,7 @@ const BoardPage = () => {
         description: data.description,
         status: data.status,
         priority: data.priority,
+        boardId: boardId || "",
         columnId,
         startDate: data.startDate,
         deadline: data.deadline,
@@ -167,7 +177,7 @@ const BoardPage = () => {
         attachments: [],
       });
     } catch {
-      // Lỗi - có thể hiển thị thông báo sau
+      // Lỗi
     }
     setShowTaskModal(false);
     setAddToColumnId(null);
@@ -227,6 +237,56 @@ const BoardPage = () => {
       reason,
       timestamp: new Date().toISOString(),
     });
+  };
+
+  const refetchBoard = async () => {
+    if (!workspaceId) return;
+    try {
+      const wsData = await workHubApi.getWorkspace(workspaceId);
+      const mapped = mapWorkspace(wsData);
+      setWorkspace(mapped);
+      setUsers(mapped.members.map((m) => m.user));
+      if (boardId) {
+        const foundBoard = mapped.boards.find((b) => b.id === boardId);
+        setBoard(foundBoard || null);
+      }
+    } catch {
+      // silent
+    }
+  };
+
+  const handleAddColumn = async (
+    name: string,
+    status: string,
+    color: string,
+  ) => {
+    if (!boardId) return;
+    try {
+      await workHubApi.createColumn(boardId, { name, status, color });
+      await refetchBoard();
+    } catch (err) {
+      console.error("Failed to create column:", err);
+    }
+  };
+
+  const handleEditColumn = async (columnId: string, name: string) => {
+    if (!boardId) return;
+    try {
+      await workHubApi.updateColumn(boardId, columnId, { name });
+      await refetchBoard();
+    } catch (err) {
+      console.error("Failed to update column:", err);
+    }
+  };
+
+  const handleDeleteColumn = async (columnId: string) => {
+    if (!boardId) return;
+    try {
+      await workHubApi.deleteColumn(boardId, columnId);
+      await refetchBoard();
+    } catch (err) {
+      console.error("Failed to delete column:", err);
+    }
   };
 
   const statuses = ["all", "todo", "inprogress", "review", "done"] as const;
@@ -307,6 +367,9 @@ const BoardPage = () => {
             onTaskMove={handleTaskMove}
             onTaskClick={handleTaskClick}
             onAddTask={handleAddTask}
+            onAddColumn={handleAddColumn}
+            onEditColumn={handleEditColumn}
+            onDeleteColumn={handleDeleteColumn}
           />
         )}
         {viewMode === "list" && (

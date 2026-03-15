@@ -6,7 +6,11 @@ import {
   MdGroup,
   MdInsights,
   MdFolder,
+  MdAdd,
 } from "react-icons/md";
+import { isTokenValid, getUser } from "../../../utils/token";
+import { workHubApi } from "../../../features/work-hub/work-hub.api";
+import type { WorkspaceResponse } from "../../../features/work-hub/work-hub.api.types";
 
 const features = [
   {
@@ -144,18 +148,118 @@ const FolderPopLoader = () => (
   </div>
 );
 
+/* ── Workspace Selector ── */
+const WorkspaceSelector = ({
+  workspaces,
+  onSelect,
+  onCreate,
+}: {
+  workspaces: WorkspaceResponse[];
+  onSelect: (id: string) => void;
+  onCreate: () => void;
+}) => (
+  <div className="flex-1 overflow-y-auto bg-[#f5f7fa]">
+    <div className="max-w-3xl mx-auto px-8 pt-16 pb-20">
+      <div className="text-center mb-10">
+        <div className="w-16 h-16 mx-auto mb-6 bg-teal-500 rounded-2xl flex items-center justify-center shadow-lg">
+          <MdOutlineWork className="w-8 h-8 text-white" />
+        </div>
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">
+          Chọn Workspace
+        </h1>
+        <p className="text-slate-500">
+          Chọn workspace để tiếp tục hoặc tạo workspace mới
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        {workspaces.map((ws) => (
+          <button
+            key={ws.workspaceId}
+            onClick={() => onSelect(ws.workspaceId)}
+            className="flex items-center gap-4 p-5 bg-white border border-slate-200 rounded-xl hover:shadow-md hover:border-teal-300 transition-all text-left cursor-pointer group"
+          >
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0"
+              style={{ backgroundColor: ws.color || "#0d9488" }}
+            >
+              {ws.workspaceName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-slate-800 truncate group-hover:text-teal-600 transition-colors">
+                {ws.workspaceName}
+              </h3>
+              <p className="text-sm text-slate-400 truncate">
+                {ws.members?.length || 0} thành viên · {ws.type}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="text-center">
+        <button
+          onClick={onCreate}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-teal-500 text-white font-medium rounded-xl hover:bg-teal-600 transition-all hover:-translate-y-0.5 shadow-sm cursor-pointer"
+        >
+          <MdAdd className="w-5 h-5" />
+          Tạo Workspace mới
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
 const WorkHubIntroPage = () => {
   const navigate = useNavigate();
-  const [phase, setPhase] = useState<"loading" | "reveal">("loading");
+  const [phase, setPhase] = useState<"loading" | "reveal" | "select">(
+    "loading",
+  );
   const [heroVisible, setHeroVisible] = useState(false);
   const [visibleCards, setVisibleCards] = useState<boolean[]>(
     new Array(features.length).fill(false),
   );
+  const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
 
+  // Check auth and fetch existing workspaces
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("reveal"), 2000);
-    return () => clearTimeout(t1);
-  }, []);
+    const checkUserWorkspaces = async () => {
+      if (!isTokenValid()) {
+        navigate("/auth/login");
+        return;
+      }
+
+      const user = getUser();
+      if (!user || !user.id) {
+        navigate("/auth/login");
+        return;
+      }
+
+      try {
+        const userWorkspaces = await workHubApi.getWorkspaces(user.id);
+        if (userWorkspaces && userWorkspaces.length > 0) {
+          setWorkspaces(userWorkspaces);
+          // If only 1 workspace, go directly to it
+          if (userWorkspaces.length === 1) {
+            navigate(`/work-hub/${userWorkspaces[0].workspaceId}`, {
+              replace: true,
+            });
+            return;
+          }
+          // Multiple workspaces: show selector
+          setPhase("select");
+          return;
+        }
+      } catch {
+        // No workspaces or API error - show intro
+      }
+
+      // No workspaces: show intro after loading animation
+      setTimeout(() => setPhase("reveal"), 1500);
+    };
+
+    checkUserWorkspaces();
+  }, [navigate]);
 
   useEffect(() => {
     if (phase !== "reveal") return;
@@ -182,6 +286,16 @@ const WorkHubIntroPage = () => {
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#f5f7fa]">
         <FolderPopLoader />
       </div>
+    );
+  }
+
+  if (phase === "select") {
+    return (
+      <WorkspaceSelector
+        workspaces={workspaces}
+        onSelect={(id) => navigate(`/work-hub/${id}`)}
+        onCreate={() => navigate("/work-hub/create")}
+      />
     );
   }
 

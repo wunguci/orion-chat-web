@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { workHubApi } from "../../../features/work-hub/work-hub.api";
+import { getUser, isTokenValid } from "../../../utils/token";
 
 // ==================== INTERFACES ====================
 
@@ -191,51 +192,25 @@ const MEMBER_PERMISSION_LABELS: Record<MemberPermission, string> = {
   admin: "Full access (Admin)",
 };
 
-const INITIAL_MEMBERS: InvitedMember[] = [
-  {
-    id: "1",
-    email: "hiep@company.com",
-    role: "Admin",
-    initials: "HP",
-    avatarColor: "#0d9488",
-    permission: "default",
-  },
-  {
-    id: "2",
-    email: "duyen@company.com",
-    role: "Member",
-    initials: "MD",
-    avatarColor: "#10b981",
-    permission: "default",
-  },
-  {
-    id: "3",
-    email: "giang@company.com",
-    role: "Member",
-    initials: "TG",
-    avatarColor: "#3b82f6",
-    permission: "default",
-  },
-];
+const INITIAL_MEMBERS: InvitedMember[] = [];
 
 const INITIAL_FORM_DATA: FormData = {
   step1: {
-    name: "Orion Project",
-    description:
-      "A collaborative workspace for managing projects and team communication.",
+    name: "",
+    description: "",
     type: "business",
   },
   step2: {
     avatarFile: null,
     avatarPreviewUrl: null,
     color: "#0d9488",
-    template: "development",
+    template: null,
   },
   step3: {
     members: INITIAL_MEMBERS,
     defaultPermission: "edit",
   },
-  agreedToTerms: true,
+  agreedToTerms: false,
 };
 
 // ==================== HELPERS ====================
@@ -410,6 +385,13 @@ const CreateWorkHub = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Check auth on mount
+  useEffect(() => {
+    if (!isTokenValid()) {
+      navigate("/auth/login");
+    }
+  }, [navigate]);
+
   const goToStep = (step: number) => {
     setCurrentStep(step);
     containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -467,24 +449,21 @@ const CreateWorkHub = () => {
 
   const handleCreate = async () => {
     if (!formData.agreedToTerms) return;
+
+    const user = getUser();
+    if (!user || !user.id) {
+      navigate("/auth/login");
+      return;
+    }
+
     setIsCreating(true);
     try {
-      const ownerId =
-        (await getTestOwnerIdByName(TEST_OWNER_FULL_NAME)) ??
-        getCurrentUserId() ??
-        (await getFallbackOwnerIdFromBackend());
-      if (!ownerId || !UUID_REGEX.test(ownerId)) {
-        throw new Error(
-          `Cannot determine ownerId for test user: ${TEST_OWNER_FULL_NAME}. Please create this user first.`,
-        );
-      }
-
       const response = await workHubApi.createWorkspace({
         workspaceName: formData.step1.name,
         description: formData.step1.description,
         type: formData.step1.type.toUpperCase(),
         color: formData.step2.color,
-        ownerId,
+        ownerId: user.id,
       });
       navigate(`/work-hub/${response.workspaceId}`);
     } catch (err) {
@@ -546,9 +525,9 @@ const CreateWorkHub = () => {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-10 py-16">
+      <main className="max-w-5xl mx-auto px-10 py-4">
         {/* Progress Bar */}
-        <div className="mb-4">
+        <div className="mb-4 hidden">
           <div className="flex items-center justify-between mb-3">
             {PROGRESS_STEPS.map((step) => {
               const isActive = step.number === currentStep;

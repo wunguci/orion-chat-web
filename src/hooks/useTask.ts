@@ -12,6 +12,9 @@ import type {
 import { workHubApi } from "../features/work-hub/work-hub.api";
 import {
   mapTask,
+  mapSubTask,
+  mapComment,
+  mapAttachment,
   statusToBE,
   priorityToBE,
 } from "../features/work-hub/work-hub.mappers";
@@ -71,7 +74,6 @@ export function useTask(boardId: string) {
       const data = await workHubApi.getTasksByBoard(boardId);
       setTasks(data.map(mapTask));
     } catch {
-      // Fallback: giữ tasks rỗng
     } finally {
       setLoading(false);
     }
@@ -116,7 +118,6 @@ export function useTask(boardId: string) {
   };
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
-    // Gửi API update
     const req: Record<string, unknown> = {};
     if (updates.title !== undefined) req.title = updates.title;
     if (updates.description !== undefined)
@@ -134,7 +135,7 @@ export function useTask(boardId: string) {
     try {
       const data = await workHubApi.updateTask(taskId, req);
       const mapped = mapTask(data);
-      // Giữ lại subtasks, comments, attachments từ local state
+
       const existing = tasks.find((t) => t.id === taskId);
       setTasks((prev) =>
         prev.map((t) =>
@@ -152,7 +153,6 @@ export function useTask(boardId: string) {
         ),
       );
     } catch {
-      // Fallback: update local state
       setTasks((prev) =>
         prev.map((t) =>
           t.id === taskId
@@ -166,9 +166,7 @@ export function useTask(boardId: string) {
   const deleteTask = async (taskId: string) => {
     try {
       await workHubApi.deleteTask(taskId);
-    } catch {
-      // Xóa local ngay cả khi API lỗi
-    }
+    } catch {}
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     if (selectedTaskId === taskId) setSelectedTaskId(null);
   };
@@ -178,7 +176,10 @@ export function useTask(boardId: string) {
     toColumnId: string,
     toStatus: TaskStatus,
   ) => {
-    // Update local state trước (optimistic update cho UX mượt)
+    const task = tasks.find((t) => t.id === taskId);
+    const prevColumnId = task?.columnId;
+    const prevStatus = task?.status;
+
     setTasks((prev) =>
       prev.map((t) =>
         t.id === taskId
@@ -198,7 +199,19 @@ export function useTask(boardId: string) {
         status: statusToBE(toStatus),
       });
     } catch {
-      // Nếu API lỗi, giữ nguyên state local (đã move rồi)
+      if (prevColumnId !== undefined && prevStatus !== undefined) {
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  columnId: prevColumnId,
+                  status: prevStatus,
+                }
+              : t,
+          ),
+        );
+      }
     }
   };
 
@@ -210,111 +223,109 @@ export function useTask(boardId: string) {
     moveTask(taskId, columnId, status);
   };
 
-  // --- Subtask, Comment, Attachment: giữ local state ---
-
-  const addSubtask = (
+  const addSubtask = async (
     taskId: string,
     parentSubtaskId: string | null,
     subtask: Omit<SubTask, "id" | "order" | "children">,
   ) => {
-    setTasks(
-      tasks.map((t) => {
-        if (t.id !== taskId) return t;
-
-        const newSubtask: SubTask = {
-          ...subtask,
-          id: `st-${Date.now()}`,
-          children: [],
-          order: 0,
-        };
-
-        if (!parentSubtaskId) {
-          newSubtask.order = t.subtasks.length;
-          return { ...t, subtasks: [...t.subtasks, newSubtask] };
-        }
-
-        const addToParent = (items: SubTask[]): SubTask[] =>
-          items.map((st) => {
-            if (st.id === parentSubtaskId) {
-              newSubtask.order = st.children.length;
-              return { ...st, children: [...st.children, newSubtask] };
-            }
-            return { ...st, children: addToParent(st.children) };
-          });
-
-        return { ...t, subtasks: addToParent(t.subtasks) };
-      }),
-    );
+    try {
+      await workHubApi.createSubTask(taskId, {
+        title: subtask.title,
+        description: subtask.description,
+        status: statusToBE(subtask.status),
+        parentSubTaskId: parentSubtaskId || undefined,
+        assigneeId: subtask.assignee?.id,
+        deadline: subtask.deadline,
+      });
+      const subtasks = await workHubApi.getSubTasks(taskId);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, subtasks: subtasks.map(mapSubTask) } : t,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to add subtask:", err);
+    }
   };
 
-  const updateSubtask = (
+  const updateSubtask = async (
     taskId: string,
     subtaskId: string,
     updates: Partial<SubTask>,
   ) => {
-    setTasks(
-      tasks.map((t) => {
-        if (t.id !== taskId) return t;
-
-        const updateInTree = (items: SubTask[]): SubTask[] =>
-          items.map((st) =>
-            st.id === subtaskId
-              ? { ...st, ...updates }
-              : { ...st, children: updateInTree(st.children) },
-          );
-
-        return { ...t, subtasks: updateInTree(t.subtasks) };
-      }),
-    );
+    try {
+      await workHubApi.updateSubTask(subtaskId, {
+        title: updates.title,
+        description: updates.description,
+        status: updates.status ? statusToBE(updates.status) : undefined,
+        assigneeId: updates.assignee?.id,
+        deadline: updates.deadline,
+      });
+      const subtasks = await workHubApi.getSubTasks(taskId);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, subtasks: subtasks.map(mapSubTask) } : t,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to update subtask:", err);
+    }
   };
 
-  const deleteSubtask = (taskId: string, subtaskId: string) => {
-    setTasks(
-      tasks.map((t) => {
-        if (t.id !== taskId) return t;
-
-        const removeFromTree = (items: SubTask[]): SubTask[] =>
-          items
-            .filter((st) => st.id !== subtaskId)
-            .map((st) => ({ ...st, children: removeFromTree(st.children) }));
-
-        return { ...t, subtasks: removeFromTree(t.subtasks) };
-      }),
-    );
+  const deleteSubtask = async (taskId: string, subtaskId: string) => {
+    try {
+      await workHubApi.deleteSubTask(subtaskId);
+      const subtasks = await workHubApi.getSubTasks(taskId);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, subtasks: subtasks.map(mapSubTask) } : t,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to delete subtask:", err);
+    }
   };
 
-  const addComment = (taskId: string, comment: Omit<Comment, "id">) => {
-    setTasks(
-      tasks.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              comments: [...t.comments, { ...comment, id: `c-${Date.now()}` }],
-              updatedAt: new Date().toISOString(),
-            }
-          : t,
-      ),
-    );
+  const addComment = async (taskId: string, comment: Omit<Comment, "id">) => {
+    try {
+      await workHubApi.createComment(taskId, {
+        content: comment.text,
+        authorId: comment.author.id,
+      });
+      const comments = await workHubApi.getComments(taskId);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId ? { ...t, comments: comments.map(mapComment) } : t,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to add comment:", err);
+    }
   };
 
-  const addAttachment = (
+  const addAttachment = async (
     taskId: string,
     attachment: Omit<Attachment, "id">,
   ) => {
-    setTasks(
-      tasks.map((t) =>
-        t.id === taskId
-          ? {
-              ...t,
-              attachments: [
-                ...t.attachments,
-                { ...attachment, id: `a-${Date.now()}` },
-              ],
-              updatedAt: new Date().toISOString(),
-            }
-          : t,
-      ),
-    );
+    try {
+      await workHubApi.createAttachment(taskId, {
+        fileName: attachment.name,
+        fileUrl: attachment.url,
+        fileType: attachment.type,
+        fileSize: attachment.size,
+        uploadedById: attachment.uploadedBy.id,
+      });
+      const attachments = await workHubApi.getAttachments(taskId);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === taskId
+            ? { ...t, attachments: attachments.map(mapAttachment) }
+            : t,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to add attachment:", err);
+    }
   };
 
   const transferTask = (transfer: TaskTransfer) => {
