@@ -17,8 +17,12 @@ const BurndownChart = ({ data }: BurndownChartProps) => {
   const scaleX = (i: number) => padding.left + (i / (data.length - 1)) * chartW;
   const scaleY = (v: number) => padding.top + chartH - (v / maxY) * chartH;
 
-  const idealPath = data.map((d, i) => `${i === 0 ? "M" : "L"} ${scaleX(i)} ${scaleY(d.ideal)}`).join(" ");
-  const actualPath = data.map((d, i) => `${i === 0 ? "M" : "L"} ${scaleX(i)} ${scaleY(d.actual)}`).join(" ");
+  const idealPath = data
+    .map((d, i) => `${i === 0 ? "M" : "L"} ${scaleX(i)} ${scaleY(d.ideal)}`)
+    .join(" ");
+  const actualPath = data
+    .map((d, i) => `${i === 0 ? "M" : "L"} ${scaleX(i)} ${scaleY(d.actual)}`)
+    .join(" ");
 
   return (
     <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5">
@@ -42,26 +46,52 @@ const BurndownChart = ({ data }: BurndownChartProps) => {
         ))}
 
         {/* Ideal line (dashed) */}
-        <path d={idealPath} fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="6,4" />
+        <path
+          d={idealPath}
+          fill="none"
+          stroke="#94a3b8"
+          strokeWidth="2"
+          strokeDasharray="6,4"
+        />
 
         {/* Actual line (solid green) */}
-        <path d={actualPath} fill="none" stroke="#226262" strokeWidth="2.5" />
+        <path d={actualPath} fill="none" stroke="#0d9488" strokeWidth="2.5" />
 
         {/* Data points - actual */}
         {data.map((d, i) => (
-          <circle key={i} cx={scaleX(i)} cy={scaleY(d.actual)} r="4" fill="#226262" stroke="white" strokeWidth="2" />
+          <circle
+            key={i}
+            cx={scaleX(i)}
+            cy={scaleY(d.actual)}
+            r="4"
+            fill="#0d9488"
+            stroke="white"
+            strokeWidth="2"
+          />
         ))}
 
         {/* X-axis labels */}
         {data.map((d, i) => (
-          <text key={i} x={scaleX(i)} y={height - 8} textAnchor="middle" className="text-[10px] fill-gray-400">
+          <text
+            key={i}
+            x={scaleX(i)}
+            y={height - 8}
+            textAnchor="middle"
+            className="text-[10px] fill-gray-400"
+          >
             {d.date}
           </text>
         ))}
 
         {/* Y-axis labels */}
         {[0, maxY / 2, maxY].map((v, i) => (
-          <text key={i} x={padding.left - 8} y={scaleY(v) + 4} textAnchor="end" className="text-[10px] fill-gray-400">
+          <text
+            key={i}
+            x={padding.left - 8}
+            y={scaleY(v) + 4}
+            textAnchor="end"
+            className="text-[10px] fill-gray-400"
+          >
             {Math.round(v)}
           </text>
         ))}
@@ -70,7 +100,10 @@ const BurndownChart = ({ data }: BurndownChartProps) => {
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 mt-2">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-gray-400" style={{ borderTop: "2px dashed #94a3b8" }} />
+          <div
+            className="w-6 h-0.5 bg-gray-400"
+            style={{ borderTop: "2px dashed #94a3b8" }}
+          />
           <span className="text-xs text-gray-500">Ideal</span>
         </div>
         <div className="flex items-center gap-2">

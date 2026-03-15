@@ -94,7 +94,7 @@ const WorkHubPage = () => {
 
   const getActivityColor = (type: ActivityEntry["type"]): string => {
     const colors: Record<ActivityEntry["type"], string> = {
-      created: "#226262",
+      created: "#0d9488",
       updated: "#5a9e9e",
       status_changed: "#F59E0B",
       assigned: "#3b82f6",
@@ -103,7 +103,7 @@ const WorkHubPage = () => {
       attachment: "#6366f1",
       completed: "#10b981",
     };
-    return colors[type] || "#226262";
+    return colors[type] || "#0d9488";
   };
 
   const formatTimestamp = (ts: string): string => {
@@ -234,7 +234,7 @@ const WorkHubPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <StatCard
               icon="fa-tasks"
-              iconColor="#226262"
+              iconColor="#0d9488"
               value={stats.total}
               label="Total Tasks"
               trend={12}
@@ -282,7 +282,6 @@ const WorkHubPage = () => {
                 className="text-lg font-semibold"
                 style={{ color: "var(--wh-green-text-primary)" }}
               >
-                <i className="fas fa-th-large mr-2"></i>
                 Boards
               </h2>
               <span
@@ -317,7 +316,7 @@ const WorkHubPage = () => {
                 className="text-lg font-semibold"
                 style={{ color: "var(--wh-green-text-primary)" }}
               >
-                <i className="fas fa-clock mr-2"></i>
+                {/* <i className="fas fa-clock mr-2"></i> */}
                 Recent Activity
               </h2>
               <button

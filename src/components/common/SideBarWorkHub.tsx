@@ -209,7 +209,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
         </div>
 
         {/* Channels Section */}
-        <div className="mb-5">
+        <div className="mb-5 hidden">
           <div className="flex items-center justify-between px-3 mb-2">
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               Channels
@@ -264,7 +264,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
         </div>
 
         {/* Direct Messages Section */}
-        <div className="mb-5">
+        <div className="mb-5 hidden">
           <div className="flex items-center justify-between px-3 mb-2">
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               Direct Messages

@@ -8,7 +8,7 @@ export const MainLayout = () => {
       <AppSidebar currentView="chat" setView={() => {}} />
 
       {/* Main content  */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-auto">
         <Outlet />
       </div>
     </div>

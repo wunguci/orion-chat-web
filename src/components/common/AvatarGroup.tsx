@@ -22,18 +22,18 @@ const AvatarGroup = ({ users, max = 3, size = "xs" }: AvatarGroupProps) => {
   };
 
   return (
-    <div className="flex -space-x-2">
-      {visible.map((user, i) => (
-        <Avatar key={i} src={user.src} alt={user.alt} size={size} />
-      ))}
-      {overflow > 0 && (
-        <div
-          className={`${overflowSize[size]} rounded-full bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] font-semibold flex items-center justify-center border-2 border-white`}
-        >
-          +{overflow}
-        </div>
-      )}
-    </div>
+      <div className="flex -space-x-2">
+          {visible.map((user, i) => (
+              <Avatar key={i} src={user.src} alt={user.alt ?? ''} size={size} />
+          ))}
+          {overflow > 0 && (
+              <div
+                  className={`${overflowSize[size]} rounded-full bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] font-semibold flex items-center justify-center border-2 border-white`}
+              >
+                  +{overflow}
+              </div>
+          )}
+      </div>
   );
 };
 

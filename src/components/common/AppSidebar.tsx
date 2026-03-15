@@ -1,11 +1,19 @@
+/* eslint-disable */
 import type React from "react";
-import { useState } from "react";
-import { MdChat, MdNote, MdCalendarToday, MdSettings } from "react-icons/md";
+import {
+  MdChat,
+  MdContacts,
+  MdOutlineWork,
+  MdNote,
+  MdCalendarToday,
+  MdSettings,
+} from "react-icons/md";
 import type { IconType } from "react-icons";
 import { FaUsers, FaBrain } from "react-icons/fa";
 import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
+import { useState } from "react";
 import SettingsModal from "../setting-chat/SettingModal";
 
 type ViewMode =
@@ -146,7 +154,7 @@ const NavItem: React.FC<NavItemProps> = ({
       onClick={onClick}
       className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
         active
-          ? "bg-teal-400 text-primary shadow-sm"
+          ? "bg-green-message text-white shadow-sm"
           : "text-slate-400 hover:bg-slate-200"
       }`}
       title={label}

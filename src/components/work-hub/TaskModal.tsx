@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import type { TaskFormData, TaskStatus, TaskPriority } from "../../types/work-hub.types";
+import type {
+  TaskFormData,
+  TaskStatus,
+  TaskPriority,
+} from "../../types/work-hub.types";
 import { MOCK_USERS, MOCK_LABELS } from "../../data/work-hub-mock";
 import Modal from "../common/Modal";
 
@@ -11,7 +15,13 @@ interface TaskModalProps {
   editData?: TaskFormData;
 }
 
-const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }: TaskModalProps) => {
+const TaskModal = ({
+  isOpen,
+  onClose,
+  onSave,
+  initialStatus = "todo",
+  editData,
+}: TaskModalProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(initialStatus);
@@ -46,27 +56,45 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
 
   const handleSubmit = () => {
     if (!title.trim()) return;
-    onSave({ title, description, status, priority, assigneeIds, labelIds, startDate, deadline });
+    onSave({
+      title,
+      description,
+      status,
+      priority,
+      assigneeIds,
+      labelIds,
+      startDate,
+      deadline,
+    });
     onClose();
   };
 
   const toggleAssignee = (userId: string) => {
     setAssigneeIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   };
 
   const toggleLabel = (labelId: string) => {
     setLabelIds((prev) =>
-      prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId]
+      prev.includes(labelId)
+        ? prev.filter((id) => id !== labelId)
+        : [...prev, labelId],
     );
   };
 
   const selectedUsers = MOCK_USERS.filter((u) => assigneeIds.includes(u.id));
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={editData ? "Edit Task" : "Create New Task"} size="lg">
-      <div className="space-y-5">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editData ? "Edit Task" : "Create New Task"}
+      size="lg"
+    >
+      <div className="space-y-5 p-6">
         {/* Title */}
         <div>
           <label className="block text-sm font-semibold text-gray-800 mb-1.5">
@@ -83,7 +111,9 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-1.5">Description</label>
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+            Description
+          </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -96,7 +126,9 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
         {/* Status & Priority */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Status</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Status
+            </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as TaskStatus)}
@@ -109,7 +141,9 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Priority</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Priority
+            </label>
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
@@ -126,7 +160,9 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
         {/* Dates */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Start Date</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Start Date
+            </label>
             <input
               type="date"
               value={startDate}
@@ -135,7 +171,9 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Deadline</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+              Deadline
+            </label>
             <input
               type="date"
               value={deadline}
@@ -147,7 +185,9 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
 
         {/* Assignees */}
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-1.5">Assignees</label>
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+            Assignees
+          </label>
           {selectedUsers.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
               {selectedUsers.map((user) => (
@@ -155,7 +195,11 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
                   key={user.id}
                   className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--wh-green-bg-heavy)] border border-[var(--wh-green-border-medium)] rounded-full text-sm"
                 >
-                  <img src={user.avatar} alt={user.name} className="w-5 h-5 rounded-full" />
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
+                    className="w-5 h-5 rounded-full"
+                  />
                   <span className="text-gray-700">{user.name}</span>
                   <button
                     onClick={() => toggleAssignee(user.id)}
@@ -183,8 +227,14 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
                     onClick={() => toggleAssignee(user.id)}
                     className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--wh-green-bg-light)] cursor-pointer"
                   >
-                    <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full" />
-                    <span className="text-sm text-gray-700 flex-1">{user.name}</span>
+                    <img
+                      src={user.avatar}
+                      alt={user.name}
+                      className="w-7 h-7 rounded-full"
+                    />
+                    <span className="text-sm text-gray-700 flex-1">
+                      {user.name}
+                    </span>
                     {assigneeIds.includes(user.id) && (
                       <i className="fas fa-check text-[var(--wh-green-primary)] text-sm"></i>
                     )}
@@ -197,7 +247,9 @@ const TaskModal = ({ isOpen, onClose, onSave, initialStatus = "todo", editData }
 
         {/* Labels */}
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-1.5">Labels</label>
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+            Labels
+          </label>
           <div className="flex flex-wrap gap-2">
             {MOCK_LABELS.map((label) => (
               <button

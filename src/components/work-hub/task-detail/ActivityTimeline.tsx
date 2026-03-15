@@ -5,7 +5,7 @@ interface ActivityTimelineProps {
 }
 
 const typeConfig: Record<string, { icon: string; color: string }> = {
-  created: { icon: "fa-plus-circle", color: "#226262" },
+  created: { icon: "fa-plus-circle", color: "#0d9488" },
   updated: { icon: "fa-edit", color: "#3b82f6" },
   status_changed: { icon: "fa-exchange-alt", color: "#F59E0B" },
   assigned: { icon: "fa-user-plus", color: "#3b82f6" },
@@ -17,7 +17,7 @@ const typeConfig: Record<string, { icon: string; color: string }> = {
 
 const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
   const sorted = [...activities].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
   );
 
   if (sorted.length === 0) {
@@ -36,13 +36,19 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
 
       <div className="space-y-4">
         {sorted.map((activity) => {
-          const config = typeConfig[activity.type] || { icon: "fa-circle", color: "#94a3b8" };
+          const config = typeConfig[activity.type] || {
+            icon: "fa-circle",
+            color: "#94a3b8",
+          };
           return (
             <div key={activity.id} className="flex gap-4 relative">
               {/* Dot */}
               <div
                 className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 z-10"
-                style={{ backgroundColor: `${config.color}18`, color: config.color }}
+                style={{
+                  backgroundColor: `${config.color}18`,
+                  color: config.color,
+                }}
               >
                 <i className={`fas ${config.icon} text-sm`}></i>
               </div>
@@ -50,7 +56,9 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
               {/* Content */}
               <div className="flex-1 pt-2">
                 <div className="text-sm text-gray-700">
-                  <span className="font-semibold text-gray-800">{activity.user.name}</span>{" "}
+                  <span className="font-semibold text-gray-800">
+                    {activity.user.name}
+                  </span>{" "}
                   {activity.description}
                 </div>
                 <div className="text-[11px] text-gray-400 mt-0.5">

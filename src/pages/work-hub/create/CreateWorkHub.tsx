@@ -84,7 +84,8 @@ const WORKSPACE_TYPE_OPTIONS: WorkspaceTypeOption[] = [
   {
     id: "business",
     label: "Business",
-    description: "For companies and professional teams working on multiple projects",
+    description:
+      "For companies and professional teams working on multiple projects",
     icon: "fa-briefcase",
   },
   {
@@ -110,25 +111,36 @@ const WORKSPACE_TYPE_OPTIONS: WorkspaceTypeOption[] = [
 const BLANK_TEMPLATE: TemplateOption = {
   id: null,
   label: "Blank Workspace",
-  description: "Start from scratch with an empty workspace. No pre-configured channels or settings.",
+  description:
+    "Start from scratch with an empty workspace. No pre-configured channels or settings.",
   icon: "fa-plus",
   iconBg: "bg-gray-100 text-gray-500",
-  features: ["Fully customizable", "No pre-set structure", "Build your own workflow"],
+  features: [
+    "Fully customizable",
+    "No pre-set structure",
+    "Build your own workflow",
+  ],
 };
 
 const TEMPLATE_OPTIONS: TemplateOption[] = [
   {
     id: "marketing",
     label: "Marketing Team",
-    description: "Perfect for marketing teams with channels for campaigns, content, and analytics",
+    description:
+      "Perfect for marketing teams with channels for campaigns, content, and analytics",
     icon: "fa-bullhorn",
     iconBg: "bg-pink-50 text-pink-500",
-    features: ["Campaign Management", "Content Calendar", "Analytics Dashboard"],
+    features: [
+      "Campaign Management",
+      "Content Calendar",
+      "Analytics Dashboard",
+    ],
   },
   {
     id: "development",
     label: "Software Development",
-    description: "Built for dev teams with channels for sprints, code reviews, and deployments",
+    description:
+      "Built for dev teams with channels for sprints, code reviews, and deployments",
     icon: "fa-code",
     iconBg: "bg-indigo-50 text-indigo-500",
     features: ["Sprint Planning", "Code Review Board", "Bug Tracking"],
@@ -136,7 +148,8 @@ const TEMPLATE_OPTIONS: TemplateOption[] = [
   {
     id: "design",
     label: "Design Team",
-    description: "Ideal for creative teams with channels for design reviews and feedback",
+    description:
+      "Ideal for creative teams with channels for design reviews and feedback",
     icon: "fa-palette",
     iconBg: "bg-amber-50 text-amber-500",
     features: ["Design Reviews", "Asset Library", "Client Feedback"],
@@ -144,7 +157,8 @@ const TEMPLATE_OPTIONS: TemplateOption[] = [
   {
     id: "sales",
     label: "Sales Team",
-    description: "Optimized for sales teams tracking leads, deals, and customer relationships",
+    description:
+      "Optimized for sales teams tracking leads, deals, and customer relationships",
     icon: "fa-chart-line",
     iconBg: "bg-emerald-50 text-emerald-500",
     features: ["Lead Management", "Deal Pipeline", "Sales Reports"],
@@ -152,7 +166,7 @@ const TEMPLATE_OPTIONS: TemplateOption[] = [
 ];
 
 const COLOR_OPTIONS: ColorOption[] = [
-  { value: "#226262", label: "Teal" },
+  { value: "#0d9488", label: "Teal" },
   { value: "#1a4f4f", label: "Dark Teal" },
   { value: "#10b981", label: "Emerald" },
   { value: "#3b82f6", label: "Blue" },
@@ -162,7 +176,14 @@ const COLOR_OPTIONS: ColorOption[] = [
   { value: "#ef4444", label: "Red" },
 ];
 
-const MEMBER_AVATAR_COLORS = ["#226262", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#f59e0b"];
+const MEMBER_AVATAR_COLORS = [
+  "#0d9488",
+  "#10b981",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#f59e0b",
+];
 
 const MEMBER_PERMISSION_LABELS: Record<MemberPermission, string> = {
   default: "Default (follow workspace)",
@@ -172,21 +193,43 @@ const MEMBER_PERMISSION_LABELS: Record<MemberPermission, string> = {
 };
 
 const INITIAL_MEMBERS: InvitedMember[] = [
-  { id: "1", email: "hiep@company.com", role: "Admin", initials: "HP", avatarColor: "#226262", permission: "default" },
-  { id: "2", email: "duyen@company.com", role: "Member", initials: "MD", avatarColor: "#10b981", permission: "default" },
-  { id: "3", email: "giang@company.com", role: "Member", initials: "TG", avatarColor: "#3b82f6", permission: "default" },
+  {
+    id: "1",
+    email: "hiep@company.com",
+    role: "Admin",
+    initials: "HP",
+    avatarColor: "#0d9488",
+    permission: "default",
+  },
+  {
+    id: "2",
+    email: "duyen@company.com",
+    role: "Member",
+    initials: "MD",
+    avatarColor: "#10b981",
+    permission: "default",
+  },
+  {
+    id: "3",
+    email: "giang@company.com",
+    role: "Member",
+    initials: "TG",
+    avatarColor: "#3b82f6",
+    permission: "default",
+  },
 ];
 
 const INITIAL_FORM_DATA: FormData = {
   step1: {
     name: "Orion Project",
-    description: "A collaborative workspace for managing projects and team communication.",
+    description:
+      "A collaborative workspace for managing projects and team communication.",
     type: "business",
   },
   step2: {
     avatarFile: null,
     avatarPreviewUrl: null,
-    color: "#226262",
+    color: "#0d9488",
     template: "development",
   },
   step3: {
@@ -205,7 +248,9 @@ function getInitials(email: string): string {
 }
 
 function getRandomAvatarColor(): string {
-  return MEMBER_AVATAR_COLORS[Math.floor(Math.random() * MEMBER_AVATAR_COLORS.length)];
+  return MEMBER_AVATAR_COLORS[
+    Math.floor(Math.random() * MEMBER_AVATAR_COLORS.length)
+  ];
 }
 
 // ==================== COMPONENT ====================
@@ -217,10 +262,11 @@ const CreateWorkHub = () => {
   const [inviteEmail, setInviteEmail] = useState<string>("");
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const goToStep = (step: number) => {
     setCurrentStep(step);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const progressPercent = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100;
@@ -268,7 +314,9 @@ const CreateWorkHub = () => {
 
   const updateMemberPermission = (id: string, permission: MemberPermission) =>
     updateStep3({
-      members: formData.step3.members.map((m) => (m.id === id ? { ...m, permission } : m)),
+      members: formData.step3.members.map((m) =>
+        m.id === id ? { ...m, permission } : m,
+      ),
     });
 
   const handleCreate = () => {
@@ -280,8 +328,12 @@ const CreateWorkHub = () => {
     }, 2000);
   };
 
-  const selectedTypeName = WORKSPACE_TYPE_OPTIONS.find((t) => t.id === formData.step1.type)?.label ?? "-";
-  const selectedTemplateName = TEMPLATE_OPTIONS.find((t) => t.id === formData.step2.template)?.label ?? "None";
+  const selectedTypeName =
+    WORKSPACE_TYPE_OPTIONS.find((t) => t.id === formData.step1.type)?.label ??
+    "-";
+  const selectedTemplateName =
+    TEMPLATE_OPTIONS.find((t) => t.id === formData.step2.template)?.label ??
+    "None";
   const permissionLabel: Record<Permission, string> = {
     view: "Can view and comment",
     edit: "Can create and edit",
@@ -289,60 +341,85 @@ const CreateWorkHub = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--wh-green-bg-light)] font-sans">
+    <div
+      ref={containerRef}
+      className="flex-1 h-full overflow-y-auto bg-[var(--wh-green-bg-light)] font-sans"
+    >
       {/* Header */}
-      <header className="sticky top-0 z-50 flex items-center justify-between px-10 py-4 bg-white border-b border-[var(--wh-green-border-light)] shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[var(--wh-green-primary)] rounded-xl flex items-center justify-center font-bold text-lg text-white">
-            O
+      <header className="sticky top-0 z-50 relative bg-white border-b border-[var(--wh-green-border-light)] shadow-sm">
+        <div className="flex items-center justify-between px-10 py-4">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[var(--wh-green-primary)] rounded-xl flex items-center justify-center font-bold text-lg text-white">
+              O
+            </div>
+            <span className="text-xl font-bold text-gray-800">Orion</span>
           </div>
-          <span className="text-xl font-bold text-gray-800">Orion</span>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <button className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
+              <i className="fas fa-question-circle"></i> Help
+            </button>
+
+            <button
+              onClick={() => navigate("/work-hub/ws1")}
+              className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
+            >
+              <i className="fas fa-times"></i> Cancel
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all">
-            <i className="fas fa-question-circle"></i> Help
-          </button>
-          <button
-            onClick={() => navigate("/work-hub/ws1")}
-            className="flex items-center gap-2 px-5 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
-          >
-            <i className="fas fa-times"></i> Cancel
-          </button>
+
+        {/* Progress bar */}
+        <div className="absolute bottom-0 left-0 w-full h-[3px] bg-gray-200">
+          <div
+            className="h-full bg-[var(--wh-green-primary)] transition-all duration-300"
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-10 py-16">
         {/* Progress Bar */}
-        <div className="mb-14">
-          <div className="relative flex justify-between mb-8">
-            <div className="absolute top-5 left-0 right-0 h-0.5 bg-[var(--wh-green-border-light)]" />
-            <div
-              className="absolute top-5 left-0 h-0.5 bg-[var(--wh-green-primary)] transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
             {PROGRESS_STEPS.map((step) => {
-              const isCompleted = step.number < currentStep;
               const isActive = step.number === currentStep;
+              const isCompleted = step.number < currentStep;
+
               return (
-                <div key={step.number} className="relative z-10 flex flex-col items-center flex-1">
+                <div
+                  key={step.number}
+                  className="flex items-center gap-2 flex-1"
+                >
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold mb-3 border-2 transition-all duration-300 ${
-                      isCompleted
-                        ? "bg-[var(--wh-green-primary)] border-[var(--wh-green-primary)] text-white"
-                        : isActive
-                          ? "bg-[var(--wh-green-primary)] border-[var(--wh-green-primary)] text-white"
-                          : "bg-white border-[var(--wh-green-border-medium)] text-gray-400"
-                    }`}
+                    className={`flex items-center justify-center w-8 h-8 text-sm font-semibold rounded-full transition-all
+              ${
+                isCompleted
+                  ? "bg-[var(--wh-green-primary)] text-white"
+                  : isActive
+                    ? "bg-[var(--wh-green-primary)] text-white"
+                    : "bg-gray-200 text-gray-500"
+              }`}
                   >
-                    {isCompleted ? <i className="fas fa-check text-sm"></i> : step.number}
+                    {isCompleted ? (
+                      <i className="fas fa-check text-xs"></i>
+                    ) : (
+                      step.number
+                    )}
                   </div>
+
                   <span
-                    className={`text-xs font-medium text-center ${
-                      isActive ? "text-[var(--wh-green-primary)]" : "text-gray-400"
-                    }`}
+                    className={`text-xs font-medium whitespace-nowrap
+              ${isActive ? "text-[var(--wh-green-primary)]" : "text-gray-400"}`}
                   >
                     {step.label}
                   </span>
+
+                  {step.number !== TOTAL_STEPS && (
+                    <div className="flex-1 h-[2px] bg-gray-200 mx-2"></div>
+                  )}
                 </div>
               );
             })}
@@ -352,9 +429,13 @@ const CreateWorkHub = () => {
         {/* STEP 1 – Workspace Info */}
         {currentStep === 1 && (
           <div className="bg-white border border-[var(--wh-green-border-light)] rounded-2xl p-10 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Create Your WorkHub</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Create Your WorkHub
+            </h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-9">
-              Let's start by setting up the basic information for your workspace. This helps your team members identify and find your workspace easily.
+              Let's start by setting up the basic information for your
+              workspace. This helps your team members identify and find your
+              workspace easily.
             </p>
 
             <div className="mb-6">
@@ -370,7 +451,9 @@ const CreateWorkHub = () => {
                 className="w-full px-4 py-3 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-xl text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-[var(--wh-green-primary)] focus:ring-1 focus:ring-[var(--wh-green-primary)] transition-all"
               />
               <div className="flex justify-between items-center mt-1.5">
-                <p className="text-xs text-gray-400">Choose a name that clearly represents your team or project</p>
+                <p className="text-xs text-gray-400">
+                  Choose a name that clearly represents your team or project
+                </p>
                 <span
                   className={`text-xs font-medium ${
                     formData.step1.name.length >= 45
@@ -386,7 +469,9 @@ const CreateWorkHub = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Workspace Description</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Workspace Description
+              </label>
               <textarea
                 value={formData.step1.description}
                 onChange={(e) => updateStep1({ description: e.target.value })}
@@ -394,7 +479,9 @@ const CreateWorkHub = () => {
                 placeholder="Describe what your workspace is about..."
                 className="w-full px-4 py-3 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-xl text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-[var(--wh-green-primary)] focus:ring-1 focus:ring-[var(--wh-green-primary)] transition-all resize-y"
               />
-              <p className="text-xs text-gray-400 mt-1.5">Help others understand the purpose of this workspace</p>
+              <p className="text-xs text-gray-400 mt-1.5">
+                Help others understand the purpose of this workspace
+              </p>
             </div>
 
             <div className="mb-6">
@@ -428,8 +515,12 @@ const CreateWorkHub = () => {
                       >
                         <i className={`fas ${opt.icon} text-lg`}></i>
                       </div>
-                      <h4 className="text-sm font-semibold text-gray-800 mb-1.5">{opt.label}</h4>
-                      <p className="text-xs text-gray-400 leading-relaxed">{opt.description}</p>
+                      <h4 className="text-sm font-semibold text-gray-800 mb-1.5">
+                        {opt.label}
+                      </h4>
+                      <p className="text-xs text-gray-400 leading-relaxed">
+                        {opt.description}
+                      </p>
                     </div>
                   );
                 })}
@@ -437,7 +528,10 @@ const CreateWorkHub = () => {
             </div>
 
             <div className="flex justify-between items-center pt-8 border-t border-[var(--wh-green-border-light)]">
-              <button disabled className="flex items-center gap-2 px-6 py-3 text-sm border border-gray-200 rounded-xl opacity-40 cursor-not-allowed text-gray-400">
+              <button
+                disabled
+                className="flex items-center gap-2 px-6 py-3 text-sm border border-gray-200 rounded-xl opacity-40 cursor-not-allowed text-gray-400"
+              >
                 <i className="fas fa-arrow-left"></i> Back
               </button>
               <button
@@ -453,18 +547,27 @@ const CreateWorkHub = () => {
         {/* STEP 2 – Customize */}
         {currentStep === 2 && (
           <div className="bg-white border border-[var(--wh-green-border-light)] rounded-2xl p-10 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Customize Your Workspace</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Customize Your Workspace
+            </h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-9">
-              Make your workspace unique with a custom avatar and color theme. This helps your team recognize it instantly.
+              Make your workspace unique with a custom avatar and color theme.
+              This helps your team recognize it instantly.
             </p>
 
             {/* Avatar Upload */}
             <div className="mb-8">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Workspace Avatar</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Workspace Avatar
+              </label>
               <div className="flex gap-6 items-center">
                 <div className="w-28 h-28 flex-shrink-0 rounded-2xl bg-[var(--wh-green-bg-light)] border-2 border-dashed border-[var(--wh-green-border-medium)] flex flex-col items-center justify-center text-gray-400 overflow-hidden">
                   {formData.step2.avatarPreviewUrl ? (
-                    <img src={formData.step2.avatarPreviewUrl} alt="Avatar preview" className="w-full h-full object-cover" />
+                    <img
+                      src={formData.step2.avatarPreviewUrl}
+                      alt="Avatar preview"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="flex flex-col items-center gap-2">
                       <i className="fas fa-image text-2xl text-[var(--wh-green-text-muted)]"></i>
@@ -473,8 +576,13 @@ const CreateWorkHub = () => {
                   )}
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Upload workspace icon</h4>
-                  <p className="text-xs text-gray-400 mb-4">Recommended size: 512x512px. Max file size: 2MB. Formats: JPG, PNG, SVG</p>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                    Upload workspace icon
+                  </h4>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Recommended size: 512x512px. Max file size: 2MB. Formats:
+                    JPG, PNG, SVG
+                  </p>
                   <div className="flex gap-2">
                     <input
                       ref={fileInputRef}
@@ -502,7 +610,9 @@ const CreateWorkHub = () => {
 
             {/* Color Theme */}
             <div className="mb-8">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Workspace Color Theme</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Workspace Color Theme
+              </label>
               <div className="grid grid-cols-8 gap-3 mb-2">
                 {COLOR_OPTIONS.map((color) => {
                   const selected = formData.step2.color === color.value;
@@ -511,8 +621,10 @@ const CreateWorkHub = () => {
                       key={color.value}
                       title={color.label}
                       onClick={() => updateStep2({ color: color.value })}
-                      className={`aspect-square rounded-xl border-[3px] relative transition-all hover:scale-110 ${
-                        selected ? "border-[var(--wh-green-primary)] shadow-md" : "border-transparent"
+                      className={`aspect-square rounded-xl border-[3px] relative transition-all hover:scale-102 ${
+                        selected
+                          ? "border-[var(--wh-green-primary)] shadow-md"
+                          : "border-transparent"
                       }`}
                       style={{ backgroundColor: color.value }}
                     >
@@ -523,22 +635,29 @@ const CreateWorkHub = () => {
                   );
                 })}
               </div>
-              <p className="text-xs text-gray-400">This color will be used for your workspace identity and branding</p>
+              <p className="text-xs text-gray-400">
+                This color will be used for your workspace identity and branding
+              </p>
             </div>
 
             {/* Templates */}
             <div className="mb-6">
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Choose a Template <span className="text-gray-400 font-normal">(Optional)</span>
+                Choose a Template{" "}
+                <span className="text-gray-400 font-normal">(Optional)</span>
               </label>
-              <p className="text-xs text-gray-400 mb-4">Start with a pre-configured workspace template to save time</p>
+              <p className="text-xs text-gray-400 mb-4">
+                Start with a pre-configured workspace template to save time
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {[BLANK_TEMPLATE, ...TEMPLATE_OPTIONS].map((tmpl) => {
                   const selected = formData.step2.template === tmpl.id;
                   return (
                     <div
                       key={tmpl.id ?? "blank"}
-                      onClick={() => updateStep2({ template: selected ? null : tmpl.id })}
+                      onClick={() =>
+                        updateStep2({ template: selected ? null : tmpl.id })
+                      }
                       className={`relative cursor-pointer rounded-xl p-5 border-2 transition-all duration-200 hover:-translate-y-0.5 ${
                         selected
                           ? "border-[var(--wh-green-primary)] bg-[var(--wh-green-bg-light)]"
@@ -550,15 +669,25 @@ const CreateWorkHub = () => {
                           <i className="fas fa-check text-white text-xs"></i>
                         </div>
                       )}
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${tmpl.iconBg}`}>
+                      <div
+                        className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${tmpl.iconBg}`}
+                      >
                         <i className={`fas ${tmpl.icon} text-lg`}></i>
                       </div>
-                      <h4 className="text-sm font-semibold text-gray-800 mb-2">{tmpl.label}</h4>
-                      <p className="text-xs text-gray-400 leading-relaxed mb-4">{tmpl.description}</p>
+                      <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                        {tmpl.label}
+                      </h4>
+                      <p className="text-xs text-gray-400 leading-relaxed mb-4">
+                        {tmpl.description}
+                      </p>
                       <ul className="flex flex-col gap-2">
                         {tmpl.features.map((feat) => (
-                          <li key={feat} className="flex items-center gap-2 text-xs text-gray-500">
-                            <i className="fas fa-check text-[var(--wh-green-primary)] text-[10px]"></i> {feat}
+                          <li
+                            key={feat}
+                            className="flex items-center gap-2 text-xs text-gray-500"
+                          >
+                            <i className="fas fa-check text-[var(--wh-green-primary)] text-[10px]"></i>{" "}
+                            {feat}
                           </li>
                         ))}
                       </ul>
@@ -585,16 +714,21 @@ const CreateWorkHub = () => {
           </div>
         )}
 
-        {/* STEP 3 – Team Setup */}
+        {/* STEP 3 – Settup */}
         {currentStep === 3 && (
           <div className="bg-white border border-[var(--wh-green-border-light)] rounded-2xl p-10 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Invite Your Team</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Invite Your Team
+            </h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-9">
-              Add team members to your workspace. You can always invite more people later from workspace settings.
+              Add team members to your workspace. You can always invite more
+              people later from workspace settings.
             </p>
 
             <div className="mb-8">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Invite by Email</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Invite by Email
+              </label>
               <div className="flex gap-2 mb-4">
                 <input
                   type="email"
@@ -626,17 +760,31 @@ const CreateWorkHub = () => {
                         {member.initials}
                       </div>
                       <div className="flex flex-col min-w-0">
-                        <span className="text-sm font-medium text-gray-800 truncate">{member.email}</span>
-                        <span className="text-xs text-gray-400">{member.role}</span>
+                        <span className="text-sm font-medium text-gray-800 truncate">
+                          {member.email}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {member.role}
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <select
                         value={member.permission}
-                        onChange={(e) => updateMemberPermission(member.id, e.target.value as MemberPermission)}
+                        onChange={(e) =>
+                          updateMemberPermission(
+                            member.id,
+                            e.target.value as MemberPermission,
+                          )
+                        }
                         className="px-3 py-1.5 bg-white border border-[var(--wh-green-border-light)] rounded-lg text-gray-700 text-xs focus:outline-none focus:border-[var(--wh-green-primary)] transition-all cursor-pointer"
                       >
-                        {(Object.entries(MEMBER_PERMISSION_LABELS) as [MemberPermission, string][]).map(([val, lbl]) => (
+                        {(
+                          Object.entries(MEMBER_PERMISSION_LABELS) as [
+                            MemberPermission,
+                            string,
+                          ][]
+                        ).map(([val, lbl]) => (
                           <option key={val} value={val}>
                             {lbl}
                           </option>
@@ -655,17 +803,25 @@ const CreateWorkHub = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Default Member Permissions</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Default Member Permissions
+              </label>
               <select
                 value={formData.step3.defaultPermission}
-                onChange={(e) => updateStep3({ defaultPermission: e.target.value as Permission })}
+                onChange={(e) =>
+                  updateStep3({
+                    defaultPermission: e.target.value as Permission,
+                  })
+                }
                 className="w-full px-4 py-3 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-xl text-gray-800 text-sm focus:outline-none focus:border-[var(--wh-green-primary)] focus:ring-1 focus:ring-[var(--wh-green-primary)] transition-all"
               >
                 <option value="view">Can view and comment</option>
                 <option value="edit">Can create and edit</option>
                 <option value="admin">Full access (Admin)</option>
               </select>
-              <p className="text-xs text-gray-400 mt-1.5">You can customize individual permissions later</p>
+              <p className="text-xs text-gray-400 mt-1.5">
+                You can customize individual permissions later
+              </p>
             </div>
 
             <div className="flex justify-between items-center pt-8 border-t border-[var(--wh-green-border-light)]">
@@ -685,12 +841,15 @@ const CreateWorkHub = () => {
           </div>
         )}
 
-        {/* STEP 4 – Review & Create */}
+        {/* STEP 4 – Xem lại và Táo */}
         {currentStep === 4 && (
           <div className="bg-white border border-[var(--wh-green-border-light)] rounded-2xl p-10 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Review &amp; Create Workspace</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              Review &amp; Create Workspace
+            </h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-9">
-              Please review your workspace details before creating. You can modify these settings later from workspace settings.
+              Please review your workspace details before creating. You can
+              modify these settings later from workspace settings.
             </p>
 
             {/* Summary Card */}
@@ -701,35 +860,58 @@ const CreateWorkHub = () => {
                   style={{ backgroundColor: formData.step2.color }}
                 >
                   {formData.step2.avatarPreviewUrl ? (
-                    <img src={formData.step2.avatarPreviewUrl} alt="Workspace avatar" className="w-full h-full object-cover" />
+                    <img
+                      src={formData.step2.avatarPreviewUrl}
+                      alt="Workspace avatar"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     formData.step1.name.substring(0, 2).toUpperCase() || "WH"
                   )}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-1.5">{formData.step1.name || "Unnamed Workspace"}</h3>
-                  <p className="text-sm text-gray-500">{formData.step1.description}</p>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-1.5">
+                    {formData.step1.name || "Unnamed Workspace"}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {formData.step1.description}
+                  </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Workspace Type</span>
-                  <span className="text-sm font-medium text-gray-800">{selectedTypeName}</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Template</span>
-                  <span className="text-sm font-medium text-gray-800">{selectedTemplateName}</span>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Team Members</span>
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                    Workspace Type
+                  </span>
                   <span className="text-sm font-medium text-gray-800">
-                    {formData.step3.members.length} member{formData.step3.members.length !== 1 ? "s" : ""} invited
+                    {selectedTypeName}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Member Permissions</span>
-                  <span className="text-sm font-medium text-gray-800">{permissionLabel[formData.step3.defaultPermission]}</span>
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                    Template
+                  </span>
+                  <span className="text-sm font-medium text-gray-800">
+                    {selectedTemplateName}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                    Team Members
+                  </span>
+                  <span className="text-sm font-medium text-gray-800">
+                    {formData.step3.members.length} member
+                    {formData.step3.members.length !== 1 ? "s" : ""} invited
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
+                    Member Permissions
+                  </span>
+                  <span className="text-sm font-medium text-gray-800">
+                    {permissionLabel[formData.step3.defaultPermission]}
+                  </span>
                 </div>
               </div>
             </div>
@@ -740,10 +922,17 @@ const CreateWorkHub = () => {
                 <input
                   type="checkbox"
                   checked={formData.agreedToTerms}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, agreedToTerms: e.target.checked }))}
-                  className="w-4 h-4 cursor-pointer accent-[#226262]"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      agreedToTerms: e.target.checked,
+                    }))
+                  }
+                  className="w-4 h-4 cursor-pointer accent-[#0d9488]"
                 />
-                <span className="text-sm font-semibold text-gray-700">I agree to the Terms of Service and Privacy Policy</span>
+                <span className="text-sm font-semibold text-gray-700">
+                  I agree to the Terms of Service and Privacy Policy
+                </span>
               </label>
             </div>
 

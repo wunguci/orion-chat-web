@@ -5,12 +5,17 @@ import type { Board } from "../../../types/work-hub.types";
 interface BoardFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; description: string; color: string; icon: string }) => void;
+  onSave: (data: {
+    name: string;
+    description: string;
+    color: string;
+    icon: string;
+  }) => void;
   board?: Board;
 }
 
 const colorOptions = [
-  { value: "#226262", label: "Teal" },
+  { value: "#0d9488", label: "Teal" },
   { value: "#3b82f6", label: "Blue" },
   { value: "#8b5cf6", label: "Purple" },
   { value: "#ef4444", label: "Red" },
@@ -27,7 +32,12 @@ const iconOptions = [
   { value: "fa-bolt", label: "Bolt" },
 ];
 
-const BoardFormDialog = ({ isOpen, onClose, onSave, board }: BoardFormDialogProps) => {
+const BoardFormDialog = ({
+  isOpen,
+  onClose,
+  onSave,
+  board,
+}: BoardFormDialogProps) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(colorOptions[0].value);
@@ -54,10 +64,17 @@ const BoardFormDialog = ({ isOpen, onClose, onSave, board }: BoardFormDialogProp
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={board ? "Edit Board" : "Create Board"} size="sm">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={board ? "Edit Board" : "Create Board"}
+      size="sm"
+    >
       <div className="p-6 space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Board Name</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            Board Name
+          </label>
           <input
             type="text"
             value={name}
@@ -68,7 +85,9 @@ const BoardFormDialog = ({ isOpen, onClose, onSave, board }: BoardFormDialogProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            Description
+          </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -79,7 +98,9 @@ const BoardFormDialog = ({ isOpen, onClose, onSave, board }: BoardFormDialogProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Color
+          </label>
           <div className="flex gap-3">
             {colorOptions.map((c) => (
               <button
@@ -94,7 +115,9 @@ const BoardFormDialog = ({ isOpen, onClose, onSave, board }: BoardFormDialogProp
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Icon</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Icon
+          </label>
           <div className="flex gap-2">
             {iconOptions.map((ic) => (
               <button

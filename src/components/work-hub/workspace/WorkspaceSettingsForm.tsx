@@ -6,9 +6,21 @@ interface WorkspaceSettingsFormProps {
   onSave: (updates: Partial<Workspace>) => void;
 }
 
-const colorOptions = ["#226262", "#3b82f6", "#8b5cf6", "#ef4444", "#f97316", "#10b981", "#ec4899", "#06b6d4"];
+const colorOptions = [
+  "#0d9488",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ef4444",
+  "#f97316",
+  "#10b981",
+  "#ec4899",
+  "#06b6d4",
+];
 
-const WorkspaceSettingsForm = ({ workspace, onSave }: WorkspaceSettingsFormProps) => {
+const WorkspaceSettingsForm = ({
+  workspace,
+  onSave,
+}: WorkspaceSettingsFormProps) => {
   const [name, setName] = useState(workspace.name);
   const [description, setDescription] = useState(workspace.description);
   const [color, setColor] = useState(workspace.color);
@@ -31,7 +43,9 @@ const WorkspaceSettingsForm = ({ workspace, onSave }: WorkspaceSettingsFormProps
   return (
     <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-6 space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Workspace Name</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Workspace Name
+        </label>
         <input
           type="text"
           value={name}
@@ -41,7 +55,9 @@ const WorkspaceSettingsForm = ({ workspace, onSave }: WorkspaceSettingsFormProps
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          Description
+        </label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -51,7 +67,9 @@ const WorkspaceSettingsForm = ({ workspace, onSave }: WorkspaceSettingsFormProps
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Theme Color</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Theme Color
+        </label>
         <div className="flex gap-3">
           {colorOptions.map((c) => (
             <button
@@ -65,7 +83,9 @@ const WorkspaceSettingsForm = ({ workspace, onSave }: WorkspaceSettingsFormProps
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Visibility</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Visibility
+        </label>
         <div className="flex gap-3">
           <button
             onClick={() => setIsPublic(true)}

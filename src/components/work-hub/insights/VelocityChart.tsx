@@ -61,10 +61,15 @@ const VelocityChart = ({ data }: VelocityChartProps) => {
                 width={barWidth}
                 height={scaleY(d.completed)}
                 rx="3"
-                fill="#226262"
+                fill="#0d9488"
               />
               {/* Label */}
-              <text x={x} y={height - 8} textAnchor="middle" className="text-[10px] fill-gray-400">
+              <text
+                x={x}
+                y={height - 8}
+                textAnchor="middle"
+                className="text-[10px] fill-gray-400"
+              >
                 {d.sprint}
               </text>
               {/* Value labels */}
