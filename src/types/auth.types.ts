@@ -43,10 +43,12 @@ export interface LoginResponse {
     message: string;
     data: {
         token: string;
+        userId: string;
         phoneNumber: string;
         fullName: string;
         birthDate: string;
         gender: 'male' | 'female' | 'other';
+        avatarUrl?: string;
         loginTime: string;
     };
     timestamp: string;
@@ -100,11 +102,12 @@ export interface ValidationResult {
 }
 
 export interface User {
-    id?: string;
+    id: string;
     phoneNumber: string;
     fullName: string;
     birthDate: string;
     gender: 'male' | 'female' | 'other';
+    avatarUrl?: string;
     createdAt?: string;
 }
 

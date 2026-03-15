@@ -1,6 +1,6 @@
 import type React from "react";
 import NoteHeader from "./NoteHeader";
-import type { Note } from "../../types/note";
+import type { Note, NoteCategory } from "../../types/note";
 import { MdEditNote, MdPushPin } from "react-icons/md";
 import EditorTitleNote from "./EditorTitleNote";
 import CategoryNoteSelector from "./CategoryNoteSelector";
@@ -10,10 +10,10 @@ import "quill/dist/quill.snow.css";
 
 interface NoteEditorProps {
   note: Note | undefined;
-  categories: string[];
-  addCategory: (cat: string) => void;
-  updateNote: (id: string, updates: Partial<Note>) => void;
-  onDelete: (id: string) => void;
+  categories: NoteCategory[];
+  addCategory: (name: string) => void;
+  updateNote: (noteId: string, updates: Partial<Note>) => void;
+  onDelete: (noteId: string) => void;
 }
 
 const NoteEditor: React.FC<NoteEditorProps> = ({
@@ -25,10 +25,10 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const quillInstance = useRef<Quill | null>(null);
+  const noteIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (note && editorRef.current && !quillInstance.current) {
-      // Khởi tạo Quill editor
       quillInstance.current = new Quill(editorRef.current, {
         theme: "snow",
         placeholder: "Type something amazing...",
@@ -45,26 +45,27 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
         },
       });
 
-      // Xử lý các thay đổi nội dung
       quillInstance.current.on("text-change", () => {
         const html = quillInstance.current?.root.innerHTML || "";
-        // Chỉ cập nhật nếu nội dung thực sự khác biệt để tránh vòng lặp
-        if (note && html !== note.content) {
-          updateNote(note.id, { content: html });
+        if (noteIdRef.current && html !== note.content) {
+          updateNote(noteIdRef.current, { content: html });
         }
       });
     }
 
-    // Cập nhật nội dung trình chỉnh sửa khi có thay đổi ghi chú
     if (note && quillInstance.current) {
-        if (quillInstance.current.root.innerHTML !== note.content) {
-            quillInstance.current.root.innerHTML = note.content || '';
-        }
+      noteIdRef.current = note.noteId;
+      if (quillInstance.current.root.innerHTML !== note.content) {
+        quillInstance.current.root.innerHTML = note.content || "";
+      }
     }
 
     return () => {
-        if (!note) quillInstance.current = null;
-    }
+      if (!note) {
+        quillInstance.current = null;
+        noteIdRef.current = null;
+      }
+    };
   }, [note, updateNote]);
 
   if (!note) {
@@ -84,16 +85,22 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
   }
 
   const handleTitleChange = (title: string) => {
-    updateNote(note.id, { title });
+    updateNote(note.noteId, { title });
   };
 
   const togglePin = () => {
-    updateNote(note.id, { isPinned: !note.isPinned });
+    updateNote(note.noteId, { isPinned: !note.isPinned });
   };
 
-  const handleAddCategory = (newCat: string) => {
-    addCategory(newCat);
-    updateNote(note.id, { category: newCat });
+  const handleSelectCategory = (categoryId: string) => {
+    const cat = categories.find((c) => c.categoryId === categoryId);
+    if (cat) {
+      updateNote(note.noteId, { categoryId, category: cat });
+    }
+  };
+
+  const handleAddCategory = (name: string) => {
+    addCategory(name);
   };
 
   return (
@@ -107,7 +114,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           <CategoryNoteSelector
             activeCategory={note.category}
             categories={categories}
-            onSelect={(cat) => updateNote(note.id, { category: cat })}
+            onSelect={handleSelectCategory}
             onAdd={handleAddCategory}
           />
 
@@ -128,7 +135,6 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
           </button>
         </div>
 
-        {/* Rich text editor container  */}
         <div className="flex flex-col relative min-h-125">
           <div ref={editorRef}></div>
         </div>

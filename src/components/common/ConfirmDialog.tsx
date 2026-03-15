@@ -48,7 +48,7 @@ const ConfirmDialog = ({
         <div className="flex justify-end gap-3 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+            className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer"
           >
             {cancelText}
           </button>
@@ -57,7 +57,7 @@ const ConfirmDialog = ({
               onConfirm();
               onClose();
             }}
-            className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium ${variantClasses[variant]}`}
+            className={`px-4 py-2 text-white rounded-lg transition-colors text-sm font-medium cursor-pointer ${variantClasses[variant]}`}
           >
             {confirmText}
           </button>

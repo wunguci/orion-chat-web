@@ -47,10 +47,12 @@ export default function LoginPage() {
 
                 // Store user data (without token)
                 const userData = {
+                    id: result.data.userId,
                     phoneNumber: result.data.phoneNumber,
                     fullName: result.data.fullName,
                     birthDate: result.data.birthDate,
                     gender: result.data.gender,
+                    avatarUrl: result.data.avatarUrl,
                 };
                 setUser(userData);
 

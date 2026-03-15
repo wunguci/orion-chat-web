@@ -2,12 +2,13 @@ import type React from "react";
 import { useState } from "react";
 import { MdCategory, MdExpandMore } from "react-icons/md";
 import { IoIosAdd } from "react-icons/io";
+import type { NoteCategory } from "../../types/note";
 
 interface CategoryNoteSelectorProps {
-  activeCategory: string;
-  categories: string[];
-  onSelect: (cat: string) => void;
-  onAdd: (cat: string) => void;
+  activeCategory: NoteCategory | undefined;
+  categories: NoteCategory[];
+  onSelect: (categoryId: string) => void;
+  onAdd: (name: string) => void;
 }
 
 const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
@@ -17,6 +18,10 @@ const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
   onAdd,
 }) => {
   const [newCatInput, setNewCatInput] = useState("");
+
+  const handleSelectCategory = (categoryId: string) => {
+    onSelect(categoryId);
+  };
 
   const handleAdd = () => {
     const trimmed = newCatInput.trim();
@@ -31,7 +36,7 @@ const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
       <div className="flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-xl cursor-pointer hover:bg-slate-100 border border-slate-100 transition-all">
         <MdCategory className="text-[18px] text-green-primary" />
         <span className="text-[14px] font-bold text-slate-700 uppercase tracking-wide">
-          {activeCategory}
+          {activeCategory?.name || "Select"}
         </span>
         <MdExpandMore className="text-[25px] text-slate-400 ml-auto" />
       </div>
@@ -40,15 +45,15 @@ const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
         <div className="max-h-48 overflow-y-auto hide-scrollbar px-1">
           {categories.map((cat) => (
             <button
-              key={cat}
-              onClick={() => onSelect(cat)}
+              key={cat.categoryId}
+              onClick={() => handleSelectCategory(cat.categoryId)}
               className={`w-full px-4 py-2.5 text-left text-[13px] font-semibold rounded-xl transition-colors mb-0.5 cursor-pointer ${
-                activeCategory === cat
+                activeCategory?.categoryId === cat.categoryId
                   ? "bg-teal-50 text-green-primary"
                   : "text-slate-600 hover:bg-slate-50"
               }`}
             >
-              {cat}
+              {cat.name}
             </button>
           ))}
         </div>
@@ -66,9 +71,9 @@ const CategoryNoteSelector: React.FC<CategoryNoteSelectorProps> = ({
 
             <button
               onClick={handleAdd}
-              className="w-6 h-6 flex items-center justify-center bg-green-primary text-white rounded-lg cursor-pointer  hover:scale-105 transition-transform"
+              className="w-6 h-6 flex items-center justify-center bg-green-primary text-white rounded-lg cursor-pointer hover:scale-105 transition-transform"
             >
-              <IoIosAdd className="text-[16px] text-white"/>
+              <IoIosAdd className="text-[16px] text-white" />
             </button>
           </div>
         </div>
