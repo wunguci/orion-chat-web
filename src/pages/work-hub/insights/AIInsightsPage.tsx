@@ -3,7 +3,7 @@ import InsightsDashboard from "../../../components/work-hub/insights/InsightsDas
 
 const AIInsightsPage = () => {
   return (
-    <div className="p-6 max-w-7xl mx-auto overflow-auto">
+    <div className="p-6 mx-auto overflow-auto">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-800">
           {/* <i className="fas fa-brain mr-2 text-[var(--wh-green-primary)]"></i> */}

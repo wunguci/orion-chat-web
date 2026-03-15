@@ -1464,3 +1464,873 @@ export const MOCK_INSIGHTS: InsightsSummary = {
     },
   ],
 };
+
+// ==================== GOALS & OKRs ====================
+export interface Goal {
+  id: string;
+  title: string;
+  description: string;
+  owner: User;
+  progress: number;
+  status: "on_track" | "at_risk" | "behind" | "completed";
+  startDate: string;
+  endDate: string;
+  keyResults: KeyResult[];
+}
+
+export interface KeyResult {
+  id: string;
+  title: string;
+  current: number;
+  target: number;
+  unit: string;
+  linkedTaskCount: number;
+}
+
+export const MOCK_GOALS: Goal[] = [
+  {
+    id: "g1",
+    title: "Launch MVP by Q1 2026",
+    description:
+      "Ship the minimum viable product with core features to early adopters",
+    owner: MOCK_USERS[0],
+    progress: 72,
+    status: "on_track",
+    startDate: "2026-01-01",
+    endDate: "2026-03-31",
+    keyResults: [
+      {
+        id: "kr1",
+        title: "Complete all core API endpoints",
+        current: 18,
+        target: 20,
+        unit: "endpoints",
+        linkedTaskCount: 8,
+      },
+      {
+        id: "kr2",
+        title: "Achieve 90% test coverage",
+        current: 78,
+        target: 90,
+        unit: "%",
+        linkedTaskCount: 5,
+      },
+      {
+        id: "kr3",
+        title: "Onboard 50 beta users",
+        current: 32,
+        target: 50,
+        unit: "users",
+        linkedTaskCount: 3,
+      },
+    ],
+  },
+  {
+    id: "g2",
+    title: "Improve Team Velocity by 30%",
+    description: "Optimize development processes to increase sprint throughput",
+    owner: MOCK_USERS[1],
+    progress: 45,
+    status: "at_risk",
+    startDate: "2026-01-15",
+    endDate: "2026-04-15",
+    keyResults: [
+      {
+        id: "kr4",
+        title: "Reduce average PR review time",
+        current: 6,
+        target: 4,
+        unit: "hours",
+        linkedTaskCount: 2,
+      },
+      {
+        id: "kr5",
+        title: "Automate 80% of CI/CD pipeline",
+        current: 55,
+        target: 80,
+        unit: "%",
+        linkedTaskCount: 4,
+      },
+      {
+        id: "kr6",
+        title: "Decrease bug reopen rate below 5%",
+        current: 12,
+        target: 5,
+        unit: "%",
+        linkedTaskCount: 6,
+      },
+    ],
+  },
+  {
+    id: "g3",
+    title: "Enhance User Experience",
+    description: "Improve UI/UX based on user feedback and usability testing",
+    owner: MOCK_USERS[2],
+    progress: 88,
+    status: "on_track",
+    startDate: "2026-02-01",
+    endDate: "2026-03-31",
+    keyResults: [
+      {
+        id: "kr7",
+        title: "Redesign 10 key screens",
+        current: 9,
+        target: 10,
+        unit: "screens",
+        linkedTaskCount: 10,
+      },
+      {
+        id: "kr8",
+        title: "Achieve NPS score of 40+",
+        current: 38,
+        target: 40,
+        unit: "score",
+        linkedTaskCount: 0,
+      },
+    ],
+  },
+  {
+    id: "g4",
+    title: "Infrastructure Scalability",
+    description: "Prepare backend infrastructure for 10x user growth",
+    owner: MOCK_USERS[4],
+    progress: 20,
+    status: "behind",
+    startDate: "2026-02-15",
+    endDate: "2026-05-30",
+    keyResults: [
+      {
+        id: "kr9",
+        title: "Migrate to Kubernetes",
+        current: 1,
+        target: 5,
+        unit: "services",
+        linkedTaskCount: 3,
+      },
+      {
+        id: "kr10",
+        title: "API response time < 200ms (p95)",
+        current: 450,
+        target: 200,
+        unit: "ms",
+        linkedTaskCount: 4,
+      },
+      {
+        id: "kr11",
+        title: "Set up auto-scaling for all services",
+        current: 0,
+        target: 5,
+        unit: "services",
+        linkedTaskCount: 2,
+      },
+    ],
+  },
+];
+
+// ==================== SPRINTS ====================
+export interface Sprint {
+  id: string;
+  name: string;
+  goal: string;
+  startDate: string;
+  endDate: string;
+  status: "planning" | "active" | "completed" | "cancelled";
+  tasks: SprintTask[];
+}
+
+export interface SprintTask {
+  id: string;
+  title: string;
+  status: "todo" | "inprogress" | "review" | "done";
+  priority: "low" | "medium" | "high" | "critical";
+  assignee: User;
+  storyPoints: number;
+  boardName: string;
+}
+
+export const MOCK_SPRINTS: Sprint[] = [
+  {
+    id: "sp1",
+    name: "Sprint 5",
+    goal: "Complete user authentication flow and dashboard redesign",
+    startDate: "2026-03-09",
+    endDate: "2026-03-22",
+    status: "active",
+    tasks: [
+      {
+        id: "st1",
+        title: "Implement OAuth2 login",
+        status: "done",
+        priority: "high",
+        assignee: MOCK_USERS[0],
+        storyPoints: 5,
+        boardName: "Backend",
+      },
+      {
+        id: "st2",
+        title: "Design new dashboard layout",
+        status: "inprogress",
+        priority: "high",
+        assignee: MOCK_USERS[2],
+        storyPoints: 8,
+        boardName: "Frontend",
+      },
+      {
+        id: "st3",
+        title: "API rate limiting middleware",
+        status: "inprogress",
+        priority: "medium",
+        assignee: MOCK_USERS[4],
+        storyPoints: 3,
+        boardName: "Backend",
+      },
+      {
+        id: "st4",
+        title: "Write E2E tests for auth",
+        status: "todo",
+        priority: "medium",
+        assignee: MOCK_USERS[1],
+        storyPoints: 5,
+        boardName: "QA",
+      },
+      {
+        id: "st5",
+        title: "Fix navbar responsive issue",
+        status: "done",
+        priority: "low",
+        assignee: MOCK_USERS[3],
+        storyPoints: 2,
+        boardName: "Frontend",
+      },
+      {
+        id: "st6",
+        title: "Update user profile API",
+        status: "review",
+        priority: "medium",
+        assignee: MOCK_USERS[0],
+        storyPoints: 3,
+        boardName: "Backend",
+      },
+    ],
+  },
+  {
+    id: "sp2",
+    name: "Sprint 4",
+    goal: "File management system and notification improvements",
+    startDate: "2026-02-23",
+    endDate: "2026-03-08",
+    status: "completed",
+    tasks: [
+      {
+        id: "st7",
+        title: "File upload service",
+        status: "done",
+        priority: "high",
+        assignee: MOCK_USERS[4],
+        storyPoints: 8,
+        boardName: "Backend",
+      },
+      {
+        id: "st8",
+        title: "File preview component",
+        status: "done",
+        priority: "high",
+        assignee: MOCK_USERS[2],
+        storyPoints: 5,
+        boardName: "Frontend",
+      },
+      {
+        id: "st9",
+        title: "Push notification integration",
+        status: "done",
+        priority: "medium",
+        assignee: MOCK_USERS[0],
+        storyPoints: 5,
+        boardName: "Backend",
+      },
+      {
+        id: "st10",
+        title: "Notification preferences UI",
+        status: "done",
+        priority: "low",
+        assignee: MOCK_USERS[3],
+        storyPoints: 3,
+        boardName: "Frontend",
+      },
+      {
+        id: "st11",
+        title: "Storage quota management",
+        status: "done",
+        priority: "medium",
+        assignee: MOCK_USERS[1],
+        storyPoints: 3,
+        boardName: "Backend",
+      },
+    ],
+  },
+  {
+    id: "sp3",
+    name: "Sprint 6",
+    goal: "Real-time collaboration and workspace settings",
+    startDate: "2026-03-23",
+    endDate: "2026-04-05",
+    status: "planning",
+    tasks: [
+      {
+        id: "st12",
+        title: "WebSocket connection manager",
+        status: "todo",
+        priority: "critical",
+        assignee: MOCK_USERS[4],
+        storyPoints: 8,
+        boardName: "Backend",
+      },
+      {
+        id: "st13",
+        title: "Real-time cursor sharing",
+        status: "todo",
+        priority: "high",
+        assignee: MOCK_USERS[0],
+        storyPoints: 5,
+        boardName: "Frontend",
+      },
+      {
+        id: "st14",
+        title: "Workspace role permissions",
+        status: "todo",
+        priority: "high",
+        assignee: MOCK_USERS[1],
+        storyPoints: 5,
+        boardName: "Backend",
+      },
+    ],
+  },
+];
+
+// ==================== ROADMAP ====================
+export interface RoadmapEpic {
+  id: string;
+  title: string;
+  description: string;
+  color: string;
+  startDate: string;
+  endDate: string;
+  progress: number;
+  status: "planned" | "in_progress" | "completed" | "blocked";
+  owner: User;
+  boardName: string;
+}
+
+export interface RoadmapMilestone {
+  id: string;
+  title: string;
+  date: string;
+  status: "upcoming" | "reached" | "missed";
+}
+
+export const MOCK_ROADMAP_EPICS: RoadmapEpic[] = [
+  {
+    id: "e1",
+    title: "User Authentication System",
+    description: "OAuth2, SSO, MFA support",
+    color: "#3b82f6",
+    startDate: "2026-01-05",
+    endDate: "2026-02-15",
+    progress: 100,
+    status: "completed",
+    owner: MOCK_USERS[0],
+    boardName: "Backend",
+  },
+  {
+    id: "e2",
+    title: "Real-time Collaboration",
+    description: "WebSocket, live cursors, co-editing",
+    color: "#8b5cf6",
+    startDate: "2026-02-01",
+    endDate: "2026-04-10",
+    progress: 35,
+    status: "in_progress",
+    owner: MOCK_USERS[4],
+    boardName: "Backend",
+  },
+  {
+    id: "e3",
+    title: "Dashboard & Analytics",
+    description: "Charts, insights, reports",
+    color: "#10b981",
+    startDate: "2026-02-15",
+    endDate: "2026-03-30",
+    progress: 65,
+    status: "in_progress",
+    owner: MOCK_USERS[2],
+    boardName: "Frontend",
+  },
+  {
+    id: "e4",
+    title: "File Management",
+    description: "Upload, preview, storage, sharing",
+    color: "#f97316",
+    startDate: "2026-02-20",
+    endDate: "2026-03-15",
+    progress: 90,
+    status: "in_progress",
+    owner: MOCK_USERS[1],
+    boardName: "Backend",
+  },
+  {
+    id: "e5",
+    title: "Mobile Responsive",
+    description: "Responsive design for all screens",
+    color: "#ef4444",
+    startDate: "2026-03-10",
+    endDate: "2026-04-20",
+    progress: 15,
+    status: "in_progress",
+    owner: MOCK_USERS[3],
+    boardName: "Frontend",
+  },
+  {
+    id: "e6",
+    title: "API v2 & Documentation",
+    description: "New endpoints, Swagger docs, SDK",
+    color: "#6366f1",
+    startDate: "2026-04-01",
+    endDate: "2026-05-15",
+    progress: 0,
+    status: "planned",
+    owner: MOCK_USERS[0],
+    boardName: "Backend",
+  },
+  {
+    id: "e7",
+    title: "AI-Powered Features",
+    description: "Smart suggestions, auto-assign, predictions",
+    color: "#ec4899",
+    startDate: "2026-04-15",
+    endDate: "2026-06-30",
+    progress: 0,
+    status: "planned",
+    owner: MOCK_USERS[4],
+    boardName: "AI/ML",
+  },
+];
+
+export const MOCK_MILESTONES: RoadmapMilestone[] = [
+  { id: "m1", title: "Alpha Release", date: "2026-02-01", status: "reached" },
+  { id: "m2", title: "Beta Launch", date: "2026-03-15", status: "upcoming" },
+  {
+    id: "m3",
+    title: "Public Release v1.0",
+    date: "2026-05-01",
+    status: "upcoming",
+  },
+  {
+    id: "m4",
+    title: "10K Users Milestone",
+    date: "2026-06-30",
+    status: "upcoming",
+  },
+];
+
+// ==================== WORKLOAD ====================
+export interface MemberWorkload {
+  user: User;
+  totalTasks: number;
+  capacityMax: number;
+  tasksByPriority: {
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  tasksByStatus: {
+    todo: number;
+    inprogress: number;
+    review: number;
+    done: number;
+  };
+  hoursEstimated: number;
+  hoursLogged: number;
+}
+
+export const MOCK_WORKLOADS: MemberWorkload[] = [
+  {
+    user: MOCK_USERS[0],
+    totalTasks: 8,
+    capacityMax: 10,
+    tasksByPriority: { critical: 1, high: 3, medium: 3, low: 1 },
+    tasksByStatus: { todo: 2, inprogress: 3, review: 1, done: 2 },
+    hoursEstimated: 42,
+    hoursLogged: 28,
+  },
+  {
+    user: MOCK_USERS[1],
+    totalTasks: 6,
+    capacityMax: 8,
+    tasksByPriority: { critical: 0, high: 2, medium: 3, low: 1 },
+    tasksByStatus: { todo: 1, inprogress: 2, review: 2, done: 1 },
+    hoursEstimated: 30,
+    hoursLogged: 18,
+  },
+  {
+    user: MOCK_USERS[2],
+    totalTasks: 9,
+    capacityMax: 8,
+    tasksByPriority: { critical: 2, high: 3, medium: 2, low: 2 },
+    tasksByStatus: { todo: 3, inprogress: 3, review: 1, done: 2 },
+    hoursEstimated: 48,
+    hoursLogged: 30,
+  },
+  {
+    user: MOCK_USERS[3],
+    totalTasks: 4,
+    capacityMax: 10,
+    tasksByPriority: { critical: 0, high: 1, medium: 2, low: 1 },
+    tasksByStatus: { todo: 1, inprogress: 1, review: 1, done: 1 },
+    hoursEstimated: 20,
+    hoursLogged: 12,
+  },
+  {
+    user: MOCK_USERS[4],
+    totalTasks: 7,
+    capacityMax: 10,
+    tasksByPriority: { critical: 1, high: 2, medium: 3, low: 1 },
+    tasksByStatus: { todo: 2, inprogress: 2, review: 1, done: 2 },
+    hoursEstimated: 36,
+    hoursLogged: 24,
+  },
+  {
+    user: MOCK_USERS[5],
+    totalTasks: 3,
+    capacityMax: 8,
+    tasksByPriority: { critical: 0, high: 1, medium: 1, low: 1 },
+    tasksByStatus: { todo: 1, inprogress: 1, review: 0, done: 1 },
+    hoursEstimated: 16,
+    hoursLogged: 8,
+  },
+];
+
+// ==================== AUTOMATIONS ====================
+export interface AutomationRule {
+  id: string;
+  name: string;
+  description: string;
+  trigger: { type: string; label: string; value?: string };
+  conditions: { field: string; operator: string; value: string }[];
+  action: { type: string; label: string; value?: string };
+  isEnabled: boolean;
+  lastTriggered?: string;
+  triggerCount: number;
+  createdBy: User;
+  createdAt: string;
+}
+
+export const MOCK_AUTOMATIONS: AutomationRule[] = [
+  {
+    id: "auto1",
+    name: "Notify on task completion",
+    description: "When a task is moved to Done, notify the task creator",
+    trigger: { type: "status_change", label: "Task status changes to Done" },
+    conditions: [],
+    action: { type: "notify", label: "Send notification to task creator" },
+    isEnabled: true,
+    lastTriggered: "2026-03-14T15:30:00",
+    triggerCount: 47,
+    createdBy: MOCK_USERS[0],
+    createdAt: "2026-01-15T10:00:00",
+  },
+  {
+    id: "auto2",
+    name: "Escalate overdue tasks",
+    description:
+      "When a task is overdue by 2+ days, increase its priority to Critical",
+    trigger: {
+      type: "deadline_passed",
+      label: "Task deadline passed by 2 days",
+    },
+    conditions: [
+      { field: "priority", operator: "not_equals", value: "critical" },
+    ],
+    action: { type: "update_field", label: "Set priority to Critical" },
+    isEnabled: true,
+    lastTriggered: "2026-03-13T08:00:00",
+    triggerCount: 12,
+    createdBy: MOCK_USERS[0],
+    createdAt: "2026-01-20T14:00:00",
+  },
+  {
+    id: "auto3",
+    name: "Auto-assign reviewer",
+    description: "When task moves to Review, assign the team lead as reviewer",
+    trigger: { type: "status_change", label: "Task status changes to Review" },
+    conditions: [],
+    action: {
+      type: "assign",
+      label: "Add Phan Phước Hiệp as reviewer",
+      value: "u1",
+    },
+    isEnabled: true,
+    lastTriggered: "2026-03-14T11:00:00",
+    triggerCount: 23,
+    createdBy: MOCK_USERS[1],
+    createdAt: "2026-02-01T09:00:00",
+  },
+  {
+    id: "auto4",
+    name: "Welcome new member",
+    description:
+      "When a new member joins, send them a welcome message with workspace guide",
+    trigger: { type: "member_joined", label: "New member joins workspace" },
+    conditions: [],
+    action: {
+      type: "send_message",
+      label: "Send welcome message with guide link",
+    },
+    isEnabled: false,
+    lastTriggered: "2026-03-01T10:00:00",
+    triggerCount: 6,
+    createdBy: MOCK_USERS[0],
+    createdAt: "2026-02-10T16:00:00",
+  },
+  {
+    id: "auto5",
+    name: "Stale task reminder",
+    description:
+      "If a task has no updates for 5 days, send a reminder to the assignee",
+    trigger: { type: "no_activity", label: "No activity for 5 days" },
+    conditions: [{ field: "status", operator: "not_equals", value: "done" }],
+    action: { type: "notify", label: "Send reminder to assignee" },
+    isEnabled: true,
+    lastTriggered: "2026-03-12T09:00:00",
+    triggerCount: 31,
+    createdBy: MOCK_USERS[4],
+    createdAt: "2026-02-15T11:00:00",
+  },
+  {
+    id: "auto6",
+    name: "Auto-label critical bugs",
+    description:
+      "When priority is set to Critical, add 'Urgent' label automatically",
+    trigger: { type: "field_change", label: "Priority changes to Critical" },
+    conditions: [
+      { field: "labels", operator: "not_contains", value: "Urgent" },
+    ],
+    action: { type: "add_label", label: "Add label 'Urgent'" },
+    isEnabled: true,
+    lastTriggered: "2026-03-10T14:20:00",
+    triggerCount: 8,
+    createdBy: MOCK_USERS[1],
+    createdAt: "2026-02-20T10:00:00",
+  },
+];
+
+// ==================== REPORTS ====================
+export interface ReportData {
+  completionByPeriod: { period: string; completed: number; created: number }[];
+  completionByBoard: {
+    board: string;
+    completed: number;
+    total: number;
+    color: string;
+  }[];
+  completionByMember: {
+    user: User;
+    completed: number;
+    total: number;
+    avgDays: number;
+  }[];
+  overdueTrend: { week: string; count: number }[];
+}
+
+export const MOCK_REPORT_DATA: ReportData = {
+  completionByPeriod: [
+    { period: "Week 1 (Mar)", completed: 12, created: 15 },
+    { period: "Week 2 (Mar)", completed: 18, created: 14 },
+    { period: "Week 3 (Feb)", completed: 8, created: 11 },
+    { period: "Week 4 (Feb)", completed: 14, created: 10 },
+    { period: "Week 1 (Feb)", completed: 10, created: 13 },
+    { period: "Week 2 (Jan)", completed: 16, created: 12 },
+  ],
+  completionByBoard: [
+    { board: "Frontend", completed: 24, total: 32, color: "#3b82f6" },
+    { board: "Backend", completed: 18, total: 28, color: "#10b981" },
+    { board: "QA", completed: 15, total: 20, color: "#f97316" },
+  ],
+  completionByMember: [
+    { user: MOCK_USERS[0], completed: 18, total: 22, avgDays: 3.2 },
+    { user: MOCK_USERS[1], completed: 12, total: 16, avgDays: 4.1 },
+    { user: MOCK_USERS[2], completed: 15, total: 18, avgDays: 2.8 },
+    { user: MOCK_USERS[3], completed: 8, total: 12, avgDays: 5.0 },
+    { user: MOCK_USERS[4], completed: 14, total: 17, avgDays: 3.5 },
+    { user: MOCK_USERS[5], completed: 5, total: 8, avgDays: 4.5 },
+  ],
+  overdueTrend: [
+    { week: "W1 Jan", count: 3 },
+    { week: "W2 Jan", count: 5 },
+    { week: "W3 Jan", count: 2 },
+    { week: "W4 Jan", count: 4 },
+    { week: "W1 Feb", count: 6 },
+    { week: "W2 Feb", count: 3 },
+    { week: "W3 Feb", count: 2 },
+    { week: "W4 Feb", count: 1 },
+    { week: "W1 Mar", count: 4 },
+    { week: "W2 Mar", count: 2 },
+  ],
+};
+
+// ==================== ACTIVITY FEED ====================
+export interface ActivityFeedItem {
+  id: string;
+  type:
+    | "task_created"
+    | "task_completed"
+    | "task_moved"
+    | "comment_added"
+    | "member_joined"
+    | "board_created"
+    | "file_uploaded"
+    | "document_edited"
+    | "label_added"
+    | "sprint_started"
+    | "deadline_changed";
+  actor: User;
+  description: string;
+  target?: string;
+  targetUrl?: string;
+  boardName?: string;
+  timestamp: string;
+  metadata?: Record<string, string>;
+}
+
+export const MOCK_ACTIVITY_FEED: ActivityFeedItem[] = [
+  {
+    id: "af1",
+    type: "task_completed",
+    actor: MOCK_USERS[0],
+    description: "completed task",
+    target: "Implement OAuth2 login",
+    boardName: "Backend",
+    timestamp: "2026-03-15T14:30:00",
+  },
+  {
+    id: "af2",
+    type: "comment_added",
+    actor: MOCK_USERS[1],
+    description: "commented on",
+    target: "Design new dashboard layout",
+    boardName: "Frontend",
+    timestamp: "2026-03-15T13:45:00",
+  },
+  {
+    id: "af3",
+    type: "task_moved",
+    actor: MOCK_USERS[2],
+    description: "moved task to Review",
+    target: "File preview component",
+    boardName: "Frontend",
+    timestamp: "2026-03-15T12:20:00",
+  },
+  {
+    id: "af4",
+    type: "file_uploaded",
+    actor: MOCK_USERS[4],
+    description: "uploaded file",
+    target: "architecture-diagram.pdf",
+    timestamp: "2026-03-15T11:00:00",
+  },
+  {
+    id: "af5",
+    type: "task_created",
+    actor: MOCK_USERS[0],
+    description: "created new task",
+    target: "WebSocket connection manager",
+    boardName: "Backend",
+    timestamp: "2026-03-15T10:15:00",
+  },
+  {
+    id: "af6",
+    type: "member_joined",
+    actor: MOCK_USERS[5],
+    description: "joined the workspace",
+    timestamp: "2026-03-15T09:30:00",
+  },
+  {
+    id: "af7",
+    type: "sprint_started",
+    actor: MOCK_USERS[0],
+    description: "started",
+    target: "Sprint 5",
+    timestamp: "2026-03-14T09:00:00",
+  },
+  {
+    id: "af8",
+    type: "deadline_changed",
+    actor: MOCK_USERS[1],
+    description: "changed deadline for",
+    target: "Push notification integration",
+    boardName: "Backend",
+    timestamp: "2026-03-14T16:00:00",
+    metadata: { from: "2026-03-12", to: "2026-03-18" },
+  },
+  {
+    id: "af9",
+    type: "document_edited",
+    actor: MOCK_USERS[2],
+    description: "edited document",
+    target: "API Documentation v2",
+    timestamp: "2026-03-14T14:30:00",
+  },
+  {
+    id: "af10",
+    type: "task_completed",
+    actor: MOCK_USERS[3],
+    description: "completed task",
+    target: "Fix navbar responsive issue",
+    boardName: "Frontend",
+    timestamp: "2026-03-14T13:00:00",
+  },
+  {
+    id: "af11",
+    type: "label_added",
+    actor: MOCK_USERS[0],
+    description: "added label 'Urgent' to",
+    target: "API rate limiting middleware",
+    boardName: "Backend",
+    timestamp: "2026-03-14T11:30:00",
+  },
+  {
+    id: "af12",
+    type: "board_created",
+    actor: MOCK_USERS[0],
+    description: "created new board",
+    target: "Mobile App",
+    timestamp: "2026-03-13T10:00:00",
+  },
+  {
+    id: "af13",
+    type: "task_moved",
+    actor: MOCK_USERS[4],
+    description: "moved task to In Progress",
+    target: "Storage quota management",
+    boardName: "Backend",
+    timestamp: "2026-03-13T15:00:00",
+  },
+  {
+    id: "af14",
+    type: "comment_added",
+    actor: MOCK_USERS[3],
+    description: "commented on",
+    target: "Notification preferences UI",
+    boardName: "Frontend",
+    timestamp: "2026-03-13T14:00:00",
+  },
+  {
+    id: "af15",
+    type: "task_created",
+    actor: MOCK_USERS[1],
+    description: "created new task",
+    target: "Write E2E tests for auth",
+    boardName: "QA",
+    timestamp: "2026-03-13T09:30:00",
+  },
+];

@@ -91,7 +91,7 @@ const MembersPage = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto bg-[var(--wh-green-bg-light)]">
-        <div className="p-6 lg:p-8 max-w-[1200px] mx-auto">
+        <div className="p-6 lg:p-8 mx-auto">
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-4">

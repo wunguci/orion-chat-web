@@ -80,6 +80,60 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
     // },
   ];
 
+  const planningItems = [
+    {
+      id: "goals",
+      icon: "fa-bullseye",
+      label: "Goals & OKRs",
+      path: `/work-hub/${workspaceId}/goals`,
+    },
+    {
+      id: "sprints",
+      icon: "fa-running",
+      label: "Sprints",
+      path: `/work-hub/${workspaceId}/sprints`,
+    },
+    {
+      id: "roadmap",
+      icon: "fa-road",
+      label: "Roadmap",
+      path: `/work-hub/${workspaceId}/roadmap`,
+    },
+  ];
+
+  const toolsItems = [
+    {
+      id: "workload",
+      icon: "fa-balance-scale",
+      label: "Workload",
+      path: `/work-hub/${workspaceId}/workload`,
+    },
+    {
+      id: "automations",
+      icon: "fa-magic",
+      label: "Automations",
+      path: `/work-hub/${workspaceId}/automations`,
+    },
+    {
+      id: "reports",
+      icon: "fa-chart-pie",
+      label: "Reports",
+      path: `/work-hub/${workspaceId}/reports`,
+    },
+    {
+      id: "labels",
+      icon: "fa-tags",
+      label: "Labels",
+      path: `/work-hub/${workspaceId}/labels`,
+    },
+    {
+      id: "activity",
+      icon: "fa-stream",
+      label: "Activity Feed",
+      path: `/work-hub/${workspaceId}/activity`,
+    },
+  ];
+
   const boards = workspace?.boards || [];
 
   const channels: {
@@ -319,6 +373,54 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                   style={{ color: board.color }}
                 ></i>
                 <span className="flex-1 truncate">{board.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Planning Section */}
+        <div className="mb-5">
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            Planning
+          </div>
+          {planningItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
+                  active
+                    ? "bg-[var(--wh-green-primary)] text-white"
+                    : "text-gray-600 hover:bg-[var(--wh-green-bg-heavy)] hover:text-[var(--wh-green-text-primary)]"
+                }`}
+              >
+                <i className={`fas ${item.icon} w-5 text-center text-sm`}></i>
+                <span className="flex-1">{item.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Tools Section */}
+        <div className="mb-5">
+          <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-2">
+            Tools
+          </div>
+          {toolsItems.map((item) => {
+            const active = isActive(item.path);
+            return (
+              <Link
+                key={item.id}
+                to={item.path}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
+                  active
+                    ? "bg-[var(--wh-green-primary)] text-white"
+                    : "text-gray-600 hover:bg-[var(--wh-green-bg-heavy)] hover:text-[var(--wh-green-text-primary)]"
+                }`}
+              >
+                <i className={`fas ${item.icon} w-5 text-center text-sm`}></i>
+                <span className="flex-1">{item.label}</span>
               </Link>
             );
           })}
