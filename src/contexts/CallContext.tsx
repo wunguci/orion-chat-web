@@ -130,6 +130,25 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       // "disconnected" chỉ là tạm thời, WebRTC có thể tự recover
       // useWebRTC sẽ tự ICE restart nếu vẫn disconnected sau 3s
     },
+    onIceRestart: async (offer) => {
+      const socket = callSocketRef.current;
+      const activeCallId = currentCallIdRef.current;
+      const targetUserId = currentOtherUserIdRef.current;
+
+      if (!socket || !activeCallId || !targetUserId) {
+        console.warn(
+          "[CallContext] Skip ICE restart offer: missing call context",
+        );
+        return;
+      }
+
+      socket.emit("call:offer", {
+        callId: activeCallId,
+        receiverId: targetUserId,
+        offer,
+      });
+      console.log("[CallContext] ICE restart offer emitted");
+    },
   });
 
   // cleanup call
@@ -199,6 +218,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
   // Dùng refs cho các callbacks để stabilize useEffect dependencies
   const addIceCandidateRef = useRef(addIceCandidate);
+  const handleOfferRef = useRef(handleOffer);
   const handleAnswerRef = useRef(handleAnswer);
   const processAcceptedOfferRef = useRef(processAcceptedOffer);
   const cleanupCallRef = useRef(cleanupCall);
@@ -206,6 +226,9 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   useEffect(() => {
     addIceCandidateRef.current = addIceCandidate;
   }, [addIceCandidate]);
+  useEffect(() => {
+    handleOfferRef.current = handleOffer;
+  }, [handleOffer]);
   useEffect(() => {
     handleAnswerRef.current = handleAnswer;
   }, [handleAnswer]);
@@ -237,6 +260,28 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     // listen to call offer - lưu offer, chưa xử lý
     const handleCallOffer = async (data: CallOfferData) => {
       console.log("[CallContext] Received offer:", data);
+
+      // Offer trong cuộc gọi đang active (renegotiation / ICE restart)
+      if (
+        currentCallIdRef.current === data.callId &&
+        !incomingCallRef.current
+      ) {
+        try {
+          const answer = await handleOfferRef.current(data.offer);
+          socket.emit("call:answer", {
+            callId: data.callId,
+            callerId: data.callerId,
+            answer,
+          });
+          console.log("[CallContext] Renegotiation answer sent");
+        } catch (error) {
+          console.error(
+            "[CallContext] Error handling renegotiation offer:",
+            error,
+          );
+        }
+        return;
+      }
 
       if (
         acceptedCallIdRef.current === data.callId &&

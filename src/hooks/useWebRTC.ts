@@ -6,8 +6,12 @@ const getIceConfiguration = (): RTCConfiguration => {
   const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as
     | string
     | undefined;
-  const forceRelay =
+  const forceRelayEnv =
     (import.meta.env.VITE_FORCE_TURN_RELAY as string | undefined) === "true";
+  const isLocalhost =
+    typeof window !== "undefined" &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname);
+  const forceRelay = forceRelayEnv && !isLocalhost;
 
   const iceServers: RTCIceServer[] = [
     { urls: "stun:stun.l.google.com:19302" },
@@ -21,8 +25,7 @@ const getIceConfiguration = (): RTCConfiguration => {
       .map((url) => url.trim())
       .filter(
         (url) =>
-          Boolean(url) &&
-          (url.startsWith("turn:") || url.startsWith("turns:")),
+          Boolean(url) && (url.startsWith("turn:") || url.startsWith("turns:")),
       );
 
     if (parsedTurnUrls.length > 0) {
@@ -53,7 +56,7 @@ interface UseWebRTCProps {
   onRemoteStream: (stream: MediaStream) => void;
   onIceCandidate: (candidate: RTCIceCandidate) => void;
   onConnectionStateChange: (state: RTCPeerConnectionState) => void;
-  onIceRestart?: () => Promise<RTCSessionDescriptionInit | null>;
+  onIceRestart?: (offer: RTCSessionDescriptionInit) => Promise<void>;
 }
 
 export const useWebRTC = ({
@@ -94,14 +97,17 @@ export const useWebRTC = ({
     const peerConnection = peerConnectionRef.current;
     if (!peerConnection) return;
 
+    if (!onIceRestartRef.current) {
+      console.warn("[WebRTC] Skip ICE restart: signaling callback is missing");
+      return;
+    }
+
     try {
       const offer = await peerConnection.createOffer({ iceRestart: true });
       await peerConnection.setLocalDescription(offer);
 
-      // Gửi offer mới qua signaling (callback từ CallContext)
-      if (onIceRestartRef.current) {
-        await onIceRestartRef.current();
-      }
+      // Gửi offer ICE restart qua signaling để phía remote setRemoteDescription
+      await onIceRestartRef.current(offer);
       console.log("[WebRTC] ICE restart offer created");
     } catch (error) {
       console.error("[WebRTC] ICE restart failed:", error);
@@ -166,7 +172,9 @@ export const useWebRTC = ({
       // ICE restart khi bị "failed" (tối đa 3 lần)
       if (state === "failed" && iceRestartCountRef.current < 3) {
         iceRestartCountRef.current += 1;
-        console.log(`[WebRTC] Connection failed, attempting ICE restart (${iceRestartCountRef.current}/3)`);
+        console.log(
+          `[WebRTC] Connection failed, attempting ICE restart (${iceRestartCountRef.current}/3)`,
+        );
         restartIce();
       }
     };
@@ -363,7 +371,10 @@ export const useWebRTC = ({
           if (peerConnection) {
             const senders = peerConnection.getSenders();
             const videoSender = senders.find(
-              (s) => s.track?.kind === "video" || (!s.track && s !== senders.find((ss) => ss.track?.kind === "audio")),
+              (s) =>
+                s.track?.kind === "video" ||
+                (!s.track &&
+                  s !== senders.find((ss) => ss.track?.kind === "audio")),
             );
             if (videoSender) {
               await videoSender.replaceTrack(newVideoTrack);
