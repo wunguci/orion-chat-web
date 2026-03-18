@@ -9,25 +9,27 @@ import { MdOutlinePersonAddAlt1, MdOutlineChat } from "react-icons/md";
 interface SearchResultCardProps {
   friend: Friend;
   onClose: () => void;
+  onSendFriendRequest?: (targetUserId: string, message: string) => Promise<void>;
 }
 
 const SearchResultCard: React.FC<SearchResultCardProps> = ({
   friend,
   onClose,
+  onSendFriendRequest,
 }) => {
   const [message, setMessage] = useState(
     "Hi! I'd like to connect with you on ConnectApp.",
   );
   const [isSent, setIsSent] = useState(false);
 
-  const handleAddFriend = () => {
-    // Mock sending friend request
-    console.log(
-      `Sending friend request to ${friend.name} with message: ${message}`,
-    );
+  const handleAddFriend = async () => {
+    if (onSendFriendRequest) {
+      await onSendFriendRequest(friend.id, message);
+    }
+
     setIsSent(true);
 
-    // Auto close after send success
+    // tự động đóng sau 2 giây
     setTimeout(() => {
       onClose();
     }, 2000);
@@ -93,7 +95,7 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
 
         <div className="flex flex-wrap justify-center sm:justify-start gap-3 pt-2">
           <button
-            onClick={handleAddFriend}
+            onClick={() => void handleAddFriend()}
             className="flex-1 sm:flex-none px-8 py-3 bg-green-primary text-white font-bold rounded-2xl hover:bg-green-secondary transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
           >
             <MdOutlinePersonAddAlt1 className="text-xl" />

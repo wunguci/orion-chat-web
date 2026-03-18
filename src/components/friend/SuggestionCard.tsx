@@ -24,6 +24,14 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion }) => {
             {suggestion.mutualFriends} mutual friends
           </span>
         </p>
+        {!!suggestion.mutualGroupCount && (
+          <p className="text-xs text-slate-500 mb-4">
+            {suggestion.mutualGroupCount} mutual groups
+            {suggestion.mutualGroupNames?.length
+              ? ` • ${suggestion.mutualGroupNames.slice(0, 2).join(", ")}`
+              : ""}
+          </p>
+        )}
         <button className="w-full py-2 bg-green-primary text-white font-bold rounded-lg hover:bg-green-secondary transition-all text-sm cursor-pointer">
           Add Friend
         </button>
