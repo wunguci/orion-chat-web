@@ -3,9 +3,10 @@ import AppSidebar from "../common/AppSidebar";
 import { CallProvider } from "../../contexts/CallContext";
 import { IncomingCallModal } from "../call/IncomingCallModal";
 import { CallModal } from "../call/CallModal";
+import { getUser } from "../../utils/token";
 
 export const MainLayout = () => {
-  const userId = localStorage.getItem("userId") || "user-001";
+  const userId = getUser()?.id || localStorage.getItem("userId") || "user-001";
 
   return (
     <CallProvider userId={userId}>

@@ -123,8 +123,8 @@ const FriendListPage = () => {
   useEffect(() => {
     if (!userId) return;
 
-    const callSocket = socketService.connectCall(userId);
-    if (!callSocket) return;
+    const presenceSocket = socketService.connectPresence(userId);
+    if (!presenceSocket) return;
 
     const onOnline = ({ userId: onlineUserId }: { userId: string }) => {
       setFriends((prev) =>
@@ -158,15 +158,15 @@ const FriendListPage = () => {
       );
     };
 
-    callSocket.on("user:online", onOnline);
-    callSocket.on("user:offline", onOffline);
-    callSocket.on("users:online-list", onOnlineList);
-    callSocket.emit("users:get-online");
+    presenceSocket.on("presence:user-online", onOnline);
+    presenceSocket.on("presence:user-offline", onOffline);
+    presenceSocket.on("presence:online-list", onOnlineList);
+    presenceSocket.emit("presence:get-online");
 
     return () => {
-      callSocket.off("user:online", onOnline);
-      callSocket.off("user:offline", onOffline);
-      callSocket.off("users:online-list", onOnlineList);
+      presenceSocket.off("presence:user-online", onOnline);
+      presenceSocket.off("presence:user-offline", onOffline);
+      presenceSocket.off("presence:online-list", onOnlineList);
     };
   }, [userId]);
 

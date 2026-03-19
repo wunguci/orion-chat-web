@@ -9,10 +9,12 @@ const normalizeSocketBaseUrl = (url: string) =>
 
 const SOCKET_BASE_URL = normalizeSocketBaseUrl(RAW_SOCKET_URL);
 const CALL_NAMESPACE_URL = `${SOCKET_BASE_URL}/call`;
+const PRESENCE_NAMESPACE_URL = `${SOCKET_BASE_URL}/presence`;
 
 class SocketService {
   private socket: Socket | null = null;
   private callSocket: Socket | null = null;
+  private presenceSocket: Socket | null = null;
   private currentUserId: string | null = null; // Track userId hiện tại
 
   // connect main socket
@@ -95,13 +97,50 @@ class SocketService {
     return this.callSocket;
   }
 
+  // connect presence socket (namespace /presence)
+  connectPresence(userId: string, token?: string) {
+    if (this.presenceSocket?.connected) {
+      return this.presenceSocket;
+    }
+
+    this.presenceSocket = io(PRESENCE_NAMESPACE_URL, {
+      query: { userId },
+      auth: { token },
+      transports: ["websocket"],
+    });
+
+    this.presenceSocket.on("connect", () => {
+      console.log(
+        `[SocketService] Presence socket connected: ${this.presenceSocket?.id} (userId: ${userId})`,
+      );
+    });
+
+    this.presenceSocket.on("disconnect", (reason) => {
+      console.log(
+        `[SocketService] Presence socket disconnected. Reason: ${reason}`,
+      );
+    });
+
+    this.presenceSocket.on("connect_error", (error) => {
+      console.error("[SocketService] Presence socket connection error:", error);
+    });
+
+    return this.presenceSocket;
+  }
+
+  getPresenceSocket(): Socket | null {
+    return this.presenceSocket;
+  }
+
   // disconnect all sockets
   disconnect() {
     console.log('[SocketService] Disconnecting all sockets');
     this.socket?.disconnect();
     this.callSocket?.disconnect();
+    this.presenceSocket?.disconnect();
     this.socket = null;
     this.callSocket = null;
+    this.presenceSocket = null;
     this.currentUserId = null;
   }
 
@@ -111,6 +150,12 @@ class SocketService {
     this.callSocket?.disconnect();
     this.callSocket = null;
     this.currentUserId = null;
+  }
+
+  disconnectPresence() {
+    console.log('[SocketService] Disconnecting presence socket');
+    this.presenceSocket?.disconnect();
+    this.presenceSocket = null;
   }
 }
 
