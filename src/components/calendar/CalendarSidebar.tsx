@@ -48,10 +48,10 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
           </h1>
           <button
             onClick={onCreateClick}
-            className="w-35 h-12 flex items-center justify-evenly bg-green-primary text-white rounded-lg hover:bg-green-secondary transition-all active:scale-90 shadow-lg shadow-green-primary/20 cursor-pointer"
+            className="w-10 h-10 flex items-center justify-evenly bg-green-primary text-white rounded-lg hover:bg-green-hover transition-all active:scale-90 shadow-lg shadow-green-primary/20 cursor-pointer"
           >
             <FaPlus className="w-4 h-4" />
-            Create event
+            
           </button>
         </div>
       </div>

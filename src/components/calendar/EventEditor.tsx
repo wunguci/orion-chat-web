@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
-import type { CalendarEvent, Participant } from "../../types/calendar";
+import type {
+  CalendarEvent,
+  Participant,
+  ParticipantOption,
+} from "../../types/calendar";
 import { IoClose } from "react-icons/io5";
 import {
   MdOutlineCalendarToday,
   MdOutlineLocationOn,
   MdOutlineNotificationsActive,
-  MdOutlinePersonAddAlt,
+  MdOutlineDescription,
   MdOutlineTaskAlt,
   MdExpandMore,
   MdCheckCircleOutline,
@@ -16,6 +20,7 @@ import {
 interface EventEditorProps {
   initialDate?: Date;
   existingEvent?: CalendarEvent;
+  availableParticipants: ParticipantOption[];
   onClose: () => void;
   onSave: (data: Partial<CalendarEvent>) => void;
 }
@@ -27,20 +32,6 @@ const COLORS = [
   { name: "Amber", value: "#f59e0b" },
   { name: "Emerald", value: "#10b981" },
   { name: "Slate", value: "#475569" },
-];
-
-const SUGGESTED_PARTICIPANTS: Participant[] = [
-  {
-    id: "p1",
-    name: "Alex Rivera",
-    avatar: "https://picsum.photos/seed/p1/100",
-  },
-  { id: "p2", name: "Sarah Chen", avatar: "https://picsum.photos/seed/p2/100" },
-  {
-    id: "p3",
-    name: "James Wilson",
-    avatar: "https://picsum.photos/seed/p3/100",
-  },
 ];
 
 const NOTIFICATION_OPTIONS = [
@@ -55,6 +46,7 @@ const NOTIFICATION_OPTIONS = [
 export const EventEditor: React.FC<EventEditorProps> = ({
   initialDate,
   existingEvent,
+  availableParticipants,
   onClose,
   onSave,
 }) => {
@@ -84,6 +76,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
   const [selectedParticipants, setSelectedParticipants] = useState<
     Participant[]
   >(existingEvent?.participants || []);
+  const [participantSearch, setParticipantSearch] = useState("");
 
   // State for Custom Notification Dropdown
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -136,6 +129,10 @@ export const EventEditor: React.FC<EventEditorProps> = ({
     );
   };
 
+  const filteredParticipants = availableParticipants.filter((item) =>
+    item.name.toLowerCase().includes(participantSearch.toLowerCase()),
+  );
+
   const handleSave = () => {
     onSave({
       id: existingEvent?.id,
@@ -147,7 +144,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
       location,
       notificationMinutes: notification,
       participants: selectedParticipants,
-      category: existingEvent?.category || "work",
+      category: existingEvent?.category || "personal",
       recurrence: existingEvent?.recurrence || "none",
     });
   };
@@ -156,7 +153,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
     NOTIFICATION_OPTIONS.find((o) => o.value === notification)?.label || "None";
 
   return (
-    <div className="w-120 bg-white rounded-[40px] shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-slate-100 overflow-visible animate-scale-up ">
+    <div className="w-140 bg-white rounded-[40px] shadow-[0_32px_80px_rgba(0,0,0,0.12)] border border-slate-100 overflow-visible animate-scale-up ">
       {/* Header Section */}
       <div className="px-8 pt-5 pb-4 flex items-center justify-between">
         <h2 className="text-[12px] font-black text-slate-500 uppercase tracking-[0.3em]">
@@ -170,14 +167,14 @@ export const EventEditor: React.FC<EventEditorProps> = ({
         </button>
       </div>
 
-      <div className="px-10 pb-10 space-y-4">
+      <div className="px-10 pb-10">
         {/* Title Input */}
         <div className="space-y-2">
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full py-3 pl-6 bg-slate-100 border-none outline-none appearance-none shadow-none ring-0
+            className="w-full py-2 pl-6 bg-slate-100 border-none outline-none appearance-none shadow-none ring-0
           focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-2xl transition-all placeholder:text-slate-500 font-semibold"
             placeholder="Event Title..."
           />
@@ -188,10 +185,10 @@ export const EventEditor: React.FC<EventEditorProps> = ({
         </div>
 
         {/* Form Fields Group */}
-        <div className="space-y-6">
+        <div className="space-y-2">
           {/* Time & Duration */}
           <div className="flex items-center gap-5">
-            <div className="size-10 rounded-[14px] bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+            <div className="size-10 rounded-[14px] bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 my-3">
               <MdOutlineCalendarToday className="text-[20px]" />
             </div>
             <div className="flex-1 flex items-center gap-3">
@@ -226,6 +223,22 @@ export const EventEditor: React.FC<EventEditorProps> = ({
                 onChange={(e) => setLocation(e.target.value)}
                 className="w-full bg-slate-100 border border-transparent rounded-2xl py-3 px-5 text-xs font-bold text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 transition-all placeholder:text-slate-500"
                 placeholder="Add address or meeting link"
+              />
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="flex items-start gap-5">
+            <div className="size-10 rounded-[14px] bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 mt-1">
+              <MdOutlineDescription className="text-[20px]" />
+            </div>
+            <div className="flex-1 relative">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className="w-full resize-none bg-slate-100 border border-transparent rounded-2xl py-3 px-5 text-xs font-bold text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 transition-all placeholder:text-slate-500"
+                placeholder="Add event description"
               />
             </div>
           </div>
@@ -272,42 +285,61 @@ export const EventEditor: React.FC<EventEditorProps> = ({
         </div>
 
         {/* Participants Selection */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1 mt-2">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
               Participants
             </span>
             <div className="h-px flex-1 mx-4 bg-slate-100"></div>
           </div>
-          <div className="flex gap-3">
-            {SUGGESTED_PARTICIPANTS.map((p) => {
+          <input
+            value={participantSearch}
+            onChange={(e) => setParticipantSearch(e.target.value)}
+            className="w-full bg-slate-100 border border-transparent rounded-2xl py-3 px-5 text-xs font-bold text-slate-500 focus:bg-white border-none outline-none appearance-none shadow-none ring-0 focus:outline-none focus:ring-0 transition-all placeholder:text-slate-500"
+            placeholder="Search friends or groups"
+          />
+          <div className="flex gap-3 flex-wrap">
+            {filteredParticipants.map((p) => {
+              const participantItem: Participant = {
+                id: `${p.type}-${p.id}`,
+                type: p.type,
+                name: p.name,
+                avatar:
+                  p.avatarUrl ||
+                  "https://picsum.photos/seed/calendar-participant/100",
+                userId: p.type === "friend" ? p.id : undefined,
+                groupId: p.type === "group" ? p.id : undefined,
+              };
+
               const isSelected = selectedParticipants.find(
-                (item) => item.id === p.id,
+                (item) => item.id === participantItem.id,
               );
               return (
                 <button
-                  key={p.id}
-                  onClick={() => toggleParticipant(p)}
+                  key={participantItem.id}
+                  onClick={() => toggleParticipant(participantItem)}
                   className={`size-12 rounded-2xl overflow-hidden border-2 transition-all active:scale-90 cursor-pointer ${isSelected ? "border-green-primary ring-4 ring-green-primary/10 shadow-lg" : "border-transparent opacity-30 grayscale hover:opacity-100 hover:grayscale-0"}`}
-                  title={p.name}
+                  title={`${p.name} (${p.type})`}
                 >
                   <img
-                    src={p.avatar}
-                    alt={p.name}
+                    src={participantItem.avatar}
+                    alt={participantItem.name}
                     className="size-full object-cover"
                   />
                 </button>
               );
             })}
-            <button className="size-12 rounded-2xl border-2 border-dashed border-slate-100 flex items-center justify-center  cursor-pointer text-slate-500 hover:text-green-primary hover:border-green-primary/40 hover:bg-green-primary/5 transition-all active:scale-95">
-              <MdOutlinePersonAddAlt className="text-[20px]" />
-            </button>
+            {filteredParticipants.length === 0 && (
+              <div className="text-xs text-slate-400 px-1 py-2">
+                No matching participants.
+              </div>
+            )}
           </div>
         </div>
 
         {/* Color Palette */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1 mt-2">
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
               Theme
             </span>
@@ -339,7 +371,7 @@ export const EventEditor: React.FC<EventEditorProps> = ({
           </button>
           <button
             onClick={handleSave}
-            className="flex-[1.8] py-4 px-6 bg-green-primary text-white font-black text-[11px] uppercase tracking-widest rounded-3xl shadow-2xl shadow-slate-200 hover:bg-green-secondary hover:shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="flex-[1.8] py-4 px-6 bg-green-primary text-white font-black text-[11px] uppercase tracking-widest rounded-3xl shadow-2xl shadow-slate-200 hover:bg-green-hover hover:shadow-slate-300 active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <MdOutlineTaskAlt className="text-[18px]" />
             {existingEvent ? "Save Changes" : "Confirm Event"}

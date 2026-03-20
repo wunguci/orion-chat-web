@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { CalendarEvent } from "../../../types/calendar";
 import { MdOutlineModeEdit } from "react-icons/md";
 import { RiDeleteBinLine } from "react-icons/ri";
+import { FaForumbee } from "react-icons/fa";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -12,6 +13,7 @@ interface WeekViewProps {
   onDuplicateEvent: (e: CalendarEvent) => void;
   onResizeEvent: (id: string, newEnd: string) => void;
   onMoveEvent: (id: string, newStart: string, newEnd: string) => void;
+  onEventDragEnd: (id: string) => void;
 }
 
 export const WeekView: React.FC<WeekViewProps> = ({
@@ -22,6 +24,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onDeleteEvent,
   onResizeEvent,
   onMoveEvent,
+  onEventDragEnd,
 }) => {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(currentDate);
@@ -117,7 +120,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
               key={day.toISOString()}
               className="flex-1 border-r border-slate-100 last:border-r-0 relative group/col"
               onMouseMove={(e) => handleMouseMove(e, day)}
-              onMouseUp={() => setActiveAction(null)}
+              onMouseUp={() => {
+                if (activeAction) {
+                  onEventDragEnd(activeAction.id);
+                }
+                setActiveAction(null);
+              }}
             >
               {hours.map((h) => (
                 <div
@@ -229,9 +237,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 </div>
                               )}
                               <div className="size-6 rounded-full bg-white/20 backdrop-blur-md border-2 border-white flex items-center justify-center ml-auto">
-                                <span className="material-symbols-outlined text-[12px]">
-                                  forum
-                                </span>
+                                <FaForumbee className="text-[12px]" />
                               </div>
                             </div>
                           )}
