@@ -1,23 +1,168 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
-import { MOCK_DOCUMENTS, MOCK_USERS } from "../../../data/work-hub-mock";
-import type { DocumentViewMode } from "../../../types/work-hub.types";
+import { workHubApi } from "../../../features/work-hub/work-hub.api";
+import { mapDocument } from "../../../features/work-hub/work-hub.mappers";
+import { getUser } from "../../../utils/token";
+import type { Document, DocumentViewMode } from "../../../types/work-hub.types";
 
 const DocumentEditorPage = () => {
   const { workspaceId, documentId } = useParams<{
     workspaceId: string;
     documentId: string;
   }>();
-  const doc = MOCK_DOCUMENTS.find((d) => d.id === documentId);
+  const user = getUser();
 
+  const [doc, setDoc] = useState<Document | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [content, setContent] = useState("");
+  const [title, setTitle] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">(
+    "saved",
+  );
   const [viewMode, setViewMode] = useState<DocumentViewMode>("edit");
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentFilter, setCommentFilter] = useState<
     "all" | "open" | "resolved"
   >("all");
+  const [newComment, setNewComment] = useState("");
+  const [showVersionModal, setShowVersionModal] = useState(false);
+  const [versionName, setVersionName] = useState("");
+  const [savingVersion, setSavingVersion] = useState(false);
 
-  const title = doc?.title || "Untitled Document";
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+
+  // Fetch document
+  const fetchDocument = useCallback(async () => {
+    if (!documentId) return;
+    try {
+      setLoading(true);
+      const res = await workHubApi.getDocument(documentId);
+      const mapped = mapDocument(res.data) as Document;
+      setDoc(mapped);
+      setTitle(mapped.title);
+      setContent(mapped.content || "");
+    } catch (err) {
+      console.error("Failed to fetch document:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [documentId]);
+
+  useEffect(() => {
+    fetchDocument();
+  }, [fetchDocument]);
+
+  const autoSaveContent = useCallback(
+    (newContent: string) => {
+      if (!documentId || !user?.id) return;
+      setSaveStatus("unsaved");
+
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+
+      debounceTimer.current = setTimeout(async () => {
+        try {
+          setSaveStatus("saving");
+          await workHubApi.updateDocument(documentId, {
+            content: newContent,
+            lastEditedById: user.id,
+          });
+          setSaveStatus("saved");
+        } catch (err) {
+          console.error("Failed to auto-save:", err);
+          setSaveStatus("unsaved");
+        }
+      }, 1000);
+    },
+    [documentId, user?.id],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
+
+  const handleContentChange = () => {
+    if (editorRef.current) {
+      const newContent = editorRef.current.innerHTML;
+      setContent(newContent);
+      autoSaveContent(newContent);
+    }
+  };
+
+  const handleTitleSave = async () => {
+    if (!documentId || !user?.id || !title.trim()) return;
+    try {
+      await workHubApi.updateDocument(documentId, {
+        title: title.trim(),
+        lastEditedById: user.id,
+      });
+      setDoc((prev) => (prev ? { ...prev, title: title.trim() } : prev));
+      setEditingTitle(false);
+    } catch (err) {
+      console.error("Failed to update title:", err);
+    }
+  };
+
+  const handleSaveVersion = async () => {
+    if (!documentId || !user?.id) return;
+    try {
+      setSavingVersion(true);
+      await workHubApi.createDocumentVersion(documentId, {
+        content,
+        editedById: user.id,
+        name: versionName || undefined,
+      });
+      setShowVersionModal(false);
+      setVersionName("");
+      await fetchDocument();
+    } catch (err) {
+      console.error("Failed to save version:", err);
+    } finally {
+      setSavingVersion(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!documentId || !user?.id || !newComment.trim()) return;
+    const selection = window.getSelection();
+    const selectedText = selection?.toString() || "";
+    try {
+      await workHubApi.createInlineComment(documentId, {
+        selectedText: selectedText || "(general comment)",
+        text: newComment.trim(),
+        authorId: user.id,
+      });
+      setNewComment("");
+      await fetchDocument();
+    } catch (err) {
+      console.error("Failed to add comment:", err);
+    }
+  };
+
+  const handleResolveComment = async (commentId: string) => {
+    try {
+      await workHubApi.resolveInlineComment(commentId);
+      setDoc((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          comments: prev.comments.map((c) =>
+            c.id === commentId ? { ...c, isResolved: true } : c,
+          ),
+        };
+      });
+    } catch (err) {
+      console.error("Failed to resolve comment:", err);
+    }
+  };
 
   const onlineCollaborators =
     doc?.collaborators.filter((u) => u.status === "online") || [];
@@ -39,10 +184,40 @@ const DocumentEditorPage = () => {
     });
   };
 
+  const displayTitle = doc?.title || "Untitled Document";
+
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-wh-green-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-gray-500">Loading document...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!doc) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <i className="fas fa-file-alt text-4xl text-gray-300"></i>
+          <p className="font-medium text-gray-500">Document not found</p>
+          <Link
+            to={`/work-hub/${workspaceId}/documents`}
+            className="text-sm text-wh-green-primary hover:underline"
+          >
+            Back to Documents
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--wh-green-border-light)] bg-white">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-wh-green-border-light bg-white">
         <div className="flex items-center gap-3">
           <Link
             to={`/work-hub/${workspaceId}/documents`}
@@ -52,22 +227,62 @@ const DocumentEditorPage = () => {
           </Link>
           <div className="w-px h-5 bg-gray-200"></div>
           <div className="flex items-center gap-2">
-            <i className="fas fa-file-alt text-[var(--wh-green-primary)]"></i>
-            <span className="font-semibold text-gray-900 text-sm">{title}</span>
+            <i className="fas fa-file-alt text-wh-green-primary"></i>
+            {editingTitle ? (
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleTitleSave();
+                  if (e.key === "Escape") {
+                    setTitle(doc.title);
+                    setEditingTitle(false);
+                  }
+                }}
+                className="font-semibold text-gray-900 text-sm border border-wh-green-primary rounded px-1.5 py-0.5 outline-none"
+                autoFocus
+              />
+            ) : (
+              <span
+                className="font-semibold text-gray-900 text-sm cursor-pointer hover:text-wh-green-primary"
+                onClick={() => setEditingTitle(true)}
+                title="Click to edit title"
+              >
+                {displayTitle}
+              </span>
+            )}
           </div>
           <span className="text-xs text-gray-400 flex items-center gap-1">
-            <i className="fas fa-cloud text-green-400"></i> Saved
+            {saveStatus === "saved" && (
+              <>
+                <i className="fas fa-cloud text-green-400"></i> Saved
+              </>
+            )}
+            {saveStatus === "saving" && (
+              <>
+                <i className="fas fa-sync fa-spin text-yellow-400"></i>{" "}
+                Saving...
+              </>
+            )}
+            {saveStatus === "unsaved" && (
+              <>
+                <i className="fas fa-circle text-yellow-400 text-[8px]"></i>{" "}
+                Unsaved
+              </>
+            )}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Online collaborators */}
           <div className="flex items-center gap-1 mr-2">
-            {onlineCollaborators.slice(0, 4).map((user) => (
-              <div key={user.id} className="relative" title={user.name}>
+            {onlineCollaborators.slice(0, 4).map((collab) => (
+              <div key={collab.id} className="relative" title={collab.name}>
                 <img
-                  src={user.avatar}
-                  alt={user.name}
+                  src={collab.avatar}
+                  alt={collab.name}
                   className="w-7 h-7 rounded-full border-2 border-white"
                 />
                 <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-white"></div>
@@ -95,7 +310,7 @@ const DocumentEditorPage = () => {
                 title={m.tip}
                 className={`px-2.5 py-1.5 rounded-md text-xs transition-colors ${
                   viewMode === m.key
-                    ? "bg-white text-[var(--wh-green-primary)] shadow-sm"
+                    ? "bg-white text-wh-green-primary shadow-sm"
                     : "text-gray-400 hover:text-gray-600"
                 }`}
               >
@@ -108,10 +323,17 @@ const DocumentEditorPage = () => {
 
           {/* Action buttons */}
           <button
+            onClick={() => setShowVersionModal(true)}
+            className="px-2.5 py-1.5 rounded-lg text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            title="Save Version"
+          >
+            <i className="fas fa-save"></i>
+          </button>
+          <button
             onClick={() => setShowVersionHistory(!showVersionHistory)}
             className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
               showVersionHistory
-                ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-primary)]"
+                ? "bg-wh-green-bg-heavy text-wh-green-primary"
                 : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
             }`}
             title="Version History"
@@ -122,15 +344,15 @@ const DocumentEditorPage = () => {
             onClick={() => setShowComments(!showComments)}
             className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors relative ${
               showComments
-                ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-primary)]"
+                ? "bg-wh-green-bg-heavy text-wh-green-primary"
                 : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
             }`}
             title="Comments"
           >
             <i className="fas fa-comment-dots"></i>
-            {(doc?.comments.filter((c) => !c.isResolved).length || 0) > 0 && (
+            {(doc.comments.filter((c) => !c.isResolved).length || 0) > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold">
-                {doc?.comments.filter((c) => !c.isResolved).length}
+                {doc.comments.filter((c) => !c.isResolved).length}
               </span>
             )}
           </button>
@@ -279,7 +501,7 @@ const DocumentEditorPage = () => {
             <i className="fas fa-minus"></i>
           </button>
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-[var(--wh-green-primary)] text-sm w-8 h-8"
+            className="p-1.5 rounded hover:bg-gray-200 text-wh-green-primary text-sm w-8 h-8"
             title="Embed Task Link"
           >
             <i className="fas fa-clipboard-check"></i>
@@ -294,64 +516,38 @@ const DocumentEditorPage = () => {
           {viewMode === "edit" ? (
             <div className="max-w-3xl mx-auto py-10 px-8">
               <div
+                ref={editorRef}
                 className="prose prose-sm max-w-none min-h-[500px] outline-none"
                 contentEditable
                 suppressContentEditableWarning
-              >
-                <h1>{title}</h1>
-                <p>Start typing your document here...</p>
-                <p></p>
-                <h2>Section 1</h2>
-                <p>
-                  Add your content. You can format text, insert images, tables,
-                  and more using the toolbar above.
-                </p>
-                <ul>
-                  <li>List item 1</li>
-                  <li>List item 2</li>
-                  <li>List item 3</li>
-                </ul>
-                <p></p>
-                <h2>Section 2</h2>
-                <p>Continue writing your document...</p>
-                <blockquote>
-                  <p>
-                    You can add quotes, code blocks, and other rich content.
-                  </p>
-                </blockquote>
-              </div>
+                onInput={handleContentChange}
+                dangerouslySetInnerHTML={{
+                  __html:
+                    content ||
+                    `<h1>${displayTitle}</h1><p>Start typing your document here...</p>`,
+                }}
+              />
             </div>
           ) : viewMode === "preview" ? (
             <div className="max-w-3xl mx-auto py-10 px-8">
-              <div className="prose prose-sm max-w-none">
-                <h1>{title}</h1>
-                <p>Start typing your document here...</p>
-                <h2>Section 1</h2>
-                <p>
-                  Add your content. You can format text, insert images, tables,
-                  and more using the toolbar above.
-                </p>
-                <ul>
-                  <li>List item 1</li>
-                  <li>List item 2</li>
-                  <li>List item 3</li>
-                </ul>
-                <h2>Section 2</h2>
-                <p>Continue writing your document...</p>
-                <blockquote>
-                  <p>
-                    You can add quotes, code blocks, and other rich content.
-                  </p>
-                </blockquote>
-              </div>
+              <div
+                className="prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{
+                  __html:
+                    content || `<h1>${displayTitle}</h1><p>No content yet.</p>`,
+                }}
+              />
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center bg-gray-900 text-white">
               <div className="max-w-4xl w-full p-16">
-                <h1 className="text-4xl font-bold mb-6">{title}</h1>
-                <p className="text-xl text-gray-300">
-                  Presentation mode content
-                </p>
+                <h1 className="text-4xl font-bold mb-6">{displayTitle}</h1>
+                <div
+                  className="text-xl text-gray-300"
+                  dangerouslySetInnerHTML={{
+                    __html: content || "Presentation mode content",
+                  }}
+                />
               </div>
             </div>
           )}
@@ -359,7 +555,7 @@ const DocumentEditorPage = () => {
 
         {/* Version History Panel */}
         {showVersionHistory && (
-          <div className="w-72 border-l border-[var(--wh-green-border-light)] bg-white overflow-y-auto">
+          <div className="w-72 border-l border-wh-green-border-light bg-white overflow-y-auto">
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-gray-900">
@@ -374,21 +570,21 @@ const DocumentEditorPage = () => {
               </div>
             </div>
             <div className="p-3">
-              {(doc?.versions || []).map((version, idx) => (
+              {(doc.versions || []).map((version, idx) => (
                 <div
                   key={version.id}
                   className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors ${
                     idx === 0
-                      ? "bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-medium)]"
+                      ? "bg-wh-green-bg-light border border-wh-green-border-medium"
                       : "hover:bg-gray-50 border border-transparent"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-semibold text-gray-900">
-                      {version.name || `Version ${doc!.versions.length - idx}`}
+                      {version.name || `Version ${doc.versions.length - idx}`}
                     </span>
                     {idx === 0 && (
-                      <span className="text-[10px] font-semibold text-[var(--wh-green-primary)] bg-[var(--wh-green-bg-heavy)] px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-semibold text-wh-green-primary bg-wh-green-bg-heavy px-1.5 py-0.5 rounded">
                         Latest
                       </span>
                     )}
@@ -406,7 +602,7 @@ const DocumentEditorPage = () => {
                   </div>
                   {idx > 0 && (
                     <div className="flex items-center gap-2 mt-2">
-                      <button className="text-[11px] text-[var(--wh-green-primary)] hover:underline">
+                      <button className="text-[11px] text-wh-green-primary hover:underline">
                         Restore
                       </button>
                       <button className="text-[11px] text-gray-400 hover:underline">
@@ -416,7 +612,7 @@ const DocumentEditorPage = () => {
                   )}
                 </div>
               ))}
-              {(doc?.versions || []).length === 0 && (
+              {(doc.versions || []).length === 0 && (
                 <p className="text-center text-sm text-gray-400 py-6">
                   No version history
                 </p>
@@ -427,7 +623,7 @@ const DocumentEditorPage = () => {
 
         {/* Comments Panel */}
         {showComments && (
-          <div className="w-80 border-l border-[var(--wh-green-border-light)] bg-white overflow-y-auto flex flex-col">
+          <div className="w-80 border-l border-wh-green-border-light bg-white overflow-y-auto flex flex-col">
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm text-gray-900">
@@ -447,7 +643,7 @@ const DocumentEditorPage = () => {
                     onClick={() => setCommentFilter(f)}
                     className={`flex-1 px-2 py-1 rounded-md text-xs font-medium capitalize transition-colors ${
                       commentFilter === f
-                        ? "bg-white text-[var(--wh-green-primary)] shadow-sm"
+                        ? "bg-white text-wh-green-primary shadow-sm"
                         : "text-gray-500 hover:text-gray-700"
                     }`}
                   >
@@ -464,7 +660,7 @@ const DocumentEditorPage = () => {
                   className={`p-3 rounded-lg border mb-3 ${
                     comment.isResolved
                       ? "bg-gray-50 border-gray-200 opacity-70"
-                      : "bg-white border-[var(--wh-green-border-light)]"
+                      : "bg-white border-wh-green-border-light"
                   }`}
                 >
                   {/* Selected text */}
@@ -518,17 +714,21 @@ const DocumentEditorPage = () => {
 
                   {/* Actions */}
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                    <button className="text-[11px] text-gray-400 hover:text-[var(--wh-green-primary)]">
+                    <button className="text-[11px] text-gray-400 hover:text-wh-green-primary">
                       <i className="fas fa-reply mr-1"></i> Reply
                     </button>
-                    <button
-                      className={`text-[11px] ${comment.isResolved ? "text-green-500" : "text-gray-400 hover:text-green-500"}`}
-                    >
-                      <i
-                        className={`fas ${comment.isResolved ? "fa-check-circle" : "fa-circle"} mr-1`}
-                      ></i>
-                      {comment.isResolved ? "Resolved" : "Resolve"}
-                    </button>
+                    {!comment.isResolved ? (
+                      <button
+                        onClick={() => handleResolveComment(comment.id)}
+                        className="text-[11px] text-gray-400 hover:text-green-500"
+                      >
+                        <i className="fas fa-circle mr-1"></i> Resolve
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-green-500">
+                        <i className="fas fa-check-circle mr-1"></i> Resolved
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -544,16 +744,24 @@ const DocumentEditorPage = () => {
             <div className="p-3 border-t border-gray-100">
               <div className="flex items-center gap-2">
                 <img
-                  src={MOCK_USERS[0].avatar}
+                  src={user?.avatarUrl || "/avatar-user.png"}
                   alt=""
                   className="w-7 h-7 rounded-full"
                 />
                 <input
                   type="text"
                   placeholder="Add a comment..."
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddComment();
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 />
-                <button className="p-2 text-[var(--wh-green-primary)] hover:bg-[var(--wh-green-bg-light)] rounded-lg transition-colors">
+                <button
+                  onClick={handleAddComment}
+                  className="p-2 text-wh-green-primary hover:bg-wh-green-bg-light rounded-lg transition-colors"
+                >
                   <i className="fas fa-paper-plane text-sm"></i>
                 </button>
               </div>
@@ -561,8 +769,59 @@ const DocumentEditorPage = () => {
           </div>
         )}
       </div>
+
+      {/* Save Version Modal */}
+      {showVersionModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div className="p-5 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Save Version
+              </h2>
+            </div>
+            <div className="p-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Version Name (optional)
+              </label>
+              <input
+                type="text"
+                placeholder="e.g., Final draft, v2.0"
+                value={versionName}
+                onChange={(e) => setVersionName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSaveVersion();
+                }}
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                A snapshot of the current document will be saved.
+              </p>
+            </div>
+            <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowVersionModal(false);
+                  setVersionName("");
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveVersion}
+                disabled={savingVersion}
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
+              >
+                {savingVersion ? "Saving..." : "Save Version"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default DocumentEditorPage;
+

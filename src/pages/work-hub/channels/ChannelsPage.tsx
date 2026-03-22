@@ -52,8 +52,8 @@ const ChannelsPage = () => {
         onClick={() => setSelectedChannelId(channel.id)}
         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left mb-0.5 ${
           isActive
-            ? "bg-[var(--wh-green-primary)] text-white"
-            : "text-gray-600 hover:bg-[var(--wh-green-bg-heavy)]"
+            ? "bg-wh-green-primary text-white"
+            : "text-gray-600 hover:bg-wh-green-bg-heavy"
         }`}
       >
         <span
@@ -123,7 +123,7 @@ const ChannelsPage = () => {
 
         {/* Thread replies */}
         {msg.threadReplyCount > 0 && (
-          <button className="flex items-center gap-2 mt-2 text-xs text-[var(--wh-green-primary)] hover:underline">
+          <button className="flex items-center gap-2 mt-2 text-xs text-wh-green-primary hover:underline">
             <div className="flex -space-x-1">
               {msg.threadReplies.slice(0, 3).map((r) => (
                 <img
@@ -172,13 +172,13 @@ const ChannelsPage = () => {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* Channel sidebar */}
-      <div className="w-60 border-r border-[var(--wh-green-border-light)] bg-white flex flex-col">
-        <div className="p-3 border-b border-[var(--wh-green-border-light)]">
+      <div className="w-60 border-r border-wh-green-border-light bg-white flex flex-col">
+        <div className="p-3 border-b border-wh-green-border-light">
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-semibold text-sm text-gray-900">Channels</h2>
             <button
               onClick={() => setShowCreateChannel(true)}
-              className="text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] transition-colors"
+              className="text-wh-green-text-muted hover:text-wh-green-primary transition-colors"
               title="Create Channel"
             >
               <i className="fas fa-plus text-xs"></i>
@@ -191,7 +191,7 @@ const ChannelsPage = () => {
               placeholder="Search channels..."
               value={channelSearch}
               onChange={(e) => setChannelSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--wh-green-primary)]"
+              className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-wh-green-primary"
             />
           </div>
         </div>
@@ -224,7 +224,7 @@ const ChannelsPage = () => {
         {selectedChannel ? (
           <>
             {/* Channel header */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--wh-green-border-light)]">
+            <div className="flex items-center justify-between px-6 py-3 border-b border-wh-green-border-light">
               <div className="flex items-center gap-2">
                 <span className="text-gray-400 font-bold">#</span>
                 <h2 className="font-semibold text-gray-900">
@@ -256,7 +256,7 @@ const ChannelsPage = () => {
                   onClick={() => setShowChannelInfo(!showChannelInfo)}
                   className={`p-2 rounded-lg transition-colors text-sm ${
                     showChannelInfo
-                      ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-primary)]"
+                      ? "bg-wh-green-bg-heavy text-wh-green-primary"
                       : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                   }`}
                   title="Channel info"
@@ -289,7 +289,7 @@ const ChannelsPage = () => {
 
             {/* Message input */}
             <div className="px-6 pb-4">
-              <div className="border border-[var(--wh-green-border-medium)] rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[var(--wh-green-primary)] focus-within:border-transparent">
+              <div className="border border-wh-green-border-medium rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-wh-green-primary focus-within:border-transparent">
                 <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100">
                   <button className="p-1 rounded hover:bg-gray-100 text-gray-400 text-sm">
                     <i className="fas fa-bold"></i>
@@ -342,7 +342,7 @@ const ChannelsPage = () => {
                   <button
                     className={`p-2 rounded-lg transition-colors ${
                       messageInput.trim()
-                        ? "bg-[var(--wh-green-primary)] text-white hover:bg-[var(--wh-green-primary-hover)]"
+                        ? "bg-wh-green-primary text-white hover:bg-wh-green-primary-hover"
                         : "bg-gray-100 text-gray-400"
                     }`}
                   >
@@ -361,7 +361,7 @@ const ChannelsPage = () => {
 
       {/* Channel info panel */}
       {showChannelInfo && selectedChannel && (
-        <div className="w-72 border-l border-[var(--wh-green-border-light)] bg-white overflow-y-auto">
+        <div className="w-72 border-l border-wh-green-border-light bg-white overflow-y-auto">
           <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm text-gray-900">
@@ -421,7 +421,7 @@ const ChannelsPage = () => {
                 <h4 className="text-sm font-semibold text-gray-900">
                   Members ({selectedChannel.members.length})
                 </h4>
-                <button className="text-[var(--wh-green-primary)] text-xs hover:underline">
+                <button className="text-wh-green-primary text-xs hover:underline">
                   Add
                 </button>
               </div>
@@ -486,7 +486,7 @@ const ChannelsPage = () => {
                   <input
                     type="text"
                     placeholder="e.g. design-team"
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                   />
                 </div>
               </div>
@@ -497,7 +497,7 @@ const ChannelsPage = () => {
                 <input
                   type="text"
                   placeholder="What's this channel about?"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 />
               </div>
               <div>
@@ -505,13 +505,13 @@ const ChannelsPage = () => {
                   Visibility
                 </label>
                 <div className="flex gap-3">
-                  <label className="flex-1 flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-[var(--wh-green-primary)] transition-colors">
+                  <label className="flex-1 flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-wh-green-primary transition-colors">
                     <input
                       type="radio"
                       name="visibility"
                       value="public"
                       defaultChecked
-                      className="text-[var(--wh-green-primary)]"
+                      className="text-wh-green-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-gray-900">
@@ -522,12 +522,12 @@ const ChannelsPage = () => {
                       </div>
                     </div>
                   </label>
-                  <label className="flex-1 flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-[var(--wh-green-primary)] transition-colors">
+                  <label className="flex-1 flex items-center gap-2 p-3 border border-gray-200 rounded-lg cursor-pointer hover:border-wh-green-primary transition-colors">
                     <input
                       type="radio"
                       name="visibility"
                       value="private"
-                      className="text-[var(--wh-green-primary)]"
+                      className="text-wh-green-primary"
                     />
                     <div>
                       <div className="text-sm font-medium text-gray-900">
@@ -548,7 +548,7 @@ const ChannelsPage = () => {
               </button>
               <button
                 onClick={() => setShowCreateChannel(false)}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors font-medium"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium"
               >
                 Create Channel
               </button>
@@ -561,3 +561,4 @@ const ChannelsPage = () => {
 };
 
 export default ChannelsPage;
+

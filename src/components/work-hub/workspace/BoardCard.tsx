@@ -36,7 +36,7 @@ const BoardCard = ({
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5 cursor-pointer transition-all hover:shadow-md hover:border-[var(--wh-green-primary)] group"
+      className="bg-white border border-wh-green-border-light rounded-xl p-5 cursor-pointer transition-all hover:shadow-md hover:border-wh-green-primary group"
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
@@ -48,7 +48,7 @@ const BoardCard = ({
             <i className={`fas ${board.icon}`}></i>
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 group-hover:text-[var(--wh-green-primary)] transition-colors">
+            <h3 className="font-semibold text-gray-900 group-hover:text-wh-green-primary transition-colors">
               {board.name}
             </h3>
             <p className="text-xs text-gray-500">
@@ -71,7 +71,7 @@ const BoardCard = ({
 
           {menuOpen && (onEdit || onDelete) && (
             <div
-              className="absolute right-0 top-8 w-36 bg-white border border-[var(--wh-green-border-light)] rounded-lg shadow-lg py-1 z-20"
+              className="absolute right-0 top-8 w-36 bg-white border border-wh-green-border-light rounded-lg shadow-lg py-1 z-20"
               onClick={(e) => e.stopPropagation()}
             >
               {onEdit && (
@@ -81,7 +81,7 @@ const BoardCard = ({
                     setMenuOpen(false);
                     onEdit(board);
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-[var(--wh-green-bg-light)] transition-colors"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-700 hover:bg-wh-green-bg-light transition-colors"
                 >
                   <i className="fas fa-edit text-xs text-gray-400 w-4 text-center"></i>
                   Edit
@@ -118,7 +118,7 @@ const BoardCard = ({
           <span>
             {taskCount.completed}/{taskCount.total} tasks completed
           </span>
-          <span className="font-medium text-[var(--wh-green-text-primary)]">
+          <span className="font-medium text-wh-green-text-primary">
             {Math.round(progress)}%
           </span>
         </div>
@@ -145,3 +145,4 @@ const BoardCard = ({
 };
 
 export default BoardCard;
+

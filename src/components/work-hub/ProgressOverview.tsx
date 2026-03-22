@@ -16,14 +16,14 @@ const ProgressOverview = ({
   const pct = (count: number) => (totalTasks > 0 ? (count / totalTasks) * 100 : 0);
 
   const segments = [
-    { label: "To Do", count: todoCount, color: "var(--wh-status-todo)" },
-    { label: "In Progress", count: inProgressCount, color: "var(--wh-status-inprogress)" },
-    { label: "Completed", count: completedCount, color: "var(--wh-status-done)" },
-    { label: "Overdue", count: overdueCount, color: "var(--wh-priority-critical)" },
+    { label: "To Do", count: todoCount, color: "#94a3b8" },
+    { label: "In Progress", count: inProgressCount, color: "#f59e0b" },
+    { label: "Completed", count: completedCount, color: "#10b981" },
+    { label: "Overdue", count: overdueCount, color: "#ef4444" },
   ];
 
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-6 mb-6">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-6 mb-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-base font-semibold text-gray-900">Task Progress</h3>
         <div className="flex items-center gap-4 text-xs">
@@ -53,7 +53,7 @@ const ProgressOverview = ({
 
       <div className="flex justify-between mt-2 text-xs text-gray-400">
         <span>0%</span>
-        <span className="font-medium text-[var(--wh-green-text-primary)]">
+        <span className="font-medium text-wh-green-text-primary">
           {Math.round(pct(completedCount))}% completed
         </span>
         <span>100%</span>
@@ -63,3 +63,4 @@ const ProgressOverview = ({
 };
 
 export default ProgressOverview;
+

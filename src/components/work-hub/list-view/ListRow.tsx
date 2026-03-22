@@ -7,17 +7,17 @@ interface ListRowProps {
 }
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  todo: { label: "To Do", color: "var(--wh-status-todo)" },
-  inprogress: { label: "In Progress", color: "var(--wh-status-inprogress)" },
-  review: { label: "Review", color: "var(--wh-status-review)" },
-  done: { label: "Done", color: "var(--wh-status-done)" },
+  todo: { label: "To Do", color: "#94a3b8" },
+  inprogress: { label: "In Progress", color: "#f59e0b" },
+  review: { label: "Review", color: "#6c2eff" },
+  done: { label: "Done", color: "#10b981" },
 };
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
-  low: { label: "Low", color: "var(--wh-priority-low)" },
-  medium: { label: "Med", color: "var(--wh-priority-medium)" },
-  high: { label: "High", color: "var(--wh-priority-high)" },
-  critical: { label: "Crit", color: "var(--wh-priority-critical)" },
+  low: { label: "Low", color: "#3b82f6" },
+  medium: { label: "Med", color: "#f59e0b" },
+  high: { label: "High", color: "#f97316" },
+  critical: { label: "Crit", color: "#ef4444" },
 };
 
 const ListRow = ({ task, onClick }: ListRowProps) => {
@@ -30,11 +30,11 @@ const ListRow = ({ task, onClick }: ListRowProps) => {
   return (
     <div
       onClick={() => onClick(task.id)}
-      className="flex items-center px-4 py-3 bg-white border-b border-[var(--wh-green-border-light)] hover:bg-[var(--wh-green-bg-light)] cursor-pointer transition-colors group"
+      className="flex items-center px-4 py-3 bg-white border-b border-wh-green-border-light hover:bg-wh-green-bg-light cursor-pointer transition-colors group"
     >
       {/* Title */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate group-hover:text-[var(--wh-green-primary)]">
+        <p className="text-sm font-medium text-gray-800 truncate group-hover:text-wh-green-primary">
           {task.title}
         </p>
       </div>
@@ -90,7 +90,7 @@ const ListRow = ({ task, onClick }: ListRowProps) => {
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full bg-[var(--wh-green-primary)] rounded-full"
+                className="h-full bg-wh-green-primary rounded-full"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -105,3 +105,4 @@ const ListRow = ({ task, onClick }: ListRowProps) => {
 };
 
 export default ListRow;
+

@@ -1,7 +1,8 @@
 /* Import Tailwind directives */
+@config "../tailwind.config.ts";
 @import "tailwindcss";
 
-@theme {
+/* @theme {
   --color-orange-primary: #ee652b;
   --color-orange-bg-heavy: #fcede6;
   --color-orange-bg-light: #fdfaf9;
@@ -16,7 +17,7 @@
   --color-green-border-light: #d6f2f2;
   --color-green-message: #007c7c;
   --color-blue-dark: #0052cc;
-}
+} */
 
 /* ==================== CUSTOM CSS VARIABLES ==================== */
 :root {

@@ -110,7 +110,7 @@ const TaskModal = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter task name"
-            className="w-full px-4 py-2.5 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-gray-900 focus:outline-none focus:border-[var(--wh-green-primary)]"
+            className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
           />
         </div>
 
@@ -124,7 +124,7 @@ const TaskModal = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Enter task description"
             rows={3}
-            className="w-full px-4 py-2.5 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-gray-900 focus:outline-none focus:border-[var(--wh-green-primary)] resize-none"
+            className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary resize-none"
           />
         </div>
 
@@ -137,7 +137,7 @@ const TaskModal = ({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as TaskStatus)}
-              className="w-full px-4 py-2.5 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-gray-900 focus:outline-none focus:border-[var(--wh-green-primary)]"
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
             >
               <option value="todo">To Do</option>
               <option value="inprogress">In Progress</option>
@@ -152,7 +152,7 @@ const TaskModal = ({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
-              className="w-full px-4 py-2.5 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-gray-900 focus:outline-none focus:border-[var(--wh-green-primary)]"
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -172,7 +172,7 @@ const TaskModal = ({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2.5 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-gray-900 focus:outline-none focus:border-[var(--wh-green-primary)]"
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
             />
           </div>
           <div>
@@ -183,7 +183,7 @@ const TaskModal = ({
               type="date"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-4 py-2.5 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-gray-900 focus:outline-none focus:border-[var(--wh-green-primary)]"
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
             />
           </div>
         </div>
@@ -198,7 +198,7 @@ const TaskModal = ({
               {selectedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--wh-green-bg-heavy)] border border-[var(--wh-green-border-medium)] rounded-full text-sm"
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-wh-green-bg-heavy border border-wh-green-border-medium rounded-full text-sm"
                 >
                   <img
                     src={user.avatar}
@@ -219,18 +219,18 @@ const TaskModal = ({
           <div className="relative">
             <button
               onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
-              className="w-full px-4 py-2.5 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-gray-500 text-left text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-500 text-left text-sm focus:outline-none focus:border-wh-green-primary"
             >
               <i className="fas fa-user-plus mr-2"></i>
               Add assignees...
             </button>
             {showAssigneeDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[var(--wh-green-border-light)] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-wh-green-border-light rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                 {users.map((user) => (
                   <div
                     key={user.id}
                     onClick={() => toggleAssignee(user.id)}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--wh-green-bg-light)] cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-wh-green-bg-light cursor-pointer"
                   >
                     <img
                       src={user.avatar}
@@ -241,7 +241,7 @@ const TaskModal = ({
                       {user.name}
                     </span>
                     {assigneeIds.includes(user.id) && (
-                      <i className="fas fa-check text-[var(--wh-green-primary)] text-sm"></i>
+                      <i className="fas fa-check text-wh-green-primary text-sm"></i>
                     )}
                   </div>
                 ))}
@@ -279,17 +279,17 @@ const TaskModal = ({
       </div>
 
       {/* Footer */}
-      <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-[var(--wh-green-border-light)]">
+      <div className="flex justify-end gap-3 mt-6 pt-5 border-t border-wh-green-border-light">
         <button
           onClick={onClose}
-          className="px-5 py-2 border border-[var(--wh-green-border-light)] text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+          className="px-5 py-2 border border-wh-green-border-light text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
         >
           Cancel
         </button>
         <button
           onClick={handleSubmit}
           disabled={!title.trim()}
-          className="px-5 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          className="px-5 py-2 bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
         >
           <i className="fas fa-save"></i>
           {editData ? "Update Task" : "Create Task"}
@@ -300,3 +300,4 @@ const TaskModal = ({
 };
 
 export default TaskModal;
+

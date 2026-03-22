@@ -28,7 +28,7 @@ const AvatarGroup = ({ users, max = 3, size = "xs" }: AvatarGroupProps) => {
           ))}
           {overflow > 0 && (
               <div
-                  className={`${overflowSize[size]} rounded-full bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] font-semibold flex items-center justify-center border-2 border-white`}
+                  className={`${overflowSize[size]} rounded-full bg-wh-green-bg-heavy text-wh-green-text-primary font-semibold flex items-center justify-center border-2 border-white`}
               >
                   +{overflow}
               </div>
@@ -38,3 +38,4 @@ const AvatarGroup = ({ users, max = 3, size = "xs" }: AvatarGroupProps) => {
 };
 
 export default AvatarGroup;
+

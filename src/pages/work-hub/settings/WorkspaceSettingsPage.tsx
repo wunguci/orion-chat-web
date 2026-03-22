@@ -43,10 +43,10 @@ const WorkspaceSettingsPage = () => {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--wh-green-bg-light)]">
+      <div className="flex-1 flex items-center justify-center bg-wh-green-bg-light">
         <i
           className="fas fa-spinner fa-spin text-3xl"
-          style={{ color: "var(--wh-green-primary)" }}
+          style={{ color: "#0d9488" }}
         ></i>
       </div>
     );
@@ -54,7 +54,7 @@ const WorkspaceSettingsPage = () => {
 
   if (!workspace) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--wh-green-bg-light)]">
+      <div className="flex-1 flex items-center justify-center bg-wh-green-bg-light">
         <p className="text-gray-500">Workspace not found</p>
       </div>
     );
@@ -63,7 +63,7 @@ const WorkspaceSettingsPage = () => {
   return (
     <>
       {/* Header */}
-      <div className="px-6 lg:px-8 py-4 bg-white border-b border-[var(--wh-green-border-light)]">
+      <div className="px-6 lg:px-8 py-4 bg-white border-b border-wh-green-border-light">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Settings</h1>
           <p className="text-sm text-gray-500 mt-0.5">
@@ -73,7 +73,7 @@ const WorkspaceSettingsPage = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto bg-[var(--wh-green-bg-light)]">
+      <div className="flex-1 overflow-y-auto bg-wh-green-bg-light">
         <div className="p-6 lg:p-8 max-w-[800px] mx-auto">
           <WorkspaceSettingsForm workspace={workspace} onSave={handleSave} />
         </div>
@@ -83,3 +83,4 @@ const WorkspaceSettingsPage = () => {
 };
 
 export default WorkspaceSettingsPage;
+

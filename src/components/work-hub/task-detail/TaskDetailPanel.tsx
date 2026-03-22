@@ -65,7 +65,7 @@ const TaskDetailPanel = ({
       {/* Panel */}
       <div className="fixed right-0 top-0 h-full w-full max-w-[600px] bg-white shadow-2xl z-50 flex flex-col animate-slide-in-right">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-[var(--wh-green-border-light)] flex-shrink-0">
+        <div className="px-6 py-4 border-b border-wh-green-border-light flex-shrink-0">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <span
@@ -78,7 +78,7 @@ const TaskDetailPanel = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowTransfer(true)}
-                className="w-8 h-8 rounded-lg hover:bg-[var(--wh-green-bg-heavy)] flex items-center justify-center text-gray-400 hover:text-[var(--wh-green-primary)] transition-colors"
+                className="w-8 h-8 rounded-lg hover:bg-wh-green-bg-heavy flex items-center justify-center text-gray-400 hover:text-wh-green-primary transition-colors"
                 title="Transfer task"
               >
                 <i className="fas fa-share text-sm"></i>
@@ -97,7 +97,7 @@ const TaskDetailPanel = ({
             <select
               value={task.status}
               onChange={(e) => onStatusChange(task.id, e.target.value as TaskStatus)}
-              className="px-3 py-1.5 text-sm border border-[var(--wh-green-border-light)] rounded-lg bg-[var(--wh-green-bg-light)] text-[var(--wh-green-text-primary)] font-medium focus:outline-none focus:border-[var(--wh-green-primary)]"
+              className="px-3 py-1.5 text-sm border border-wh-green-border-light rounded-lg bg-wh-green-bg-light text-wh-green-text-primary font-medium focus:outline-none focus:border-wh-green-primary"
             >
               <option value="todo">To Do</option>
               <option value="inprogress">In Progress</option>
@@ -112,14 +112,14 @@ const TaskDetailPanel = ({
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-[var(--wh-green-border-light)] px-6 flex-shrink-0">
+        <div className="flex border-b border-wh-green-border-light px-6 flex-shrink-0">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
-                  ? "border-[var(--wh-green-primary)] text-[var(--wh-green-primary)]"
+                  ? "border-wh-green-primary text-wh-green-primary"
                   : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
@@ -258,3 +258,4 @@ const TaskDetailPanel = ({
 };
 
 export default TaskDetailPanel;
+

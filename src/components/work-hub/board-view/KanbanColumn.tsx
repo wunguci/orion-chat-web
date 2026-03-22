@@ -64,8 +64,8 @@ const KanbanColumn = ({
     <div
       className={`flex flex-col min-w-[300px] max-w-[350px] rounded-xl transition-all ${
         isDragOver
-          ? "bg-[var(--wh-green-bg-heavy)] border-2 border-dashed border-[var(--wh-green-primary)]"
-          : "bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)]"
+          ? "bg-wh-green-bg-heavy border-2 border-dashed border-wh-green-primary"
+          : "bg-wh-green-bg-light border border-wh-green-border-light"
       }`}
       onDragOver={(e) => {
         e.preventDefault();
@@ -88,7 +88,7 @@ const KanbanColumn = ({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Column Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--wh-green-border-light)]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-wh-green-border-light">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           <div
             className="w-2 h-2 rounded-full flex-shrink-0"
@@ -102,11 +102,11 @@ const KanbanColumn = ({
               onChange={(e) => setEditName(e.target.value)}
               onBlur={handleNameSubmit}
               onKeyDown={handleKeyDown}
-              className="font-semibold text-sm text-gray-800 bg-white border border-[var(--wh-green-primary)] rounded px-1.5 py-0.5 outline-none w-full min-w-0"
+              className="font-semibold text-sm text-gray-800 bg-white border border-wh-green-primary rounded px-1.5 py-0.5 outline-none w-full min-w-0"
             />
           ) : (
             <h3
-              className={`font-semibold text-sm text-gray-800 truncate ${onEditName ? "cursor-pointer hover:text-[var(--wh-green-primary)]" : ""}`}
+              className={`font-semibold text-sm text-gray-800 truncate ${onEditName ? "cursor-pointer hover:text-wh-green-primary" : ""}`}
               onClick={() => {
                 if (onEditName) {
                   setEditName(column.name);
@@ -118,7 +118,7 @@ const KanbanColumn = ({
               {column.name}
             </h3>
           )}
-          <span className="bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
+          <span className="bg-wh-green-bg-heavy text-wh-green-text-primary px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0">
             {tasks.length}
           </span>
         </div>
@@ -134,7 +134,7 @@ const KanbanColumn = ({
           )}
           <button
             onClick={onAddTask}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-[var(--wh-green-primary)] hover:bg-[var(--wh-green-bg-heavy)] transition-colors"
+            className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-wh-green-primary hover:bg-wh-green-bg-heavy transition-colors"
             title="Add task"
           >
             <i className="fas fa-plus text-xs"></i>
@@ -167,3 +167,4 @@ const KanbanColumn = ({
 };
 
 export default KanbanColumn;
+

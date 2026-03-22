@@ -32,7 +32,7 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
   return (
     <div className="relative">
       {/* Vertical line */}
-      <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-[var(--wh-green-border-light)]" />
+      <div className="absolute left-[19px] top-4 bottom-4 w-0.5 bg-wh-green-border-light" />
 
       <div className="space-y-4">
         {sorted.map((activity) => {
@@ -79,3 +79,4 @@ const ActivityTimeline = ({ activities }: ActivityTimelineProps) => {
 };
 
 export default ActivityTimeline;
+

@@ -28,6 +28,34 @@ import type {
   CreateAttachmentRequest,
   ActivityLogResponse,
   CreateActivityLogRequest,
+  GoalResponse,
+  CreateGoalRequest,
+  UpdateGoalRequest,
+  KeyResultResponse,
+  CreateKeyResultRequest,
+  UpdateKeyResultRequest,
+  SprintResponse,
+  CreateSprintRequest,
+  UpdateSprintRequest,
+  EpicResponse,
+  CreateEpicRequest,
+  UpdateEpicRequest,
+  MilestoneResponse,
+  CreateMilestoneRequest,
+  UpdateMilestoneRequest,
+  AutomationRuleResponse,
+  CreateAutomationRequest,
+  UpdateAutomationRequest,
+  DocumentResponse,
+  CreateDocumentRequest,
+  UpdateDocumentRequest,
+  CreateDocumentVersionRequest,
+  CreateInlineCommentRequest,
+  WorkspaceFileResponse,
+  CreateWorkspaceFileRequest,
+  UpdateWorkspaceFileRequest,
+  WorkloadMemberResponse,
+  ReportDataResponse,
 } from "./work-hub.api.types";
 
 export const workHubApi = {
@@ -343,4 +371,148 @@ export const workHubApi = {
    */
   createActivity: (taskId: string, data: CreateActivityLogRequest) =>
     api.post<ActivityLogResponse>(`/tasks/${taskId}/activities`, data),
+
+  /** GET /workspaces/:workspaceId/activities - Activity feed workspace-level */
+  getWorkspaceActivities: (workspaceId: string) =>
+    api.get<ActivityLogResponse[]>(`/workspaces/${workspaceId}/activities`),
+
+  // ---- Goal CRUD ----
+
+  getGoals: (workspaceId: string) =>
+    api.get<GoalResponse[]>(`/workspaces/${workspaceId}/goals`),
+
+  createGoal: (workspaceId: string, data: CreateGoalRequest) =>
+    api.post<GoalResponse>(`/workspaces/${workspaceId}/goals`, data),
+
+  updateGoal: (id: string, data: UpdateGoalRequest) =>
+    api.patch<GoalResponse>(`/goals/${id}`, data),
+
+  deleteGoal: (id: string) => api.delete(`/goals/${id}`),
+
+  createKeyResult: (goalId: string, data: CreateKeyResultRequest) =>
+    api.post<KeyResultResponse>(`/goals/${goalId}/key-results`, data),
+
+  updateKeyResult: (krId: string, data: UpdateKeyResultRequest) =>
+    api.patch<KeyResultResponse>(`/key-results/${krId}`, data),
+
+  deleteKeyResult: (krId: string) => api.delete(`/key-results/${krId}`),
+
+  // ---- Sprint CRUD ----
+
+  getSprints: (workspaceId: string) =>
+    api.get<SprintResponse[]>(`/workspaces/${workspaceId}/sprints`),
+
+  createSprint: (workspaceId: string, data: CreateSprintRequest) =>
+    api.post<SprintResponse>(`/workspaces/${workspaceId}/sprints`, data),
+
+  updateSprint: (id: string, data: UpdateSprintRequest) =>
+    api.patch<SprintResponse>(`/sprints/${id}`, data),
+
+  deleteSprint: (id: string) => api.delete(`/sprints/${id}`),
+
+  getSprintTasks: (sprintId: string) =>
+    api.get<TaskResponse[]>(`/sprints/${sprintId}/tasks`),
+
+  // ---- Epic CRUD ----
+
+  getEpics: (workspaceId: string) =>
+    api.get<EpicResponse[]>(`/workspaces/${workspaceId}/epics`),
+
+  createEpic: (workspaceId: string, data: CreateEpicRequest) =>
+    api.post<EpicResponse>(`/workspaces/${workspaceId}/epics`, data),
+
+  updateEpic: (id: string, data: UpdateEpicRequest) =>
+    api.patch<EpicResponse>(`/epics/${id}`, data),
+
+  deleteEpic: (id: string) => api.delete(`/epics/${id}`),
+
+  // ---- Milestone CRUD ----
+
+  getMilestones: (workspaceId: string) =>
+    api.get<MilestoneResponse[]>(`/workspaces/${workspaceId}/milestones`),
+
+  createMilestone: (workspaceId: string, data: CreateMilestoneRequest) =>
+    api.post<MilestoneResponse>(`/workspaces/${workspaceId}/milestones`, data),
+
+  updateMilestone: (id: string, data: UpdateMilestoneRequest) =>
+    api.patch<MilestoneResponse>(`/milestones/${id}`, data),
+
+  deleteMilestone: (id: string) => api.delete(`/milestones/${id}`),
+
+  // ---- Automation CRUD ----
+
+  getAutomations: (workspaceId: string) =>
+    api.get<AutomationRuleResponse[]>(`/workspaces/${workspaceId}/automations`),
+
+  createAutomation: (workspaceId: string, data: CreateAutomationRequest) =>
+    api.post<AutomationRuleResponse>(
+      `/workspaces/${workspaceId}/automations`,
+      data,
+    ),
+
+  updateAutomation: (id: string, data: UpdateAutomationRequest) =>
+    api.patch<AutomationRuleResponse>(`/automations/${id}`, data),
+
+  toggleAutomation: (id: string) =>
+    api.patch<AutomationRuleResponse>(`/automations/${id}/toggle`, {}),
+
+  deleteAutomation: (id: string) => api.delete(`/automations/${id}`),
+
+  // ---- Document CRUD ----
+
+  getDocuments: (workspaceId: string) =>
+    api.get<DocumentResponse[]>(`/workspaces/${workspaceId}/documents`),
+
+  getDocument: (id: string) => api.get<DocumentResponse>(`/documents/${id}`),
+
+  createDocument: (workspaceId: string, data: CreateDocumentRequest) =>
+    api.post<DocumentResponse>(`/workspaces/${workspaceId}/documents`, data),
+
+  updateDocument: (id: string, data: UpdateDocumentRequest) =>
+    api.patch<DocumentResponse>(`/documents/${id}`, data),
+
+  deleteDocument: (id: string) => api.delete(`/documents/${id}`),
+
+  createDocumentVersion: (docId: string, data: CreateDocumentVersionRequest) =>
+    api.post(`/documents/${docId}/versions`, data),
+
+  createInlineComment: (docId: string, data: CreateInlineCommentRequest) =>
+    api.post(`/documents/${docId}/comments`, data),
+
+  resolveInlineComment: (commentId: string) =>
+    api.patch(`/inline-comments/${commentId}/resolve`, {}),
+
+  // ---- WorkspaceFile CRUD ----
+
+  getWorkspaceFiles: (workspaceId: string, parentId?: string) =>
+    api.get<WorkspaceFileResponse[]>(
+      `/workspaces/${workspaceId}/files${parentId ? `?parentId=${parentId}` : ""}`,
+    ),
+
+  createWorkspaceFile: (
+    workspaceId: string,
+    data: CreateWorkspaceFileRequest,
+  ) =>
+    api.post<WorkspaceFileResponse>(`/workspaces/${workspaceId}/files`, data),
+
+  createWorkspaceFolder: (
+    workspaceId: string,
+    data: CreateWorkspaceFileRequest,
+  ) =>
+    api.post<WorkspaceFileResponse>(`/workspaces/${workspaceId}/folders`, data),
+
+  updateWorkspaceFile: (id: string, data: UpdateWorkspaceFileRequest) =>
+    api.patch<WorkspaceFileResponse>(`/workspace-files/${id}`, data),
+
+  deleteWorkspaceFile: (id: string) => api.delete(`/workspace-files/${id}`),
+
+  // ---- Workload Aggregate ----
+
+  getWorkload: (workspaceId: string) =>
+    api.get<WorkloadMemberResponse[]>(`/workspaces/${workspaceId}/workload`),
+
+  // ---- Reports Aggregate ----
+
+  getReports: (workspaceId: string) =>
+    api.get<ReportDataResponse>(`/workspaces/${workspaceId}/reports`),
 };

@@ -15,6 +15,18 @@ import type {
   TaskStatus,
   TaskPriority,
   WorkspaceStats,
+  Goal,
+  GoalStatus,
+  KeyResult,
+  Sprint,
+  SprintStatus,
+  Epic,
+  EpicStatus,
+  Milestone,
+  MilestoneStatus,
+  AutomationRule,
+  FileItem,
+  FileAccessLevel,
 } from "../../types/work-hub.types";
 
 import type {
@@ -29,6 +41,16 @@ import type {
   CommentResponse,
   AttachmentResponse,
   ActivityLogResponse,
+  GoalResponse,
+  KeyResultResponse,
+  SprintResponse,
+  EpicResponse,
+  MilestoneResponse,
+  AutomationRuleResponse,
+  DocumentResponse,
+  DocumentVersionResponse,
+  InlineCommentResponse,
+  WorkspaceFileResponse,
 } from "./work-hub.api.types";
 
 const STATUS_TO_FE: Record<string, TaskStatus> = {
@@ -240,5 +262,151 @@ export function mapWorkspace(ws: WorkspaceResponse): Workspace {
     members,
     boards,
     stats,
+  };
+}
+
+// ---- Goal & KeyResult mappers ----
+
+export function mapKeyResult(kr: KeyResultResponse): KeyResult {
+  return {
+    id: kr.keyResultId,
+    title: kr.title,
+    target: kr.target,
+    current: kr.current,
+    unit: kr.unit,
+    linkedTaskCount: kr.linkedTaskCount,
+  };
+}
+
+export function mapGoal(g: GoalResponse): Goal {
+  return {
+    id: g.goalId,
+    title: g.title,
+    description: g.description ?? "",
+    status: g.status as GoalStatus,
+    progress: g.progress,
+    startDate: g.startDate ?? "",
+    endDate: g.endDate ?? "",
+    owner: mapUser(g.owner),
+    keyResults: (g.keyResults ?? []).map(mapKeyResult),
+    createdAt: g.createdAt,
+  };
+}
+
+// ---- Sprint mapper ----
+
+export function mapSprint(s: SprintResponse): Sprint {
+  return {
+    id: s.sprintId,
+    name: s.name,
+    goal: s.goal ?? "",
+    status: s.status as SprintStatus,
+    startDate: s.startDate ?? "",
+    endDate: s.endDate ?? "",
+    createdAt: s.createdAt,
+  };
+}
+
+// ---- Epic & Milestone mappers ----
+
+export function mapEpic(e: EpicResponse): Epic {
+  return {
+    id: e.epicId,
+    title: e.title,
+    description: e.description ?? "",
+    status: e.status as EpicStatus,
+    color: e.color,
+    progress: e.progress,
+    startDate: e.startDate ?? "",
+    endDate: e.endDate ?? "",
+    owner: mapUser(e.owner),
+    boardName: e.board?.boardName,
+    createdAt: e.createdAt,
+  };
+}
+
+export function mapMilestone(m: MilestoneResponse): Milestone {
+  return {
+    id: m.milestoneId,
+    title: m.title,
+    date: m.date,
+    status: m.status as MilestoneStatus,
+  };
+}
+
+// ---- Automation mapper ----
+
+export function mapAutomationRule(r: AutomationRuleResponse): AutomationRule {
+  return {
+    id: r.ruleId,
+    name: r.name,
+    description: r.description ?? "",
+    isEnabled: r.isEnabled,
+    trigger: r.trigger,
+    conditions: r.conditions,
+    action: r.action,
+    triggerCount: r.triggerCount,
+    lastTriggered: r.lastTriggered,
+    createdBy: mapUser(r.createdBy),
+    createdAt: r.createdAt,
+  };
+}
+
+// ---- Document mapper ----
+
+export function mapDocument(d: DocumentResponse) {
+  return {
+    id: d.documentId,
+    workspaceId: "",
+    title: d.title,
+    content: d.content,
+    createdBy: mapUser(d.createdBy),
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+    lastEditedBy: mapUser(d.lastEditedBy),
+    collaborators: [] as User[],
+    versions: (d.versions ?? []).map((v: DocumentVersionResponse) => ({
+      id: v.versionId,
+      documentId: d.documentId,
+      name: v.name ?? undefined,
+      content: v.content,
+      editedBy: mapUser(v.editedBy),
+      createdAt: v.createdAt,
+    })),
+    comments: (d.comments ?? []).map((c: InlineCommentResponse) => ({
+      id: c.inlineCommentId,
+      documentId: d.documentId,
+      selectedText: c.selectedText,
+      text: c.text,
+      author: mapUser(c.author),
+      createdAt: c.createdAt,
+      isResolved: c.isResolved,
+      replies: (c.replies ?? []).map((r: InlineCommentResponse) => ({
+        id: r.inlineCommentId,
+        text: r.text,
+        author: mapUser(r.author),
+        createdAt: r.createdAt,
+      })),
+    })),
+    isFavorite: d.isFavorite,
+    viewCount: d.viewCount,
+  };
+}
+
+// ---- WorkspaceFile mapper ----
+
+export function mapWorkspaceFile(f: WorkspaceFileResponse): FileItem {
+  return {
+    id: f.fileId,
+    workspaceId: "",
+    name: f.name,
+    type: f.type as "file" | "folder",
+    mimeType: f.mimeType ?? undefined,
+    size: f.size ?? undefined,
+    url: f.url ?? undefined,
+    parentId: f.parent?.fileId ?? null,
+    uploadedBy: f.uploadedBy ? mapUser(f.uploadedBy) : undefined,
+    uploadedAt: f.uploadedAt,
+    accessLevel: (f.accessLevel ?? "workspace") as FileAccessLevel,
   };
 }

@@ -20,7 +20,7 @@ const typeColors: Record<string, string> = {
 
 const AISuggestionsPanel = ({ suggestions }: AISuggestionsPanelProps) => {
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-5">
       <h3 className="text-sm font-semibold text-gray-800 mb-4">
         <i className="fas fa-magic mr-2 text-purple-500"></i>
         AI Suggestions
@@ -33,7 +33,7 @@ const AISuggestionsPanel = ({ suggestions }: AISuggestionsPanelProps) => {
             return (
               <div
                 key={suggestion.id}
-                className="p-3 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg"
+                className="p-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg"
               >
                 <div className="flex items-start gap-3">
                   <div
@@ -74,3 +74,4 @@ const AISuggestionsPanel = ({ suggestions }: AISuggestionsPanelProps) => {
 };
 
 export default AISuggestionsPanel;
+

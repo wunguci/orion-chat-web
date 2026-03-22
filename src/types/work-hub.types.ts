@@ -238,6 +238,84 @@ export interface TaskFormData {
   deadline: string;
 }
 
+// ---- Goal & OKR ----
+export type GoalStatus = "on_track" | "at_risk" | "behind" | "completed";
+
+export interface Goal {
+  id: string;
+  title: string;
+  description: string;
+  status: GoalStatus;
+  progress: number;
+  startDate: string;
+  endDate: string;
+  owner: User;
+  keyResults: KeyResult[];
+  createdAt: string;
+}
+
+export interface KeyResult {
+  id: string;
+  title: string;
+  target: number;
+  current: number;
+  unit: string;
+  linkedTaskCount: number;
+}
+
+// ---- Sprint ----
+export type SprintStatus = "planning" | "active" | "completed" | "cancelled";
+
+export interface Sprint {
+  id: string;
+  name: string;
+  goal: string;
+  status: SprintStatus;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+}
+
+// ---- Epic & Roadmap ----
+export type EpicStatus = "planned" | "in_progress" | "completed" | "blocked";
+export type MilestoneStatus = "reached" | "upcoming" | "missed";
+
+export interface Epic {
+  id: string;
+  title: string;
+  description: string;
+  status: EpicStatus;
+  color: string;
+  progress: number;
+  startDate: string;
+  endDate: string;
+  owner: User;
+  boardName?: string;
+  createdAt: string;
+}
+
+export interface Milestone {
+  id: string;
+  title: string;
+  date: string;
+  status: MilestoneStatus;
+}
+
+// ---- Automation ----
+export interface AutomationRule {
+  id: string;
+  name: string;
+  description: string;
+  isEnabled: boolean;
+  trigger: Record<string, unknown>;
+  conditions: Record<string, unknown> | null;
+  action: Record<string, unknown>;
+  triggerCount: number;
+  lastTriggered: string | null;
+  createdBy: User;
+  createdAt: string;
+}
+
 // ---- Document Collaboration ----
 export type DocumentViewMode = "edit" | "preview" | "presentation";
 

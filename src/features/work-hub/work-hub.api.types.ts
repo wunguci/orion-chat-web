@@ -273,6 +273,7 @@ export interface ActivityLogResponse {
   metadata: Record<string, unknown> | null;
   timestamp: string;
   user: UserResponse;
+  task?: { taskId: string; title: string };
 }
 
 export interface CreateActivityLogRequest {
@@ -280,4 +281,319 @@ export interface CreateActivityLogRequest {
   description: string;
   userId: string;
   metadata?: Record<string, unknown>;
+}
+
+// --- Goal --- (ENTITY MỚI)
+export interface GoalResponse {
+  goalId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  progress: number;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  owner: UserResponse;
+  keyResults: KeyResultResponse[];
+}
+
+export interface KeyResultResponse {
+  keyResultId: string;
+  title: string;
+  target: number;
+  current: number;
+  unit: string;
+  linkedTaskCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateGoalRequest {
+  title: string;
+  description?: string;
+  status?: string;
+  progress?: number;
+  startDate?: string;
+  endDate?: string;
+  ownerId: string;
+}
+
+export interface UpdateGoalRequest {
+  title?: string;
+  description?: string;
+  status?: string;
+  progress?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface CreateKeyResultRequest {
+  title: string;
+  target: number;
+  current?: number;
+  unit?: string;
+}
+
+export interface UpdateKeyResultRequest {
+  title?: string;
+  target?: number;
+  current?: number;
+  unit?: string;
+}
+
+// --- Sprint --- (ENTITY MỚI)
+export interface SprintResponse {
+  sprintId: string;
+  name: string;
+  goal: string | null;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSprintRequest {
+  name: string;
+  goal?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface UpdateSprintRequest {
+  name?: string;
+  goal?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+// --- Epic --- (ENTITY MỚI)
+export interface EpicResponse {
+  epicId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  color: string;
+  progress: number;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  owner: UserResponse;
+  board: { boardId: string; boardName: string } | null;
+}
+
+export interface CreateEpicRequest {
+  title: string;
+  description?: string;
+  status?: string;
+  color?: string;
+  progress?: number;
+  startDate?: string;
+  endDate?: string;
+  ownerId: string;
+  boardId?: string;
+}
+
+export interface UpdateEpicRequest {
+  title?: string;
+  description?: string;
+  status?: string;
+  color?: string;
+  progress?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
+// --- Milestone --- (ENTITY MỚI)
+export interface MilestoneResponse {
+  milestoneId: string;
+  title: string;
+  date: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateMilestoneRequest {
+  title: string;
+  date: string;
+  status?: string;
+}
+
+export interface UpdateMilestoneRequest {
+  title?: string;
+  date?: string;
+  status?: string;
+}
+
+// --- Automation --- (ENTITY MỚI)
+export interface AutomationRuleResponse {
+  ruleId: string;
+  name: string;
+  description: string | null;
+  isEnabled: boolean;
+  trigger: Record<string, unknown>;
+  conditions: Record<string, unknown> | null;
+  action: Record<string, unknown>;
+  triggerCount: number;
+  lastTriggered: string | null;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: UserResponse;
+}
+
+export interface CreateAutomationRequest {
+  name: string;
+  description?: string;
+  trigger: Record<string, unknown>;
+  conditions?: Record<string, unknown>;
+  action: Record<string, unknown>;
+}
+
+export interface UpdateAutomationRequest {
+  name?: string;
+  description?: string;
+  isEnabled?: boolean;
+  trigger?: Record<string, unknown>;
+  conditions?: Record<string, unknown>;
+  action?: Record<string, unknown>;
+}
+
+// --- Document --- (ENTITY MỚI)
+export interface DocumentResponse {
+  documentId: string;
+  title: string;
+  content: string;
+  isFavorite: boolean;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: UserResponse;
+  lastEditedBy: UserResponse;
+  versions?: DocumentVersionResponse[];
+  comments?: InlineCommentResponse[];
+}
+
+export interface DocumentVersionResponse {
+  versionId: string;
+  name: string | null;
+  content: string;
+  createdAt: string;
+  editedBy: UserResponse;
+}
+
+export interface InlineCommentResponse {
+  inlineCommentId: string;
+  selectedText: string;
+  text: string;
+  isResolved: boolean;
+  createdAt: string;
+  author: UserResponse;
+  parentComment: InlineCommentResponse | null;
+  replies?: InlineCommentResponse[];
+}
+
+export interface CreateDocumentRequest {
+  title: string;
+  content?: string;
+  createdById: string;
+}
+
+export interface UpdateDocumentRequest {
+  title?: string;
+  content?: string;
+  isFavorite?: boolean;
+  lastEditedById?: string;
+}
+
+export interface CreateDocumentVersionRequest {
+  name?: string;
+  content: string;
+  editedById: string;
+}
+
+export interface CreateInlineCommentRequest {
+  selectedText: string;
+  text: string;
+  authorId: string;
+  parentCommentId?: string;
+}
+
+// --- WorkspaceFile --- (ENTITY MỚI)
+export interface WorkspaceFileResponse {
+  fileId: string;
+  name: string;
+  type: string;
+  mimeType: string | null;
+  size: number | null;
+  url: string | null;
+  accessLevel: string;
+  uploadedAt: string;
+  createdAt: string;
+  uploadedBy: UserResponse | null;
+  parent: { fileId: string } | null;
+}
+
+export interface CreateWorkspaceFileRequest {
+  name: string;
+  type?: string;
+  mimeType?: string;
+  size?: number;
+  url?: string;
+  accessLevel?: string;
+  parentId?: string;
+}
+
+export interface UpdateWorkspaceFileRequest {
+  name?: string;
+  accessLevel?: string;
+}
+
+// --- Workload aggregate ---
+export interface WorkloadMemberResponse {
+  user: UserResponse;
+  totalTasks: number;
+  todoTasks: number;
+  inProgressTasks: number;
+  reviewTasks: number;
+  doneTasks: number;
+  overdueTasks: number;
+  lowPriority: number;
+  mediumPriority: number;
+  highPriority: number;
+  urgentPriority: number;
+}
+
+// --- Reports aggregate ---
+export interface ReportDataResponse {
+  period: {
+    totalTasks: number;
+    completedTasks: number;
+    newTasks: number;
+    completionRate: number;
+  };
+  boards: {
+    boardId: string;
+    boardName: string;
+    totalTasks: number;
+    completedTasks: number;
+    inProgressTasks: number;
+  }[];
+  members: {
+    user: UserResponse;
+    totalTasks: number;
+    completedTasks: number;
+    avgCompletionDays: number;
+  }[];
+  overdue: {
+    taskId: string;
+    title: string;
+    dueDate: string;
+    assignees: UserResponse[];
+    daysOverdue: number;
+  }[];
 }

@@ -38,7 +38,7 @@ const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
 
   if (tasks.length === 0) {
     return (
-      <div className="bg-white border border-[var(--wh-green-border-light)] rounded-lg p-12 text-center text-gray-400">
+      <div className="bg-white border border-wh-green-border-light rounded-lg p-12 text-center text-gray-400">
         <i className="fas fa-calendar-alt text-3xl mb-3"></i>
         <p className="text-sm">No tasks with dates to display</p>
       </div>
@@ -46,12 +46,12 @@ const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
   }
 
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-lg overflow-hidden">
+    <div className="bg-white border border-wh-green-border-light rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <div style={{ minWidth: `${200 + totalDays * DAY_WIDTH}px` }}>
           {/* Header row */}
           <div className="flex">
-            <div className="w-[200px] min-w-[200px] bg-[var(--wh-green-bg-heavy)] px-4 py-2.5 border-r border-b border-[var(--wh-green-border-light)]">
+            <div className="w-[200px] min-w-[200px] bg-wh-green-bg-heavy px-4 py-2.5 border-r border-b border-wh-green-border-light">
               <span className="text-xs font-semibold text-gray-500 uppercase">Task</span>
             </div>
             <div className="flex-1">
@@ -61,13 +61,13 @@ const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
 
           {/* Task rows */}
           {tasks.map((task) => (
-            <div key={task.id} className="flex border-b border-[var(--wh-green-border-light)] hover:bg-[var(--wh-green-bg-light)]">
+            <div key={task.id} className="flex border-b border-wh-green-border-light hover:bg-wh-green-bg-light">
               {/* Task name sidebar */}
               <div
-                className="w-[200px] min-w-[200px] px-4 py-2 border-r border-[var(--wh-green-border-light)] flex items-center cursor-pointer"
+                className="w-[200px] min-w-[200px] px-4 py-2 border-r border-wh-green-border-light flex items-center cursor-pointer"
                 onClick={() => onTaskClick(task.id)}
               >
-                <span className="text-sm text-gray-700 truncate hover:text-[var(--wh-green-primary)]">
+                <span className="text-sm text-gray-700 truncate hover:text-wh-green-primary">
                   {task.title}
                 </span>
               </div>
@@ -84,3 +84,4 @@ const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
 };
 
 export default CalendarView;
+
