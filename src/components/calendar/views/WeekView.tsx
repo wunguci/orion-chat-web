@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { CalendarEvent } from "../../../types/calendar";
 import { MdOutlineModeEdit } from "react-icons/md";
 import { RiDeleteBinLine } from "react-icons/ri";
+import { FaForumbee } from "react-icons/fa";
 
 interface WeekViewProps {
   currentDate: Date;
@@ -12,6 +13,7 @@ interface WeekViewProps {
   onDuplicateEvent: (e: CalendarEvent) => void;
   onResizeEvent: (id: string, newEnd: string) => void;
   onMoveEvent: (id: string, newStart: string, newEnd: string) => void;
+  onEventDragEnd: (id: string) => void;
 }
 
 export const WeekView: React.FC<WeekViewProps> = ({
@@ -22,6 +24,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   onDeleteEvent,
   onResizeEvent,
   onMoveEvent,
+  onEventDragEnd,
 }) => {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(currentDate);
@@ -81,12 +84,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
               className="flex-1 py-6 flex flex-col items-center border-r border-slate-50 last:border-r-0 "
             >
               <span
-                className={`text-[10px] font-black uppercase tracking-[0.2em] ${isToday ? "text-teal-500" : "text-slate-400"}`}
+                className={`text-[10px] font-black uppercase tracking-[0.2em] ${isToday ? "text-green-primary" : "text-slate-400"}`}
               >
                 {day.toLocaleDateString("en-US", { weekday: "short" })}
               </span>
               <span
-                className={`text-2xl font-black mt-2 size-12 flex items-center justify-center rounded-2xl transition-all ${isToday ? "bg-teal-500 text-white shadow-xl shadow-teal-50/30" : "text-slate-700"}`}
+                className={`text-2xl font-black mt-2 size-12 flex items-center justify-center rounded-2xl transition-all ${isToday ? "bg-green-primary text-white shadow-xl shadow-green-primary/30" : "text-slate-700"}`}
               >
                 {day.getDate()}
               </span>
@@ -117,12 +120,17 @@ export const WeekView: React.FC<WeekViewProps> = ({
               key={day.toISOString()}
               className="flex-1 border-r border-slate-100 last:border-r-0 relative group/col"
               onMouseMove={(e) => handleMouseMove(e, day)}
-              onMouseUp={() => setActiveAction(null)}
+              onMouseUp={() => {
+                if (activeAction) {
+                  onEventDragEnd(activeAction.id);
+                }
+                setActiveAction(null);
+              }}
             >
               {hours.map((h) => (
                 <div
                   key={h}
-                  className="h-20 border-b border-slate-50/50 hover:bg-teal-50/5 transition-colors cursor-pointer"
+                  className="h-20 border-b border-slate-50/50 hover:bg-green-primary/5 transition-colors cursor-pointer"
                   onClick={() => {
                     const d = new Date(day);
                     d.setHours(h, 0, 0, 0);
@@ -206,7 +214,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                               }}
                               className="size-6 flex items-center justify-center hover:bg-rose-500/50 rounded-lg material-symbols-outlined text-sm cursor-pointer"
                             >
-                                <RiDeleteBinLine />
+                              <RiDeleteBinLine />
                             </button>
                           </div>
                         </div>
@@ -229,9 +237,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 </div>
                               )}
                               <div className="size-6 rounded-full bg-white/20 backdrop-blur-md border-2 border-white flex items-center justify-center ml-auto">
-                                <span className="material-symbols-outlined text-[12px]">
-                                  forum
-                                </span>
+                                <FaForumbee className="text-[12px]" />
                               </div>
                             </div>
                           )}

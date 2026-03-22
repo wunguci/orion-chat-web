@@ -6,7 +6,7 @@ const AIInsightsPage = () => {
     <div className="p-6 max-w-7xl mx-auto overflow-auto">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-gray-800">
-          <i className="fas fa-brain mr-2 text-[var(--wh-green-primary)]"></i>
+          {/* <i className="fas fa-brain mr-2 text-[var(--wh-green-primary)]"></i> */}
           AI Insights
         </h1>
         <p className="text-sm text-gray-500 mt-1">

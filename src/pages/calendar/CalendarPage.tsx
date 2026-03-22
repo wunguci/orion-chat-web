@@ -1,23 +1,23 @@
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import CalendarSidebar from "../../components/calendar/CalendarSidebar";
 import CalendarHeader from "../../components/calendar/CalendarHeader";
-import { type CalendarEvent } from "../../types/calendar";
+import { type CalendarEvent, type ParticipantOption } from "../../types/calendar";
 import { DayView } from "../../components/calendar/views/DayView";
 import { WeekView } from "../../components/calendar/views/WeekView";
 import { MonthView } from "../../components/calendar/views/MonthView";
 import { YearView } from "../../components/calendar/views/YearView";
 import { EventEditor } from "../../components/calendar/EventEditor";
+import { calendarService, type CalendarViewQuery } from "../../services/calendarService";
 
 type ViewMode = "Day" | "Week" | "Month" | "Year";
 
 const CalendarPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("Week");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>(() => {
-    const saved = localStorage.getItem("calendar_events");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [participantOptions, setParticipantOptions] = useState<ParticipantOption[]>([]);
 
   const [editorState, setEditorState] = useState<{
     isOpen: boolean;
@@ -25,9 +25,45 @@ const CalendarPage: React.FC = () => {
     existingEvent?: CalendarEvent;
   }>({ isOpen: false });
 
+  const eventsRef = useRef<CalendarEvent[]>([]);
+  const pendingDragUpdateRef = useRef<
+    Record<string, { start?: string; end?: string }>
+  >({});
+
   useEffect(() => {
-    localStorage.setItem("calendar_events", JSON.stringify(events));
+    eventsRef.current = events;
   }, [events]);
+
+  useEffect(() => {
+    const loadParticipantOptions = async () => {
+      try {
+        const options = await calendarService.getParticipantOptions();
+        setParticipantOptions(options);
+      } catch (error) {
+        console.error("Failed to load participant options", error);
+      }
+    };
+
+    void loadParticipantOptions();
+  }, []);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const view = viewMode.toLowerCase() as CalendarViewQuery;
+        const rows = await calendarService.getEvents({
+          view,
+          date: currentDate.toISOString(),
+          q: searchQuery,
+        });
+        setEvents(rows);
+      } catch (error) {
+        console.error("Failed to load calendar events", error);
+      }
+    };
+
+    void loadEvents();
+  }, [viewMode, currentDate, searchQuery]);
 
   const navigate = (direction: "prev" | "next") => {
     const newDate = new Date(currentDate);
@@ -46,33 +82,28 @@ const CalendarPage: React.FC = () => {
     setCurrentDate(newDate);
   };
 
-  const handleSaveEvent = (eventData: Partial<CalendarEvent>) => {
-    if (eventData.id) {
-      setEvents((prev) =>
-        prev.map((e) =>
-          e.id === eventData.id ? { ...e, ...(eventData as CalendarEvent) } : e,
-        ),
-      );
-    } else {
-      const newEvent: CalendarEvent = {
-        id: Date.now().toString(),
-        title: eventData.title || "Untitled Event",
-        start: eventData.start || new Date().toISOString(),
-        end: eventData.end || new Date().toISOString(),
-        color: eventData.color || "#008080",
-        category: eventData.category || "personal",
-        recurrence: eventData.recurrence || "none",
-        notificationMinutes: eventData.notificationMinutes ?? 30,
-        participants: eventData.participants || [],
-        ...eventData,
-      } as CalendarEvent;
-      setEvents((prev) => [...prev, newEvent]);
+  const handleSaveEvent = async (eventData: Partial<CalendarEvent>) => {
+    try {
+      if (eventData.id) {
+        const updated = await calendarService.updateEvent(eventData.id, eventData);
+        setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+      } else {
+        const created = await calendarService.createEvent(eventData);
+        setEvents((prev) => [...prev, created]);
+      }
+      setEditorState({ isOpen: false });
+    } catch (error) {
+      console.error("Failed to save event", error);
     }
-    setEditorState({ isOpen: false });
   };
 
-  const handleDeleteEvent = (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+  const handleDeleteEvent = async (id: string) => {
+    try {
+      await calendarService.deleteEvent(id);
+      setEvents((prev) => prev.filter((e) => e.id !== id));
+    } catch (error) {
+      console.error("Failed to delete event", error);
+    }
   };
 
   const handleDuplicateEvent = (event: CalendarEvent) => {
@@ -85,17 +116,49 @@ const CalendarPage: React.FC = () => {
   };
 
   const handleResizeEvent = (id: string, newEnd: string) => {
+    pendingDragUpdateRef.current[id] = {
+      ...(pendingDragUpdateRef.current[id] || {}),
+      end: newEnd,
+    };
+
     setEvents((prev) =>
       prev.map((e) => (e.id === id ? { ...e, end: newEnd } : e)),
     );
   };
 
   const handleMoveEvent = (id: string, newStart: string, newEnd: string) => {
+    pendingDragUpdateRef.current[id] = {
+      start: newStart,
+      end: newEnd,
+    };
+
     setEvents((prev) =>
       prev.map((e) =>
         e.id === id ? { ...e, start: newStart, end: newEnd } : e,
       ),
     );
+  };
+
+  const handlePersistDraggedEvent = async (id: string) => {
+    const target = eventsRef.current.find((event) => event.id === id);
+    if (!target) return;
+
+    const dragPatch = pendingDragUpdateRef.current[id];
+    if (!dragPatch) return;
+
+    const payload: Partial<CalendarEvent> = {
+      ...target,
+      start: dragPatch.start ?? target.start,
+      end: dragPatch.end ?? target.end,
+    };
+
+    try {
+      const updated = await calendarService.updateEvent(id, payload);
+      delete pendingDragUpdateRef.current[id];
+      setEvents((prev) => prev.map((event) => (event.id === id ? updated : event)));
+    } catch (error) {
+      console.error("Failed to persist dragged event", error);
+    }
   };
 
   const formatHeaderDate = () => {
@@ -136,6 +199,8 @@ const CalendarPage: React.FC = () => {
           setCurrentDate={setCurrentDate}
           navigate={navigate}
           formatHeaderDate={formatHeaderDate}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
 
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
@@ -153,12 +218,16 @@ const CalendarPage: React.FC = () => {
               onDuplicateEvent={handleDuplicateEvent}
               onResizeEvent={handleResizeEvent}
               onMoveEvent={handleMoveEvent}
+              onEventDragEnd={handlePersistDraggedEvent}
             />
           )}
           {viewMode === "Month" && (
             <MonthView
               currentDate={currentDate}
               events={events}
+              onCellClick={(date) =>
+                setEditorState({ isOpen: true, initialDate: date })
+              }
               onEditEvent={(e) =>
                 setEditorState({ isOpen: true, existingEvent: e })
               }
@@ -173,7 +242,16 @@ const CalendarPage: React.FC = () => {
               }
             />
           )}
-          {viewMode === "Year" && <YearView currentDate={currentDate} />}
+          {viewMode === "Year" && (
+            <YearView
+              currentDate={currentDate}
+              events={events}
+              onDateSelect={(date) => {
+                setCurrentDate(date);
+                setViewMode("Month");
+              }}
+            />
+          )}
         </div>
       </div>
 
@@ -182,6 +260,7 @@ const CalendarPage: React.FC = () => {
           <EventEditor
             initialDate={editorState.initialDate}
             existingEvent={editorState.existingEvent}
+            availableParticipants={participantOptions}
             onClose={() => setEditorState({ isOpen: false })}
             onSave={handleSaveEvent}
           />

@@ -9,25 +9,27 @@ import { MdOutlinePersonAddAlt1, MdOutlineChat } from "react-icons/md";
 interface SearchResultCardProps {
   friend: Friend;
   onClose: () => void;
+  onSendFriendRequest?: (targetUserId: string, message: string) => Promise<void>;
 }
 
 const SearchResultCard: React.FC<SearchResultCardProps> = ({
   friend,
   onClose,
+  onSendFriendRequest,
 }) => {
   const [message, setMessage] = useState(
     "Hi! I'd like to connect with you on ConnectApp.",
   );
   const [isSent, setIsSent] = useState(false);
 
-  const handleAddFriend = () => {
-    // Mock sending friend request
-    console.log(
-      `Sending friend request to ${friend.name} with message: ${message}`,
-    );
+  const handleAddFriend = async () => {
+    if (onSendFriendRequest) {
+      await onSendFriendRequest(friend.id, message);
+    }
+
     setIsSent(true);
 
-    // Auto close after send success
+    // tự động đóng sau 2 giây
     setTimeout(() => {
       onClose();
     }, 2000);
@@ -36,11 +38,11 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
   if (isSent) {
     return (
       <div className="p-8 bg-teal-50 border border-teal-200 rounded-3xl animate-in fade-in zoom-in duration-300 flex flex-col items-center justify-center text-center gap-3">
-        <div className="w-12 h-12 bg-teal-500 rounded-full flex items-center justify-center text-white mb-2">
+        <div className="w-12 h-12 bg-green-primary rounded-full flex items-center justify-center text-white mb-2">
           <FaCheck className="text-2xl" />
         </div>
-        <h3 className="text-xl font-bold text-teal-800">Request Sent!</h3>
-        <p className="text-teal-600 italic">
+        <h3 className="text-xl font-bold text-green-secondary">Request Sent!</h3>
+        <p className="text-green-primary italic">
           Your friend request with message has been sent to {friend.name}.
         </p>
       </div>
@@ -93,8 +95,8 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
 
         <div className="flex flex-wrap justify-center sm:justify-start gap-3 pt-2">
           <button
-            onClick={handleAddFriend}
-            className="flex-1 sm:flex-none px-8 py-3 bg-teal-500 text-white font-bold rounded-2xl hover:bg-teal-600 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+            onClick={() => void handleAddFriend()}
+            className="flex-1 sm:flex-none px-8 py-3 bg-green-primary text-white font-bold rounded-2xl hover:bg-green-secondary transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
           >
             <MdOutlinePersonAddAlt1 className="text-xl" />
             Send Friend Request

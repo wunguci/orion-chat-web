@@ -61,19 +61,19 @@ const AIChatList: React.FC<AIChatListProps> = ({
             onClick={() => onSelectChat(chat.id)}
             className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all border relative ${
               activeChatId === chat.id
-                ? "bg-teal-50 border-teal-500/50 shadow-md"
+                ? "bg-teal-50 border-green-primary shadow-md"
                 : "hover:bg-slate-50 border-transparent hover:border-slate-100"
             }`}
           >
             <MdOutlineChatBubbleOutline
-              className={`text-lg shrink-0 ${activeChatId === chat.id ? "text-teal-500" : "text-slate-400"}`}
+              className={`text-lg shrink-0 ${activeChatId === chat.id ? "text-green-primary" : "text-slate-400"}`}
             />
             <div className="flex-1 overflow-hidden">
               {editingID === chat.id ? (
                 <input
                   autoFocus
                   className="w-full h-8 pl-10 pr-4 bg-slate-100 border-none outline-none appearance-none shadow-none ring-0
-          focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-sm transition-all placeholder:text-slate-800"
+          focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-sm transition-all placeholder:text-slate-700"
                   value={editValue}
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={handleSave}
@@ -98,7 +98,7 @@ const AIChatList: React.FC<AIChatListProps> = ({
               <div className="flex gap-1 group-hover:opacity-100 transition-all shrink-0">
                 <button
                   onClick={(e) => startEditing(e, chat)}
-                  className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-teal-500 transition-colors cursor-pointer"
+                  className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 hover:text-green-primary transition-colors cursor-pointer"
                   title="Rename"
                 >
                   <MdOutlineModeEdit className="text-[16px]" />

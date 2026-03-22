@@ -5,9 +5,15 @@ import { IoClose } from "react-icons/io5";
 
 interface FriendRequestCardProps {
   request: FriendRequest;
+  onAccept: (requestId: string) => void;
+  onDecline: (requestId: string) => void;
 }
 
-const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ request }) => {
+const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
+  request,
+  onAccept,
+  onDecline,
+}) => {
   return (
     <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-sm transition-all flex flex-col gap-4">
       <div className="flex items-center gap-4">
@@ -21,12 +27,14 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({ request }) => {
         </div>
         <div className="flex gap-2 shrink-0">
           <button
-            className="w-10 h-10 flex items-center justify-center bg-teal-500 text-white rounded-xl hover:bg-teal-600 transition-colors shadow-sm shadow-primary/20 cursor-pointer"
+            onClick={() => onAccept(request.id)}
+            className="w-10 h-10 flex items-center justify-center bg-green-primary text-white rounded-xl hover:bg-green-secondary transition-colors shadow-sm shadow-primary/20 cursor-pointer"
             title="Accept"
           >
             <FaCheck className="text-xl" />
           </button>
           <button
+            onClick={() => onDecline(request.id)}
             className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-slate-600 hover:border-slate-300 transition-colors cursor-pointer"
             title="Decline"
           >

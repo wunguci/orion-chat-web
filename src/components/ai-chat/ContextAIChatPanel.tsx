@@ -37,12 +37,12 @@ const ContextAIChatPanel: React.FC<ContextAIChatPanelProps> = ({
     <section className="w-80 flex flex-col border-r border-slate-200 bg-white z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
       <div className="p-5 border-b border-slate-200 ">
         <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-2xl font-extrabold text-slate-700 tracking-tight">
             AI Assistant
           </h1>
           <button
             onClick={onNewChat}
-            className="w-8 h-8 flex items-center justify-center bg-teal-500 text-white rounded-lg hover:bg-teal-700 transition-all active:scale-90 shadow-lg shadow-teal-500/20 cursor-pointer"
+            className="w-8 h-8 flex items-center justify-center bg-green-primary text-white rounded-lg hover:bg-green-secondary transition-all active:scale-90 shadow-lg shadow-green-500/20 cursor-pointer"
           >
             <FaPlus className="w-4 h-4" />
           </button>

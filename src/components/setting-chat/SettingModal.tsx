@@ -27,6 +27,7 @@ import InputTextWithLabel from "../common/InputTextWithLabel";
 import ToggleSwitch from "../common/ToggleSwitch";
 import ToggleSwitchButton from "../common/ToggleSwitchButton";
 import SelectionButton from "../common/SelectionButton";
+import Button from "../common/Button";
 
 type TabType =
   | "profile"
@@ -132,8 +133,8 @@ export default function SettingsModal({
 
               <div className="flex flex-col gap-8">
                 {/* Avatar Upload */}
-                <div className="bg-orange-bg-light rounded-2xl p-6 border border-orange-border-light flex items-center gap-4">
-                  <div className="w-25 h-25 rounded-full bg-linear-to-br from-orange-bg-heavy to-orange-border-light flex items-center justify-center text-2xl">
+                <div className="bg-green-bg-light rounded-2xl p-6 border border-green-border-light flex items-center gap-4">
+                  <div className="w-25 h-25 rounded-full bg-linear-to-br from-green-bg-heavy to-green-border-light flex items-center justify-center text-2xl">
                     <FontAwesomeIcon
                       icon={faUser}
                       className="text-white text-5xl"
@@ -147,13 +148,13 @@ export default function SettingsModal({
                       JPG, GIF or PNG. Max size of 800K
                     </p>
                     <div className="flex gap-2">
-                      <button className="flex items-center gap-2 px-6 py-2 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
-                        <Upload size={20} />
-                        Upload New
-                      </button>
-                      <button className="px-6 py-2 bg-white border border-gray-300 rounded-lg text-gray-primary hover:bg-gray-50 font-semibold">
-                        Remove
-                      </button>
+                      <Button
+                        icon={<Upload size={20} />}
+                        onClick={() => {}}
+                        label="Upload New"
+                        type="submit"
+                      />
+                      <Button label="Remove" type="cancel" />
                     </div>
                   </div>
                 </div>
@@ -229,19 +230,13 @@ export default function SettingsModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-orange-border-light">
-              <button
+            <div className="flex justify-end gap-3 pt-4 border-t border-green-border-light">
+              <Button
+                label="Discard Changes"
                 onClick={handleDiscard}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-primary hover:bg-gray-50 font-semibold"
-              >
-                Discard Changes
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-6 py-3 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold"
-              >
-                Save Changes
-              </button>
+                type="cancel"
+              />
+              <Button label="Save Changes" onClick={handleSave} />
             </div>
           </div>
         );
@@ -283,7 +278,7 @@ export default function SettingsModal({
                 ].map(({ label, description, field }) => (
                   <div
                     key={field}
-                    className="flex flex-col gap-3 bg-orange-bg-light border border-orange-border-light rounded-xl py-4 px-5 w-full"
+                    className="flex flex-col gap-3 bg-green-bg-light border border-green-border-light rounded-xl py-4 px-5 w-full"
                   >
                     <div className="flex flex-col gap-1">
                       <p className="font-semibold text-gray-primary">{label}</p>
@@ -318,9 +313,9 @@ export default function SettingsModal({
                 Message & Safety
               </span>
               <div className="flex flex-col gap-5">
-                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light">
+                <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
                   <div className="flex items-center gap-3">
-                    <Eye size={24} className="text-orange-primary" />
+                    <Eye size={24} className="text-green-primary" />
                     <div>
                       <p className="font-semibold text-gray-primary">
                         Read Receipts
@@ -337,9 +332,9 @@ export default function SettingsModal({
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light">
+                <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
                   <div className="flex items-center gap-3">
-                    <Shield size={24} className="text-orange-primary" />
+                    <Shield size={24} className="text-green-primary" />
                     <div>
                       <p className="font-semibold text-gray-primary">
                         Blocked Contacts
@@ -349,12 +344,12 @@ export default function SettingsModal({
                       </p>
                     </div>
                   </div>
-                  <ChevronRight size={24} className="text-orange-primary" />
+                  <ChevronRight size={24} className="text-green-primary" />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light">
+                <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
                   <div className="flex items-center gap-3">
-                    <Shield size={24} className="text-orange-primary" />
+                    <Shield size={24} className="text-green-primary" />
                     <div>
                       <p className="font-semibold text-gray-primary">
                         Two-step Verification
@@ -364,9 +359,7 @@ export default function SettingsModal({
                       </p>
                     </div>
                   </div>
-                  <button className="px-6 py-2 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
-                    Enable
-                  </button>
+                  <Button label="Enable" onClick={() => {}} type="submit" />
                 </div>
               </div>
             </div>
@@ -382,7 +375,7 @@ export default function SettingsModal({
               </span>
 
               {/* Mute all notifications */}
-              <div className="flex items-center justify-between p-4 rounded-xl border border-orange-border-light">
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-green-border-light">
                 <div>
                   <p className="font-bold text-gray-primary text-lg">
                     Mute all notifications
@@ -422,10 +415,10 @@ export default function SettingsModal({
                 ].map(({ label, description, field, icon: Icon }) => (
                   <div
                     key={field}
-                    className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light"
+                    className="flex items-center justify-between px-4 py-3 bg-green-bg-light border border-green-border-light"
                   >
                     <div className="flex items-center gap-3">
-                      <Icon size={24} className="text-orange-primary" />
+                      <Icon size={24} className="text-green-primary" />
                       <div>
                         <p className="font-semibold text-gray-primary">
                           {label}
@@ -444,9 +437,9 @@ export default function SettingsModal({
                   </div>
                 ))}
 
-                <div className="flex items-center justify-between p-4 bg-orange-bg-light rounded-b-2xl border border-orange-border-light">
+                <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-b-2xl border border-green-border-light">
                   <div className="flex items-center gap-3">
-                    <Play size={24} className="text-orange-primary" />
+                    <Play size={24} className="text-green-primary" />
                     <div>
                       <p className="font-semibold text-gray-primary">
                         Notification Sound
@@ -468,7 +461,7 @@ export default function SettingsModal({
                       <option>Bell</option>
                       <option>Chime</option>
                     </select>
-                    <button className="p-2 bg-orange-primary text-white rounded-full hover:bg-orange-primary/90">
+                    <button className="p-2 bg-green-primary text-white rounded-full hover:bg-green-primary/90">
                       <Play size={20} />
                     </button>
                   </div>
@@ -498,7 +491,7 @@ export default function SettingsModal({
                 ].map(({ label, description, field }) => (
                   <div
                     key={field}
-                    className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light"
+                    className="flex items-center justify-between px-4 py-3 bg-green-bg-light border border-green-border-light"
                   >
                     <div>
                       <p className="font-semibold text-gray-primary">{label}</p>
@@ -521,9 +514,9 @@ export default function SettingsModal({
                 Call
               </span>
               <div className="flex flex-col message-notifications">
-                <div className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light">
+                <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light border border-green-border-light">
                   <div className="flex items-center gap-3">
-                    <Bell size={24} className="text-orange-primary" />
+                    <Bell size={24} className="text-green-primary" />
                     <div>
                       <p className="font-semibold text-gray-primary">
                         Ringtone
@@ -545,13 +538,13 @@ export default function SettingsModal({
                       <option>Modern Bell</option>
                       <option>Soft Chime</option>
                     </select>
-                    <button className="p-2 bg-orange-primary text-white rounded-full hover:bg-orange-primary/90">
+                    <button className="p-2 bg-green-primary text-white rounded-full hover:bg-green-primary/90">
                       <Play size={20} />
                     </button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-orange-bg-light border border-orange-border-light">
+                <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light border border-green-border-light">
                   <div>
                     <p className="font-semibold text-gray-primary">
                       Incoming Call Window
@@ -599,7 +592,7 @@ export default function SettingsModal({
                     className={clsx(
                       "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 transition-colors",
                       formData.themeMode === value
-                        ? "border-orange-primary bg-white"
+                        ? "border-green-primary bg-white"
                         : "border-gray-200 bg-white hover:border-gray-300",
                     )}
                   >
@@ -607,15 +600,15 @@ export default function SettingsModal({
                       size={32}
                       className={clsx(
                         formData.themeMode === value
-                          ? "text-orange-primary"
-                          : "text-orange-border-light",
+                          ? "text-green-primary"
+                          : "text-green-border-light",
                       )}
                     />
                     <span
                       className={clsx(
                         "font-semibold",
                         formData.themeMode === value
-                          ? "text-orange-primary"
+                          ? "text-green-primary"
                           : "text-gray-primary",
                       )}
                     >
@@ -647,9 +640,9 @@ export default function SettingsModal({
                       handleInputChange("selectedWallpaper", value)
                     }
                     className={clsx(
-                      "h-32 rounded-2xl border-4 transition-all",
+                      "h-32 rounded-2xl border-2 transition-all",
                       formData.selectedWallpaper === value
-                        ? "border-orange-primary scale-105"
+                        ? "border-green-primary scale-105"
                         : "border-transparent hover:border-gray-300",
                     )}
                     style={{ backgroundColor: color }}
@@ -671,7 +664,7 @@ export default function SettingsModal({
                     className={clsx(
                       "px-6 py-3 rounded-xl border-2 transition-colors capitalize font-semibold",
                       formData.textSize === size
-                        ? "border-orange-primary bg-white text-orange-primary"
+                        ? "border-green-primary bg-white text-green-primary"
                         : "border-gray-200 bg-white text-gray-primary hover:border-gray-300",
                     )}
                   >
@@ -689,23 +682,14 @@ export default function SettingsModal({
             <div className="flex justify-between items-center pt-5 border-t border-gray-200">
               <button
                 onClick={handleDiscard}
-                className="text-gray-primary hover:text-orange-primary font-semibold"
+                className="text-gray-primary hover:text-green-primary font-semibold"
               >
                 Reset to default settings
               </button>
+
               <div className="flex gap-3">
-                <button
-                  onClick={handleDiscard}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-primary hover:bg-gray-50 font-semibold"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-6 py-3 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold"
-                >
-                  Save Changes
-                </button>
+                <Button label="Cancel" onClick={handleDiscard} type="cancel" />
+                <Button label="Save Changes" onClick={handleSave} />
               </div>
             </div>
           </div>
@@ -725,15 +709,17 @@ export default function SettingsModal({
             </div>
 
             {/* Log out button */}
-            <button className="px-8 py-3 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
-              Log out from all other devices
-            </button>
+            <Button
+              label="Log out from all other devices"
+              onClick={() => {}}
+              padding="px-8 py-3"
+            />
 
             {/* Link a New Device */}
-            <div className="flex items-center justify-between p-6 bg-white rounded-xl border border-orange-border-light">
+            <div className="flex items-center justify-between p-6 bg-white rounded-xl border border-green-border-light">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-orange-bg-heavy rounded-xl">
-                  <QrCode size={28} className="text-orange-primary" />
+                <div className="p-3 bg-green-bg-heavy rounded-xl">
+                  <QrCode size={28} className="text-green-primary" />
                 </div>
                 <div>
                   <p className="font-bold text-gray-primary text-lg">
@@ -744,9 +730,7 @@ export default function SettingsModal({
                   </p>
                 </div>
               </div>
-              <button className="px-6 py-2 bg-orange-primary text-white rounded-lg hover:bg-orange-primary/90 font-semibold">
-                Link via QR Code
-              </button>
+              <Button label="Link via QR Code" onClick={() => {}} />
             </div>
 
             {/* Active Sessions */}
@@ -777,13 +761,13 @@ export default function SettingsModal({
                 ].map((session, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-4 bg-orange-bg-light rounded-xl border border-orange-border-light"
+                    className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="p-3 bg-orange-bg-heavy rounded-xl">
+                      <div className="p-3 bg-green-bg-heavy rounded-xl">
                         <session.icon
                           size={24}
-                          className="text-orange-primary"
+                          className="text-green-primary"
                         />
                       </div>
                       <div>
@@ -796,11 +780,11 @@ export default function SettingsModal({
                       </div>
                     </div>
                     {session.current ? (
-                      <span className="px-4 py-2 bg-orange-bg-heavy text-orange-primary rounded-lg font-semibold">
+                      <span className="px-4 py-2 bg-green-bg-heavy text-green-primary rounded-lg font-semibold">
                         Current Device
                       </span>
                     ) : (
-                      <button className="px-4 py-2 text-orange-primary hover:bg-orange-bg-heavy rounded-lg font-semibold">
+                      <button className="px-4 py-2 text-green-primary hover:bg-green-bg-heavy rounded-lg font-semibold">
                         Logout
                       </button>
                     )}
@@ -810,7 +794,7 @@ export default function SettingsModal({
             </div>
 
             {/* Security Tip */}
-            <div className="flex gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <div className="flex gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
               <Info size={24} className="text-blue-500 flex-shrink-0 mt-1" />
               <div>
                 <p className="font-bold text-gray-primary mb-1">Security Tip</p>
@@ -831,7 +815,7 @@ export default function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 z-50 overflow-hidden setting-modal-isolate animate-fade-in">
+    <div className="fixed inset-0 flex items-center justify-center px-4 py-3 z-50 overflow-hidden setting-modal-isolate animate-fade-in">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col relative setting-modal-content animate-scale-in overflow-hidden">
         {/* Close Button */}
         <button
@@ -844,7 +828,7 @@ export default function SettingsModal({
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-80 bg-orange-bg-light border-r border-orange-border-light p-6 overflow-y-auto flex-shrink-0">
+          <div className="w-80 bg-green-bg-light border-r border-green-border-light p-6 overflow-y-auto flex-shrink-0">
             <h1 className="text-2xl font-bold text-gray-primary mb-2">
               Settings
             </h1>
@@ -858,10 +842,10 @@ export default function SettingsModal({
                   key={id}
                   onClick={() => setActiveTab(id as TabType)}
                   className={clsx(
-                    "w-full flex items-start gap-3 p-4 rounded-2xl transition-all text-left",
+                    "w-full flex items-start gap-3 px-4 py-3 rounded-2xl transition-all text-left",
                     activeTab === id
-                      ? "bg-orange-bg-heavy border-2 border-orange-primary"
-                      : "hover:bg-orange-bg-heavy",
+                      ? "bg-green-bg-heavy border-2 border-green-primary"
+                      : "hover:bg-green-bg-heavy",
                   )}
                 >
                   <Icon
@@ -869,7 +853,7 @@ export default function SettingsModal({
                     className={clsx(
                       "mt-1 flex-shrink-0",
                       activeTab === id
-                        ? "text-orange-primary"
+                        ? "text-green-primary"
                         : "text-gray-primary",
                     )}
                   />
@@ -880,7 +864,7 @@ export default function SettingsModal({
                   {activeTab === id && (
                     <ChevronRight
                       size={24}
-                      className="text-orange-primary mt-1"
+                      className="text-green-primary mt-1"
                     />
                   )}
                 </button>

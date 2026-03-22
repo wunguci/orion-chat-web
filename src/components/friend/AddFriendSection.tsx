@@ -5,17 +5,28 @@ import type { Friend } from "../../types/friend";
 
 interface AddFriendSectionProps {
   onSearchResult: (friend: Friend | null) => void;
+  onSearchByPhone?: (phone: string) => Promise<Friend | null>;
 }
 
-const AddFriendSection: React.FC<AddFriendSectionProps> = ({ onSearchResult }) => {
+const AddFriendSection: React.FC<AddFriendSectionProps> = ({
+  onSearchResult,
+  onSearchByPhone,
+}) => {
   const [phone, setPhone] = useState("");
   const [isSearching, setIsSearching] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!phone.trim()) return;
 
     setIsSearching(true);
-    // Mock search delay
+
+    if (onSearchByPhone) {
+      const foundFriend = await onSearchByPhone(phone.trim());
+      onSearchResult(foundFriend);
+      setIsSearching(false);
+      return;
+    }
+
     setTimeout(() => {
       const foundFriend: Friend = {
         id: "found-" + Date.now(),
@@ -35,15 +46,15 @@ const AddFriendSection: React.FC<AddFriendSectionProps> = ({ onSearchResult }) =
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-        handleSearch();
+    if (e.key === "Enter") {
+      void handleSearch();
     }
-  }
+  };
 
   return (
     <section>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold tracking-tight">Add New Friend</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-gray-700">Add New Friend</h2>
         <p className="text-slate-500">
           Search for your friends by their phone number to connect.
         </p>
@@ -61,10 +72,10 @@ const AddFriendSection: React.FC<AddFriendSectionProps> = ({ onSearchResult }) =
             onKeyPress={handleKeyPress}
           />
         </div>
-        <button 
-            onClick={handleSearch}
-            disabled={isSearching || !phone.trim()}
-        className="bg-teal-500 hover:bg-teal-600 text-white px-8 py-2.5 rounded-2xl font-bold transition-all shadow-lg shadow-slate-50 flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer">
+        <button
+          onClick={() => void handleSearch()}
+          disabled={isSearching || !phone.trim()}
+        className="bg-green-primary hover:bg-green-secondary text-white px-8 py-2.5 rounded-2xl font-bold transition-all shadow-lg shadow-slate-50 flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer">
           {isSearching ? "Searching..." : "Find & Connect"}
           {!isSearching && <MdOutlinePersonAddAlt className="text-xl" />}
         </button>

@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import ContextAIChatPanel from "../../components/ai-chat/ContextAIChatPanel";
 import { Role, type ChatSession, type Message } from "../../types/aichat";
 import { Dialog } from "../../components/common/Dialog";
-import { ToastUndo } from "../../components/common/ToastUndo";
-import { gemini } from "../../services/geminiService";
 import AIChatHeader from "../../components/ai-chat/AIChatHeader";
 import AIChatInput from "../../components/ai-chat/AIChatInput";
 import { MessageAIList } from "../../components/ai-chat/MessageAIList";
 import { MdOutlineChatBubbleOutline } from "react-icons/md";
+import { aiChatService } from "../../services/aiChatService";
 
 const INITIAL_CHATS: ChatSession[] = [
   {
@@ -28,28 +27,75 @@ const INITIAL_CHATS: ChatSession[] = [
 ];
 
 const AIChatPage: React.FC = () => {
-  const [chats, setChats] = useState<ChatSession[]>(() => {
-    const saved = localStorage.getItem("ai_chats");
-    return saved ? JSON.parse(saved) : INITIAL_CHATS;
-  });
-  const [activeChatId, setActiveChatId] = useState<string>(chats[0]?.id || "");
+  const [chats, setChats] = useState<ChatSession[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string>("");
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(
     null,
   );
-  const [undoItem, setUndoItem] = useState<{
-    chat: ChatSession;
-    index: number;
-  } | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const undoTimeRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    localStorage.setItem("ai_chats", JSON.stringify(chats));
-  }, [chats]);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const loadedMessagesRef = useRef<Set<string>>(new Set());
 
   const activeChat = chats.find((c) => c.id === activeChatId) || chats[0];
+
+  useEffect(() => {
+    const bootstrap = async () => {
+      try {
+        const sessions = await aiChatService.listSessions();
+        if (sessions.length === 0) {
+          const created = await aiChatService.createSession();
+          setChats([created]);
+          setActiveChatId(created.id);
+          return;
+        }
+
+        setChats(sessions);
+        setActiveChatId((prev) => prev || sessions[0].id);
+      } catch (error) {
+        console.error("Failed to initialize AI sessions:", error);
+        setChats(INITIAL_CHATS);
+        setActiveChatId(INITIAL_CHATS[0].id);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    void bootstrap();
+  }, []);
+
+  useEffect(() => {
+    const loadMessages = async () => {
+      if (!activeChatId || loadedMessagesRef.current.has(activeChatId)) {
+        return;
+      }
+
+      try {
+        const messages = await aiChatService.getMessages(activeChatId);
+        loadedMessagesRef.current.add(activeChatId);
+
+        setChats((prev) =>
+          prev.map((chat) =>
+            chat.id === activeChatId
+              ? {
+                  ...chat,
+                  messages,
+                  preview:
+                    messages[messages.length - 1]?.content.slice(0, 30) ||
+                    "Start chatting...",
+                }
+              : chat,
+          ),
+        );
+      } catch (error) {
+        console.error("Failed to load chat messages:", error);
+      }
+    };
+
+    void loadMessages();
+  }, [activeChatId]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -57,13 +103,32 @@ const AIChatPage: React.FC = () => {
     }
   }, [activeChat?.messages, isTyping]);
 
-  // send message
+  const createNewChat = async (): Promise<ChatSession | null> => {
+    try {
+      const newChat = await aiChatService.createSession();
+      setChats((prev) => [newChat, ...prev]);
+      setActiveChatId(newChat.id);
+      return newChat;
+    } catch (error) {
+      console.error("Failed to create chat session:", error);
+      return null;
+    }
+  };
+
   const handleSendMessage = async (
     text?: string,
     attachment?: { mimeType: string; data: string },
   ) => {
+    if (isTyping) return;
+
+    let currentChat: ChatSession | null = activeChat ?? null;
+    if (!currentChat) {
+      currentChat = await createNewChat();
+      if (!currentChat) return;
+    }
+
     const messageText = text || input;
-    if ((!messageText.trim() && !attachment) || isTyping || !activeChat) return;
+    if (!messageText.trim() && !attachment) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
@@ -73,142 +138,106 @@ const AIChatPage: React.FC = () => {
       timestamp: Date.now(),
     };
 
-    const newMessages = [...activeChat.messages, userMsg];
-
     setChats((prev) =>
       prev.map((c) =>
-        c.id === activeChat.id
+        c.id === currentChat.id
           ? {
               ...c,
-              messages: newMessages,
-              updateAt: Date.now(),
+              messages: [...c.messages, userMsg],
+              updatedAt: Date.now(),
               preview: messageText.slice(0, 30) || "Attachment Sent",
             }
           : c,
       ),
     );
+
     setInput("");
     setIsTyping(true);
 
     try {
-      const modelMsgId = (Date.now() + 1).toString();
-      let fullResponse = "";
-      const stream = gemini.streamChat(
-        activeChat.messages,
-        messageText,
+      const response = await aiChatService.sendMessage(currentChat.id, {
+        message: messageText,
         attachment,
-      );
-      for await (const chunk of stream) {
-        fullResponse += chunk;
-        setChats((prev) =>
-          prev.map((c) => {
-            if (c.id === activeChatId) {
-              const lastMsg = c.messages[c.messages.length - 1];
-              if (
-                lastMsg &&
-                lastMsg.role === Role.MODEL &&
-                lastMsg.id === modelMsgId
-              ) {
-                return {
-                  ...c,
-                  messages: [
-                    ...c.messages.slice(0, -1),
-                    { ...lastMsg, content: fullResponse },
-                  ],
-                };
-              } else {
-                return {
-                  ...c,
-                  messages: [
-                    ...c.messages,
-                    {
-                      id: modelMsgId,
-                      role: Role.MODEL,
-                      content: fullResponse,
-                      timestamp: Date.now(),
-                    },
-                  ],
-                };
+      });
+
+      loadedMessagesRef.current.add(currentChat.id);
+
+      const modelMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: Role.MODEL,
+        content: response.assistantMessage,
+        timestamp: Date.now(),
+      };
+
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === currentChat.id
+            ? {
+                ...c,
+                messages: [...c.messages, modelMsg],
+                updatedAt: Date.now(),
               }
-            }
-            return c;
-          }),
-        );
-      }
+            : c,
+        ),
+      );
     } catch (error) {
-      console.error("Failed to fetch response:", error);
+      console.error("Failed to fetch AI response:", error);
+
+      const fallbackMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        role: Role.MODEL,
+        content:
+          "Xin lỗi, hệ thống AI tạm thời lỗi. Bạn thử lại sau ít phút nhé.",
+        timestamp: Date.now(),
+      };
+
+      setChats((prev) =>
+        prev.map((c) =>
+          c.id === currentChat.id
+            ? {
+                ...c,
+                messages: [...c.messages, fallbackMsg],
+                updatedAt: Date.now(),
+              }
+            : c,
+        ),
+      );
     } finally {
       setIsTyping(false);
     }
   };
 
-  // rename
   const handleRenameChat = (id: string, newTitle: string) => {
     setChats((prev) =>
       prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)),
     );
+
+    void aiChatService.renameSession(id, newTitle).catch((error) => {
+      console.error("Failed to rename session:", error);
+    });
   };
 
-  // confirm delete
   const confirmDeleteChat = (id: string) => {
     setShowConfirmDelete(id);
   };
 
-  // execute delete
   const executeDelete = () => {
     if (!showConfirmDelete) return;
+
     const idToDelete = showConfirmDelete;
-    const chatIndex = chats.findIndex((c) => c.id === idToDelete);
-    const chatToDelete = chats[chatIndex];
+    const updatedChats = chats.filter((c) => c.id !== idToDelete);
+    setChats(updatedChats);
 
-    if (chatToDelete) {
-      setUndoItem({ chat: chatToDelete, index: chatIndex });
-      const updatedChats = chats.filter((c) => c.id !== idToDelete);
-      setChats(updatedChats);
-
-      if (activeChatId === idToDelete) {
-        if (updatedChats.length > 0) setActiveChatId(updatedChats[0].id);
-        else setActiveChatId("");
-      }
-
-      if (undoTimeRef.current) clearTimeout(undoTimeRef.current);
-      undoTimeRef.current = setTimeout(() => {
-        setUndoItem(null);
-      }, 4000);
+    if (activeChatId === idToDelete) {
+      if (updatedChats.length > 0) setActiveChatId(updatedChats[0].id);
+      else setActiveChatId("");
     }
+
+    void aiChatService.deleteSession(idToDelete).catch((error) => {
+      console.error("Failed to delete session:", error);
+    });
+
     setShowConfirmDelete(null);
-  };
-
-  // undo delete
-  const handleUndo = () => {
-    if (undoItem) {
-      const newChats = [...chats];
-      newChats.splice(undoItem.index, 0, undoItem.chat);
-      setChats(newChats);
-      setActiveChatId(undoItem.chat.id);
-      setUndoItem(null);
-      if (undoTimeRef.current) clearTimeout(undoTimeRef.current);
-    }
-  };
-
-  // create new chat
-  const createNewChat = (currentChats = chats) => {
-    const newChat: ChatSession = {
-      id: Date.now().toString(),
-      title: "New Conversation",
-      preview: "Start chatting...",
-      updatedAt: Date.now(),
-      messages: [
-        {
-          id: Date.now().toString(),
-          role: Role.MODEL,
-          content: "Hello! How can I assist you with your project today?",
-          timestamp: Date.now(),
-        },
-      ],
-    };
-    setChats([newChat, ...currentChats]);
-    setActiveChatId(newChat.id);
   };
 
   return (
@@ -217,14 +246,20 @@ const AIChatPage: React.FC = () => {
         chats={chats}
         activeChatId={activeChatId}
         onSelectChat={setActiveChatId}
-        onNewChat={() => createNewChat()}
+        onNewChat={() => {
+          void createNewChat();
+        }}
         onSkillClick={handleSendMessage}
         onRenameChat={handleRenameChat}
         onDeleteChat={confirmDeleteChat}
       />
 
       <main className="flex-1 flex flex-col bg-white overflow-hidden hide-scrollbar relative">
-        {activeChat ? (
+        {isInitializing ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400">
+            Loading conversations...
+          </div>
+        ) : activeChat ? (
           <>
             <AIChatHeader
               title={activeChat.title}
@@ -232,7 +267,7 @@ const AIChatPage: React.FC = () => {
               onDelete={() => confirmDeleteChat(activeChat.id)}
             />
 
-            <MessageAIList 
+            <MessageAIList
               messages={activeChat.messages}
               isTyping={isTyping}
               scrollRef={scrollRef}
@@ -250,8 +285,10 @@ const AIChatPage: React.FC = () => {
             <MdOutlineChatBubbleOutline className="text-6xl opacity-20" />
             <p className="font-medium">Select or create a new chat to begin.</p>
             <button
-              onClick={() => createNewChat()}
-              className="px-6 py-2 bg-teal-500 text-white rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform cursor-pointer"
+              onClick={() => {
+                void createNewChat();
+              }}
+              className="px-6 py-2 bg-green-primary text-white rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform cursor-pointer"
             >
               New Chat
             </button>
@@ -262,17 +299,10 @@ const AIChatPage: React.FC = () => {
           isOpen={!!showConfirmDelete}
           type="danger"
           title="Delete Conversation?"
-          message="This will remove the chat history. You can undo this for a few seconds after deletion."
+          message="This will remove the chat history permanently."
           confirmText="Delete"
           onClose={() => setShowConfirmDelete(null)}
           onConfirm={executeDelete}
-        />
-
-        <ToastUndo
-          isVisible={!!undoItem}
-          message="Conversation deleted"
-          onUndo={handleUndo}
-          duration={4000}
         />
       </main>
     </div>

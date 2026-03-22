@@ -1,9 +1,11 @@
-import { Link, useLocation } from "react-router-dom";
-import {
-  MOCK_WORKSPACES,
-  MOCK_CHANNELS,
-  MOCK_DM_THREADS,
-} from "../../data/work-hub-mock";
+import { useState, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import type { Workspace } from "../../types/work-hub.types";
+import type { WorkspaceResponse } from "../../features/work-hub/work-hub.api.types";
+import { workHubApi } from "../../features/work-hub/work-hub.api";
+import { mapWorkspace } from "../../features/work-hub/work-hub.mappers";
+import { getUser } from "../../utils/token";
+import BoardFormDialog from "../work-hub/workspace/BoardFormDialog";
 
 interface SideBarWorkHubProps {
   workspaceId: string;
@@ -11,8 +13,44 @@ interface SideBarWorkHubProps {
 
 const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
   const location = useLocation();
-  const workspace =
-    MOCK_WORKSPACES.find((w) => w.id === workspaceId) || MOCK_WORKSPACES[0];
+  const navigate = useNavigate();
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [showCreateBoard, setShowCreateBoard] = useState(false);
+  const [showWorkspaceSwitcher, setShowWorkspaceSwitcher] = useState(false);
+  const [allWorkspaces, setAllWorkspaces] = useState<WorkspaceResponse[]>([]);
+  const switcherRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    workHubApi
+      .getWorkspace(workspaceId)
+      .then((data) => setWorkspace(mapWorkspace(data)))
+      .catch(() => setWorkspace(null));
+  }, [workspaceId]);
+
+  useEffect(() => {
+    if (!showWorkspaceSwitcher) return;
+    const user = getUser();
+    if (!user?.id) return;
+    workHubApi
+      .getWorkspaces(user.id)
+      .then((data) => setAllWorkspaces(data))
+      .catch(() => setAllWorkspaces([]));
+  }, [showWorkspaceSwitcher]);
+
+  useEffect(() => {
+    if (!showWorkspaceSwitcher) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        switcherRef.current &&
+        !switcherRef.current.contains(e.target as Node)
+      ) {
+        setShowWorkspaceSwitcher(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showWorkspaceSwitcher]);
 
   const navItems = [
     {
@@ -34,27 +72,36 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
       path: `/work-hub/${workspaceId}/members`,
       badge: workspace?.members.length,
     },
-    {
-      id: "settings",
-      icon: "fa-cog",
-      label: "Settings",
-      path: `/work-hub/${workspaceId}/settings`,
-    },
+    // {
+    //   id: "settings",
+    //   icon: "fa-cog",
+    //   label: "Settings",
+    //   path: `/work-hub/${workspaceId}/settings`,
+    // },
   ];
 
   const boards = workspace?.boards || [];
 
-  const channels = MOCK_CHANNELS.filter((c) => c.workspaceId === workspaceId);
-  const totalChannelUnread = channels.reduce(
-    (sum, c) => sum + c.unreadCount,
-    0,
-  );
-
-  const dmThreads = MOCK_DM_THREADS.filter(
-    (t) => t.workspaceId === workspaceId,
-  );
-  const totalDmUnread = dmThreads.reduce((sum, t) => sum + t.unreadCount, 0);
-  const currentUserId = "u1";
+  const channels: {
+    id: string;
+    name: string;
+    type: string;
+    unreadCount: number;
+  }[] = [];
+  const totalChannelUnread = 0;
+  const dmThreads: {
+    id: string;
+    unreadCount: number;
+    participants: {
+      id: string;
+      name: string;
+      avatar: string;
+      status: string;
+    }[];
+  }[] = [];
+  const totalDmUnread = 0;
+  const authUser = getUser();
+  const currentUserId = authUser?.id || "";
 
   const isActive = (path: string) => {
     if (path === `/work-hub/${workspaceId}`) {
@@ -66,14 +113,42 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
   const isBoardActive = (boardId: string) =>
     location.pathname.includes(`/boards/${boardId}`);
 
+  const handleCreateBoard = async (data: {
+    name: string;
+    description: string;
+    color: string;
+    icon: string;
+  }) => {
+    if (!workspaceId) return;
+    try {
+      await workHubApi.createBoard(workspaceId, {
+        boardName: data.name,
+        description: data.description,
+        backgroundColor: data.color,
+        icon: data.icon,
+      });
+      const wsData = await workHubApi.getWorkspace(workspaceId);
+      setWorkspace(mapWorkspace(wsData));
+      setShowCreateBoard(false);
+    } catch (err) {
+      console.error("Failed to create board:", err);
+    }
+  };
+
   return (
     <div
       className="flex flex-col border-r border-[var(--wh-green-border-light)] bg-white"
       style={{ width: "var(--wh-sidebar-width)" }}
     >
       {/* Workspace Header */}
-      <div className="p-4 border-b border-[var(--wh-green-border-light)]">
-        <div className="flex items-center gap-3 p-3 bg-[var(--wh-green-bg-light)] rounded-xl cursor-pointer hover:bg-[var(--wh-green-bg-heavy)] transition-colors">
+      <div
+        className="p-4 border-b border-[var(--wh-green-border-light)] relative"
+        ref={switcherRef}
+      >
+        <div
+          className="flex items-center gap-3 p-3 bg-[var(--wh-green-bg-light)] rounded-xl cursor-pointer hover:bg-[var(--wh-green-bg-heavy)] transition-colors"
+          onClick={() => setShowWorkspaceSwitcher((prev) => !prev)}
+        >
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
             style={{
@@ -90,8 +165,86 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
               {workspace?.members.length || 0} members
             </div>
           </div>
-          <i className="fas fa-chevron-down text-[var(--wh-green-text-muted)] text-xs"></i>
+          <i
+            className={`fas fa-chevron-down text-[var(--wh-green-text-muted)] text-xs transition-transform ${showWorkspaceSwitcher ? "rotate-180" : ""}`}
+          ></i>
         </div>
+
+        {/* Workspace Switcher Dropdown */}
+        {showWorkspaceSwitcher && (
+          <div className="absolute left-4 right-4 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden">
+            <div className="px-3 py-2 border-b border-slate-100">
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                Your Workspaces
+              </span>
+            </div>
+            <div className="max-h-64 overflow-y-auto py-1">
+              {allWorkspaces.map((ws) => {
+                const isCurrentWs = ws.workspaceId === workspaceId;
+                const currentUser = getUser();
+                const memberInfo = ws.members?.find(
+                  (m) => m.user?.userId === currentUser?.id,
+                );
+                const role = memberInfo?.role || "MEMBER";
+                const roleLabel =
+                  role === "OWNER"
+                    ? "Owner"
+                    : role === "ADMIN"
+                      ? "Admin"
+                      : "Member";
+
+                return (
+                  <button
+                    key={ws.workspaceId}
+                    onClick={() => {
+                      if (!isCurrentWs) {
+                        navigate(`/work-hub/${ws.workspaceId}`);
+                      }
+                      setShowWorkspaceSwitcher(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
+                      isCurrentWs
+                        ? "bg-[var(--wh-green-bg-light)]"
+                        : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs shrink-0"
+                      style={{ backgroundColor: ws.color || "#0d9488" }}
+                    >
+                      {ws.workspaceName?.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-800 truncate">
+                        {ws.workspaceName}
+                      </div>
+                      <div className="text-[11px] text-gray-400">
+                        {roleLabel} · {ws.members?.length || 0} members
+                      </div>
+                    </div>
+                    {isCurrentWs && (
+                      <i className="fas fa-check text-[var(--wh-green-primary)] text-xs"></i>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="border-t border-slate-100 p-2">
+              <button
+                onClick={() => {
+                  setShowWorkspaceSwitcher(false);
+                  navigate("/work-hub/create");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[var(--wh-green-primary)] hover:bg-[var(--wh-green-bg-light)] transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--wh-green-bg-light)] text-[var(--wh-green-primary)]">
+                  <i className="fas fa-plus text-xs"></i>
+                </div>
+                <span className="font-medium">Create New Workspace</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}
@@ -137,13 +290,13 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               Boards
             </span>
-            <Link
-              to={`/work-hub/${workspaceId}`}
+            <button
+              onClick={() => setShowCreateBoard(true)}
               className="text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] transition-colors"
               title="Add Board"
             >
               <i className="fas fa-plus text-xs"></i>
-            </Link>
+            </button>
           </div>
           {boards.map((board) => {
             const active = isBoardActive(board.id);
@@ -209,7 +362,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
         </div>
 
         {/* Channels Section */}
-        <div className="mb-5">
+        <div className="mb-5 hidden">
           <div className="flex items-center justify-between px-3 mb-2">
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               Channels
@@ -264,7 +417,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
         </div>
 
         {/* Direct Messages Section */}
-        <div className="mb-5">
+        <div className="mb-5 hidden">
           <div className="flex items-center justify-between px-3 mb-2">
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               Direct Messages
@@ -332,6 +485,13 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
           <span>Back to Chat</span>
         </Link>
       </div>
+
+      {/* Create Board Dialog */}
+      <BoardFormDialog
+        isOpen={showCreateBoard}
+        onClose={() => setShowCreateBoard(false)}
+        onSave={handleCreateBoard}
+      />
     </div>
   );
 };

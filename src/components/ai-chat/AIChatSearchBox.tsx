@@ -12,7 +12,7 @@ const AIChatSearchBox: React.FC<AIChatSearchBoxProps> = ({value, onChange}) => {
         <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]" />
         <input
           className="w-full h-8 pl-10 pr-4 bg-slate-100 border-none outline-none appearance-none shadow-none ring-0
-          focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-sm transition-all placeholder:text-slate-800"
+          focus:outline-none focus:ring-0 focus:shadow-none focus-visible:outline-none focus-visible:ring-0 rounded-sm text-sm transition-all placeholder:text-slate-700"
           type="text"
           placeholder="Search conversations..."
           value={value}

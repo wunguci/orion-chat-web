@@ -14,16 +14,35 @@ const priorityColors: Record<string, string> = {
   critical: "#ef4444",
 };
 
-const TimelineBar = ({ task, startDate, dayWidth, onClick }: TimelineBarProps) => {
-  const taskStart = task.startDate ? new Date(task.startDate) : new Date(task.createdAt);
-  const taskEnd = task.deadline ? new Date(task.deadline) : new Date(taskStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+const TimelineBar = ({
+  task,
+  startDate,
+  dayWidth,
+  onClick,
+}: TimelineBarProps) => {
+  const taskStart = task.startDate
+    ? new Date(task.startDate)
+    : new Date(task.createdAt);
+  const taskEnd = task.deadline
+    ? new Date(task.deadline)
+    : new Date(taskStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const offsetDays = Math.max(0, Math.floor((taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-  const durationDays = Math.max(1, Math.ceil((taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24)));
+  const offsetDays = Math.max(
+    0,
+    Math.floor(
+      (taskStart.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    ),
+  );
+  const durationDays = Math.max(
+    1,
+    Math.ceil(
+      (taskEnd.getTime() - taskStart.getTime()) / (1000 * 60 * 60 * 24),
+    ),
+  );
 
   const left = offsetDays * dayWidth;
   const width = durationDays * dayWidth;
-  const color = priorityColors[task.priority] || "#226262";
+  const color = priorityColors[task.priority] || "#0d9488";
 
   return (
     <div

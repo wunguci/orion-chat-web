@@ -1,9 +1,21 @@
+export interface NoteCategory {
+  categoryId: string;
+  name: string;
+  color: string;
+  icon: string | null;
+  isDefault: boolean;
+  createdAt?: string;
+}
+
 export interface Note {
-  id: string;
+  noteId: string;
   title: string;
   content: string;
-  category: string;
-  timestamp: string;
+  categoryId: string;
+  category: NoteCategory;
   isPinned: boolean;
-  folder?: string;
+  folderId: string | null;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
 }
