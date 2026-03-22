@@ -21,9 +21,9 @@ const VelocityChart = ({ data }: VelocityChartProps) => {
   const scaleY = (v: number) => (v / maxY) * chartH;
 
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-5">
       <h3 className="text-sm font-semibold text-gray-800 mb-4">
-        <i className="fas fa-tachometer-alt mr-2 text-[var(--wh-green-primary)]"></i>
+        <i className="fas fa-tachometer-alt mr-2 text-wh-green-primary"></i>
         Velocity Chart
       </h3>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
@@ -85,7 +85,7 @@ const VelocityChart = ({ data }: VelocityChartProps) => {
                 x={x + barWidth / 2 + gap / 2}
                 y={padding.top + chartH - scaleY(d.completed) - 5}
                 textAnchor="middle"
-                className="text-[9px] fill-[var(--wh-green-primary)]"
+                className="text-[9px] fill-wh-green-primary"
               >
                 {d.completed}
               </text>
@@ -97,11 +97,11 @@ const VelocityChart = ({ data }: VelocityChartProps) => {
       {/* Legend */}
       <div className="flex items-center justify-center gap-6 mt-2">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-[var(--wh-green-bg-heavy)]" />
+          <div className="w-3 h-3 rounded-sm bg-wh-green-bg-heavy" />
           <span className="text-xs text-gray-500">Planned</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-[var(--wh-green-primary)]" />
+          <div className="w-3 h-3 rounded-sm bg-wh-green-primary" />
           <span className="text-xs text-gray-500">Completed</span>
         </div>
       </div>
@@ -110,3 +110,4 @@ const VelocityChart = ({ data }: VelocityChartProps) => {
 };
 
 export default VelocityChart;
+

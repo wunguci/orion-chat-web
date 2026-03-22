@@ -18,9 +18,9 @@ const DailyDigestPreview = ({ items }: DailyDigestPreviewProps) => {
   };
 
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-5">
       <h3 className="text-sm font-semibold text-gray-800 mb-4">
-        <i className="fas fa-newspaper mr-2 text-[var(--wh-green-primary)]"></i>
+        <i className="fas fa-newspaper mr-2 text-wh-green-primary"></i>
         Daily Digest
       </h3>
 
@@ -54,3 +54,4 @@ const DailyDigestPreview = ({ items }: DailyDigestPreviewProps) => {
 };
 
 export default DailyDigestPreview;
+

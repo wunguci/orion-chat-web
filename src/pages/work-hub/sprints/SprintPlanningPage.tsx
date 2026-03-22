@@ -205,7 +205,7 @@ const SprintPlanningPage = () => {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <i className="fas fa-spinner fa-spin text-2xl text-[var(--wh-green-primary)]" />
+            <i className="fas fa-spinner fa-spin text-2xl text-wh-green-primary" />
             <span className="text-sm text-gray-500">Loading sprints...</span>
           </div>
         </div>
@@ -227,7 +227,7 @@ const SprintPlanningPage = () => {
           <p className="text-gray-500">No sprints yet</p>
           <button
             onClick={() => setShowCreate(true)}
-            className="px-4 py-2 rounded-lg bg-[var(--wh-green-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            className="px-4 py-2 rounded-lg bg-wh-green-primary text-white text-sm font-medium hover:opacity-90 transition-opacity"
           >
             <i className="fas fa-plus mr-2" />
             Create Sprint
@@ -264,7 +264,7 @@ const SprintPlanningPage = () => {
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="px-3 py-2 rounded-lg bg-[var(--wh-green-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+          className="px-3 py-2 rounded-lg bg-wh-green-primary text-white text-sm font-medium hover:opacity-90 transition-opacity"
         >
           <i className="fas fa-plus mr-1.5" />
           New Sprint
@@ -289,7 +289,7 @@ const SprintPlanningPage = () => {
                   onChange={(e) =>
                     setCreateForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   placeholder="e.g. Sprint 6"
                 />
               </div>
@@ -302,7 +302,7 @@ const SprintPlanningPage = () => {
                   onChange={(e) =>
                     setCreateForm((f) => ({ ...f, goal: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary resize-none"
                   rows={2}
                   placeholder="Sprint goal description"
                 />
@@ -321,7 +321,7 @@ const SprintPlanningPage = () => {
                         startDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
                 <div>
@@ -337,7 +337,7 @@ const SprintPlanningPage = () => {
                         endDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
               </div>
@@ -360,7 +360,7 @@ const SprintPlanningPage = () => {
               <button
                 onClick={handleCreate}
                 disabled={creating || !createForm.name.trim()}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {creating ? (
                   <i className="fas fa-spinner fa-spin mr-1.5" />
@@ -390,7 +390,7 @@ const SprintPlanningPage = () => {
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, name: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                 />
               </div>
               <div>
@@ -402,7 +402,7 @@ const SprintPlanningPage = () => {
                   onChange={(e) =>
                     setEditForm((f) => ({ ...f, goal: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary resize-none"
                   rows={2}
                 />
               </div>
@@ -420,7 +420,7 @@ const SprintPlanningPage = () => {
                         startDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
                 <div>
@@ -436,7 +436,7 @@ const SprintPlanningPage = () => {
                         endDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
               </div>
@@ -451,7 +451,7 @@ const SprintPlanningPage = () => {
               <button
                 onClick={handleUpdate}
                 disabled={saving || !editForm.name.trim()}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {saving ? (
                   <i className="fas fa-spinner fa-spin mr-1.5" />
@@ -474,7 +474,7 @@ const SprintPlanningPage = () => {
               onClick={() => setSelectedSprint(s.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                 selectedSprint === s.id
-                  ? "bg-[var(--wh-green-primary)] text-white shadow-sm"
+                  ? "bg-wh-green-primary text-white shadow-sm"
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
               }`}
             >
@@ -492,7 +492,7 @@ const SprintPlanningPage = () => {
       {sprint && (
         <>
           {/* Sprint Info */}
-          <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-5 mb-6">
+          <div className="bg-white rounded-xl border border-wh-green-border-light p-5 mb-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-lg font-bold text-gray-800">
@@ -570,7 +570,7 @@ const SprintPlanningPage = () => {
 
             <div className="w-full bg-gray-100 rounded-full h-3">
               <div
-                className="h-3 rounded-full bg-[var(--wh-green-primary)] transition-all"
+                className="h-3 rounded-full bg-wh-green-primary transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -585,7 +585,7 @@ const SprintPlanningPage = () => {
           {tasksLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="flex flex-col items-center gap-3">
-                <i className="fas fa-spinner fa-spin text-xl text-[var(--wh-green-primary)]" />
+                <i className="fas fa-spinner fa-spin text-xl text-wh-green-primary" />
                 <span className="text-sm text-gray-500">Loading tasks...</span>
               </div>
             </div>
@@ -669,3 +669,4 @@ const SprintPlanningPage = () => {
 };
 
 export default SprintPlanningPage;
+

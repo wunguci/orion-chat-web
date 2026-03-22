@@ -41,7 +41,7 @@ const WorkspaceSettingsForm = ({
   };
 
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-6 space-y-6">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-6 space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
           Workspace Name
@@ -50,7 +50,7 @@ const WorkspaceSettingsForm = ({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full px-4 py-2.5 border border-[var(--wh-green-border-light)] rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] focus:ring-2 focus:ring-[var(--wh-green-primary)]/20"
+          className="w-full px-4 py-2.5 border border-wh-green-border-light rounded-lg text-sm focus:outline-none focus:border-wh-green-primary focus:ring-2 focus:ring-wh-green-primary/20"
         />
       </div>
 
@@ -62,7 +62,7 @@ const WorkspaceSettingsForm = ({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          className="w-full px-4 py-2.5 border border-[var(--wh-green-border-light)] rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] resize-none"
+          className="w-full px-4 py-2.5 border border-wh-green-border-light rounded-lg text-sm focus:outline-none focus:border-wh-green-primary resize-none"
         />
       </div>
 
@@ -91,7 +91,7 @@ const WorkspaceSettingsForm = ({
             onClick={() => setIsPublic(true)}
             className={`flex-1 p-3 rounded-lg border text-sm transition-all ${
               isPublic
-                ? "border-[var(--wh-green-primary)] bg-[var(--wh-green-bg-light)] text-[var(--wh-green-text-primary)]"
+                ? "border-wh-green-primary bg-wh-green-bg-light text-wh-green-text-primary"
                 : "border-gray-200 text-gray-500 hover:border-gray-300"
             }`}
           >
@@ -101,7 +101,7 @@ const WorkspaceSettingsForm = ({
             onClick={() => setIsPublic(false)}
             className={`flex-1 p-3 rounded-lg border text-sm transition-all ${
               !isPublic
-                ? "border-[var(--wh-green-primary)] bg-[var(--wh-green-bg-light)] text-[var(--wh-green-text-primary)]"
+                ? "border-wh-green-primary bg-wh-green-bg-light text-wh-green-text-primary"
                 : "border-gray-200 text-gray-500 hover:border-gray-300"
             }`}
           >
@@ -116,7 +116,7 @@ const WorkspaceSettingsForm = ({
         </button>
         <button
           onClick={handleSave}
-          className="px-5 py-2.5 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors flex items-center gap-2"
         >
           {saved ? (
             <>
@@ -134,3 +134,4 @@ const WorkspaceSettingsForm = ({
 };
 
 export default WorkspaceSettingsForm;
+

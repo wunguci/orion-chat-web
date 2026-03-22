@@ -14,13 +14,13 @@ interface ConfirmDialogProps {
 const variantClasses = {
   danger: "bg-red-500 hover:bg-red-600",
   warning: "bg-amber-500 hover:bg-amber-600",
-  info: "bg-[var(--wh-green-primary)] hover:bg-[var(--wh-green-primary-hover)]",
+  info: "bg-wh-green-primary hover:bg-wh-green-primary-hover",
 };
 
 const variantIcons = {
   danger: "fa-exclamation-triangle text-red-500",
   warning: "fa-exclamation-circle text-amber-500",
-  info: "fa-info-circle text-[var(--wh-green-primary)]",
+  info: "fa-info-circle text-wh-green-primary",
 };
 
 const ConfirmDialog = ({
@@ -68,3 +68,4 @@ const ConfirmDialog = ({
 };
 
 export default ConfirmDialog;
+

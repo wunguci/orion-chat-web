@@ -1,29 +1,53 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-    content: [
-        './src/**/*.{js,jsx,ts,tsx}',
-        './app/**/*.{js,jsx,ts,tsx}',
-        './components/**/*.{js,jsx,ts,tsx}',
-    ],
-    theme: {
-        extend: {
-            colors: {
-                'orange-primary': '#ee652b',
-                'orange-bg-heavy': '#fcede6',
-                'orange-bg-light': '#fdfaf9',
-                'orange-border-light': '#fbe7df',
-                'gray-primary': '#505050',
-                'gray-border': '#EFF4F8',
-                'gray-secondary': '#94a3b8',
-                'blue-dark': '#0052cc',
-                'green-primary': '#226262',
-                'green-hover': '#004444',
-                'green-bg-heavy': '#D6F2F2',
-                'green-bg-light': '#F4FFFF',
-                'green-border-light': '#D6F2F2',
-                'green-message': '#007c7c',
-            },
-        },
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./app/**/*.{js,jsx,ts,tsx}",
+    "./components/**/*.{js,jsx,ts,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        "orange-primary": "#ee652b",
+        "orange-bg-heavy": "#fcede6",
+        "orange-bg-light": "#fdfaf9",
+        "orange-border-light": "#fbe7df",
+        "gray-primary": "#505050",
+        "gray-border": "#EFF4F8",
+        "gray-secondary": "#94a3b8",
+        "blue-dark": "#0052cc",
+        "green-primary": "#226262",
+        "green-hover": "#004444",
+        "green-bg-heavy": "#D6F2F2",
+        "green-bg-light": "#F4FFFF",
+        "green-border-light": "#D6F2F2",
+        "green-message": "#007c7c",
+        "wh-green-primary": "#0d9488",
+        "wh-green-primary-hover": "#0f766e",
+        "wh-green-primary-active": "#115e59",
+        "wh-green-primary-light": "#14b8a6",
+        "wh-green-bg-heavy": "#ccfbf1",
+        "wh-green-bg-light": "#f5f7fa",
+        "wh-green-bg-medium": "#f0fdfa",
+        "wh-green-border-light": "#e2e8f0",
+        "wh-green-border-medium": "#cbd5e1",
+        "wh-green-border-dark": "#0d9488",
+        "wh-green-text-primary": "#1e293b",
+        "wh-green-text-secondary": "#475569",
+        "wh-green-text-muted": "#94a3b8",
+        "wh-status-todo": "#94a3b8",
+        "wh-status-inprogress": "#f59e0b",
+        "wh-status-review": "#6c2eff",
+        "wh-status-done": "#10b981",
+        "wh-priority-low": "#3b82f6",
+        "wh-priority-medium": "#f59e0b",
+        "wh-priority-high": "#f97316",
+        "wh-priority-critical": "#ef4444",
+      },
     },
-    plugins: [],
+  },
+  plugins: [],
 };
+
+export default config;

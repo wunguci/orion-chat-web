@@ -112,10 +112,10 @@ const BoardPage = () => {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--wh-green-bg-light)]">
+      <div className="flex-1 flex items-center justify-center bg-wh-green-bg-light">
         <i
           className="fas fa-spinner fa-spin text-3xl"
-          style={{ color: "var(--wh-green-primary)" }}
+          style={{ color: "#0d9488" }}
         ></i>
       </div>
     );
@@ -123,10 +123,10 @@ const BoardPage = () => {
 
   if (!workspace || !board) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[var(--wh-green-bg-light)]">
+      <div className="flex-1 flex items-center justify-center bg-wh-green-bg-light">
         <div className="text-center">
-          <i className="fas fa-exclamation-circle text-4xl text-[var(--wh-green-text-muted)] mb-3"></i>
-          <p className="text-[var(--wh-green-text-primary)] font-semibold">
+          <i className="fas fa-exclamation-circle text-4xl text-wh-green-text-muted mb-3"></i>
+          <p className="text-wh-green-text-primary font-semibold">
             Board not found
           </p>
         </div>
@@ -292,9 +292,9 @@ const BoardPage = () => {
   const statuses = ["all", "todo", "inprogress", "review", "done"] as const;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--wh-green-bg-light)]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-wh-green-bg-light">
       {/* Header */}
-      <div className="px-6 py-4 bg-white border-b border-[var(--wh-green-border-light)]">
+      <div className="px-6 py-4 bg-white border-b border-wh-green-border-light">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <div
@@ -314,7 +314,7 @@ const BoardPage = () => {
             <ViewSwitcher currentView={viewMode} onViewChange={setViewMode} />
             <button
               onClick={() => setShowTaskModal(true)}
-              className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors text-sm font-medium"
+              className="px-4 py-2 bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors text-sm font-medium"
             >
               <i className="fas fa-plus mr-2"></i>Add Task
             </button>
@@ -324,7 +324,7 @@ const BoardPage = () => {
         {/* Toolbar */}
         <div className="flex items-center gap-3">
           {/* Search */}
-          <div className="flex items-center gap-2 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg px-3 py-1.5">
+          <div className="flex items-center gap-2 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg px-3 py-1.5">
             <i className="fas fa-search text-gray-400 text-xs"></i>
             <input
               type="text"
@@ -343,8 +343,8 @@ const BoardPage = () => {
                 onClick={() => setFilterStatus(s)}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
                   filterStatus === s
-                    ? "bg-[var(--wh-green-primary)] text-white"
-                    : "bg-[var(--wh-green-bg-heavy)] text-gray-600 hover:bg-[var(--wh-green-bg-medium)]"
+                    ? "bg-wh-green-primary text-white"
+                    : "bg-wh-green-bg-heavy text-gray-600 hover:bg-wh-green-bg-medium"
                 }`}
               >
                 {s === "all"
@@ -423,3 +423,4 @@ const BoardPage = () => {
 };
 
 export default BoardPage;
+

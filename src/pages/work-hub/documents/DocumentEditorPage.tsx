@@ -190,7 +190,7 @@ const DocumentEditorPage = () => {
     return (
       <div className="flex-1 flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-3 border-[var(--wh-green-primary)] border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-8 h-8 border-3 border-wh-green-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="text-sm text-gray-500">Loading document...</p>
         </div>
       </div>
@@ -205,7 +205,7 @@ const DocumentEditorPage = () => {
           <p className="font-medium text-gray-500">Document not found</p>
           <Link
             to={`/work-hub/${workspaceId}/documents`}
-            className="text-sm text-[var(--wh-green-primary)] hover:underline"
+            className="text-sm text-wh-green-primary hover:underline"
           >
             Back to Documents
           </Link>
@@ -217,7 +217,7 @@ const DocumentEditorPage = () => {
   return (
     <div className="flex-1 flex flex-col overflow-hidden bg-white">
       {/* Top Bar */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--wh-green-border-light)] bg-white">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-wh-green-border-light bg-white">
         <div className="flex items-center gap-3">
           <Link
             to={`/work-hub/${workspaceId}/documents`}
@@ -227,7 +227,7 @@ const DocumentEditorPage = () => {
           </Link>
           <div className="w-px h-5 bg-gray-200"></div>
           <div className="flex items-center gap-2">
-            <i className="fas fa-file-alt text-[var(--wh-green-primary)]"></i>
+            <i className="fas fa-file-alt text-wh-green-primary"></i>
             {editingTitle ? (
               <input
                 type="text"
@@ -241,12 +241,12 @@ const DocumentEditorPage = () => {
                     setEditingTitle(false);
                   }
                 }}
-                className="font-semibold text-gray-900 text-sm border border-[var(--wh-green-primary)] rounded px-1.5 py-0.5 outline-none"
+                className="font-semibold text-gray-900 text-sm border border-wh-green-primary rounded px-1.5 py-0.5 outline-none"
                 autoFocus
               />
             ) : (
               <span
-                className="font-semibold text-gray-900 text-sm cursor-pointer hover:text-[var(--wh-green-primary)]"
+                className="font-semibold text-gray-900 text-sm cursor-pointer hover:text-wh-green-primary"
                 onClick={() => setEditingTitle(true)}
                 title="Click to edit title"
               >
@@ -310,7 +310,7 @@ const DocumentEditorPage = () => {
                 title={m.tip}
                 className={`px-2.5 py-1.5 rounded-md text-xs transition-colors ${
                   viewMode === m.key
-                    ? "bg-white text-[var(--wh-green-primary)] shadow-sm"
+                    ? "bg-white text-wh-green-primary shadow-sm"
                     : "text-gray-400 hover:text-gray-600"
                 }`}
               >
@@ -333,7 +333,7 @@ const DocumentEditorPage = () => {
             onClick={() => setShowVersionHistory(!showVersionHistory)}
             className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
               showVersionHistory
-                ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-primary)]"
+                ? "bg-wh-green-bg-heavy text-wh-green-primary"
                 : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
             }`}
             title="Version History"
@@ -344,7 +344,7 @@ const DocumentEditorPage = () => {
             onClick={() => setShowComments(!showComments)}
             className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors relative ${
               showComments
-                ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-primary)]"
+                ? "bg-wh-green-bg-heavy text-wh-green-primary"
                 : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
             }`}
             title="Comments"
@@ -501,7 +501,7 @@ const DocumentEditorPage = () => {
             <i className="fas fa-minus"></i>
           </button>
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-[var(--wh-green-primary)] text-sm w-8 h-8"
+            className="p-1.5 rounded hover:bg-gray-200 text-wh-green-primary text-sm w-8 h-8"
             title="Embed Task Link"
           >
             <i className="fas fa-clipboard-check"></i>
@@ -555,7 +555,7 @@ const DocumentEditorPage = () => {
 
         {/* Version History Panel */}
         {showVersionHistory && (
-          <div className="w-72 border-l border-[var(--wh-green-border-light)] bg-white overflow-y-auto">
+          <div className="w-72 border-l border-wh-green-border-light bg-white overflow-y-auto">
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-sm text-gray-900">
@@ -575,7 +575,7 @@ const DocumentEditorPage = () => {
                   key={version.id}
                   className={`p-3 rounded-lg mb-2 cursor-pointer transition-colors ${
                     idx === 0
-                      ? "bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-medium)]"
+                      ? "bg-wh-green-bg-light border border-wh-green-border-medium"
                       : "hover:bg-gray-50 border border-transparent"
                   }`}
                 >
@@ -584,7 +584,7 @@ const DocumentEditorPage = () => {
                       {version.name || `Version ${doc.versions.length - idx}`}
                     </span>
                     {idx === 0 && (
-                      <span className="text-[10px] font-semibold text-[var(--wh-green-primary)] bg-[var(--wh-green-bg-heavy)] px-1.5 py-0.5 rounded">
+                      <span className="text-[10px] font-semibold text-wh-green-primary bg-wh-green-bg-heavy px-1.5 py-0.5 rounded">
                         Latest
                       </span>
                     )}
@@ -602,7 +602,7 @@ const DocumentEditorPage = () => {
                   </div>
                   {idx > 0 && (
                     <div className="flex items-center gap-2 mt-2">
-                      <button className="text-[11px] text-[var(--wh-green-primary)] hover:underline">
+                      <button className="text-[11px] text-wh-green-primary hover:underline">
                         Restore
                       </button>
                       <button className="text-[11px] text-gray-400 hover:underline">
@@ -623,7 +623,7 @@ const DocumentEditorPage = () => {
 
         {/* Comments Panel */}
         {showComments && (
-          <div className="w-80 border-l border-[var(--wh-green-border-light)] bg-white overflow-y-auto flex flex-col">
+          <div className="w-80 border-l border-wh-green-border-light bg-white overflow-y-auto flex flex-col">
             <div className="p-4 border-b border-gray-100">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-sm text-gray-900">
@@ -643,7 +643,7 @@ const DocumentEditorPage = () => {
                     onClick={() => setCommentFilter(f)}
                     className={`flex-1 px-2 py-1 rounded-md text-xs font-medium capitalize transition-colors ${
                       commentFilter === f
-                        ? "bg-white text-[var(--wh-green-primary)] shadow-sm"
+                        ? "bg-white text-wh-green-primary shadow-sm"
                         : "text-gray-500 hover:text-gray-700"
                     }`}
                   >
@@ -660,7 +660,7 @@ const DocumentEditorPage = () => {
                   className={`p-3 rounded-lg border mb-3 ${
                     comment.isResolved
                       ? "bg-gray-50 border-gray-200 opacity-70"
-                      : "bg-white border-[var(--wh-green-border-light)]"
+                      : "bg-white border-wh-green-border-light"
                   }`}
                 >
                   {/* Selected text */}
@@ -714,7 +714,7 @@ const DocumentEditorPage = () => {
 
                   {/* Actions */}
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                    <button className="text-[11px] text-gray-400 hover:text-[var(--wh-green-primary)]">
+                    <button className="text-[11px] text-gray-400 hover:text-wh-green-primary">
                       <i className="fas fa-reply mr-1"></i> Reply
                     </button>
                     {!comment.isResolved ? (
@@ -756,11 +756,11 @@ const DocumentEditorPage = () => {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleAddComment();
                   }}
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 />
                 <button
                   onClick={handleAddComment}
-                  className="p-2 text-[var(--wh-green-primary)] hover:bg-[var(--wh-green-bg-light)] rounded-lg transition-colors"
+                  className="p-2 text-wh-green-primary hover:bg-wh-green-bg-light rounded-lg transition-colors"
                 >
                   <i className="fas fa-paper-plane text-sm"></i>
                 </button>
@@ -788,7 +788,7 @@ const DocumentEditorPage = () => {
                 placeholder="e.g., Final draft, v2.0"
                 value={versionName}
                 onChange={(e) => setVersionName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSaveVersion();
@@ -811,7 +811,7 @@ const DocumentEditorPage = () => {
               <button
                 onClick={handleSaveVersion}
                 disabled={savingVersion}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
               >
                 {savingVersion ? "Saving..." : "Save Version"}
               </button>
@@ -824,3 +824,4 @@ const DocumentEditorPage = () => {
 };
 
 export default DocumentEditorPage;
+

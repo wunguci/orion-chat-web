@@ -191,22 +191,22 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
 
   return (
     <div
-      className="flex flex-col border-r border-[var(--wh-green-border-light)] bg-white"
-      style={{ width: "var(--wh-sidebar-width)" }}
+      className="flex flex-col border-r border-wh-green-border-light bg-white"
+      style={{ width: "280px" }}
     >
       {/* Workspace Header */}
       <div
-        className="p-4 border-b border-[var(--wh-green-border-light)] relative"
+        className="p-4 border-b border-wh-green-border-light relative"
         ref={switcherRef}
       >
         <div
-          className="flex items-center gap-3 p-3 bg-[var(--wh-green-bg-light)] rounded-xl cursor-pointer hover:bg-[var(--wh-green-bg-heavy)] transition-colors"
+          className="flex items-center gap-3 p-3 bg-wh-green-bg-light rounded-xl cursor-pointer hover:bg-wh-green-bg-heavy transition-colors"
           onClick={() => setShowWorkspaceSwitcher((prev) => !prev)}
         >
           <div
             className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white text-sm"
             style={{
-              backgroundColor: workspace?.color || "var(--wh-green-primary)",
+              backgroundColor: workspace?.color || "#0d9488",
             }}
           >
             {workspace?.name?.substring(0, 2).toUpperCase() || "WS"}
@@ -215,12 +215,12 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
             <div className="font-semibold text-sm text-gray-900 truncate">
               {workspace?.name || "Workspace"}
             </div>
-            <div className="text-[11px] text-[var(--wh-green-text-muted)]">
+            <div className="text-[11px] text-wh-green-text-muted">
               {workspace?.members.length || 0} members
             </div>
           </div>
           <i
-            className={`fas fa-chevron-down text-[var(--wh-green-text-muted)] text-xs transition-transform ${showWorkspaceSwitcher ? "rotate-180" : ""}`}
+            className={`fas fa-chevron-down text-wh-green-text-muted text-xs transition-transform ${showWorkspaceSwitcher ? "rotate-180" : ""}`}
           ></i>
         </div>
 
@@ -258,7 +258,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors ${
                       isCurrentWs
-                        ? "bg-[var(--wh-green-bg-light)]"
+                        ? "bg-wh-green-bg-light"
                         : "hover:bg-slate-50"
                     }`}
                   >
@@ -277,7 +277,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                       </div>
                     </div>
                     {isCurrentWs && (
-                      <i className="fas fa-check text-[var(--wh-green-primary)] text-xs"></i>
+                      <i className="fas fa-check text-wh-green-primary text-xs"></i>
                     )}
                   </button>
                 );
@@ -289,9 +289,9 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                   setShowWorkspaceSwitcher(false);
                   navigate("/work-hub/create");
                 }}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[var(--wh-green-primary)] hover:bg-[var(--wh-green-bg-light)] transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-wh-green-primary hover:bg-wh-green-bg-light transition-colors"
               >
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-[var(--wh-green-bg-light)] text-[var(--wh-green-primary)]">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-wh-green-bg-light text-wh-green-primary">
                   <i className="fas fa-plus text-xs"></i>
                 </div>
                 <span className="font-medium">Create New Workspace</span>
@@ -316,8 +316,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
                   active
-                    ? "bg-[var(--wh-green-primary)] text-white"
-                    : "text-gray-600 hover:bg-[var(--wh-green-bg-heavy)] hover:text-[var(--wh-green-text-primary)]"
+                    ? "bg-wh-green-primary text-white"
+                    : "text-gray-600 hover:bg-wh-green-bg-heavy hover:text-wh-green-text-primary"
                 }`}
               >
                 <i className={`fas ${item.icon} w-5 text-center text-sm`}></i>
@@ -327,7 +327,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                       active
                         ? "bg-white/20"
-                        : "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)]"
+                        : "bg-wh-green-bg-heavy text-wh-green-text-primary"
                     }`}
                   >
                     {item.badge}
@@ -346,7 +346,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
             </span>
             <button
               onClick={() => setShowCreateBoard(true)}
-              className="text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] transition-colors"
+              className="text-wh-green-text-muted hover:text-wh-green-primary transition-colors"
               title="Add Board"
             >
               <i className="fas fa-plus text-xs"></i>
@@ -360,8 +360,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 to={`/work-hub/${workspaceId}/boards/${board.id}`}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
                   active
-                    ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] font-medium"
-                    : "text-gray-600 hover:bg-[var(--wh-green-bg-light)]"
+                    ? "bg-wh-green-bg-heavy text-wh-green-text-primary font-medium"
+                    : "text-gray-600 hover:bg-wh-green-bg-light"
                 }`}
               >
                 <div
@@ -391,8 +391,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
                   active
-                    ? "bg-[var(--wh-green-primary)] text-white"
-                    : "text-gray-600 hover:bg-[var(--wh-green-bg-heavy)] hover:text-[var(--wh-green-text-primary)]"
+                    ? "bg-wh-green-primary text-white"
+                    : "text-gray-600 hover:bg-wh-green-bg-heavy hover:text-wh-green-text-primary"
                 }`}
               >
                 <i className={`fas ${item.icon} w-5 text-center text-sm`}></i>
@@ -415,8 +415,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
                   active
-                    ? "bg-[var(--wh-green-primary)] text-white"
-                    : "text-gray-600 hover:bg-[var(--wh-green-bg-heavy)] hover:text-[var(--wh-green-text-primary)]"
+                    ? "bg-wh-green-primary text-white"
+                    : "text-gray-600 hover:bg-wh-green-bg-heavy hover:text-wh-green-text-primary"
                 }`}
               >
                 <i className={`fas ${item.icon} w-5 text-center text-sm`}></i>
@@ -452,8 +452,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
                   active
-                    ? "bg-[var(--wh-green-primary)] text-white"
-                    : "text-gray-600 hover:bg-[var(--wh-green-bg-heavy)] hover:text-[var(--wh-green-text-primary)]"
+                    ? "bg-wh-green-primary text-white"
+                    : "text-gray-600 hover:bg-wh-green-bg-heavy hover:text-wh-green-text-primary"
                 }`}
               >
                 <i className={`fas ${item.icon} w-5 text-center text-sm`}></i>
@@ -471,7 +471,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
             </span>
             <Link
               to={`/work-hub/${workspaceId}/channels`}
-              className="text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] transition-colors"
+              className="text-wh-green-text-muted hover:text-wh-green-primary transition-colors"
               title="Browse Channels"
             >
               <i className="fas fa-plus text-xs"></i>
@@ -487,8 +487,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 to={`/work-hub/${workspaceId}/channels`}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
                   active
-                    ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] font-medium"
-                    : "text-gray-600 hover:bg-[var(--wh-green-bg-light)]"
+                    ? "bg-wh-green-bg-heavy text-wh-green-text-primary font-medium"
+                    : "text-gray-600 hover:bg-wh-green-bg-light"
                 }`}
               >
                 <span className="w-5 text-center text-gray-400 text-xs">
@@ -510,7 +510,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
           {channels.length > 5 && (
             <Link
               to={`/work-hub/${workspaceId}/channels`}
-              className="flex items-center gap-3 px-3 py-1.5 text-xs text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] transition-colors"
+              className="flex items-center gap-3 px-3 py-1.5 text-xs text-wh-green-text-muted hover:text-wh-green-primary transition-colors"
             >
               <span className="w-5"></span>
               <span>View all channels ({channels.length})</span>
@@ -526,7 +526,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
             </span>
             <Link
               to={`/work-hub/${workspaceId}/messages`}
-              className="text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] transition-colors"
+              className="text-wh-green-text-muted hover:text-wh-green-primary transition-colors"
               title="New Message"
             >
               <i className="fas fa-plus text-xs"></i>
@@ -545,8 +545,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 to={`/work-hub/${workspaceId}/messages`}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all mb-0.5 text-sm ${
                   active
-                    ? "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] font-medium"
-                    : "text-gray-600 hover:bg-[var(--wh-green-bg-light)]"
+                    ? "bg-wh-green-bg-heavy text-wh-green-text-primary font-medium"
+                    : "text-gray-600 hover:bg-wh-green-bg-light"
                 }`}
               >
                 <div className="relative flex-shrink-0">
@@ -567,7 +567,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
                 </div>
                 <span className="flex-1 truncate">{otherUser.name}</span>
                 {thread.unreadCount > 0 && (
-                  <span className="text-[10px] font-bold bg-[var(--wh-green-primary)] text-white px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                  <span className="text-[10px] font-bold bg-wh-green-primary text-white px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                     {thread.unreadCount}
                   </span>
                 )}
@@ -578,7 +578,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
       </div>
 
       {/* Bottom Section */}
-      <div className="p-3 border-t border-[var(--wh-green-border-light)]">
+      <div className="p-3 border-t border-wh-green-border-light">
         <Link
           to="/chat"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-all"
@@ -599,3 +599,4 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
 };
 
 export default SideBarWorkHub;
+

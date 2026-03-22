@@ -123,19 +123,19 @@ const DocumentsPage = () => {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-[var(--wh-green-bg-light)]">
+    <div className="flex-1 overflow-auto bg-wh-green-bg-light">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[var(--wh-green-border-light)] px-6 py-4">
+      <div className="sticky top-0 z-10 bg-white border-b border-wh-green-border-light px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Documents</h1>
-            <p className="text-sm text-[var(--wh-green-text-muted)]">
+            <p className="text-sm text-wh-green-text-muted">
               {filteredDocs.length} documents in workspace
             </p>
           </div>
           <button
             onClick={() => setShowNewDocModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2 bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors text-sm font-medium"
           >
             <i className="fas fa-plus"></i>
             New Document
@@ -151,7 +151,7 @@ const DocumentsPage = () => {
               placeholder="Search documents..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-[var(--wh-green-border-medium)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+              className="w-full pl-9 pr-4 py-2 border border-wh-green-border-medium rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
             />
           </div>
 
@@ -169,7 +169,7 @@ const DocumentsPage = () => {
                 onClick={() => setFilter(f.key)}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                   filter === f.key
-                    ? "bg-white text-[var(--wh-green-primary)] shadow-sm"
+                    ? "bg-white text-wh-green-primary shadow-sm"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
@@ -184,7 +184,7 @@ const DocumentsPage = () => {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-3 border-[var(--wh-green-primary)] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-3 border-wh-green-primary border-t-transparent rounded-full animate-spin"></div>
             <p className="text-sm text-gray-500">Loading documents...</p>
           </div>
         </div>
@@ -198,13 +198,13 @@ const DocumentsPage = () => {
                 onClick={() =>
                   navigate(`/work-hub/${workspaceId}/documents/${doc.id}`)
                 }
-                className="bg-white rounded-xl border border-[var(--wh-green-border-light)] hover:border-[var(--wh-green-border-medium)] hover:shadow-md transition-all group cursor-pointer"
+                className="bg-white rounded-xl border border-wh-green-border-light hover:border-wh-green-border-medium hover:shadow-md transition-all group cursor-pointer"
               >
                 {/* Card header with icon */}
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-lg bg-[var(--wh-green-bg-medium)] flex items-center justify-center">
-                      <i className="fas fa-file-alt text-[var(--wh-green-primary)] text-lg"></i>
+                    <div className="w-10 h-10 rounded-lg bg-wh-green-bg-medium flex items-center justify-center">
+                      <i className="fas fa-file-alt text-wh-green-primary text-lg"></i>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -247,7 +247,7 @@ const DocumentsPage = () => {
                     </div>
                   </div>
 
-                  <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 group-hover:text-[var(--wh-green-primary)] transition-colors">
+                  <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2 group-hover:text-wh-green-primary transition-colors">
                     {doc.title}
                   </h3>
                   <p className="text-xs text-gray-400">
@@ -353,7 +353,7 @@ const DocumentsPage = () => {
                 placeholder="Untitled Document"
                 value={newDocTitle}
                 onChange={(e) => setNewDocTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCreateDocument();
@@ -373,7 +373,7 @@ const DocumentsPage = () => {
               <button
                 onClick={handleCreateDocument}
                 disabled={creating}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
               >
                 {creating ? "Creating..." : "Create & Open"}
               </button>
@@ -386,3 +386,4 @@ const DocumentsPage = () => {
 };
 
 export default DocumentsPage;
+

@@ -29,9 +29,9 @@ const AttachmentList = ({ attachments, onAdd, onRemove }: AttachmentListProps) =
           {attachments.map((att) => (
             <div
               key={att.id}
-              className="flex items-center gap-3 p-3 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg group"
+              className="flex items-center gap-3 p-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg group"
             >
-              <div className="w-10 h-10 rounded-lg bg-[var(--wh-green-bg-heavy)] flex items-center justify-center text-[var(--wh-green-primary)] flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-wh-green-bg-heavy flex items-center justify-center text-wh-green-primary flex-shrink-0">
                 <i className={`fas ${fileIcons[att.type] || "fa-file"}`}></i>
               </div>
               <div className="flex-1 min-w-0">
@@ -62,7 +62,7 @@ const AttachmentList = ({ attachments, onAdd, onRemove }: AttachmentListProps) =
 
       <button
         onClick={onAdd}
-        className="w-full py-2 border border-dashed border-[var(--wh-green-border-medium)] rounded-lg text-sm text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] hover:border-[var(--wh-green-primary)] transition-colors"
+        className="w-full py-2 border border-dashed border-wh-green-border-medium rounded-lg text-sm text-wh-green-text-muted hover:text-wh-green-primary hover:border-wh-green-primary transition-colors"
       >
         <i className="fas fa-plus mr-2"></i>
         Add Attachment
@@ -72,3 +72,4 @@ const AttachmentList = ({ attachments, onAdd, onRemove }: AttachmentListProps) =
 };
 
 export default AttachmentList;
+

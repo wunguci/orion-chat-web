@@ -13,7 +13,7 @@ interface MemberListProps {
 
 const roleColors: Record<WorkspaceRole, string> = {
   owner: "bg-amber-100 text-amber-700",
-  admin: "bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)]",
+  admin: "bg-wh-green-bg-heavy text-wh-green-text-primary",
   member: "bg-gray-100 text-gray-600",
 };
 
@@ -26,10 +26,10 @@ const MemberList = ({
   const canManage = currentUserRole === "owner" || currentUserRole === "admin";
 
   return (
-    <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] overflow-hidden">
+    <div className="bg-white rounded-xl border border-wh-green-border-light overflow-hidden">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-[var(--wh-green-border-light)] bg-[var(--wh-green-bg-light)]">
+          <tr className="border-b border-wh-green-border-light bg-wh-green-bg-light">
             <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Member
             </th>
@@ -53,7 +53,7 @@ const MemberList = ({
           {members.map((member) => (
             <tr
               key={member.user.id}
-              className="border-b border-gray-50 hover:bg-[var(--wh-green-bg-light)] transition-colors"
+              className="border-b border-gray-50 hover:bg-wh-green-bg-light transition-colors"
             >
               <td className="px-5 py-3">
                 <div className="flex items-center gap-3">
@@ -86,7 +86,7 @@ const MemberList = ({
                         e.target.value as WorkspaceRole,
                       )
                     }
-                    className="text-xs font-semibold px-2.5 py-1 rounded-full border-none cursor-pointer bg-[var(--wh-green-bg-heavy)] text-[var(--wh-green-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)]"
+                    className="text-xs font-semibold px-2.5 py-1 rounded-full border-none cursor-pointer bg-wh-green-bg-heavy text-wh-green-text-primary focus:outline-none focus:ring-2 focus:ring-wh-green-primary"
                   >
                     <option value="admin">Admin</option>
                     <option value="member">Member</option>
@@ -128,3 +128,4 @@ const MemberList = ({
 };
 
 export default MemberList;
+

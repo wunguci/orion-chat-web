@@ -114,7 +114,7 @@ const LabelsManagementPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <i className="fas fa-spinner fa-spin text-[var(--wh-green-primary)] text-2xl" />
+        <i className="fas fa-spinner fa-spin text-wh-green-primary text-2xl" />
       </div>
     );
   }
@@ -130,7 +130,7 @@ const LabelsManagementPage = () => {
         </div>
         <button
           onClick={() => setShowAdd(true)}
-          className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors"
+          className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors"
         >
           <i className="fas fa-plus mr-2" />
           New Label
@@ -139,7 +139,7 @@ const LabelsManagementPage = () => {
 
       {/* Add Label Form */}
       {showAdd && (
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-5 mb-6">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">
             Create New Label
           </h3>
@@ -153,7 +153,7 @@ const LabelsManagementPage = () => {
                 value={newText}
                 onChange={(e) => setNewText(e.target.value)}
                 placeholder="e.g. Documentation"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
               />
             </div>
             <div>
@@ -161,7 +161,7 @@ const LabelsManagementPage = () => {
               <select
                 value={newType}
                 onChange={(e) => setNewType(e.target.value as Label["type"])}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)]"
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary"
               >
                 {TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -186,7 +186,7 @@ const LabelsManagementPage = () => {
             <div className="flex gap-2">
               <button
                 onClick={addLabel}
-                className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)]"
+                className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover"
               >
                 Add
               </button>
@@ -222,13 +222,13 @@ const LabelsManagementPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search labels..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
           />
         </div>
       </div>
 
       {/* Labels Grid */}
-      <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] overflow-hidden">
+      <div className="bg-white rounded-xl border border-wh-green-border-light overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
@@ -258,7 +258,7 @@ const LabelsManagementPage = () => {
                       type="text"
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
-                      className="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)]"
+                      className="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary"
                       autoFocus
                     />
                   ) : (
@@ -355,3 +355,4 @@ const LabelsManagementPage = () => {
 };
 
 export default LabelsManagementPage;
+

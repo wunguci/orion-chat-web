@@ -42,7 +42,7 @@ const ProgressBar = ({ value, size = "sm", showLabel = false, segments }: Progre
     <div className="w-full">
       <div className={`w-full bg-gray-100 rounded-full overflow-hidden ${heightClass}`}>
         <div
-          className={`${heightClass} bg-[var(--wh-green-primary)] rounded-full transition-all duration-300`}
+          className={`${heightClass} bg-wh-green-primary rounded-full transition-all duration-300`}
           style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
         />
       </div>
@@ -54,3 +54,4 @@ const ProgressBar = ({ value, size = "sm", showLabel = false, segments }: Progre
 };
 
 export default ProgressBar;
+

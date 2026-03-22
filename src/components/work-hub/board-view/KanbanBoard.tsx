@@ -124,7 +124,7 @@ const KanbanBoard = ({
       {onAddColumn && (
         <div className="min-w-[300px] max-w-[350px] flex-shrink-0">
           {showAddColumn ? (
-            <div className="bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-xl p-4">
+            <div className="bg-wh-green-bg-light border border-wh-green-border-light rounded-xl p-4">
               <input
                 type="text"
                 value={newColumnName}
@@ -132,7 +132,7 @@ const KanbanBoard = ({
                 onKeyDown={handleAddColumnKeyDown}
                 placeholder="Column name..."
                 autoFocus
-                className="w-full px-3 py-2 border border-[var(--wh-green-border-light)] rounded-lg text-sm outline-none focus:border-[var(--wh-green-primary)] mb-3"
+                className="w-full px-3 py-2 border border-wh-green-border-light rounded-lg text-sm outline-none focus:border-wh-green-primary mb-3"
               />
               <div className="mb-3">
                 <label className="block text-xs text-gray-500 mb-1">
@@ -141,7 +141,7 @@ const KanbanBoard = ({
                 <select
                   value={newColumnStatus}
                   onChange={(e) => setNewColumnStatus(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-[var(--wh-green-border-light)] rounded-lg text-sm outline-none focus:border-[var(--wh-green-primary)] bg-white"
+                  className="w-full px-3 py-1.5 border border-wh-green-border-light rounded-lg text-sm outline-none focus:border-wh-green-primary bg-white"
                 >
                   {STATUS_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -173,7 +173,7 @@ const KanbanBoard = ({
                 <button
                   onClick={handleAddColumnSubmit}
                   disabled={!newColumnName.trim()}
-                  className="flex-1 px-3 py-1.5 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-3 py-1.5 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Add Column
                 </button>
@@ -191,7 +191,7 @@ const KanbanBoard = ({
           ) : (
             <button
               onClick={() => setShowAddColumn(true)}
-              className="w-full h-16 border-2 border-dashed border-[var(--wh-green-border-light)] rounded-xl flex items-center justify-center gap-2 text-gray-400 hover:text-[var(--wh-green-primary)] hover:border-[var(--wh-green-primary)] transition-colors"
+              className="w-full h-16 border-2 border-dashed border-wh-green-border-light rounded-xl flex items-center justify-center gap-2 text-gray-400 hover:text-wh-green-primary hover:border-wh-green-primary transition-colors"
             >
               <i className="fas fa-plus text-sm"></i>
               <span className="text-sm font-medium">Add Column</span>
@@ -204,3 +204,4 @@ const KanbanBoard = ({
 };
 
 export default KanbanBoard;
+

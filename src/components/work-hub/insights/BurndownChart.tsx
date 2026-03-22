@@ -25,9 +25,9 @@ const BurndownChart = ({ data }: BurndownChartProps) => {
     .join(" ");
 
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-5">
       <h3 className="text-sm font-semibold text-gray-800 mb-4">
-        <i className="fas fa-chart-line mr-2 text-[var(--wh-green-primary)]"></i>
+        <i className="fas fa-chart-line mr-2 text-wh-green-primary"></i>
         Burndown Chart
       </h3>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full">
@@ -107,7 +107,7 @@ const BurndownChart = ({ data }: BurndownChartProps) => {
           <span className="text-xs text-gray-500">Ideal</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-[var(--wh-green-primary)]" />
+          <div className="w-6 h-0.5 bg-wh-green-primary" />
           <span className="text-xs text-gray-500">Actual</span>
         </div>
       </div>
@@ -116,3 +116,4 @@ const BurndownChart = ({ data }: BurndownChartProps) => {
 };
 
 export default BurndownChart;
+

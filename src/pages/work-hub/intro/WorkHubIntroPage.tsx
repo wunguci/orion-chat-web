@@ -148,7 +148,6 @@ const FolderPopLoader = () => (
   </div>
 );
 
-/* ── Workspace Selector ── */
 const WorkspaceSelector = ({
   workspaces,
   onSelect,
@@ -221,7 +220,6 @@ const WorkHubIntroPage = () => {
   );
   const [workspaces, setWorkspaces] = useState<WorkspaceResponse[]>([]);
 
-  // Check auth and fetch existing workspaces
   useEffect(() => {
     const checkUserWorkspaces = async () => {
       if (!isTokenValid()) {
@@ -239,22 +237,17 @@ const WorkHubIntroPage = () => {
         const userWorkspaces = await workHubApi.getWorkspaces(user.id);
         if (userWorkspaces && userWorkspaces.length > 0) {
           setWorkspaces(userWorkspaces);
-          // If only 1 workspace, go directly to it
           if (userWorkspaces.length === 1) {
             navigate(`/work-hub/${userWorkspaces[0].workspaceId}`, {
               replace: true,
             });
             return;
           }
-          // Multiple workspaces: show selector
           setPhase("select");
           return;
         }
-      } catch {
-        // No workspaces or API error - show intro
-      }
+      } catch {}
 
-      // No workspaces: show intro after loading animation
       setTimeout(() => setPhase("reveal"), 1500);
     };
 

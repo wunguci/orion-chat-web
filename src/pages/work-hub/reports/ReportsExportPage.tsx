@@ -144,7 +144,7 @@ const ReportsExportPage = () => {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <i className="fas fa-spinner fa-spin text-2xl text-[var(--wh-green-primary)]" />
+            <i className="fas fa-spinner fa-spin text-2xl text-wh-green-primary" />
             <span className="text-sm text-gray-500">
               Loading report data...
             </span>
@@ -167,14 +167,14 @@ const ReportsExportPage = () => {
             </p>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-12 text-center">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-12 text-center">
           <i className="fas fa-chart-bar text-4xl text-gray-300 mb-3" />
           <p className="text-gray-500 text-sm">
             Unable to load report data. Please try again later.
           </p>
           <button
             onClick={fetchReports}
-            className="mt-3 px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm hover:bg-[var(--wh-green-primary-hover)]"
+            className="mt-3 px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm hover:bg-wh-green-primary-hover"
           >
             Retry
           </button>
@@ -204,7 +204,7 @@ const ReportsExportPage = () => {
           </button>
           <button
             onClick={() => handleExport("pdf")}
-            className="px-3 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors"
+            className="px-3 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors"
           >
             <i className="fas fa-file-pdf mr-1.5" />
             Export PDF
@@ -231,7 +231,7 @@ const ReportsExportPage = () => {
       </div>
 
       {/* Content */}
-      <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-6">
+      <div className="bg-white rounded-xl border border-wh-green-border-light p-6">
         {activeTab === "period" && (
           <>
             <h3 className="text-sm font-semibold text-gray-700 mb-4">
@@ -270,13 +270,13 @@ const ReportsExportPage = () => {
             <div className="mt-4">
               <div className="flex justify-between mb-2">
                 <span className="text-sm text-gray-600">Overall Progress</span>
-                <span className="text-sm font-semibold text-[var(--wh-green-primary)]">
+                <span className="text-sm font-semibold text-wh-green-primary">
                   {data.period.completionRate}%
                 </span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-4">
                 <div
-                  className="h-4 rounded-full bg-[var(--wh-green-primary)] transition-all"
+                  className="h-4 rounded-full bg-wh-green-primary transition-all"
                   style={{
                     width: `${Math.min(data.period.completionRate, 100)}%`,
                   }}
@@ -284,7 +284,7 @@ const ReportsExportPage = () => {
               </div>
               <div className="flex gap-6 mt-3 text-xs text-gray-500">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-3 h-3 rounded bg-[var(--wh-green-primary)]" />
+                  <span className="w-3 h-3 rounded bg-wh-green-primary" />
                   Completed ({data.period.completedTasks})
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -557,3 +557,4 @@ const ReportsExportPage = () => {
 };
 
 export default ReportsExportPage;
+

@@ -344,7 +344,7 @@ const RoadmapPage = () => {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <i className="fas fa-spinner fa-spin text-2xl text-[var(--wh-green-primary)]" />
+            <i className="fas fa-spinner fa-spin text-2xl text-wh-green-primary" />
             <span className="text-sm text-gray-500">Loading roadmap...</span>
           </div>
         </div>
@@ -372,7 +372,7 @@ const RoadmapPage = () => {
           </button>
           <button
             onClick={() => setShowCreateEpic(true)}
-            className="px-3 py-2 rounded-lg bg-[var(--wh-green-primary)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            className="px-3 py-2 rounded-lg bg-wh-green-primary text-white text-sm font-medium hover:opacity-90 transition-opacity"
           >
             <i className="fas fa-plus mr-1.5" />
             New Epic
@@ -398,7 +398,7 @@ const RoadmapPage = () => {
                   onChange={(e) =>
                     setEpicForm((f) => ({ ...f, title: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   placeholder="Epic title"
                 />
               </div>
@@ -414,7 +414,7 @@ const RoadmapPage = () => {
                       description: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary resize-none"
                   rows={2}
                   placeholder="Description"
                 />
@@ -433,7 +433,7 @@ const RoadmapPage = () => {
                         startDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
                 <div>
@@ -449,7 +449,7 @@ const RoadmapPage = () => {
                         endDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
               </div>
@@ -492,7 +492,7 @@ const RoadmapPage = () => {
               <button
                 onClick={handleCreateEpic}
                 disabled={creatingEpic || !epicForm.title.trim()}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {creatingEpic ? (
                   <i className="fas fa-spinner fa-spin mr-1.5" />
@@ -523,7 +523,7 @@ const RoadmapPage = () => {
                       title: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                 />
               </div>
               <div>
@@ -538,7 +538,7 @@ const RoadmapPage = () => {
                       description: e.target.value,
                     }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] resize-none"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary resize-none"
                   rows={2}
                 />
               </div>
@@ -556,7 +556,7 @@ const RoadmapPage = () => {
                         startDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
                 <div>
@@ -572,7 +572,7 @@ const RoadmapPage = () => {
                         endDate: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   />
                 </div>
               </div>
@@ -608,7 +608,7 @@ const RoadmapPage = () => {
               <button
                 onClick={handleUpdateEpic}
                 disabled={savingEpic || !editEpicForm.title.trim()}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {savingEpic ? (
                   <i className="fas fa-spinner fa-spin mr-1.5" />
@@ -638,7 +638,7 @@ const RoadmapPage = () => {
                   onChange={(e) =>
                     setMsForm((f) => ({ ...f, title: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                   placeholder="Milestone title"
                 />
               </div>
@@ -652,7 +652,7 @@ const RoadmapPage = () => {
                   onChange={(e) =>
                     setMsForm((f) => ({ ...f, date: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                 />
               </div>
             </div>
@@ -669,7 +669,7 @@ const RoadmapPage = () => {
               <button
                 onClick={handleCreateMs}
                 disabled={creatingMs || !msForm.title.trim() || !msForm.date}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {creatingMs ? (
                   <i className="fas fa-spinner fa-spin mr-1.5" />
@@ -699,7 +699,7 @@ const RoadmapPage = () => {
                   onChange={(e) =>
                     setEditMsForm((f) => ({ ...f, title: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                 />
               </div>
               <div>
@@ -712,7 +712,7 @@ const RoadmapPage = () => {
                   onChange={(e) =>
                     setEditMsForm((f) => ({ ...f, date: e.target.value }))
                   }
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                 />
               </div>
             </div>
@@ -728,7 +728,7 @@ const RoadmapPage = () => {
                 disabled={
                   savingMs || !editMsForm.title.trim() || !editMsForm.date
                 }
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {savingMs ? (
                   <i className="fas fa-spinner fa-spin mr-1.5" />
@@ -741,10 +741,10 @@ const RoadmapPage = () => {
       )}
 
       {/* Milestones */}
-      <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-5 mb-6">
+      <div className="bg-white rounded-xl border border-wh-green-border-light p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700">
-            <i className="fas fa-flag mr-2 text-[var(--wh-green-primary)]" />
+            <i className="fas fa-flag mr-2 text-wh-green-primary" />
             Milestones
           </h2>
         </div>
@@ -803,7 +803,7 @@ const RoadmapPage = () => {
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
               filter === f
-                ? "bg-[var(--wh-green-primary)] text-white"
+                ? "bg-wh-green-primary text-white"
                 : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
             }`}
           >
@@ -814,7 +814,7 @@ const RoadmapPage = () => {
 
       {/* Timeline */}
       {epics.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] flex flex-col items-center justify-center py-16">
+        <div className="bg-white rounded-xl border border-wh-green-border-light flex flex-col items-center justify-center py-16">
           <i className="fas fa-road text-3xl text-gray-300 mb-3" />
           <p className="text-sm text-gray-400">
             {filter === "all"
@@ -823,7 +823,7 @@ const RoadmapPage = () => {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] overflow-hidden">
+        <div className="bg-white rounded-xl border border-wh-green-border-light overflow-hidden">
           {/* Month Headers */}
           <div className="flex border-b border-gray-100 relative">
             {months.map((m, i) => {
@@ -952,3 +952,4 @@ const RoadmapPage = () => {
 };
 
 export default RoadmapPage;
+

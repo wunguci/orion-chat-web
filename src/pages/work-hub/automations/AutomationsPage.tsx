@@ -203,7 +203,7 @@ const AutomationsPage = () => {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <i className="fas fa-spinner fa-spin text-2xl text-[var(--wh-green-primary)]" />
+            <i className="fas fa-spinner fa-spin text-2xl text-wh-green-primary" />
             <span className="text-sm text-gray-500">
               Loading automation rules...
             </span>
@@ -224,7 +224,7 @@ const AutomationsPage = () => {
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors"
+          className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors"
         >
           <i className="fas fa-plus mr-2" />
           New Rule
@@ -233,7 +233,7 @@ const AutomationsPage = () => {
 
       {/* Create Form */}
       {showCreateForm && (
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-5 mb-6">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">
             Create New Automation Rule
           </h3>
@@ -247,7 +247,7 @@ const AutomationsPage = () => {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="e.g. Notify on task completion"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
               />
             </div>
             <div>
@@ -259,7 +259,7 @@ const AutomationsPage = () => {
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 placeholder="Brief description of this rule"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
               />
             </div>
           </div>
@@ -271,7 +271,7 @@ const AutomationsPage = () => {
               <select
                 value={newTriggerType}
                 onChange={(e) => setNewTriggerType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
               >
                 {TRIGGER_OPTIONS.map((t) => (
                   <option key={t.type} value={t.type}>
@@ -289,7 +289,7 @@ const AutomationsPage = () => {
                 value={newTriggerValue}
                 onChange={(e) => setNewTriggerValue(e.target.value)}
                 placeholder="e.g. Status changes to Done"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
               />
             </div>
           </div>
@@ -301,7 +301,7 @@ const AutomationsPage = () => {
               <select
                 value={newActionType}
                 onChange={(e) => setNewActionType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
               >
                 {ACTION_OPTIONS.map((a) => (
                   <option key={a.type} value={a.type}>
@@ -319,7 +319,7 @@ const AutomationsPage = () => {
                 value={newActionValue}
                 onChange={(e) => setNewActionValue(e.target.value)}
                 placeholder="e.g. Send notification to task creator"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
               />
             </div>
           </div>
@@ -333,7 +333,7 @@ const AutomationsPage = () => {
             <button
               onClick={handleCreate}
               disabled={creating || !newName.trim()}
-              className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors disabled:opacity-50"
             >
               {creating ? (
                 <>
@@ -353,21 +353,21 @@ const AutomationsPage = () => {
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Total Rules</div>
           <div className="text-2xl font-bold text-gray-800 mt-1">
             {rules.length}
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Active Rules</div>
           <div className="text-2xl font-bold text-green-600 mt-1">
             {enabledCount}
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Total Triggers</div>
-          <div className="text-2xl font-bold text-[var(--wh-green-primary)] mt-1">
+          <div className="text-2xl font-bold text-wh-green-primary mt-1">
             {totalTriggers}
           </div>
         </div>
@@ -375,7 +375,7 @@ const AutomationsPage = () => {
 
       {/* Rules List */}
       {rules.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-12 text-center">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-12 text-center">
           <i className="fas fa-robot text-4xl text-gray-300 mb-3" />
           <p className="text-gray-500 text-sm">
             No automation rules yet. Click "New Rule" to create your first
@@ -389,7 +389,7 @@ const AutomationsPage = () => {
               key={rule.id}
               className={`bg-white rounded-xl border p-5 transition-all ${
                 rule.isEnabled
-                  ? "border-[var(--wh-green-border-light)]"
+                  ? "border-wh-green-border-light"
                   : "border-gray-200 opacity-60"
               }`}
             >
@@ -401,18 +401,18 @@ const AutomationsPage = () => {
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:border-[var(--wh-green-primary)]"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:border-wh-green-primary"
                       />
                       <input
                         type="text"
                         value={editDescription}
                         onChange={(e) => setEditDescription(e.target.value)}
-                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)]"
+                        className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-wh-green-primary"
                       />
                       <div className="flex gap-2">
                         <button
                           onClick={() => saveEdit(rule.id)}
-                          className="px-3 py-1 bg-[var(--wh-green-primary)] text-white rounded text-xs hover:bg-[var(--wh-green-primary-hover)]"
+                          className="px-3 py-1 bg-wh-green-primary text-white rounded text-xs hover:bg-wh-green-primary-hover"
                         >
                           Save
                         </button>
@@ -507,7 +507,7 @@ const AutomationsPage = () => {
                     onClick={() => toggleRule(rule.id)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       rule.isEnabled
-                        ? "bg-[var(--wh-green-primary)]"
+                        ? "bg-wh-green-primary"
                         : "bg-gray-300"
                     }`}
                   >
@@ -548,3 +548,4 @@ const AutomationsPage = () => {
 };
 
 export default AutomationsPage;
+

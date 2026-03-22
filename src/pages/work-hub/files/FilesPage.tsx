@@ -209,27 +209,27 @@ const FilesPage = () => {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-[var(--wh-green-bg-light)]">
+    <div className="flex-1 overflow-auto bg-wh-green-bg-light">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[var(--wh-green-border-light)] px-6 py-4">
+      <div className="sticky top-0 z-10 bg-white border-b border-wh-green-border-light px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Files</h1>
-            <p className="text-sm text-[var(--wh-green-text-muted)]">
+            <p className="text-sm text-wh-green-text-muted">
               Centralized file storage for workspace
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowNewFolderModal(true)}
-              className="flex items-center gap-2 px-3 py-2 border border-[var(--wh-green-border-medium)] text-[var(--wh-green-primary)] rounded-lg hover:bg-[var(--wh-green-bg-light)] transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-3 py-2 border border-wh-green-border-medium text-wh-green-primary rounded-lg hover:bg-wh-green-bg-light transition-colors text-sm font-medium"
             >
               <i className="fas fa-folder-plus"></i>
               New Folder
             </button>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors text-sm font-medium"
             >
               <i className="fas fa-cloud-upload-alt"></i>
               Upload
@@ -254,7 +254,7 @@ const FilesPage = () => {
                   }`}
                 >
                   {idx === 0 && (
-                    <i className="fas fa-hdd mr-1.5 text-[var(--wh-green-primary)]"></i>
+                    <i className="fas fa-hdd mr-1.5 text-wh-green-primary"></i>
                   )}
                   {bc.name}
                 </button>
@@ -271,7 +271,7 @@ const FilesPage = () => {
                 placeholder="Search files..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-[var(--wh-green-border-medium)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent w-56"
+                className="pl-9 pr-4 py-2 border border-wh-green-border-medium rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent w-56"
               />
             </div>
 
@@ -279,13 +279,13 @@ const FilesPage = () => {
             <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "grid" ? "bg-white text-[var(--wh-green-primary)] shadow-sm" : "text-gray-400"}`}
+                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "grid" ? "bg-white text-wh-green-primary shadow-sm" : "text-gray-400"}`}
               >
                 <i className="fas fa-th-large"></i>
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "list" ? "bg-white text-[var(--wh-green-primary)] shadow-sm" : "text-gray-400"}`}
+                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "list" ? "bg-white text-wh-green-primary shadow-sm" : "text-gray-400"}`}
               >
                 <i className="fas fa-list"></i>
               </button>
@@ -298,14 +298,14 @@ const FilesPage = () => {
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-3 border-[var(--wh-green-primary)] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-3 border-wh-green-primary border-t-transparent rounded-full animate-spin"></div>
             <p className="text-sm text-gray-500">Loading files...</p>
           </div>
         </div>
       ) : (
         <div className="p-6">
           {/* Storage bar */}
-          <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4 mb-6">
+          <div className="bg-white rounded-xl border border-wh-green-border-light p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700">
                 Current Folder
@@ -317,7 +317,7 @@ const FilesPage = () => {
             </div>
             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all bg-[var(--wh-green-primary)]"
+                className="h-full rounded-full transition-all bg-wh-green-primary"
                 style={{
                   width: `${Math.min((totalSize / (5 * 1073741824)) * 100, 100)}%`,
                 }}
@@ -327,8 +327,8 @@ const FilesPage = () => {
 
           {/* Selected actions */}
           {selectedFiles.length > 0 && (
-            <div className="bg-[var(--wh-green-bg-medium)] rounded-xl p-3 mb-4 flex items-center justify-between">
-              <span className="text-sm text-[var(--wh-green-text-primary)] font-medium">
+            <div className="bg-wh-green-bg-medium rounded-xl p-3 mb-4 flex items-center justify-between">
+              <span className="text-sm text-wh-green-text-primary font-medium">
                 {selectedFiles.length} selected
               </span>
               <div className="flex items-center gap-2">
@@ -364,8 +364,8 @@ const FilesPage = () => {
                     }
                     className={`bg-white rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md group ${
                       isSelected
-                        ? "border-[var(--wh-green-primary)] ring-2 ring-[var(--wh-green-primary)]/20"
-                        : "border-[var(--wh-green-border-light)] hover:border-[var(--wh-green-border-medium)]"
+                        ? "border-wh-green-primary ring-2 ring-wh-green-primary/20"
+                        : "border-wh-green-border-light hover:border-wh-green-border-medium"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-3">
@@ -415,7 +415,7 @@ const FilesPage = () => {
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] overflow-hidden">
+            <div className="bg-white rounded-xl border border-wh-green-border-light overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
@@ -444,7 +444,7 @@ const FilesPage = () => {
                         }
                         className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
                           selectedFiles.includes(item.id)
-                            ? "bg-[var(--wh-green-bg-light)]"
+                            ? "bg-wh-green-bg-light"
                             : ""
                         }`}
                       >
@@ -574,7 +574,7 @@ const FilesPage = () => {
                 placeholder="New Folder"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleCreateFolder();
@@ -594,7 +594,7 @@ const FilesPage = () => {
               <button
                 onClick={handleCreateFolder}
                 disabled={creatingFolder}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
               >
                 {creatingFolder ? "Creating..." : "Create"}
               </button>
@@ -622,7 +622,7 @@ const FilesPage = () => {
                   placeholder="document.pdf"
                   value={uploadName}
                   onChange={(e) => setUploadName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                   autoFocus
                 />
               </div>
@@ -635,7 +635,7 @@ const FilesPage = () => {
                   placeholder="https://..."
                   value={uploadUrl}
                   onChange={(e) => setUploadUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -648,7 +648,7 @@ const FilesPage = () => {
                     placeholder="application/pdf"
                     value={uploadMimeType}
                     onChange={(e) => setUploadMimeType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                   />
                 </div>
                 <div>
@@ -660,7 +660,7 @@ const FilesPage = () => {
                     placeholder="1024"
                     value={uploadSize}
                     onChange={(e) => setUploadSize(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                   />
                 </div>
               </div>
@@ -681,7 +681,7 @@ const FilesPage = () => {
               <button
                 onClick={handleUploadFile}
                 disabled={uploading || !uploadName.trim()}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors font-medium disabled:opacity-50"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
               >
                 {uploading ? "Uploading..." : "Upload"}
               </button>
@@ -707,7 +707,7 @@ const FilesPage = () => {
                 onChange={(e) =>
                   setRenameTarget({ ...renameTarget, name: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleRename();
@@ -724,7 +724,7 @@ const FilesPage = () => {
               </button>
               <button
                 onClick={handleRename}
-                className="px-4 py-2 text-sm bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors font-medium"
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium"
               >
                 Rename
               </button>
@@ -737,3 +737,4 @@ const FilesPage = () => {
 };
 
 export default FilesPage;
+

@@ -226,7 +226,7 @@ const GoalsOKRsPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <i className="fas fa-spinner fa-spin text-[var(--wh-green-primary)] text-2xl" />
+        <i className="fas fa-spinner fa-spin text-wh-green-primary text-2xl" />
       </div>
     );
   }
@@ -242,7 +242,7 @@ const GoalsOKRsPage = () => {
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors"
+          className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors"
         >
           <i className="fas fa-plus mr-2" />
           New Goal
@@ -251,7 +251,7 @@ const GoalsOKRsPage = () => {
 
       {/* Create Goal Form */}
       {showCreateForm && (
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-5 mb-6">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-5 mb-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">
             Create New Goal
           </h3>
@@ -263,7 +263,7 @@ const GoalsOKRsPage = () => {
                 value={newGoalTitle}
                 onChange={(e) => setNewGoalTitle(e.target.value)}
                 placeholder="e.g. Increase user retention by 20%"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                 autoFocus
               />
             </div>
@@ -276,14 +276,14 @@ const GoalsOKRsPage = () => {
                 onChange={(e) => setNewGoalDescription(e.target.value)}
                 placeholder="Describe the goal..."
                 rows={2}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent resize-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent resize-none"
               />
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleCreateGoal}
                 disabled={!newGoalTitle.trim() || creatingGoal}
-                className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creatingGoal ? (
                   <i className="fas fa-spinner fa-spin mr-2" />
@@ -307,31 +307,31 @@ const GoalsOKRsPage = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Total Goals</div>
           <div className="text-2xl font-bold text-gray-800 mt-1">
             {goals.length}
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Overall Progress</div>
-          <div className="text-2xl font-bold text-[var(--wh-green-primary)] mt-1">
+          <div className="text-2xl font-bold text-wh-green-primary mt-1">
             {overallProgress}%
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
             <div
-              className="h-2 rounded-full bg-[var(--wh-green-primary)] transition-all"
+              className="h-2 rounded-full bg-wh-green-primary transition-all"
               style={{ width: `${overallProgress}%` }}
             />
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">On Track</div>
           <div className="text-2xl font-bold text-green-600 mt-1">
             {goals.filter((g) => g.status === "on_track").length}
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">At Risk / Behind</div>
           <div className="text-2xl font-bold text-red-500 mt-1">
             {
@@ -352,7 +352,7 @@ const GoalsOKRsPage = () => {
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 filter === f
-                  ? "bg-[var(--wh-green-primary)] text-white"
+                  ? "bg-wh-green-primary text-white"
                   : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
               }`}
             >
@@ -370,7 +370,7 @@ const GoalsOKRsPage = () => {
           return (
             <div
               key={goal.id}
-              className="bg-white rounded-xl border border-[var(--wh-green-border-light)] overflow-hidden"
+              className="bg-white rounded-xl border border-wh-green-border-light overflow-hidden"
             >
               {/* Goal Header */}
               <div
@@ -394,7 +394,7 @@ const GoalsOKRsPage = () => {
                           e.stopPropagation();
                           handleUpdateGoalStatus(goal.id, e.target.value);
                         }}
-                        className={`text-xs px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] ${cfg.color}`}
+                        className={`text-xs px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-wh-green-primary ${cfg.color}`}
                       >
                         {ALL_STATUSES.map((s) => (
                           <option key={s} value={s}>
@@ -458,7 +458,7 @@ const GoalsOKRsPage = () => {
                 <div className="border-t border-gray-100 bg-gray-50/50 px-5 py-4">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-gray-600">
-                      <i className="fas fa-key mr-2 text-[var(--wh-green-primary)]" />
+                      <i className="fas fa-key mr-2 text-wh-green-primary" />
                       Key Results ({goal.keyResults.length})
                     </h4>
                     <button
@@ -468,7 +468,7 @@ const GoalsOKRsPage = () => {
                         setNewKRTarget("");
                         setNewKRUnit("");
                       }}
-                      className="text-xs px-2.5 py-1 rounded-lg bg-[var(--wh-green-primary)] text-white hover:bg-[var(--wh-green-primary-hover)] transition-colors"
+                      className="text-xs px-2.5 py-1 rounded-lg bg-wh-green-primary text-white hover:bg-wh-green-primary-hover transition-colors"
                     >
                       <i className="fas fa-plus mr-1" />
                       Add Key Result
@@ -518,7 +518,7 @@ const GoalsOKRsPage = () => {
                                         setEditingKRId(null);
                                       }
                                     }}
-                                    className="w-16 px-1.5 py-0.5 border border-gray-300 rounded text-sm text-right focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)]"
+                                    className="w-16 px-1.5 py-0.5 border border-gray-300 rounded text-sm text-right focus:outline-none focus:ring-2 focus:ring-wh-green-primary"
                                     autoFocus
                                   />
                                   <span className="text-sm text-gray-500">
@@ -547,7 +547,7 @@ const GoalsOKRsPage = () => {
                                 </span>
                               ) : (
                                 <span
-                                  className="text-sm font-semibold text-gray-800 cursor-pointer hover:text-[var(--wh-green-primary)] transition-colors"
+                                  className="text-sm font-semibold text-gray-800 cursor-pointer hover:text-wh-green-primary transition-colors"
                                   onClick={() => {
                                     setEditingKRId(kr.id);
                                     setEditKRValue(String(kr.current));
@@ -604,7 +604,7 @@ const GoalsOKRsPage = () => {
                               value={newKRTitle}
                               onChange={(e) => setNewKRTitle(e.target.value)}
                               placeholder="e.g. Increase NPS score"
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                               autoFocus
                             />
                           </div>
@@ -617,7 +617,7 @@ const GoalsOKRsPage = () => {
                               value={newKRTarget}
                               onChange={(e) => setNewKRTarget(e.target.value)}
                               placeholder="100"
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                             />
                           </div>
                           <div className="w-24">
@@ -629,7 +629,7 @@ const GoalsOKRsPage = () => {
                               value={newKRUnit}
                               onChange={(e) => setNewKRUnit(e.target.value)}
                               placeholder="e.g. %"
-                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent"
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
                             />
                           </div>
                           <div className="flex gap-2">
@@ -638,7 +638,7 @@ const GoalsOKRsPage = () => {
                               disabled={
                                 !newKRTitle.trim() || !newKRTarget || creatingKR
                               }
-                              className="px-3 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-3 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {creatingKR ? (
                                 <i className="fas fa-spinner fa-spin" />
@@ -680,7 +680,7 @@ const GoalsOKRsPage = () => {
           </p>
           <button
             onClick={() => setShowCreateForm(true)}
-            className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors"
+            className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors"
           >
             <i className="fas fa-plus mr-2" />
             Create First Goal
@@ -699,3 +699,4 @@ const GoalsOKRsPage = () => {
 };
 
 export default GoalsOKRsPage;
+

@@ -171,7 +171,7 @@ const ActivityFeedPage = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <i className="fas fa-spinner fa-spin text-[var(--wh-green-primary)] text-2xl" />
+        <i className="fas fa-spinner fa-spin text-wh-green-primary text-2xl" />
       </div>
     );
   }
@@ -187,19 +187,19 @@ const ActivityFeedPage = () => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Today's Activity</div>
           <div className="text-2xl font-bold text-gray-800 mt-1">
             {todayCount}
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Total Events</div>
-          <div className="text-2xl font-bold text-[var(--wh-green-primary)] mt-1">
+          <div className="text-2xl font-bold text-wh-green-primary mt-1">
             {activities.length}
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Active Members</div>
           <div className="text-2xl font-bold text-gray-800 mt-1">
             {new Set(activities.map((a) => a.user.id)).size}
@@ -215,7 +215,7 @@ const ActivityFeedPage = () => {
             onClick={() => setFilter(f.id)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
               filter === f.id
-                ? "bg-[var(--wh-green-primary)] text-white"
+                ? "bg-wh-green-primary text-white"
                 : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
             }`}
           >
@@ -246,7 +246,7 @@ const ActivityFeedPage = () => {
                 return (
                   <div
                     key={item.id}
-                    className="flex items-start gap-3 bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4 hover:shadow-sm transition-shadow"
+                    className="flex items-start gap-3 bg-white rounded-xl border border-wh-green-border-light p-4 hover:shadow-sm transition-shadow"
                   >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${cfg.bg}`}
@@ -267,7 +267,7 @@ const ActivityFeedPage = () => {
                           {item.description}
                         </span>
                         {item.target && (
-                          <span className="text-sm font-medium text-[var(--wh-green-primary)] cursor-pointer hover:underline">
+                          <span className="text-sm font-medium text-wh-green-primary cursor-pointer hover:underline">
                             {item.target}
                           </span>
                         )}
@@ -281,12 +281,13 @@ const ActivityFeedPage = () => {
                             {item.boardName}
                           </span>
                         )}
-                        {item.metadata?.from && item.metadata?.to && (
+                        {/* TODO: Fix */}
+                        {/* {item.metadata?.from && item.metadata?.to && (
                           <span className="text-xs text-gray-400">
                             {item.metadata.from as string} →{" "}
                             {item.metadata.to as string}
                           </span>
-                        )}
+                        )} */}
                       </div>
                     </div>
                     <span className="text-xs text-gray-400 whitespace-nowrap flex-shrink-0">

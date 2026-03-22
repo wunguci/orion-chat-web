@@ -110,7 +110,7 @@ const WorkloadPage = () => {
         </div>
         <div className="flex items-center justify-center py-20">
           <div className="flex flex-col items-center gap-3">
-            <i className="fas fa-spinner fa-spin text-2xl text-[var(--wh-green-primary)]" />
+            <i className="fas fa-spinner fa-spin text-2xl text-wh-green-primary" />
             <span className="text-sm text-gray-500">
               Loading workload data...
             </span>
@@ -176,7 +176,7 @@ const WorkloadPage = () => {
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Total Assigned Tasks</div>
           <div className="text-2xl font-bold text-gray-800 mt-1">
             {totalTasks}
@@ -185,21 +185,21 @@ const WorkloadPage = () => {
             across {workloads.length} members
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Completion Rate</div>
-          <div className="text-2xl font-bold text-[var(--wh-green-primary)] mt-1">
+          <div className="text-2xl font-bold text-wh-green-primary mt-1">
             {completionRate}%
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
             <div
-              className="h-2 rounded-full bg-[var(--wh-green-primary)]"
+              className="h-2 rounded-full bg-wh-green-primary"
               style={{
                 width: `${completionRate}%`,
               }}
             />
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-4">
           <div className="text-sm text-gray-500">Overdue Tasks</div>
           <div
             className={`text-2xl font-bold mt-1 ${totalOverdue > 0 ? "text-red-500" : "text-green-500"}`}
@@ -220,7 +220,7 @@ const WorkloadPage = () => {
             return (
               <div
                 key={w.user.id}
-                className={`bg-white rounded-xl border p-5 ${w.overdueTasks > 0 ? "border-red-200" : "border-[var(--wh-green-border-light)]"}`}
+                className={`bg-white rounded-xl border p-5 ${w.overdueTasks > 0 ? "border-red-200" : "border-wh-green-border-light"}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -340,7 +340,7 @@ const WorkloadPage = () => {
         </div>
       ) : (
         /* Chart View */
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-5">
+        <div className="bg-white rounded-xl border border-wh-green-border-light p-5">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">
             Task Load per Member
           </h3>
@@ -433,3 +433,4 @@ const WorkloadPage = () => {
 };
 
 export default WorkloadPage;
+
