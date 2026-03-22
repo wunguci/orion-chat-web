@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
 
@@ -26,9 +26,20 @@ export type SocketMessage = {
 export const MessageList: React.FC<{
     socketMessages?: SocketMessage[];
     currentUserId?: string;
-}> = ({ socketMessages = [], currentUserId }) => {
+    conversationId?: string | null;
+}> = ({ socketMessages = [], currentUserId, conversationId }) => {
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
     const [reactionMap, setReactionMap] = useState<ReactionMap>({});
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+        });
+    }, [conversationId, socketMessages.length]);
 
     const handleReact = (msgIndex: number, emoji: string) => {
         setReactionMap((prev) => {
@@ -86,7 +97,10 @@ export const MessageList: React.FC<{
 
     return (
         <>
-            <div className="flex-1 bg-[#f5f7fa] overflow-y-auto py-4 space-y-4">
+            <div
+                ref={scrollContainerRef}
+                className="flex-1 bg-[#f5f7fa] overflow-y-auto py-4 space-y-4"
+            >
                 {socketMessages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">
                         <p>Không có tin nhắn nào. Bắt đầu cuộc trò chuyện!</p>

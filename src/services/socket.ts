@@ -2,7 +2,9 @@
 import { io, Socket } from 'socket.io-client';
 
 const RAW_SOCKET_URL =
-    import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+    // import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+    import.meta.env.VITE_SOCKET_URL ||
+    'https://deceitfully-unquailing-haylee.ngrok-free.dev';
 
 const normalizeSocketBaseUrl = (url: string) =>
     url.replace(/\/$/, '').replace(/\/call$/, '');
@@ -177,7 +179,7 @@ export default socketService;
 // Chat
 // import { io, Socket } from 'socket.io-client';
 
-const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = 'https://deceitfully-unquailing-haylee.ngrok-free.dev';
 let socket: Socket | null = null;
 
 export const connectSocket = (userId: string): Socket => {

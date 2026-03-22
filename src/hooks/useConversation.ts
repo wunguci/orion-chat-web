@@ -137,7 +137,6 @@ export const useConversationMessages = (
     const [nextCursor, setNextCursor] = useState<string | null>(null);
 
     const cursorRef = useRef<string | undefined>(undefined);
-    const initializedRef = useRef(false);
 
     const loadMessages = useCallback(async () => {
         if (!conversationId || !userId) return;
@@ -149,6 +148,7 @@ export const useConversationMessages = (
 
             const result = await conversationApi.getMessagesByConversation({
                 conversationId,
+                userId,
                 cursor: undefined,
                 limit: pageSize,
             });
@@ -177,6 +177,7 @@ export const useConversationMessages = (
 
             const result = await conversationApi.getMessagesByConversation({
                 conversationId,
+                userId,
                 cursor: cursorRef.current,
                 limit: pageSize,
             });
@@ -197,10 +198,9 @@ export const useConversationMessages = (
         }
     }, [conversationId, userId, pageSize, isLoading]);
 
-    // Load initial messages on mount or when conversationId/userId changes
+    // Load messages whenever conversation or user changes
     useEffect(() => {
-        if (!initializedRef.current && conversationId && userId) {
-            initializedRef.current = true;
+        if (conversationId && userId) {
             loadMessages();
         }
     }, [conversationId, userId, loadMessages]);
@@ -231,7 +231,6 @@ export const useConversationMessages = (
         setNextCursor(null);
         setHasMore(true);
         cursorRef.current = undefined;
-        initializedRef.current = false;
         setError(null);
     }, []);
 

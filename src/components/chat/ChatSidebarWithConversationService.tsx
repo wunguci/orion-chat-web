@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getCurrentUserId } from '../../utils/auth';
 import type { ConversationView } from '../../types/conversation';
 
 interface ChatSidebarProps {
@@ -20,6 +21,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
 
+    const currentUserId = getCurrentUserId();
+
     // Filter conversations by search query
     const filteredConversations = conversations.filter((conv) => {
         if (!searchQuery.trim()) return true;
@@ -28,9 +31,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         const conversationName =
             conv.type === 'GROUP'
                 ? conv.groupInfo?.groupName || 'Group Chat'
-                : conv.participants.find(
-                      (p) => p.userId !== localStorage.getItem('chat_user_id'),
-                  )?.fullName || 'Unknown';
+                : conv.participants.find((p) => p.userId !== currentUserId)
+                      ?.fullName || 'Unknown';
 
         return conversationName.toLowerCase().includes(query);
     });
@@ -41,7 +43,6 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         }
 
         // For private conversations, show the other participant's name
-        const currentUserId = localStorage.getItem('chat_user_id') || '';
         const otherParticipant = conversation.participants.find(
             (p) => p.userId !== currentUserId,
         );
@@ -55,7 +56,6 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             return conversation.groupInfo.groupAvatar;
         }
 
-        const currentUserId = localStorage.getItem('chat_user_id') || '';
         const otherParticipant = conversation.participants.find(
             (p) => p.userId !== currentUserId,
         );
@@ -69,15 +69,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
 
         const { content, senderBy, messageType } = conversation.lastMessage;
 
-        if (messageType === 'FILE') {
+        if (messageType === 'FILE' || messageType === 'file') {
             return '📎 File attached';
         }
 
-        if (messageType === 'IMAGE') {
+        if (messageType === 'IMAGE' || messageType === 'image') {
             return '🖼️ Image';
         }
 
-        const currentUserId = localStorage.getItem('chat_user_id') || '';
         const senderLabel = senderBy === currentUserId ? 'You: ' : '';
 
         return `${senderLabel}${content || 'Message sent'}`.substring(0, 50);

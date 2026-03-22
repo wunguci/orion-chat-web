@@ -10,6 +10,7 @@ import {
     connectSocket,
     disconnectSocket,
     sendMessage,
+    joinConversation,
     onMessageNew,
     offMessageNew,
 } from '../../services/socket';
@@ -18,29 +19,14 @@ import {
     useConversationDetail,
     useConversationMessages,
 } from '../../hooks/useConversation';
-import { conversationApi } from '../../services/conversationApi';
-import type { MessageDetail } from '../../types/conversation';
+import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 
-const USER_ID = (() => {
-    let id = localStorage.getItem('chat_user_id');
-    if (!id) {
-        id = `user_${Math.random().toString(36).slice(2, 7)}`;
-        localStorage.setItem('chat_user_id', id);
-    }
-    return id;
-})();
-
-const USERNAME = (() => {
-    let name = localStorage.getItem('chat_username');
-    if (!name) {
-        name = `Guest_${USER_ID.slice(-4)}`;
-        localStorage.setItem('chat_username', name);
-    }
-    return name;
-})();
+const USER_ID = getCurrentUserId();
+const USERNAME = getCurrentUserName();
 
 export const ChatPage: React.FC = () => {
     type ChatSocketMessage = SocketMessage & {
+        clientMessageId?: string;
         conversationId?: string;
         type?: 'text' | 'image' | 'file' | 'audio';
     };
@@ -57,12 +43,24 @@ export const ChatPage: React.FC = () => {
         createdAt?: string;
         isFile?: boolean;
         type?: 'text' | 'image' | 'file' | 'audio';
-        messageType?: 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO';
+        messageType?:
+            | 'TEXT'
+            | 'IMAGE'
+            | 'FILE'
+            | 'VIDEO'
+            | 'AUDIO'
+            | 'text'
+            | 'image'
+            | 'file'
+            | 'video'
+            | 'audio';
         fileUrl?: string;
         mediaUrl?: string;
         fileName?: string;
         fileType?: string;
         conversationId?: string;
+        message?: Partial<IncomingSocketPayload>;
+        data?: Partial<IncomingSocketPayload>;
     };
 
     const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>(
@@ -73,7 +71,6 @@ export const ChatPage: React.FC = () => {
     const [selectedConversationId, setSelectedConversationId] = useState<
         string | null
     >(null);
-    const bottomRef = useRef<HTMLDivElement>(null);
     const messageListenerRef = useRef<
         ((msg: ChatSocketMessage) => void) | null
     >(null);
@@ -83,7 +80,6 @@ export const ChatPage: React.FC = () => {
         conversations,
         loading: conversationsLoading,
         error: conversationsError,
-        refreshConversations,
     } = useConversations(USER_ID);
 
     // Fetch selected conversation detail
@@ -93,13 +89,16 @@ export const ChatPage: React.FC = () => {
     );
 
     // Fetch messages for selected conversation
-    const { messages: paginatedMessages, addMessage: addPaginatedMessage } =
-        useConversationMessages(selectedConversationId || '', USER_ID, 30);
+    const { messages: paginatedMessages } = useConversationMessages(
+        selectedConversationId || '',
+        USER_ID,
+        30,
+    );
 
     const getReceiverId = useCallback(() => {
         if (!selectedConversation) return '';
 
-        const otherParticipant = selectedConversation.participants.find(
+        const otherParticipant = selectedConversation.participants?.find(
             (p) => p.userId !== USER_ID,
         );
         return otherParticipant?.userId ?? USER_ID;
@@ -112,14 +111,9 @@ export const ChatPage: React.FC = () => {
                 payload?._id ||
                 payload?.clientMessageId ||
                 `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            clientMessageId: payload?.clientMessageId,
             senderId: payload?.senderId || payload?.senderBy || 'unknown',
-            senderName:
-                payload?.senderName ||
-                selectedConversation?.participants.find(
-                    (p) =>
-                        p.userId === (payload?.senderId || payload?.senderBy),
-                )?.fullName ||
-                'Unknown',
+            senderName: payload?.senderName || 'Unknown',
             content: payload?.content || '',
             timestamp:
                 payload?.timestamp ||
@@ -128,14 +122,15 @@ export const ChatPage: React.FC = () => {
             isFile:
                 payload?.isFile ||
                 payload?.type === 'file' ||
-                payload?.messageType === 'FILE',
+                payload?.messageType === 'FILE' ||
+                payload?.messageType === 'file',
             fileUrl: payload?.fileUrl || payload?.mediaUrl,
             fileName: payload?.fileName,
             fileType: payload?.fileType,
             conversationId: payload?.conversationId,
             type: payload?.type,
         }),
-        [selectedConversation],
+        [],
     );
 
     // Initialize socket connection
@@ -146,27 +141,38 @@ export const ChatPage: React.FC = () => {
                 await connectSocket(USER_ID);
 
                 const messageHandler = (payload: IncomingSocketPayload) => {
-                    const msg = toSocketMessage(payload);
-                    setSocketMessages((prev) => [...prev, msg]);
+                    const rawPayload =
+                        payload?.message || payload?.data || payload;
+                    const msg = toSocketMessage(rawPayload);
 
-                    // If message is for selected conversation, add it to paginated messages
-                    if (
-                        selectedConversationId &&
-                        msg.conversationId === selectedConversationId
-                    ) {
-                        const messageDetail: MessageDetail = {
-                            content: msg.content,
-                            senderBy: msg.senderId,
-                            conversationId: msg.conversationId,
-                            messageType: msg.isFile ? 'FILE' : 'TEXT',
-                            messageStatus: 'DELIVERED',
-                            createdAt: msg.timestamp,
-                            seenBy: [],
-                            fileName: msg.fileName,
-                            mediaUrl: msg.fileUrl,
-                        };
-                        addPaginatedMessage(messageDetail);
+                    const hasVisibleContent =
+                        msg.content.trim().length > 0 ||
+                        (msg.isFile && !!msg.fileUrl);
+
+                    if (!hasVisibleContent || !msg.conversationId) {
+                        return;
                     }
+
+                    setSocketMessages((prev) => {
+                        const existingIndex = prev.findIndex(
+                            (p) =>
+                                (!!msg.clientMessageId &&
+                                    p.clientMessageId ===
+                                        msg.clientMessageId) ||
+                                p.id === msg.id,
+                        );
+
+                        if (existingIndex >= 0) {
+                            const next = [...prev];
+                            next[existingIndex] = {
+                                ...next[existingIndex],
+                                ...msg,
+                            };
+                            return next;
+                        }
+
+                        return [...prev, msg];
+                    });
                 };
 
                 messageListenerRef.current = messageHandler;
@@ -192,12 +198,7 @@ export const ChatPage: React.FC = () => {
             }
             disconnectSocket();
         };
-    }, [selectedConversationId, addPaginatedMessage, toSocketMessage]);
-
-    // Auto scroll to bottom
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [socketMessages, paginatedMessages]);
+    }, [toSocketMessage]);
 
     // Handle conversation selection
     const handleSelectConversation = useCallback((conversationId: string) => {
@@ -205,34 +206,42 @@ export const ChatPage: React.FC = () => {
         setSocketMessages([]); // Clear socket messages on new conversation
     }, []);
 
+    useEffect(() => {
+        if (!selectedConversationId) return;
+        joinConversation(`join_${Date.now()}`, selectedConversationId);
+    }, [selectedConversationId]);
+
     // Handle sending message
     const handleSend = useCallback(
         async (text: string) => {
             if (!text.trim() || !selectedConversationId) return;
 
             try {
+                const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+                setSocketMessages((prev) => [
+                    ...prev,
+                    {
+                        id: clientMessageId,
+                        clientMessageId,
+                        senderId: USER_ID,
+                        senderName: USERNAME,
+                        content: text,
+                        timestamp: new Date().toISOString(),
+                        conversationId: selectedConversationId,
+                        type: 'text',
+                    },
+                ]);
+
                 // Send via socket
                 sendMessage({
                     requestId: `req_${Date.now()}`,
-                    clientMessageId: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    clientMessageId,
                     receiverId: getReceiverId(),
                     type: 'text',
                     content: text,
                     conversationId: selectedConversationId,
                 });
-
-                // Also save to backend via API
-                await conversationApi.sendMessage(
-                    selectedConversationId,
-                    USER_ID,
-                    text,
-                    {
-                        messageType: 'TEXT',
-                    },
-                );
-
-                // Refresh conversations to update last message
-                await refreshConversations();
             } catch (err) {
                 console.error('Error sending message:', err);
                 setError(
@@ -242,7 +251,7 @@ export const ChatPage: React.FC = () => {
                 );
             }
         },
-        [selectedConversationId, refreshConversations, getReceiverId],
+        [selectedConversationId, getReceiverId],
     );
 
     // Handle sending file
@@ -251,28 +260,32 @@ export const ChatPage: React.FC = () => {
             if (!selectedConversationId) return;
 
             try {
+                const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+                setSocketMessages((prev) => [
+                    ...prev,
+                    {
+                        id: clientMessageId,
+                        clientMessageId,
+                        senderId: USER_ID,
+                        senderName: USERNAME,
+                        content: file.name,
+                        timestamp: new Date().toISOString(),
+                        conversationId: selectedConversationId,
+                        type: 'file',
+                        isFile: true,
+                        fileName: file.name,
+                    },
+                ]);
+
                 sendMessage({
                     requestId: `req_${Date.now()}`,
-                    clientMessageId: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    clientMessageId,
                     receiverId: getReceiverId(),
                     type: 'file',
                     content: file.name,
                     conversationId: selectedConversationId,
                 });
-
-                // Save to backend
-                await conversationApi.sendMessage(
-                    selectedConversationId,
-                    USER_ID,
-                    file.name,
-                    {
-                        messageType: 'FILE',
-                        fileName: file.name,
-                        fileSize: file.size,
-                    },
-                );
-
-                await refreshConversations();
             } catch (err) {
                 console.error('Error sending file:', err);
                 setError(
@@ -280,7 +293,7 @@ export const ChatPage: React.FC = () => {
                 );
             }
         },
-        [selectedConversationId, refreshConversations, getReceiverId],
+        [selectedConversationId, getReceiverId],
     );
 
     // Combine paginated messages and socket messages
@@ -290,7 +303,7 @@ export const ChatPage: React.FC = () => {
             if (senderId === USER_ID) return USERNAME;
 
             return (
-                selectedConversation?.participants.find(
+                selectedConversation?.participants?.find(
                     (p) => p.userId === senderId,
                 )?.fullName || 'Unknown'
             );
@@ -301,8 +314,10 @@ export const ChatPage: React.FC = () => {
     const paginatedAsSocketMessages: SocketMessage[] = paginatedMessages.map(
         (m, idx) => ({
             id:
+                m._id ||
                 m.clientMessageId ||
                 `${m.senderBy || 'unknown'}_${String(m.createdAt || idx)}`,
+            clientMessageId: m.clientMessageId,
             senderId: m.senderBy || 'unknown',
             senderName: getSenderName(m.senderBy),
             content: m.content || '',
@@ -310,21 +325,59 @@ export const ChatPage: React.FC = () => {
                 typeof m.createdAt === 'string'
                     ? m.createdAt
                     : (m.createdAt?.toISOString() ?? new Date().toISOString()),
-            isFile: m.messageType === 'FILE' || m.messageType === 'IMAGE',
+            isFile:
+                m.messageType === 'FILE' ||
+                m.messageType === 'IMAGE' ||
+                m.messageType === 'file' ||
+                m.messageType === 'image',
             fileUrl: m.mediaUrl,
             fileName: m.fileName,
-            fileType: m.messageType === 'IMAGE' ? 'image/*' : undefined,
+            fileType:
+                m.messageType === 'IMAGE' || m.messageType === 'image'
+                    ? 'image/*'
+                    : undefined,
         }),
     );
 
-    const displayMessages: SocketMessage[] = [
+    const mergedMessages: SocketMessage[] = [
         ...paginatedAsSocketMessages,
         ...socketMessages.filter(
-            (sm) =>
-                sm.conversationId === selectedConversationId ||
-                !selectedConversationId,
+            (sm) => sm.conversationId === selectedConversationId,
         ),
     ];
+
+    const messageMap = new Map<string, SocketMessage>();
+    for (const message of mergedMessages) {
+        const hasVisibleContent =
+            message.content.trim().length > 0 ||
+            (message.isFile && !!message.fileUrl);
+        if (!hasVisibleContent) continue;
+
+        const key =
+            (message as ChatSocketMessage).clientMessageId ||
+            message.id ||
+            `${message.senderId}_${message.timestamp}_${message.content}_${message.fileUrl || ''}`;
+
+        if (!messageMap.has(key)) {
+            messageMap.set(key, message);
+        }
+    }
+
+    const displayMessages: SocketMessage[] = Array.from(messageMap.values())
+        .sort((a, b) => {
+            const timeA = new Date(a.timestamp).getTime();
+            const timeB = new Date(b.timestamp).getTime();
+
+            const safeA = Number.isNaN(timeA) ? 0 : timeA;
+            const safeB = Number.isNaN(timeB) ? 0 : timeB;
+
+            return safeA - safeB;
+        })
+        .map((msg) => ({
+            ...msg,
+            senderId: msg.senderId || USER_ID,
+            senderName: msg.senderName || getSenderName(msg.senderId),
+        }));
 
     return (
         <div className="flex h-screen gap-4 bg-gray-50 p-4">
@@ -363,7 +416,7 @@ export const ChatPage: React.FC = () => {
                         <ChatHeader
                             name={
                                 selectedConversation.groupInfo?.groupName ||
-                                selectedConversation.participants.find(
+                                selectedConversation.participants?.find(
                                     (p) => p.userId !== USER_ID,
                                 )?.fullName ||
                                 'Conversation'
@@ -374,6 +427,7 @@ export const ChatPage: React.FC = () => {
                         <MessageList
                             socketMessages={displayMessages}
                             currentUserId={USER_ID}
+                            conversationId={selectedConversationId}
                         />
 
                         {/* Input */}
@@ -381,8 +435,6 @@ export const ChatPage: React.FC = () => {
                             onSend={handleSend}
                             onSendFile={handleSendFile}
                         />
-
-                        <div ref={bottomRef} />
                     </>
                 ) : (
                     <div className="flex flex-1 items-center justify-center text-gray-400">

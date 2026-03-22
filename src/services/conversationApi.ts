@@ -6,8 +6,9 @@ import type {
     PaginatedMessagesParams,
 } from '../types/conversation';
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+ const API_BASE_URL = import.meta.env.VITE_SOCKET_URL ||
+     'https://deceitfully-unquailing-haylee.ngrok-free.dev';
 
 class ConversationApiService {
     private api: AxiosInstance;
@@ -17,6 +18,7 @@ class ConversationApiService {
             baseURL: `${API_BASE_URL}/conversations`,
             headers: {
                 'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
             },
         });
 
@@ -43,9 +45,9 @@ class ConversationApiService {
      * Get all conversations for the current user
      */
     async findAllByUserId(userId: string): Promise<ConversationView[]> {
-        const response = await this.api.get<ConversationView[]>(
-            `/user/${userId}`,
-        );
+        const response = await this.api.get<ConversationView[]>('/', {
+            params: { userId },
+        });
         return response.data;
     }
 
@@ -57,7 +59,7 @@ class ConversationApiService {
         userId: string,
     ): Promise<ConversationView> {
         const response = await this.api.get<ConversationView>(
-            `/${conversationId}/detail`,
+            `/${conversationId}/messages`,
             {
                 params: { userId },
             },
@@ -71,12 +73,13 @@ class ConversationApiService {
     async getMessagesByConversation(
         params: PaginatedMessagesParams,
     ): Promise<ConversationMessagesResult> {
-        const { conversationId, cursor, limit = 30 } = params;
+        const { conversationId, userId, cursor, limit = 30 } = params;
 
         const response = await this.api.get<ConversationMessagesResult>(
             `/${conversationId}/messages`,
             {
                 params: {
+                    userId,
                     cursor,
                     limit,
                 },
@@ -84,7 +87,6 @@ class ConversationApiService {
         );
         return response.data;
     }
-
     /**
      * Send a message to a conversation
      */

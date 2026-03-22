@@ -1,5 +1,15 @@
 export type ConversationType = 'GROUP' | 'PRIVATE' | 'CHANNEL';
-export type MessageType = 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO';
+export type MessageType =
+    | 'TEXT'
+    | 'IMAGE'
+    | 'FILE'
+    | 'VIDEO'
+    | 'AUDIO'
+    | 'text'
+    | 'image'
+    | 'file'
+    | 'video'
+    | 'audio';
 export type MessageStatus =
     | 'SENDING'
     | 'SENT'
@@ -49,7 +59,7 @@ export interface GroupInfo {
 export interface ParticipantInfo {
     userId: string;
     fullName: string | null;
-    avatarUrl: string;
+    avatarUrl: string | null;
     role: ParticipantRole;
     joinedAt: Date | string;
     lastReadMessageId?: string | null;
@@ -77,4 +87,5 @@ export interface PaginatedMessagesParams {
     conversationId: string;
     cursor?: string;
     limit?: number;
+    userId: string;
 }
