@@ -7,7 +7,7 @@ import { AuthLayout } from "../components/layout/AuthLayout";
 import { ChatLayout } from "../components/layout/ChatLayout";
 
 // Pages
-import { ChatPage } from "../pages/chat/ChatPage";
+import { ChatPage } from "../pages/chat/ChatPageWithConversationService";
 import { NotFoundPage } from "../pages/notFound/NotFoundPage";
 import GroupChat from "../components/layout/GroupChat";
 import VideoCallPage from "../pages/video-call/VideoCallPage";

@@ -1,7 +1,6 @@
 import type React from 'react';
 import {
     MdChat,
-    MdContacts,
     MdNote,
     MdCalendarToday,
     MdSettings,
@@ -25,7 +24,7 @@ interface SidebarProps {
     setView: (view: ViewMode) => void;
 }
 
-const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
+const AppSidebar: React.FC<SidebarProps> = ({ setView }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
