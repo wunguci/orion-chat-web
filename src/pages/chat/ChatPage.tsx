@@ -15,8 +15,16 @@ import {
     uploadFile,
     sendFileMessage,
 } from '../../services/socket';
+import { getUser } from '../../utils/token';
 
 const USER_ID = (() => {
+    // First try to get userId from logged-in user
+    const user = getUser();
+    if (user?.phoneNumber) {
+        return user.phoneNumber;
+    }
+
+    // Fallback to old method if not logged in
     let id = localStorage.getItem('chat_user_id');
     if (!id) {
         id = `user_${Math.random().toString(36).slice(2, 7)}`;
@@ -26,6 +34,14 @@ const USER_ID = (() => {
 })();
 
 const USERNAME = (() => {
+    // First try to get fullName from logged-in user
+    const user = getUser();
+    if (user?.fullName) {
+        console.log('📱 ChatPage using logged-in user:', user.fullName);
+        return user.fullName;
+    }
+
+    // Fallback to old method if not logged in
     let name = localStorage.getItem('chat_username');
     if (!name) {
         name = `Guest_${USER_ID.slice(-4)}`;

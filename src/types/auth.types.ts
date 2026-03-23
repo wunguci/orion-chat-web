@@ -1,10 +1,3 @@
-/**
- * Authentication API Type Definitions
- * Matches Backend API: http://localhost:3000/auth
- */
-
-/* ==================== Response Types ==================== */
-
 export interface SendOtpResponse {
     success: boolean;
     message: string;
@@ -48,6 +41,16 @@ export interface LoginResponse {
         birthDate: string;
         gender: 'male' | 'female' | 'other';
         loginTime: string;
+        userId?: string;
+        email?: string;
+        avatarUrl?: string;
+        coverImage?: string;
+        isOnline?: boolean;
+        showOnlineStatus?: boolean;
+        isActive?: boolean;
+        isDeleted?: boolean;
+        createdAt?: string;
+        lastLoginAt?: string;
     };
     timestamp: string;
 }
@@ -103,9 +106,18 @@ export interface User {
     id?: string;
     phoneNumber: string;
     fullName: string;
-    birthDate: string;
-    gender: 'male' | 'female' | 'other';
+    birthDate?: string;
+    gender?: 'male' | 'female' | 'other';
     createdAt?: string;
+    userId?: string;
+    email?: string;
+    avatarUrl?: string;
+    coverImage?: string;
+    isOnline?: boolean;
+    showOnlineStatus?: boolean;
+    isActive?: boolean;
+    isDeleted?: boolean;
+    loginTime?: string;
 }
 
 export interface AuthState {

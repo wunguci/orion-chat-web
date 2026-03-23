@@ -1,27 +1,34 @@
-import { Outlet } from "react-router-dom";
-import AppSidebar from "../common/AppSidebar";
-import { CallProvider } from "../../contexts/CallContext";
-import { IncomingCallModal } from "../call/IncomingCallModal";
-import { CallModal } from "../call/CallModal";
+import { Outlet, Navigate } from 'react-router-dom';
+import AppSidebar from '../common/AppSidebar';
+import { CallProvider } from '../../contexts/CallContext';
+import { IncomingCallModal } from '../call/IncomingCallModal';
+import { CallModal } from '../call/CallModal';
+import { useAuth } from '../../hooks/useAuth';
 
 export const MainLayout = () => {
-  const userId = localStorage.getItem("userId") || "user-001";
+    const userId = localStorage.getItem('userId') || 'user-001';
+    const { isAuthenticated, user } = useAuth();
 
-  return (
-    <CallProvider userId={userId}>
-      <div className="flex h-screen overflow-hidden bg-white">
-        {/* Sidebar  */}
-        <AppSidebar currentView="chat" setView={() => {}} />
+    // Redirect to login if not authenticated
+    if (!isAuthenticated || !user) {
+        return <Navigate to="/auth/login" replace />;
+    }
 
-        {/* Main content  */}
-        <div className="flex-1 overflow-hidden">
-          <Outlet />
-        </div>
-      </div>
+    return (
+        <CallProvider userId={userId}>
+            <div className="flex h-screen overflow-hidden bg-white">
+                {/* Sidebar  */}
+                <AppSidebar currentView="chat" setView={() => {}} />
 
-      {/* Global call modals */}
-      <IncomingCallModal />
-      <CallModal />
-    </CallProvider>
-  );
+                {/* Main content  */}
+                <div className="flex-1 overflow-hidden">
+                    <Outlet />
+                </div>
+            </div>
+
+            {/* Global call modals */}
+            <IncomingCallModal />
+            <CallModal />
+        </CallProvider>
+    );
 };

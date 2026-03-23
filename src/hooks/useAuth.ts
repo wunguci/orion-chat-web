@@ -21,7 +21,12 @@ function initAuthState(): AuthState {
     const storedToken = getToken();
     const storedUser = getUser();
 
+    console.log('🔍 [useAuth] initAuthState:');
+    console.log('   Token exists:', !!storedToken);
+    console.log('   User data:', storedUser);
+
     if (storedToken && isTokenValid()) {
+        console.log('✅ [useAuth] Authentication valid');
         return {
             token: storedToken,
             user: storedUser,
@@ -31,6 +36,7 @@ function initAuthState(): AuthState {
     }
 
     // Token is invalid or missing, clear auth
+    console.log('❌ [useAuth] Authentication invalid, clearing auth');
     logout();
     return {
         user: null,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMessage } from '@fortawesome/free-solid-svg-icons';
@@ -9,6 +9,7 @@ import {
     validatePassword,
 } from '../../services/authService';
 import { setToken, setUser } from '../../utils/token';
+import { ROUTES } from '../../types/routes.types';
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -20,6 +21,18 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        const savedPhone = localStorage.getItem('remembered_phone');
+        const isRemembered = localStorage.getItem('rememberMe') === 'true';
+
+        if (savedPhone) {
+            setPhone(savedPhone);
+        }
+        if (isRemembered) {
+            setRememberMe(true);
+        }
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,28 +52,78 @@ export default function LoginPage() {
         setLoading(true);
         try {
             const result = await login(phone, password);
+            console.log('[LoginPage] API Response:', result);
+            console.log(
+                '[LoginPage] Result.data keys:',
+                result.data ? Object.keys(result.data) : 'N/A',
+            );
+            console.log('[LoginPage] Result.data:', result.data);
+
             if (result.success) {
+                if (!result.data) {
+                    setError(
+                        'Lỗi: Không nhận được dữ liệu người dùng từ server',
+                    );
+                    setLoading(false);
+                    return;
+                }
+
                 setMessage('Đăng nhập thành công! Chuyển hướng...');
 
                 // Store JWT token
-                setToken(result.data.token);
+                const token = result.data.token;
+                if (!token) {
+                    setError('Lỗi: Không nhận được token từ server');
+                    setLoading(false);
+                    return;
+                }
+                setToken(token);
 
-                // Store user data (without token)
+                // Store user data with all available fields
                 const userData = {
-                    phoneNumber: result.data.phoneNumber,
-                    fullName: result.data.fullName,
-                    birthDate: result.data.birthDate,
-                    gender: result.data.gender,
+                    phoneNumber: result.data.phoneNumber || '',
+                    fullName: result.data.fullName || '',
+                    birthDate: result.data.birthDate || undefined,
+                    gender: result.data.gender || undefined,
+                    loginTime:
+                        result.data.loginTime || new Date().toISOString(),
+                    userId: result.data.userId || '',
+                    email: result.data.email || '',
+                    avatarUrl: result.data.avatarUrl || undefined,
+                    coverImage: result.data.coverImage || undefined,
+                    isOnline:
+                        result.data.isOnline !== undefined
+                            ? result.data.isOnline
+                            : true,
+                    showOnlineStatus:
+                        result.data.showOnlineStatus !== undefined
+                            ? result.data.showOnlineStatus
+                            : true,
+                    isActive:
+                        result.data.isActive !== undefined
+                            ? result.data.isActive
+                            : true,
+                    isDeleted:
+                        result.data.isDeleted !== undefined
+                            ? result.data.isDeleted
+                            : false,
+                    createdAt:
+                        result.data.createdAt || new Date().toISOString(),
                 };
+
                 setUser(userData);
 
-                // Remember me - could save to localStorage if needed
                 if (rememberMe) {
+                    localStorage.setItem('remembered_phone', phone);
                     localStorage.setItem('rememberMe', 'true');
+                } else {
+                    // Clear saved phone if unchecked
+                    localStorage.removeItem('remembered_phone');
+                    localStorage.removeItem('rememberMe');
                 }
 
                 setTimeout(() => {
-                    navigate('/chat');
+                    navigate(`${ROUTES.HOME}/${ROUTES.CHAT.ROOT}`);
                 }, 2000);
             }
         } catch (err) {
