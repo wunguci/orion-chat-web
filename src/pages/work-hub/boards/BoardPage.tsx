@@ -69,10 +69,10 @@ const BoardPage = () => {
   const authUser = getUser();
   const currentUser: User = authUser
     ? {
-        id: authUser.id,
+        id: authUser.id ?? "",
         name: authUser.fullName,
         email: "",
-        phone: authUser.phoneNumber,
+        phone: authUser.phoneNumber ?? "",
         avatar: authUser.avatarUrl || "/avatar-user.png",
         status: "online" as const,
       }
@@ -80,6 +80,7 @@ const BoardPage = () => {
         id: "",
         name: "User",
         email: "",
+        phone: "",
         avatar: "/avatar-user.png",
         status: "online" as const,
       };

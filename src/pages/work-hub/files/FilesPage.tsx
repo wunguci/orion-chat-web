@@ -45,7 +45,7 @@ const FilesPage = () => {
           workspaceId,
           parentId ?? undefined,
         );
-        const mapped = (res.data ?? []).map(mapWorkspaceFile);
+        const mapped = (res ?? []).map(mapWorkspaceFile);
         setFiles(mapped);
       } catch (err) {
         console.error("Failed to fetch files:", err);

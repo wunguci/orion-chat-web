@@ -125,7 +125,7 @@ const RoadmapPage = () => {
       const data = await workHubApi.createEpic(workspaceId, {
         title: epicForm.title.trim(),
         description: epicForm.description.trim() || undefined,
-        ownerId: currentUser.userId,
+        ownerId: currentUser.userId ?? "",
         startDate: epicForm.startDate || undefined,
         endDate: epicForm.endDate || undefined,
         color: epicForm.color,

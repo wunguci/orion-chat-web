@@ -40,7 +40,7 @@ const DocumentEditorPage = () => {
     try {
       setLoading(true);
       const res = await workHubApi.getDocument(documentId);
-      const mapped = mapDocument(res.data) as Document;
+      const mapped = mapDocument(res) as Document;
       setDoc(mapped);
       setTitle(mapped.title);
       setContent(mapped.content || "");

@@ -30,7 +30,7 @@ const DocumentsPage = () => {
     try {
       setLoading(true);
       const res = await workHubApi.getDocuments(workspaceId);
-      const mapped = (res.data ?? []).map(mapDocument) as Document[];
+      const mapped = (res ?? []).map(mapDocument) as Document[];
       setDocuments(mapped);
     } catch (err) {
       console.error("Failed to fetch documents:", err);
@@ -69,7 +69,7 @@ const DocumentsPage = () => {
         title: newDocTitle || "Untitled Document",
         createdById: user.id,
       });
-      const newDoc = mapDocument(res.data);
+      const newDoc = mapDocument(res);
       setShowNewDocModal(false);
       setNewDocTitle("");
       navigate(`/work-hub/${workspaceId}/documents/${newDoc.id}`);
