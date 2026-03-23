@@ -8,9 +8,8 @@ import type {
 
 const API_BASE_URL = "http://localhost:3000";
 
-/**
- * Send OTP to phone number
- */
+// send OTP to phone number
+
 export async function sendOtp(phoneNumber: string): Promise<SendOtpResponse> {
   const response = await fetch(`${API_BASE_URL}/auth/send-otp`, {
     method: "POST",
@@ -31,9 +30,7 @@ export async function sendOtp(phoneNumber: string): Promise<SendOtpResponse> {
   return response.json();
 }
 
-/**
- * Step 2: Verify OTP
- */
+// Step 2: Verify OTP
 export async function verifyOtp(
   phoneNumber: string,
   otp: string,
@@ -57,9 +54,8 @@ export async function verifyOtp(
   return response.json();
 }
 
-/**
- * Step 3: Complete Registration
- */
+// Step 3: Complete Registration
+
 export async function completeRegister(formData: {
   phoneNumber: string;
   password: string;
@@ -125,6 +121,39 @@ export async function login(
     }
     throw error;
   }
+}
+
+// Logout user
+export async function logout(token: string): Promise<{ message: string }> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            try {
+                const errorData: ErrorResponse = await response.json();
+                throw new Error(
+                    errorData.message ||
+                        `Failed to logout: ${response.statusText}`,
+                );
+            } catch {
+                throw new Error(
+                    `HTTP ${response.status}: ${response.statusText}`,
+                );
+            }
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('[authService] Logout error:', error);
+        throw error;
+    }
 }
 
 export function validatePhoneNumber(phoneNumber: string): boolean {
