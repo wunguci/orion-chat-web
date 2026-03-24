@@ -241,13 +241,13 @@ const WorkHubPage = () => {
           <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-slate-200 bg-white/70 backdrop-blur">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+                {/* <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
                   <i className="fas fa-chart-pie"></i>
-                </div>
+                </div> */}
                 <div className="min-w-0">
-                  <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">
+                  {/* <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">
                     {workspace.name} Dashboard
-                  </h1>
+                  </h1> */}
                   <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 mt-1">
                     <i className="fas fa-home"></i>
                     <i className="fas fa-chevron-right text-[10px]"></i>
