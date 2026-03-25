@@ -6,9 +6,10 @@ import type {
     PaginatedMessagesParams,
 } from '../types/conversation';
 
-// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
- const API_BASE_URL = import.meta.env.VITE_SOCKET_URL ||
-     'https://deceitfully-unquailing-haylee.ngrok-free.dev';
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_SOCKET_URL ||
+    'http://localhost:3000';
 
 class ConversationApiService {
     private api: AxiosInstance;
@@ -39,6 +40,11 @@ class ConversationApiService {
                 return Promise.reject(error);
             },
         );
+    }
+
+    private getAuthHeader(): Record<string, string> {
+        const token = localStorage.getItem('auth_token');
+        return token ? { Authorization: `Bearer ${token}` } : {};
     }
 
     /**
@@ -174,6 +180,66 @@ class ConversationApiService {
             userId,
         });
         return response.data;
+    }
+
+    /**
+     * Upload file and return URL
+     */
+    async uploadFile(
+        file: File,
+        conversationId: string,
+        senderBy?: string,
+    ): Promise<{
+        mediaUrl: string;
+        fileName: string;
+        fileSize: number;
+        mimeType: string;
+        messageType: string;
+    }> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('conversationId', conversationId);
+        if (senderBy) {
+            formData.append('senderBy', senderBy);
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/messages/upload`, {
+                method: 'POST',
+                headers: {
+                    'ngrok-skip-browser-warning': 'true',
+                    ...this.getAuthHeader(),
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${response.statusText}`);
+            }
+
+            const data = (await response.json()) as {
+                mediaUrl?: string;
+                fileName?: string;
+                fileSize?: number;
+                mimeType?: string;
+                messageType?: string;
+            };
+
+            if (!data.mediaUrl) {
+                throw new Error('Upload response missing mediaUrl');
+            }
+
+            return {
+                mediaUrl: data.mediaUrl,
+                fileName: data.fileName || file.name,
+                fileSize: data.fileSize || file.size,
+                mimeType: data.mimeType || file.type,
+                messageType: data.messageType || 'FILE',
+            };
+        } catch (error) {
+            console.error('File upload error:', error);
+            throw error;
+        }
     }
 }
 

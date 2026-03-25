@@ -19,6 +19,7 @@ import {
     useConversationDetail,
     useConversationMessages,
 } from '../../hooks/useConversation';
+import { conversationApi } from '../../services/conversationApi';
 import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 
 const USER_ID = getCurrentUserId();
@@ -105,31 +106,43 @@ export const ChatPage: React.FC = () => {
     }, [selectedConversation]);
 
     const toSocketMessage = useCallback(
-        (payload: IncomingSocketPayload): ChatSocketMessage => ({
-            id:
-                payload?.id ||
-                payload?._id ||
-                payload?.clientMessageId ||
-                `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-            clientMessageId: payload?.clientMessageId,
-            senderId: payload?.senderId || payload?.senderBy || 'unknown',
-            senderName: payload?.senderName || 'Unknown',
-            content: payload?.content || '',
-            timestamp:
-                payload?.timestamp ||
-                payload?.createdAt ||
-                new Date().toISOString(),
-            isFile:
-                payload?.isFile ||
-                payload?.type === 'file' ||
-                payload?.messageType === 'FILE' ||
-                payload?.messageType === 'file',
-            fileUrl: payload?.fileUrl || payload?.mediaUrl,
-            fileName: payload?.fileName,
-            fileType: payload?.fileType,
-            conversationId: payload?.conversationId,
-            type: payload?.type,
-        }),
+        (payload: IncomingSocketPayload): ChatSocketMessage => {
+            const messageType = payload?.messageType || payload?.type;
+            const isImageType =
+                messageType === 'IMAGE' ||
+                messageType === 'image' ||
+                payload?.fileType?.startsWith('image/');
+
+            return {
+                id:
+                    payload?.id ||
+                    payload?._id ||
+                    payload?.clientMessageId ||
+                    `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                clientMessageId: payload?.clientMessageId,
+                senderId: payload?.senderId || payload?.senderBy || 'unknown',
+                senderName: payload?.senderName || 'Unknown',
+                content: payload?.content || '',
+                timestamp:
+                    payload?.timestamp ||
+                    payload?.createdAt ||
+                    new Date().toISOString(),
+                isFile:
+                    payload?.isFile ||
+                    payload?.type === 'file' ||
+                    payload?.type === 'image' ||
+                    messageType === 'FILE' ||
+                    messageType === 'IMAGE' ||
+                    messageType === 'file' ||
+                    messageType === 'image',
+                fileUrl: payload?.fileUrl || payload?.mediaUrl,
+                fileName: payload?.fileName,
+                fileType:
+                    payload?.fileType || (isImageType ? 'image/*' : undefined),
+                conversationId: payload?.conversationId,
+                type: payload?.type,
+            };
+        },
         [],
     );
 
@@ -262,6 +275,15 @@ export const ChatPage: React.FC = () => {
             try {
                 const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+                // Determine file type
+                const fileType = file.type;
+                const isImage = fileType.startsWith('image/');
+                const messageType = isImage ? 'image' : 'file';
+
+                // Create local preview URL for immediate display
+                const tempFileUrl = URL.createObjectURL(file);
+
+                // Add temporary message with local preview
                 setSocketMessages((prev) => [
                     ...prev,
                     {
@@ -272,18 +294,59 @@ export const ChatPage: React.FC = () => {
                         content: file.name,
                         timestamp: new Date().toISOString(),
                         conversationId: selectedConversationId,
-                        type: 'file',
+                        type: messageType,
                         isFile: true,
                         fileName: file.name,
+                        fileUrl: tempFileUrl, // Use blob URL for immediate display
+                        fileType: fileType,
                     },
                 ]);
 
+                // Upload file first because backend requires mediaUrl for media messages
+                let serverFileUrl = '';
+                let uploadedFileType = fileType;
+
+                try {
+                    const uploadResponse = await conversationApi.uploadFile(
+                        file,
+                        selectedConversationId,
+                        USER_ID,
+                    );
+                    serverFileUrl = uploadResponse.mediaUrl;
+                    uploadedFileType = uploadResponse.mimeType || fileType;
+
+                    // Update the message with server URL after successful upload
+                    setSocketMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.clientMessageId === clientMessageId
+                                ? {
+                                      ...msg,
+                                      fileUrl: serverFileUrl,
+                                      fileType: uploadedFileType,
+                                  }
+                                : msg,
+                        ),
+                    );
+                } catch (uploadErr) {
+                    URL.revokeObjectURL(tempFileUrl);
+                    setSocketMessages((prev) =>
+                        prev.filter(
+                            (msg) => msg.clientMessageId !== clientMessageId,
+                        ),
+                    );
+                    throw uploadErr;
+                }
+
+                // Send message via socket with file URL
                 sendMessage({
                     requestId: `req_${Date.now()}`,
                     clientMessageId,
                     receiverId: getReceiverId(),
-                    type: 'file',
+                    type: messageType as 'image' | 'file',
                     content: file.name,
+                    mediaUrl: serverFileUrl,
+                    fileName: file.name,
+                    fileSize: file.size,
                     conversationId: selectedConversationId,
                 });
             } catch (err) {

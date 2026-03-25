@@ -220,6 +220,9 @@ export const sendMessage = (data: {
     receiverId: string;
     type: 'text' | 'image' | 'file' | 'audio';
     content: string;
+    mediaUrl?: string;
+    fileName?: string;
+    fileSize?: number;
     replyToMessageId?: string;
 }) => {
     if (!socket) return;

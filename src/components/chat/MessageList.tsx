@@ -82,7 +82,10 @@ export const MessageList: React.FC<{
                 !!m.fileUrl && m.fileType?.startsWith('image/') === true,
         )
         .map((m) => ({
-            src: `${SERVER_URL}${m.fileUrl}`,
+            src:
+                m.fileUrl.startsWith('http') || m.fileUrl.startsWith('blob:')
+                    ? m.fileUrl
+                    : `${SERVER_URL}${m.fileUrl}`,
             time: new Date(m.timestamp).toLocaleTimeString('vi-VN', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -144,10 +147,16 @@ export const MessageList: React.FC<{
 
                                     {/* Content */}
                                     <div
-                                        className={`px-4 py-2 rounded-2xl text-sm ${
-                                            isMe
-                                                ? 'bg-green-message text-white rounded-tr-none'
-                                                : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
+                                        className={`${
+                                            msg.isFile &&
+                                            msg.fileUrl &&
+                                            msg.fileType?.startsWith('image/')
+                                                ? ''
+                                                : `px-4 py-2 rounded-2xl text-sm ${
+                                                      isMe
+                                                          ? 'bg-green-message text-white rounded-tr-none'
+                                                          : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
+                                                  }`
                                         }`}
                                     >
                                         {msg.isFile && msg.fileUrl ? (
@@ -155,7 +164,16 @@ export const MessageList: React.FC<{
                                                 'image/',
                                             ) ? (
                                                 <img
-                                                    src={`${SERVER_URL}${msg.fileUrl}`}
+                                                    src={
+                                                        msg.fileUrl.startsWith(
+                                                            'http',
+                                                        ) ||
+                                                        msg.fileUrl.startsWith(
+                                                            'blob:',
+                                                        )
+                                                            ? msg.fileUrl
+                                                            : `${SERVER_URL}${msg.fileUrl}`
+                                                    }
                                                     alt={msg.fileName}
                                                     className="max-w-[200px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
                                                     onClick={() =>
@@ -164,7 +182,13 @@ export const MessageList: React.FC<{
                                                 />
                                             ) : (
                                                 <a
-                                                    href={`${SERVER_URL}${msg.fileUrl}`}
+                                                    href={
+                                                        msg.fileUrl.startsWith(
+                                                            'http',
+                                                        )
+                                                            ? msg.fileUrl
+                                                            : `${SERVER_URL}${msg.fileUrl}`
+                                                    }
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="flex items-center gap-2 text-blue-500 hover:text-blue-600 hover:underline text-sm"
