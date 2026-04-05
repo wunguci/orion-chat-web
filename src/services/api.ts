@@ -1,7 +1,7 @@
 import { getAuthHeader, logout } from "../utils/token";
 import { getToken } from "../utils/token";
 
-const API_BASE = "http://localhost:3000";
+const API_BASE = "https://aracelis-provable-grammatically.ngrok-free.dev";
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken();

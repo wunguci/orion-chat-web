@@ -6,7 +6,7 @@ import type {
   ErrorResponse,
 } from "../types/auth.types";
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://aracelis-provable-grammatically.ngrok-free.dev";
 
 // send OTP to phone number
 
@@ -125,35 +125,32 @@ export async function login(
 
 // Logout user
 export async function logout(token: string): Promise<{ message: string }> {
-    try {
-        const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            credentials: 'include',
-        });
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: "include",
+    });
 
-        if (!response.ok) {
-            try {
-                const errorData: ErrorResponse = await response.json();
-                throw new Error(
-                    errorData.message ||
-                        `Failed to logout: ${response.statusText}`,
-                );
-            } catch {
-                throw new Error(
-                    `HTTP ${response.status}: ${response.statusText}`,
-                );
-            }
-        }
-
-        return response.json();
-    } catch (error) {
-        console.error('[authService] Logout error:', error);
-        throw error;
+    if (!response.ok) {
+      try {
+        const errorData: ErrorResponse = await response.json();
+        throw new Error(
+          errorData.message || `Failed to logout: ${response.statusText}`,
+        );
+      } catch {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
     }
+
+    return response.json();
+  } catch (error) {
+    console.error("[authService] Logout error:", error);
+    throw error;
+  }
 }
 
 export function validatePhoneNumber(phoneNumber: string): boolean {
