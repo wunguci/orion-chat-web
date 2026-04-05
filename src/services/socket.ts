@@ -2,8 +2,8 @@
 import { io, Socket } from "socket.io-client";
 
 const RAW_SOCKET_URL =
-  import.meta.env.VITE_SOCKET_URL ||
-  "https://aracelis-provable-grammatically.ngrok-free.dev";
+  (import.meta.env["VITE_SOCKET_URL"] as string | undefined) ||
+  "http://localhost:3000"; /* Đảm bảo không có dấu gạch chéo ở cuối */
 
 const normalizeSocketBaseUrl = (url: string) =>
   url.replace(/\/$/, "").replace(/\/call$/, "");
@@ -88,7 +88,7 @@ class SocketService {
     });
 
     this.callSocket.on("connect_error", (error) => {
-      console.error("[SocketService] Call socket connection error:", error);
+      // console.error("[SocketService] Call socket connection error:", error);
       this.disconnectCall();
     });
 
@@ -130,7 +130,7 @@ class SocketService {
     });
 
     this.presenceSocket.on("connect_error", (error) => {
-      console.error("[SocketService] Presence socket connection error:", error);
+      // console.error("[SocketService] Presence socket connection error:", error);
     });
 
     return this.presenceSocket;
@@ -173,7 +173,9 @@ export default socketService;
 // Chat
 // import { io, Socket } from 'socket.io-client';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+const SERVER_URL =
+  (import.meta.env["VITE_SERVER_URL"] as string | undefined) ||
+  "http://localhost:3001";
 
 let socket: Socket | null = null;
 
@@ -188,7 +190,7 @@ export const connectSocket = (userId: string, username: string): Socket => {
   });
 
   socket.on("connect_error", (err) => {
-    console.error("❌ Lỗi kết nối:", err.message);
+    // console.error("❌ Lỗi kết nối:", err.message);
   });
 
   return socket;

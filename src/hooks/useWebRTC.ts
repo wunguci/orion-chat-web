@@ -200,11 +200,20 @@ export const useWebRTC = ({
     };
 
     peerConnection.onicecandidateerror = (event) => {
-      console.error("ICE candidate error:", {
+      const details = {
         url: event.url,
         errorCode: event.errorCode,
         errorText: event.errorText,
-      });
+      };
+
+      // 701 thường là lỗi DNS/STUN lookup tạm thời trên một ICE server,
+      // không đồng nghĩa cuộc gọi thất bại nếu còn server ICE khác hoạt động.
+      if (event.errorCode === 701) {
+        console.warn("ICE candidate warning (non-fatal):", details);
+        return;
+      }
+
+      console.error("ICE candidate error:", details);
     };
 
     peerConnectionRef.current = peerConnection;

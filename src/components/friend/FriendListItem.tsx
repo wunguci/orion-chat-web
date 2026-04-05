@@ -12,9 +12,10 @@ const FriendListItem: React.FC<FriendListItemProps> = ({ friend }) => {
 
   const handleStartCall = async (callType: "audio" | "video") => {
     const currentUser = getUser();
-    if (!currentUser?.id || !friend.id) return;
+    const currentUserId = currentUser?.userId || currentUser?.id;
+    if (!currentUserId || !friend.id) return;
 
-    const conversationId = [currentUser.id, friend.id].sort().join("-");
+    const conversationId = [currentUserId, friend.id].sort().join("-");
 
     await initiateCall(
       `friend-${conversationId}`,
