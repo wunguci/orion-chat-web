@@ -88,7 +88,7 @@ class SocketService {
     });
 
     this.callSocket.on("connect_error", (error) => {
-      console.error("[SocketService] Call socket connection error:", error);
+      // console.error("[SocketService] Call socket connection error:", error);
       this.disconnectCall();
     });
 
@@ -130,7 +130,7 @@ class SocketService {
     });
 
     this.presenceSocket.on("connect_error", (error) => {
-      console.error("[SocketService] Presence socket connection error:", error);
+      // console.error("[SocketService] Presence socket connection error:", error);
     });
 
     return this.presenceSocket;
@@ -188,7 +188,7 @@ export const connectSocket = (userId: string, username: string): Socket => {
   });
 
   socket.on("connect_error", (err) => {
-    console.error("❌ Lỗi kết nối:", err.message);
+    // console.error("❌ Lỗi kết nối:", err.message);
   });
 
   return socket;
