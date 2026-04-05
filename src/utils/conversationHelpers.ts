@@ -42,7 +42,7 @@ export const getConversationAvatar = (
         (p) => !currentUserId || p.userId !== currentUserId,
     );
 
-    return otherParticipant?.avatarUrl;
+    return otherParticipant?.avatarUrl ?? undefined;
 };
 
 /**

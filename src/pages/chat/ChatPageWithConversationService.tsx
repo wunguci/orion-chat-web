@@ -6,6 +6,8 @@ import MessageList, {
 } from '../../components/chat/MessageList';
 import ChatInput from '../../components/chat/ChatInput';
 import ConversationInfoPanel from '../../components/chat/ConversationInfoPanel';
+import Modal from '../../components/common/Modal';
+import { Dialog } from '../../components/common/Dialog';
 import {
     connectSocket,
     disconnectSocket,
@@ -13,6 +15,10 @@ import {
     joinConversation,
     onMessageNew,
     offMessageNew,
+    onMessageReactionUpdated,
+    offMessageReactionUpdated,
+    onMessageRecalled,
+    offMessageRecalled,
 } from '../../services/socket';
 import {
     useConversations,
@@ -33,6 +39,7 @@ export const ChatPage: React.FC = () => {
     };
 
     type IncomingSocketPayload = {
+        messageId?: string;
         id?: string;
         _id?: string;
         clientMessageId?: string;
@@ -59,6 +66,13 @@ export const ChatPage: React.FC = () => {
         mediaUrl?: string;
         fileName?: string;
         fileType?: string;
+        isDeleted?: boolean;
+        isRecalled?: boolean;
+        reactions?: Array<{
+            userId?: string;
+            emoji?: string;
+            reactedAt?: string;
+        }>;
         conversationId?: string;
         message?: Partial<IncomingSocketPayload>;
         data?: Partial<IncomingSocketPayload>;
@@ -72,6 +86,27 @@ export const ChatPage: React.FC = () => {
     const [selectedConversationId, setSelectedConversationId] = useState<
         string | null
     >(null);
+    const [hiddenMessageKeys, setHiddenMessageKeys] = useState<Set<string>>(
+        new Set(),
+    );
+    const [recalledMessageKeys, setRecalledMessageKeys] = useState<Set<string>>(
+        new Set(),
+    );
+    const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
+    const [forwardingMessage, setForwardingMessage] =
+        useState<SocketMessage | null>(null);
+    const [forwardTargetConversationId, setForwardTargetConversationId] =
+        useState('');
+    const [isForwarding, setIsForwarding] = useState(false);
+    const [isRecallConfirmOpen, setIsRecallConfirmOpen] = useState(false);
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [pendingRecallMessage, setPendingRecallMessage] =
+        useState<SocketMessage | null>(null);
+    const [pendingDeleteMessage, setPendingDeleteMessage] =
+        useState<SocketMessage | null>(null);
+    const [reactionOverrides, setReactionOverrides] = useState<
+        Record<string, NonNullable<SocketMessage['reactions']>>
+    >({});
     const messageListenerRef = useRef<
         ((msg: ChatSocketMessage) => void) | null
     >(null);
@@ -105,6 +140,25 @@ export const ChatPage: React.FC = () => {
         return otherParticipant?.userId ?? USER_ID;
     }, [selectedConversation]);
 
+    const getMessageKey = useCallback(
+        (message: Pick<SocketMessage, 'id' | 'clientMessageId'>) =>
+            message.clientMessageId || message.id,
+        [],
+    );
+
+    const getReceiverIdByConversationId = useCallback(
+        (conversationId: string) => {
+            const conversation = conversations.find(
+                (item) => item.conversationId === conversationId,
+            );
+            const otherParticipant = conversation?.participants?.find(
+                (p) => p.userId !== USER_ID,
+            );
+            return otherParticipant?.userId || '';
+        },
+        [conversations],
+    );
+
     const toSocketMessage = useCallback(
         (payload: IncomingSocketPayload): ChatSocketMessage => {
             const messageType = payload?.messageType || payload?.type;
@@ -115,6 +169,7 @@ export const ChatPage: React.FC = () => {
 
             return {
                 id:
+                    payload?.messageId ||
                     payload?.id ||
                     payload?._id ||
                     payload?.clientMessageId ||
@@ -139,6 +194,16 @@ export const ChatPage: React.FC = () => {
                 fileName: payload?.fileName,
                 fileType:
                     payload?.fileType || (isImageType ? 'image/*' : undefined),
+                isRecalled: payload?.isRecalled || payload?.isDeleted,
+                reactions: Array.isArray(payload?.reactions)
+                    ? payload.reactions
+                          .filter((reaction) => !!reaction?.emoji)
+                          .map((reaction) => ({
+                              userId: reaction?.userId || '',
+                              emoji: reaction?.emoji || '',
+                              reactedAt: reaction?.reactedAt,
+                          }))
+                    : [],
                 conversationId: payload?.conversationId,
                 type: payload?.type,
             };
@@ -159,6 +224,7 @@ export const ChatPage: React.FC = () => {
                     const msg = toSocketMessage(rawPayload);
 
                     const hasVisibleContent =
+                        msg.isRecalled ||
                         msg.content.trim().length > 0 ||
                         (msg.isFile && !!msg.fileUrl);
 
@@ -188,8 +254,75 @@ export const ChatPage: React.FC = () => {
                     });
                 };
 
+                const reactionHandler = (payload: {
+                    conversationId: string;
+                    messageId: string;
+                    reactions: Array<{
+                        userId: string;
+                        emoji: string;
+                        reactedAt: string;
+                    }>;
+                    actedBy: string;
+                    action: 'set' | 'remove';
+                    emoji?: string;
+                    at: string;
+                }) => {
+                    if (payload.conversationId !== selectedConversationId)
+                        return;
+
+                    setSocketMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.id === payload.messageId
+                                ? {
+                                      ...msg,
+                                      reactions: payload.reactions,
+                                  }
+                                : msg,
+                        ),
+                    );
+
+                    setReactionOverrides((prev) => ({
+                        ...prev,
+                        [payload.messageId]: payload.reactions,
+                    }));
+                };
+
+                const recallHandler = (payload: {
+                    conversationId: string;
+                    messageId: string;
+                    revokedBy: string;
+                    revokedAt: string;
+                    isDeleted: boolean;
+                }) => {
+                    if (payload.conversationId !== selectedConversationId)
+                        return;
+
+                    setSocketMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.id === payload.messageId
+                                ? {
+                                      ...msg,
+                                      isRecalled: true,
+                                      content: '',
+                                      fileUrl: undefined,
+                                      fileName: undefined,
+                                      fileType: undefined,
+                                  }
+                                : msg,
+                        ),
+                    );
+
+                    setRecalledMessageKeys((prev) => {
+                        const next = new Set(prev);
+                        next.add(payload.messageId);
+                        return next;
+                    });
+                };
+
                 messageListenerRef.current = messageHandler;
                 onMessageNew(messageHandler);
+                onMessageReactionUpdated(reactionHandler);
+                onMessageRecalled(recallHandler);
                 setError(null);
             } catch (err) {
                 setError(
@@ -209,9 +342,11 @@ export const ChatPage: React.FC = () => {
             if (messageListenerRef.current) {
                 offMessageNew();
             }
+            offMessageReactionUpdated();
+            offMessageRecalled();
             disconnectSocket();
         };
-    }, [toSocketMessage]);
+    }, [toSocketMessage, selectedConversationId]);
 
     // Handle conversation selection
     const handleSelectConversation = useCallback((conversationId: string) => {
@@ -223,6 +358,276 @@ export const ChatPage: React.FC = () => {
         if (!selectedConversationId) return;
         joinConversation(`join_${Date.now()}`, selectedConversationId);
     }, [selectedConversationId]);
+
+    const recallLocalMessage = useCallback(
+        (message: SocketMessage) => {
+            const messageKey = getMessageKey(message);
+
+            setRecalledMessageKeys((prev) => {
+                const next = new Set(prev);
+                next.add(messageKey);
+                return next;
+            });
+
+            setSocketMessages((prev) =>
+                prev.map((msg) => {
+                    const sameMessage =
+                        (message.clientMessageId &&
+                            msg.clientMessageId === message.clientMessageId) ||
+                        msg.id === message.id;
+
+                    if (!sameMessage) return msg;
+
+                    return {
+                        ...msg,
+                        content: '',
+                        isFile: false,
+                        fileUrl: undefined,
+                        fileName: undefined,
+                        fileType: undefined,
+                        isRecalled: true,
+                    };
+                }),
+            );
+        },
+        [getMessageKey],
+    );
+
+    const executeRecallMessage = useCallback(
+        async (message: SocketMessage) => {
+            if (!selectedConversationId || message.senderId !== USER_ID) return;
+
+            recallLocalMessage(message);
+
+            if (message.id.startsWith('msg_')) return;
+
+            try {
+                await conversationApi.recallMessage(
+                    selectedConversationId,
+                    message.id,
+                    USER_ID,
+                );
+            } catch (err) {
+                console.error('Error recalling message:', err);
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to recall message',
+                );
+            }
+        },
+        [selectedConversationId, recallLocalMessage],
+    );
+
+    const executeDeleteMessage = useCallback(
+        async (message: SocketMessage) => {
+            const messageKey = getMessageKey(message);
+            setHiddenMessageKeys((prev) => {
+                const next = new Set(prev);
+                next.add(messageKey);
+                return next;
+            });
+
+            if (!selectedConversationId || message.id.startsWith('msg_')) {
+                return;
+            }
+
+            try {
+                await conversationApi.deleteMessageForMe(
+                    selectedConversationId,
+                    message.id,
+                    USER_ID,
+                );
+            } catch (err) {
+                setHiddenMessageKeys((prev) => {
+                    const next = new Set(prev);
+                    next.delete(messageKey);
+                    return next;
+                });
+                console.error('Error deleting message for me:', err);
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to delete message for me',
+                );
+            }
+        },
+        [getMessageKey, selectedConversationId],
+    );
+
+    const handleRequestRecallMessage = useCallback((message: SocketMessage) => {
+        setPendingRecallMessage(message);
+        setIsRecallConfirmOpen(true);
+    }, []);
+
+    const handleRequestDeleteMessage = useCallback((message: SocketMessage) => {
+        setPendingDeleteMessage(message);
+        setIsDeleteConfirmOpen(true);
+    }, []);
+
+    const handleConfirmRecallMessage = useCallback(async () => {
+        if (!pendingRecallMessage) return;
+        await executeRecallMessage(pendingRecallMessage);
+        setPendingRecallMessage(null);
+        setIsRecallConfirmOpen(false);
+    }, [pendingRecallMessage, executeRecallMessage]);
+
+    const handleConfirmDeleteMessage = useCallback(async () => {
+        if (!pendingDeleteMessage) return;
+        await executeDeleteMessage(pendingDeleteMessage);
+        setPendingDeleteMessage(null);
+        setIsDeleteConfirmOpen(false);
+    }, [pendingDeleteMessage, executeDeleteMessage]);
+
+    const handleReactMessage = useCallback(
+        async (message: SocketMessage, emoji: string) => {
+            if (!selectedConversationId || message.id.startsWith('msg_'))
+                return;
+
+            const messageKey = getMessageKey(message);
+            const previousReactions =
+                reactionOverrides[messageKey] || message.reactions || [];
+            const existingMyReaction = previousReactions.find(
+                (reaction) => reaction.userId === USER_ID,
+            );
+
+            const isRemoving = existingMyReaction?.emoji === emoji;
+
+            const nextReactions = previousReactions.filter(
+                (reaction) => reaction.userId !== USER_ID,
+            );
+            if (!isRemoving) {
+                nextReactions.push({
+                    userId: USER_ID,
+                    emoji,
+                    reactedAt: new Date().toISOString(),
+                });
+            }
+
+            setReactionOverrides((prev) => ({
+                ...prev,
+                [messageKey]: nextReactions,
+            }));
+
+            try {
+                if (isRemoving) {
+                    const response = await conversationApi.removeReaction(
+                        selectedConversationId,
+                        message.id,
+                        USER_ID,
+                    );
+                    const serverReactions =
+                        response &&
+                        typeof response === 'object' &&
+                        Array.isArray(
+                            (response as { reactions?: unknown[] }).reactions,
+                        )
+                            ? (
+                                  response as {
+                                      reactions?: SocketMessage['reactions'];
+                                  }
+                              ).reactions || []
+                            : nextReactions;
+                    setReactionOverrides((prev) => ({
+                        ...prev,
+                        [messageKey]: serverReactions,
+                    }));
+                } else {
+                    const response = await conversationApi.reactToMessage(
+                        selectedConversationId,
+                        message.id,
+                        USER_ID,
+                        emoji,
+                    );
+                    const serverReactions =
+                        response &&
+                        typeof response === 'object' &&
+                        Array.isArray(
+                            (response as { reactions?: unknown[] }).reactions,
+                        )
+                            ? (
+                                  response as {
+                                      reactions?: SocketMessage['reactions'];
+                                  }
+                              ).reactions || []
+                            : nextReactions;
+                    setReactionOverrides((prev) => ({
+                        ...prev,
+                        [messageKey]: serverReactions,
+                    }));
+                }
+            } catch (err) {
+                setReactionOverrides((prev) => ({
+                    ...prev,
+                    [messageKey]: previousReactions,
+                }));
+                console.error('Error reacting to message:', err);
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to react to message',
+                );
+            }
+        },
+        [getMessageKey, reactionOverrides, selectedConversationId],
+    );
+
+    const handleOpenForwardModal = useCallback((message: SocketMessage) => {
+        setForwardingMessage(message);
+        setForwardTargetConversationId('');
+        setIsForwardModalOpen(true);
+    }, []);
+
+    const handleForwardMessage = useCallback(async () => {
+        if (!forwardingMessage || !forwardTargetConversationId) return;
+
+        const receiverId = getReceiverIdByConversationId(
+            forwardTargetConversationId,
+        );
+        if (!receiverId) {
+            setError('Không tìm thấy người nhận cho cuộc trò chuyện này.');
+            return;
+        }
+
+        if (forwardingMessage.fileUrl?.startsWith('blob:')) {
+            setError('Không thể chuyển tiếp tệp khi chưa upload xong.');
+            return;
+        }
+
+        try {
+            setIsForwarding(true);
+            const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+            if (forwardingMessage.id.startsWith('msg_')) {
+                setError('Không thể chuyển tiếp tin nhắn chưa gửi xong.');
+                return;
+            }
+
+            await conversationApi.forwardMessage(
+                forwardingMessage.id,
+                forwardTargetConversationId,
+                USER_ID,
+                clientMessageId,
+            );
+
+            setIsForwardModalOpen(false);
+            setForwardingMessage(null);
+            setForwardTargetConversationId('');
+        } catch (err) {
+            console.error('Error forwarding message:', err);
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to forward message',
+            );
+        } finally {
+            setIsForwarding(false);
+        }
+    }, [
+        forwardingMessage,
+        forwardTargetConversationId,
+        getReceiverIdByConversationId,
+    ]);
 
     // Handle sending message
     const handleSend = useCallback(
@@ -375,31 +780,48 @@ export const ChatPage: React.FC = () => {
     );
 
     const paginatedAsSocketMessages: SocketMessage[] = paginatedMessages.map(
-        (m, idx) => ({
-            id:
-                m._id ||
-                m.clientMessageId ||
-                `${m.senderBy || 'unknown'}_${String(m.createdAt || idx)}`,
-            clientMessageId: m.clientMessageId,
-            senderId: m.senderBy || 'unknown',
-            senderName: getSenderName(m.senderBy),
-            content: m.content || '',
-            timestamp:
-                typeof m.createdAt === 'string'
-                    ? m.createdAt
-                    : (m.createdAt?.toISOString() ?? new Date().toISOString()),
-            isFile:
-                m.messageType === 'FILE' ||
-                m.messageType === 'IMAGE' ||
-                m.messageType === 'file' ||
-                m.messageType === 'image',
-            fileUrl: m.mediaUrl,
-            fileName: m.fileName,
-            fileType:
-                m.messageType === 'IMAGE' || m.messageType === 'image'
-                    ? 'image/*'
-                    : undefined,
-        }),
+        (m, idx) => {
+            const senderRef = m.senderBy || m.senderId || 'unknown';
+
+            return {
+                id:
+                    m.messageId ||
+                    m._id ||
+                    m.clientMessageId ||
+                    `${m.senderBy || 'unknown'}_${String(m.createdAt || idx)}`,
+                clientMessageId: m.clientMessageId,
+                senderId: senderRef,
+                senderName: getSenderName(senderRef),
+                content: m.content || '',
+                timestamp:
+                    typeof m.createdAt === 'string'
+                        ? m.createdAt
+                        : (m.createdAt?.toISOString() ??
+                          new Date().toISOString()),
+                isFile:
+                    m.messageType === 'FILE' ||
+                    m.messageType === 'IMAGE' ||
+                    m.messageType === 'file' ||
+                    m.messageType === 'image',
+                fileUrl: m.mediaUrl,
+                fileName: m.fileName,
+                fileType:
+                    m.messageType === 'IMAGE' || m.messageType === 'image'
+                        ? 'image/*'
+                        : undefined,
+                isRecalled: m.isDeleted,
+                reactions: Array.isArray(m.reactions)
+                    ? m.reactions.map((reaction) => ({
+                          userId: reaction.userId,
+                          emoji: reaction.emoji,
+                          reactedAt:
+                              typeof reaction.reactedAt === 'string'
+                                  ? reaction.reactedAt
+                                  : reaction.reactedAt?.toISOString(),
+                      }))
+                    : [],
+            };
+        },
     );
 
     const mergedMessages: SocketMessage[] = [
@@ -412,6 +834,7 @@ export const ChatPage: React.FC = () => {
     const messageMap = new Map<string, SocketMessage>();
     for (const message of mergedMessages) {
         const hasVisibleContent =
+            message.isRecalled ||
             message.content.trim().length > 0 ||
             (message.isFile && !!message.fileUrl);
         if (!hasVisibleContent) continue;
@@ -421,12 +844,11 @@ export const ChatPage: React.FC = () => {
             message.id ||
             `${message.senderId}_${message.timestamp}_${message.content}_${message.fileUrl || ''}`;
 
-        if (!messageMap.has(key)) {
-            messageMap.set(key, message);
-        }
+        messageMap.set(key, message);
     }
 
     const displayMessages: SocketMessage[] = Array.from(messageMap.values())
+        .filter((msg) => !hiddenMessageKeys.has(getMessageKey(msg)))
         .sort((a, b) => {
             const timeA = new Date(a.timestamp).getTime();
             const timeB = new Date(b.timestamp).getTime();
@@ -438,9 +860,34 @@ export const ChatPage: React.FC = () => {
         })
         .map((msg) => ({
             ...msg,
+            isRecalled:
+                msg.isRecalled || recalledMessageKeys.has(getMessageKey(msg)),
+            reactions: reactionOverrides[getMessageKey(msg)] || msg.reactions,
             senderId: msg.senderId || USER_ID,
             senderName: msg.senderName || getSenderName(msg.senderId),
         }));
+
+    const forwardableConversations = conversations.filter(
+        (conversation) =>
+            conversation.type === 'PRIVATE' &&
+            conversation.conversationId !== selectedConversationId,
+    );
+
+    const getConversationDisplayName = (conversationId: string) => {
+        const conversation = conversations.find(
+            (item) => item.conversationId === conversationId,
+        );
+
+        if (!conversation) return 'Unknown conversation';
+        if (conversation.type === 'GROUP') {
+            return conversation.groupInfo?.groupName || 'Group chat';
+        }
+
+        return (
+            conversation.participants.find((p) => p.userId !== USER_ID)
+                ?.fullName || 'Unknown user'
+        );
+    };
 
     return (
         <div className="flex h-screen gap-4 bg-gray-50 p-4">
@@ -491,6 +938,10 @@ export const ChatPage: React.FC = () => {
                             socketMessages={displayMessages}
                             currentUserId={USER_ID}
                             conversationId={selectedConversationId}
+                            onRecallMessage={handleRequestRecallMessage}
+                            onDeleteMessage={handleRequestDeleteMessage}
+                            onForwardMessage={handleOpenForwardModal}
+                            onReactMessage={handleReactMessage}
                         />
 
                         {/* Input */}
@@ -514,6 +965,106 @@ export const ChatPage: React.FC = () => {
 
             {/* Conversation info panel */}
             {selectedConversation && <ConversationInfoPanel />}
+
+            <Modal
+                isOpen={isForwardModalOpen}
+                onClose={() => {
+                    setIsForwardModalOpen(false);
+                    setForwardingMessage(null);
+                    setForwardTargetConversationId('');
+                }}
+                title="Chuyển tiếp tin nhắn"
+                size="sm"
+            >
+                <div className="p-4 space-y-4">
+                    {forwardingMessage && (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                            {forwardingMessage.isFile
+                                ? `File: ${forwardingMessage.fileName || 'Đính kèm'}`
+                                : forwardingMessage.content}
+                        </div>
+                    )}
+
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                            Chọn cuộc trò chuyện riêng
+                        </label>
+                        <select
+                            value={forwardTargetConversationId}
+                            onChange={(e) =>
+                                setForwardTargetConversationId(e.target.value)
+                            }
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                        >
+                            <option value="">-- Chọn cuộc trò chuyện --</option>
+                            {forwardableConversations.map((conversation) => (
+                                <option
+                                    key={conversation.conversationId}
+                                    value={conversation.conversationId}
+                                >
+                                    {getConversationDisplayName(
+                                        conversation.conversationId,
+                                    )}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsForwardModalOpen(false);
+                                setForwardingMessage(null);
+                                setForwardTargetConversationId('');
+                            }}
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleForwardMessage}
+                            disabled={
+                                !forwardTargetConversationId ||
+                                isForwarding ||
+                                forwardableConversations.length === 0
+                            }
+                            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            {isForwarding ? 'Đang chuyển...' : 'Chuyển tiếp'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Dialog
+                isOpen={isRecallConfirmOpen}
+                onClose={() => {
+                    setIsRecallConfirmOpen(false);
+                    setPendingRecallMessage(null);
+                }}
+                onConfirm={handleConfirmRecallMessage}
+                title="Thu hồi tin nhắn?"
+                message="Tin nhắn sẽ hiển thị là đã thu hồi với cả hai bên."
+                confirmText="Thu hồi"
+                cancelText="Hủy"
+                type="warning"
+            />
+
+            <Dialog
+                isOpen={isDeleteConfirmOpen}
+                onClose={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setPendingDeleteMessage(null);
+                }}
+                onConfirm={handleConfirmDeleteMessage}
+                title="Xóa tin nhắn ở phía bạn?"
+                message="Tin nhắn sẽ chỉ bị ẩn ở thiết bị của bạn."
+                confirmText="Xóa"
+                cancelText="Hủy"
+                type="danger"
+            />
         </div>
     );
 };

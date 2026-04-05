@@ -2,35 +2,72 @@ import React, { useEffect, useRef, useState } from 'react';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
 
-const EMOJI_LIST = ['❤️', '😆', '😮', '😢', '😡', '👍'];
+// Inspired by Zalo's emoji reactions
+const EMOJI_LIST = [
+    '👍', // Like
+    '❤️', // Love
+    '😂', // Laugh
+    '😮', // Wow
+    '😢', // Sad
+    '😡', // Angry
+    '🔥', // Fire/Hot
+    '😎', // Cool
+    '🤔', // Thinking
+    '✨', // Sparkle
+    '🎉', // Party
+    '👏', // Clap
+];
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
-type ReactionMap = Record<
-    number,
-    Record<string, { count: number; reactedByMe: boolean }>
->;
+type MessageReaction = {
+    userId: string;
+    emoji: string;
+    reactedAt?: string;
+};
 
 export type SocketMessage = {
     id: string;
+    clientMessageId?: string;
     senderId: string;
     senderName: string;
     content: string;
     timestamp: string;
+    conversationId?: string;
+    type?: 'text' | 'image' | 'file' | 'audio';
     isFile?: boolean;
     fileUrl?: string;
     fileName?: string;
     fileType?: string;
+    isRecalled?: boolean;
+    reactions?: MessageReaction[];
 };
 
 export const MessageList: React.FC<{
     socketMessages?: SocketMessage[];
     currentUserId?: string;
     conversationId?: string | null;
-}> = ({ socketMessages = [], currentUserId, conversationId }) => {
+    onRecallMessage?: (message: SocketMessage) => void;
+    onDeleteMessage?: (message: SocketMessage) => void;
+    onForwardMessage?: (message: SocketMessage) => void;
+    onReactMessage?: (message: SocketMessage, emoji: string) => void;
+}> = ({
+    socketMessages = [],
+    currentUserId,
+    conversationId,
+    onRecallMessage,
+    onDeleteMessage,
+    onForwardMessage,
+    onReactMessage,
+}) => {
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-    const [reactionMap, setReactionMap] = useState<ReactionMap>({});
+    const [openActionMenuKey, setOpenActionMenuKey] = useState<string | null>(
+        null,
+    );
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    const getMessageKey = (message: SocketMessage) =>
+        message.clientMessageId || message.id;
 
     useEffect(() => {
         const container = scrollContainerRef.current;
@@ -41,39 +78,30 @@ export const MessageList: React.FC<{
         });
     }, [conversationId, socketMessages.length]);
 
-    const handleReact = (msgIndex: number, emoji: string) => {
-        setReactionMap((prev) => {
-            const msgReactions = prev[msgIndex] ?? {};
-            const existing = msgReactions[emoji];
-            if (existing?.reactedByMe) {
-                const newCount = existing.count - 1;
-                if (newCount === 0) {
-                    const rest = Object.fromEntries(
-                        Object.entries(msgReactions).filter(
-                            ([k]) => k !== emoji,
-                        ),
-                    );
-                    return { ...prev, [msgIndex]: rest };
-                }
-                return {
-                    ...prev,
-                    [msgIndex]: {
-                        ...msgReactions,
-                        [emoji]: { count: newCount, reactedByMe: false },
-                    },
-                };
-            }
-            return {
-                ...prev,
-                [msgIndex]: {
-                    ...msgReactions,
-                    [emoji]: {
-                        count: (existing?.count ?? 0) + 1,
-                        reactedByMe: true,
-                    },
-                },
-            };
-        });
+    useEffect(() => {
+        setOpenActionMenuKey(null);
+    }, [conversationId]);
+
+    const getReactionStats = (message: SocketMessage) => {
+        const raw = Array.isArray(message.reactions) ? message.reactions : [];
+        const grouped = new Map<
+            string,
+            { count: number; reactedByMe: boolean }
+        >();
+
+        for (const reaction of raw) {
+            if (!reaction?.emoji) continue;
+            const existing = grouped.get(reaction.emoji);
+            grouped.set(reaction.emoji, {
+                count: (existing?.count || 0) + 1,
+                reactedByMe:
+                    existing?.reactedByMe ||
+                    false ||
+                    reaction.userId === currentUserId,
+            });
+        }
+
+        return grouped;
     };
 
     const allImages: ViewerImage[] = socketMessages
@@ -109,8 +137,10 @@ export const MessageList: React.FC<{
                         <p>Không có tin nhắn nào. Bắt đầu cuộc trò chuyện!</p>
                     </div>
                 ) : (
-                    socketMessages.map((msg, i) => {
+                    socketMessages.map((msg) => {
                         const isMe = msg.senderId === currentUserId;
+                        const messageKey = getMessageKey(msg);
+                        const reactionStats = getReactionStats(msg);
                         const hasImage =
                             msg.isFile &&
                             msg.fileType?.startsWith('image/') === true;
@@ -119,11 +149,10 @@ export const MessageList: React.FC<{
 
                         return (
                             <div
-                                key={msg.id}
+                                key={messageKey}
                                 className={`flex gap-2 px-4 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
                             >
-                                {/* Avatar */}
-                                <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden shadow-sm">
+                                <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm">
                                     <img
                                         src={
                                             'https://api.dicebear.com/7.x/avataaars/svg?seed=' +
@@ -134,20 +163,17 @@ export const MessageList: React.FC<{
                                     />
                                 </div>
 
-                                {/* Message bubble */}
                                 <div
-                                    className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}
+                                    className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col relative group`}
                                 >
-                                    {/* Sender name cho tin nhắn từ người khác */}
                                     {!isMe && (
                                         <p className="text-xs font-semibold text-slate-600 mb-0.5 px-3">
                                             {msg.senderName}
                                         </p>
                                     )}
 
-                                    {/* Content */}
                                     <div
-                                        className={`${
+                                        className={
                                             msg.isFile &&
                                             msg.fileUrl &&
                                             msg.fileType?.startsWith('image/')
@@ -157,9 +183,13 @@ export const MessageList: React.FC<{
                                                           ? 'bg-green-message text-white rounded-tr-none'
                                                           : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
                                                   }`
-                                        }`}
+                                        }
                                     >
-                                        {msg.isFile && msg.fileUrl ? (
+                                        {msg.isRecalled ? (
+                                            <p className="italic text-slate-500 wrap-break-word">
+                                                Tin nhắn đã được thu hồi
+                                            </p>
+                                        ) : msg.isFile && msg.fileUrl ? (
                                             msg.fileType?.startsWith(
                                                 'image/',
                                             ) ? (
@@ -175,7 +205,7 @@ export const MessageList: React.FC<{
                                                             : `${SERVER_URL}${msg.fileUrl}`
                                                     }
                                                     alt={msg.fileName}
-                                                    className="max-w-[200px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                                                    className="max-w-50 rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
                                                     onClick={() =>
                                                         setViewerIndex(imgIdx)
                                                     }
@@ -197,12 +227,11 @@ export const MessageList: React.FC<{
                                                 </a>
                                             )
                                         ) : (
-                                            <p className="break-words">
+                                            <p className="wrap-break-word">
                                                 {msg.content}
                                             </p>
                                         )}
 
-                                        {/* Timestamp */}
                                         <p
                                             className={`text-[10px] mt-1 ${isMe ? 'text-green-message' : 'text-slate-400'}`}
                                         >
@@ -215,15 +244,13 @@ export const MessageList: React.FC<{
                                         </p>
                                     </div>
 
-                                    {/* Reactions */}
-                                    {reactionMap[i] &&
-                                        Object.keys(reactionMap[i]).length >
-                                            0 && (
+                                    {!msg.isRecalled &&
+                                        reactionStats.size > 0 && (
                                             <div
-                                                className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}
+                                                className={`flex items-center gap-2 mt-1.5 ${isMe ? 'justify-end' : 'justify-start'}`}
                                             >
-                                                {Object.entries(
-                                                    reactionMap[i],
+                                                {Array.from(
+                                                    reactionStats.entries(),
                                                 ).map(
                                                     ([
                                                         emoji,
@@ -232,12 +259,12 @@ export const MessageList: React.FC<{
                                                         <button
                                                             key={emoji}
                                                             onClick={() =>
-                                                                handleReact(
-                                                                    i,
+                                                                onReactMessage?.(
+                                                                    msg,
                                                                     emoji,
                                                                 )
                                                             }
-                                                            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                                                            className={`flex items-center gap-0.5 px-2 py-1 rounded-full text-xs border transition-colors ${
                                                                 reactedByMe
                                                                     ? 'bg-green-message border-green-message text-white'
                                                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -245,7 +272,7 @@ export const MessageList: React.FC<{
                                                         >
                                                             <span>{emoji}</span>
                                                             {count > 1 && (
-                                                                <span>
+                                                                <span className="text-[11px]">
                                                                     {count}
                                                                 </span>
                                                             )}
@@ -254,33 +281,115 @@ export const MessageList: React.FC<{
                                                 )}
                                             </div>
                                         )}
-                                </div>
 
-                                {/* Emoji reaction trigger */}
-                                <div className="flex items-end h-8">
-                                    <div className="peer group">
-                                        <button
-                                            className="w-6 h-6 rounded-full bg-white border border-slate-200 shadow text-sm hover:bg-slate-50 transition-colors opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                                            onClick={() =>
-                                                handleReact(i, EMOJI_LIST[0])
-                                            }
-                                            title="Bày tỏ cảm xúc"
+                                    {!msg.isRecalled && (
+                                        <div
+                                            className={`absolute -bottom-2 ${isMe ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity`}
                                         >
-                                            😊
-                                        </button>
-                                        <div className="absolute bottom-9 left-0 bg-white border border-slate-200 rounded-full shadow-lg px-2 py-1.5 flex gap-1 z-50 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                                            {EMOJI_LIST.map((e) => (
+                                            <div className="relative group/emoji">
                                                 <button
-                                                    key={e}
-                                                    className="text-lg hover:scale-125 transition-transform leading-none"
-                                                    onClick={() =>
-                                                        handleReact(i, e)
-                                                    }
-                                                    title={e}
+                                                    className="w-6 h-6 rounded-full bg-white border border-slate-200 shadow text-sm hover:bg-green-message hover:text-white hover:border-green-message transition-colors flex items-center justify-center"
+                                                    title="Bày tỏ cảm xúc"
                                                 >
-                                                    {e}
+                                                    😊
                                                 </button>
-                                            ))}
+                                                <div
+                                                    className={`absolute bottom-8 ${isMe ? 'right-0' : 'left-0'} bg-white border border-slate-200 rounded-lg shadow-xl px-2 py-2.5 z-50 opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible transition-all`}
+                                                >
+                                                    <div className="grid grid-cols-4 gap-1.5 w-32">
+                                                        {EMOJI_LIST.map((e) => (
+                                                            <button
+                                                                key={e}
+                                                                className="text-lg hover:scale-125 transition-transform leading-none p-1"
+                                                                onClick={() =>
+                                                                    onReactMessage?.(
+                                                                        msg,
+                                                                        e,
+                                                                    )
+                                                                }
+                                                                title={e}
+                                                            >
+                                                                {e}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div
+                                        className={`absolute top-0 ${isMe ? '-left-11' : '-right-11'} opacity-0 group-hover:opacity-100 transition-opacity`}
+                                    >
+                                        <div className="relative">
+                                            <button
+                                                onClick={() =>
+                                                    setOpenActionMenuKey(
+                                                        (prev) =>
+                                                            prev === messageKey
+                                                                ? null
+                                                                : messageKey,
+                                                    )
+                                                }
+                                                className="w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm text-slate-500 hover:bg-slate-50"
+                                                title="Tùy chọn tin nhắn"
+                                            >
+                                                ⋯
+                                            </button>
+
+                                            {openActionMenuKey ===
+                                                messageKey && (
+                                                <div
+                                                    className={`absolute top-8 ${isMe ? 'left-0' : 'right-0'} z-50 min-w-36 rounded-lg border border-slate-200 bg-white shadow-lg py-1`}
+                                                >
+                                                    {isMe &&
+                                                        !msg.isRecalled && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    onRecallMessage?.(
+                                                                        msg,
+                                                                    );
+                                                                    setOpenActionMenuKey(
+                                                                        null,
+                                                                    );
+                                                                }}
+                                                                className="w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                                            >
+                                                                Thu hồi
+                                                            </button>
+                                                        )}
+
+                                                    <button
+                                                        onClick={() => {
+                                                            onDeleteMessage?.(
+                                                                msg,
+                                                            );
+                                                            setOpenActionMenuKey(
+                                                                null,
+                                                            );
+                                                        }}
+                                                        className="w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                                    >
+                                                        Xóa ở phía tôi
+                                                    </button>
+
+                                                    {!msg.isRecalled && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onForwardMessage?.(
+                                                                    msg,
+                                                                );
+                                                                setOpenActionMenuKey(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                                        >
+                                                            Chuyển tiếp
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

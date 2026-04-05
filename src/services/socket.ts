@@ -282,3 +282,41 @@ export const offTyping = () => {
     if (!socket) return;
     socket.off('chat:typing');
 };
+
+export const onMessageReactionUpdated = (
+    cb: (payload: {
+        conversationId: string;
+        messageId: string;
+        reactions: Array<{ userId: string; emoji: string; reactedAt: string }>;
+        actedBy: string;
+        action: 'set' | 'remove';
+        emoji?: string;
+        at: string;
+    }) => void,
+) => {
+    if (!socket) return;
+    socket.on('chat:message_reaction_updated', cb);
+};
+
+export const offMessageReactionUpdated = () => {
+    if (!socket) return;
+    socket.off('chat:message_reaction_updated');
+};
+
+export const onMessageRecalled = (
+    cb: (payload: {
+        conversationId: string;
+        messageId: string;
+        revokedBy: string;
+        revokedAt: string;
+        isDeleted: boolean;
+    }) => void,
+) => {
+    if (!socket) return;
+    socket.on('chat:message_recalled', cb);
+};
+
+export const offMessageRecalled = () => {
+    if (!socket) return;
+    socket.off('chat:message_recalled');
+};

@@ -23,10 +23,18 @@ export interface SeenByItem {
     seenAt: Date | string;
 }
 
+export interface MessageReaction {
+    userId: string;
+    emoji: string;
+    reactedAt?: Date | string;
+}
+
 export interface MessageDetail {
+    messageId?: string;
     _id?: string;
     content?: string;
     senderBy?: string;
+    senderId?: string;
     conversationId?: string;
     clientMessageId?: string;
     messageType?: MessageType;
@@ -40,6 +48,7 @@ export interface MessageDetail {
     mediaUrl?: string;
     fileName?: string;
     fileSize?: number;
+    reactions?: MessageReaction[];
 }
 
 export interface LastMessage {

@@ -2,6 +2,21 @@ import React, { useRef, useState, useEffect } from 'react';
 import { IoMdAdd, IoMdSend } from 'react-icons/io';
 import { FiImage, FiVideo, FiFile, FiX } from 'react-icons/fi';
 
+const INPUT_EMOJIS = [
+    '😀',
+    '😂',
+    '😍',
+    '😎',
+    '🤔',
+    '😭',
+    '👍',
+    '🎉',
+    '🔥',
+    '❤️',
+    '✨',
+    '👏',
+];
+
 type AttachFile = {
     file: File;
     url: string;
@@ -46,6 +61,7 @@ export const ChatInput: React.FC<{
     onSendFile?: (file: File) => Promise<void>;
 }> = ({ onSend, onSendFile }) => {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [emojiOpen, setEmojiOpen] = useState(false);
     const [attachments, setAttachments] = useState<AttachFile[]>([]);
     const [text, setText] = useState('');
     const [uploading, setUploading] = useState(false);
@@ -56,6 +72,7 @@ export const ChatInput: React.FC<{
         file: null,
     });
     const menuRef = useRef<HTMLDivElement>(null);
+    const emojiRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -64,6 +81,12 @@ export const ChatInput: React.FC<{
                 !menuRef.current.contains(e.target as Node)
             ) {
                 setMenuOpen(false);
+            }
+            if (
+                emojiRef.current &&
+                !emojiRef.current.contains(e.target as Node)
+            ) {
+                setEmojiOpen(false);
             }
         };
         document.addEventListener('mousedown', handler);
@@ -111,6 +134,11 @@ export const ChatInput: React.FC<{
 
     const triggerPicker = (type: MediaType) => {
         inputRefs.current[type]?.click();
+    };
+
+    const insertEmoji = (emoji: string) => {
+        setText((prev) => `${prev}${emoji}`);
+        setEmojiOpen(false);
     };
 
     return (
@@ -227,6 +255,34 @@ export const ChatInput: React.FC<{
                         uploading ? 'Đang gửi...' : 'Type your message'
                     }
                 />
+
+                <div ref={emojiRef} className="relative shrink-0">
+                    <button
+                        onClick={() => setEmojiOpen((o) => !o)}
+                        disabled={uploading}
+                        className="p-1.5 border border-slate-200 rounded-full hover:bg-green-message hover:text-white hover:border-green-message transition-colors text-slate-700 disabled:opacity-50"
+                        title="Emoji"
+                    >
+                        😊
+                    </button>
+
+                    {emojiOpen && (
+                        <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl p-2.5 z-20 w-36">
+                            <div className="grid grid-cols-4 gap-1.5">
+                                {INPUT_EMOJIS.map((emoji) => (
+                                    <button
+                                        key={emoji}
+                                        onClick={() => insertEmoji(emoji)}
+                                        className="text-lg hover:scale-125 transition-transform leading-none p-1"
+                                        title={emoji}
+                                    >
+                                        {emoji}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 <button
                     onClick={handleSend}

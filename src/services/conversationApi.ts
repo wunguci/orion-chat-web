@@ -47,6 +47,46 @@ class ConversationApiService {
         return token ? { Authorization: `Bearer ${token}` } : {};
     }
 
+    private async postToMessageEndpoint<T = unknown>(
+        path: string,
+        payload: Record<string, unknown>,
+    ): Promise<T> {
+        const headers = {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
+            ...this.getAuthHeader(),
+        };
+
+        const baseUrl = API_BASE_URL.replace(/\/$/, '');
+        const endpointCandidates = [
+            `${baseUrl}/messages/${path}`,
+            `${baseUrl}/api/messages/${path}`,
+            `${baseUrl}/v1/messages/${path}`,
+            `${baseUrl}/conversations/messages/${path}`,
+        ];
+
+        let lastError: unknown;
+
+        for (const endpoint of endpointCandidates) {
+            try {
+                const response = await axios.post<T>(endpoint, payload, {
+                    headers,
+                });
+                return response.data;
+            } catch (error) {
+                if (
+                    axios.isAxiosError(error) &&
+                    error.response?.status !== 404
+                ) {
+                    throw error;
+                }
+                lastError = error;
+            }
+        }
+
+        throw lastError;
+    }
+
     /**
      * Get all conversations for the current user
      */
@@ -141,6 +181,75 @@ class ConversationApiService {
             `/${conversationId}/messages/${messageId}`,
         );
         return response.data;
+    }
+
+    /**
+     * Recall message for everyone
+     */
+    async recallMessage(
+        conversationId: string,
+        messageId: string,
+        userId: string,
+    ) {
+        return this.postToMessageEndpoint('revoke-for-everyone', {
+            messageId,
+            userId,
+            conversationId,
+        });
+    }
+
+    async reactToMessage(
+        conversationId: string,
+        messageId: string,
+        userId: string,
+        emoji: string,
+    ) {
+        return this.postToMessageEndpoint('emoji', {
+            messageId,
+            userId,
+            emoji,
+            conversationId,
+        });
+    }
+
+    async removeReaction(
+        conversationId: string,
+        messageId: string,
+        userId: string,
+    ) {
+        return this.postToMessageEndpoint('emoji/remove', {
+            messageId,
+            userId,
+            conversationId,
+        });
+    }
+
+    async deleteMessageForMe(
+        conversationId: string,
+        messageId: string,
+        userId: string,
+    ) {
+        return this.postToMessageEndpoint('delete-for-me', {
+            messageId,
+            userId,
+            conversationId,
+        });
+    }
+
+    async forwardMessage(
+        sourceMessageId: string,
+        targetConversationId: string,
+        forwardedBy: string,
+        clientMessageId?: string,
+        content?: string,
+    ) {
+        return this.postToMessageEndpoint('forward', {
+            sourceMessageId,
+            targetConversationId,
+            forwardedBy,
+            clientMessageId,
+            content,
+        });
     }
 
     /**
