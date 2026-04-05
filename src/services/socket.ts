@@ -2,7 +2,8 @@
 import { io, Socket } from "socket.io-client";
 
 const RAW_SOCKET_URL =
-  import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+  import.meta.env.VITE_SOCKET_URL ||
+  "https://aracelis-provable-grammatically.ngrok-free.dev";
 
 const normalizeSocketBaseUrl = (url: string) =>
   url.replace(/\/$/, "").replace(/\/call$/, "");
