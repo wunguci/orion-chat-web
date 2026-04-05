@@ -314,7 +314,7 @@ function getCurrentUserId(): string | null {
 
 async function getFallbackOwnerIdFromBackend(): Promise<string | null> {
   try {
-    const res = await fetch("http://localhost:3000/users");
+    const res = await fetch("https://aracelis-provable-grammatically.ngrok-free.dev/users");
     if (!res.ok) return null;
 
     const users: unknown = await res.json();
@@ -344,7 +344,7 @@ function normalizeName(value: string): string {
 
 async function getTestOwnerIdByName(fullName: string): Promise<string | null> {
   try {
-    const res = await fetch("http://localhost:3000/users");
+    const res = await fetch("https://aracelis-provable-grammatically.ngrok-free.dev/users");
     if (!res.ok) return null;
 
     const users: unknown = await res.json();
