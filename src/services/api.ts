@@ -1,9 +1,13 @@
-import { logout } from '../utils/token';
-import { getToken } from '../utils/token';
+import { getToken, logout } from '../utils/token';
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(
+    /\/+$/,
+    '',
+);
 
-const API_BASE = "https://aracelis-provable-grammatically.ngrok-free.dev/";
-// const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const buildUrl = (path: string) =>
+    `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const token = getToken();
 
@@ -28,7 +32,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
         });
     }
 
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await fetch(buildUrl(path), {
         ...options,
         headers,
     });
@@ -37,11 +41,16 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
         const error = await res
             .json()
             .catch(() => ({ message: res.statusText }));
+        const errorMessage =
+            typeof error.message === 'string'
+                ? error.message.toLowerCase()
+                : '';
 
         if (
             res.status === 401 &&
-            typeof error.message === 'string' &&
-            error.message.toLowerCase().includes('token has expired')
+            (errorMessage.includes('token has expired') ||
+                errorMessage.includes('token expired') ||
+                errorMessage.includes('invalid token signature'))
         ) {
             logout();
             throw new Error(

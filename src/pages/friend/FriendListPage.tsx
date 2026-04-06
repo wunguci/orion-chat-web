@@ -39,7 +39,7 @@ const FriendListPage = () => {
   const [recentlyActive, setRecentlyActive] = useState<RecentlyActive[]>([]);
 
   const authUser = getUser();
-  const userId = authUser?.id;
+  const userId = authUser?.userId || authUser?.id || "";
 
   useEffect(() => {
     if (!userId) return;

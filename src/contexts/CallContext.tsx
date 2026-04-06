@@ -12,7 +12,7 @@ import type {
 } from "../types/call";
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
 
-interface CallContextValue extends CallState {
+export interface CallContextValue extends CallState {
   initiateCall: (
     conversationId: string,
     receiverId: string,

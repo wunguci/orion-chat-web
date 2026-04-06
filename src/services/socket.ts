@@ -2,8 +2,8 @@
 import { io, Socket } from "socket.io-client";
 
 const RAW_SOCKET_URL =
-  import.meta.env.VITE_SOCKET_URL ||
-  "https://aracelis-provable-grammatically.ngrok-free.dev";
+  (import.meta.env["VITE_SOCKET_URL"] as string | undefined) ||
+  "http://localhost:3000"; /* Đảm bảo không có dấu gạch chéo ở cuối */
 
 const normalizeSocketBaseUrl = (url: string) =>
   url.replace(/\/$/, "").replace(/\/call$/, "");
@@ -173,7 +173,9 @@ export default socketService;
 // Chat
 // import { io, Socket } from 'socket.io-client';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+const SERVER_URL =
+  (import.meta.env["VITE_SERVER_URL"] as string | undefined) ||
+  "http://localhost:3001";
 
 let socket: Socket | null = null;
 
