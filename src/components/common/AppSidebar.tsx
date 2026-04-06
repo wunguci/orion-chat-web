@@ -15,8 +15,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
 import SettingsModal from "../settings/SettingsModal";
 import { useState, useEffect } from "react";
-import ProfileModal from "../friend/ProfileModal";
-import type { User } from "../../types/user";
+import type { User } from "../../types/auth.types";
 import { getUser } from "../../utils/token";
 
 type ViewMode =
@@ -45,6 +44,20 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
     if (userData) {
       setCurrentUser(userData);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "auth_user") {
+        setCurrentUser(getUser());
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const isActive = (path: string) => {

@@ -12,6 +12,15 @@ export function saveUserData(data: Record<string, unknown>): void {
         const jsonStr = JSON.stringify(data);
 
         localStorage.setItem(USER_KEY, jsonStr);
+
+        window.dispatchEvent(
+            new StorageEvent('storage', {
+                key: USER_KEY,
+                oldValue: null,
+                newValue: jsonStr,
+                storageArea: localStorage,
+            }),
+        );
     } catch (error) {
         console.error('❌ [saveUserData] Error:', error);
     }
