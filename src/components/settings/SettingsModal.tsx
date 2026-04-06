@@ -1356,7 +1356,7 @@ export default function SettingsModal({
                         onClick={() => userDevices.deactivateDevice(device.id)}
                         className="px-4 py-2 text-green-primary hover:bg-green-bg-heavy rounded-lg font-semibold transition-colors"
                       >
-                        {device.isCurrent ? "Current Device" : "Deactivate"}
+                        {device.isCurrent ? "Current Device" : "Logout"}
                       </button>
                     </div>
                   ))}
