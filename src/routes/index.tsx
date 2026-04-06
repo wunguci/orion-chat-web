@@ -41,6 +41,7 @@ import AutomationsPage from "../pages/work-hub/automations/AutomationsPage";
 import ReportsExportPage from "../pages/work-hub/reports/ReportsExportPage";
 import LabelsManagementPage from "../pages/work-hub/labels/LabelsManagementPage";
 import ActivityFeedPage from "../pages/work-hub/activity/ActivityFeedPage";
+import SettingsPage from "../pages/settings/SettingsPage";
 
 export const router = createBrowserRouter([
   {
@@ -113,6 +114,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.CALENDAR,
         element: <CalendarPage />,
+      },
+      {
+        path: ROUTES.SETTINGS,
+        element: <SettingsPage />,
       },
       {
         path: ROUTES.NOT_FOUND,

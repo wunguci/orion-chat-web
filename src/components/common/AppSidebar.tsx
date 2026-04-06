@@ -13,7 +13,7 @@ import { FaUsers, FaBrain } from "react-icons/fa";
 import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
-import SettingsModal from "../setting-chat/SettingModal";
+import SettingsModal from "../settings/SettingsModal";
 import { useState, useEffect } from "react";
 import ProfileModal from "../friend/ProfileModal";
 import type { User } from "../../types/user";

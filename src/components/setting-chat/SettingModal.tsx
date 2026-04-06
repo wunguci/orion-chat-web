@@ -154,7 +154,7 @@ export default function SettingsModal({
 
       // Call API
       const result = await updateUserProfile(updateData, selectedFiles);
-      
+
       console.log("updateUserProfile result:", result);
 
       // Update localStorage with new user data
@@ -876,7 +876,7 @@ export default function SettingsModal({
             </div>
 
             {/* Text Size */}
-            <div className="flex flex-col gap-3 items-start w-full">
+            {/* <div className="flex flex-col gap-3 items-start w-full">
               <span className="text-[22px] font-bold text-gray-primary">
                 Text Size
               </span>
@@ -900,7 +900,7 @@ export default function SettingsModal({
                 Adjusting the font size will change the scale all chat text
                 across the app.
               </p>
-            </div>
+            </div> */}
 
             {/* Action Buttons */}
             <div className="flex justify-between items-center pt-5 border-t border-gray-200">
