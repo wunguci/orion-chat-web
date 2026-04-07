@@ -157,32 +157,11 @@ class ConversationApiService {
     // Advanced message actions
     // =========================
 
-    private async postToMessageEndpoint<T = unknown>(
-        path: string,
-        payload: Record<string, unknown>,
-    ): Promise<T> {
-        const baseUrl = API_BASE_URL.replace(/\/$/, '');
-
-        const response = await axios.post<T>(
-            `${baseUrl}/messages/${path}`,
-            payload,
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'true',
-                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-                },
-            },
-        );
-
-        return response.data;
-    }
-
     async recallMessage(conversationId: string, messageId: string) {
-        return this.postToMessageEndpoint('revoke-for-everyone', {
-            messageId,
-            conversationId,
-        });
+        const response = await this.api.post(
+            `/${conversationId}/messages/${messageId}/recall`,
+        );
+        return response.data;
     }
 
     async reactToMessage(
@@ -190,25 +169,25 @@ class ConversationApiService {
         messageId: string,
         emoji: string,
     ) {
-        return this.postToMessageEndpoint('emoji', {
-            messageId,
-            emoji,
-            conversationId,
-        });
+        const response = await this.api.post(
+            `/${conversationId}/messages/${messageId}/reactions`,
+            { emoji },
+        );
+        return response.data;
     }
 
     async removeReaction(conversationId: string, messageId: string) {
-        return this.postToMessageEndpoint('emoji/remove', {
-            messageId,
-            conversationId,
-        });
+        const response = await this.api.delete(
+            `/${conversationId}/messages/${messageId}/reactions`,
+        );
+        return response.data;
     }
 
     async deleteMessageForMe(conversationId: string, messageId: string) {
-        return this.postToMessageEndpoint('delete-for-me', {
-            messageId,
-            conversationId,
-        });
+        const response = await this.api.delete(
+            `/${conversationId}/messages/${messageId}`,
+        );
+        return response.data;
     }
 
     async forwardMessage(
@@ -217,12 +196,15 @@ class ConversationApiService {
         clientMessageId?: string,
         content?: string,
     ) {
-        return this.postToMessageEndpoint('forward', {
-            sourceMessageId,
-            targetConversationId,
-            clientMessageId,
-            content,
-        });
+        const response = await this.api.post(
+            `/${targetConversationId}/messages/forward`,
+            {
+                sourceMessageId,
+                clientMessageId,
+                content,
+            },
+        );
+        return response.data;
     }
 
     // =========================

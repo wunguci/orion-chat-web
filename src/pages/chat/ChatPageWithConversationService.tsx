@@ -28,9 +28,7 @@ import {
 import { conversationApi } from '../../services/conversationApi';
 import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 import { debugAuthStatus } from '../../utils/token';
-
-const USER_ID = getCurrentUserId();
-const USERNAME = getCurrentUserName();
+import { getUserInfo } from '../../services/userService';
 
 export const ChatPage: React.FC = () => {
     type ChatSocketMessage = SocketMessage & {
@@ -47,6 +45,7 @@ export const ChatPage: React.FC = () => {
         senderId?: string;
         senderBy?: string;
         senderName?: string;
+        senderAvatar?: string;
         content?: string;
         timestamp?: string;
         createdAt?: string;
@@ -78,6 +77,10 @@ export const ChatPage: React.FC = () => {
         message?: Partial<IncomingSocketPayload>;
         data?: Partial<IncomingSocketPayload>;
     };
+
+    // ✅ Get user ID inside component (after auth is loaded)
+    const USER_ID = getCurrentUserId();
+    const USERNAME = getCurrentUserName();
 
     const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>(
         [],
@@ -169,6 +172,10 @@ export const ChatPage: React.FC = () => {
                 messageType === 'image' ||
                 payload?.fileType?.startsWith('image/');
 
+            // Get sender ID and use it as fallback for name
+            const senderId =
+                payload?.senderId || payload?.senderBy || 'unknown';
+
             return {
                 id:
                     payload?.messageId ||
@@ -177,8 +184,10 @@ export const ChatPage: React.FC = () => {
                     payload?.clientMessageId ||
                     `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
                 clientMessageId: payload?.clientMessageId,
-                senderId: payload?.senderId || payload?.senderBy || 'unknown',
-                senderName: payload?.senderName || 'Unknown',
+                senderId: senderId,
+                // Use senderName if provided, otherwise use senderId (phone/userId) as fallback
+                senderName: payload?.senderName || senderId,
+                senderAvatar: payload?.senderAvatar,
                 content: payload?.content || '',
                 timestamp:
                     payload?.timestamp ||
@@ -218,12 +227,12 @@ export const ChatPage: React.FC = () => {
         const initializeSocket = async () => {
             try {
                 setIsConnecting(true);
-                
+
                 // ✅ Debug: Check authentication status
                 debugAuthStatus();
-                
+
                 // ✅ Connect using JWT token from localStorage (no userId parameter needed)
-              chatSocketService.connect();
+                chatSocketService.connect();
 
                 const messageHandler = (payload: IncomingSocketPayload) => {
                     console.log(
@@ -311,25 +320,52 @@ export const ChatPage: React.FC = () => {
                     messageId: string;
                     revokedBy: string;
                     revokedAt: string;
-                    isDeleted: boolean;
+                    isRevoked?: boolean;
                 }) => {
                     if (payload.conversationId !== selectedConversationId)
                         return;
 
-                    setSocketMessages((prev) =>
-                        prev.map((msg) =>
-                            msg.id === payload.messageId
-                                ? {
-                                      ...msg,
-                                      isRecalled: true,
-                                      content: '',
-                                      fileUrl: undefined,
-                                      fileName: undefined,
-                                      fileType: undefined,
-                                  }
-                                : msg,
-                        ),
-                    );
+                    console.log('[ChatPage] recallHandler received:', payload);
+
+                    setSocketMessages((prev) => {
+                        let found = false;
+                        const updated = prev.map((msg) => {
+                            if (msg.id === payload.messageId) {
+                                found = true;
+                                console.log(
+                                    '[ChatPage] Found message in socketMessages, updating...',
+                                );
+                                return {
+                                    ...msg,
+                                    isRecalled: true,
+                                    content: msg.content, // ✅ Keep original content in memory
+                                    // But UI will not display it when isRecalled=true
+                                };
+                            }
+                            return msg;
+                        });
+
+                        // ✅ If message not found in socketMessages (from paginatedMessages),
+                        // add it to socketMessages so displayMessages will show it as recalled
+                        if (!found) {
+                            console.log(
+                                '[ChatPage] Message not in socketMessages, adding recalled message...',
+                            );
+                            updated.push({
+                                id: payload.messageId,
+                                senderId: payload.revokedBy,
+                                senderName: 'Unknown',
+                                content: '',
+                                isRecalled: true,
+                                timestamp: new Date(
+                                    payload.revokedAt,
+                                ).toISOString(),
+                                conversationId: payload.conversationId,
+                            });
+                        }
+
+                        return updated;
+                    });
 
                     setRecalledMessageKeys((prev) => {
                         const next = new Set(prev);
@@ -339,11 +375,15 @@ export const ChatPage: React.FC = () => {
                 };
 
                 messageListenerRef.current = messageHandler;
-                console.log('[ChatPage] Setting up socket message listeners...');
+                console.log(
+                    '[ChatPage] Setting up socket message listeners...',
+                );
                 onMessageNew(messageHandler);
                 console.log('[ChatPage] onMessageNew listener registered');
                 onMessageReactionUpdated(reactionHandler);
-                console.log('[ChatPage] onMessageReactionUpdated listener registered');
+                console.log(
+                    '[ChatPage] onMessageReactionUpdated listener registered',
+                );
                 onMessageRecalled(recallHandler);
                 console.log('[ChatPage] onMessageRecalled listener registered');
                 setError(null);
@@ -365,9 +405,9 @@ export const ChatPage: React.FC = () => {
             if (messageListenerRef.current) {
                 offMessageNew();
             }
-           offMessageReactionUpdated();
-           offMessageRecalled();
-           disconnectSocket();
+            offMessageReactionUpdated();
+            offMessageRecalled();
+            disconnectSocket();
         };
     }, [toSocketMessage, selectedConversationId]);
 
@@ -381,6 +421,56 @@ export const ChatPage: React.FC = () => {
         if (!selectedConversationId) return;
         joinConversation(`join_${Date.now()}`, selectedConversationId);
     }, [selectedConversationId]);
+
+    // Enhance sender names for messages that only have phone numbers (backward compatibility)
+    // New messages from backend already include senderName
+    useEffect(() => {
+        if (socketMessages.length === 0) return;
+
+        // Find messages with only phone numbers as sender names (need enrichment)
+        const messagesToEnrich = socketMessages.filter(
+            (msg) =>
+                msg.senderName &&
+                /^\d{10,11}$/.test(msg.senderName) && // Looks like a phone number
+                msg.senderName === msg.senderId, // senderName is same as senderId (not enriched yet)
+        );
+
+        if (messagesToEnrich.length === 0) return;
+
+        // Collect unique sender IDs that need enrichment
+        const uniqueSenderIds = new Set(
+            messagesToEnrich.map((msg) => msg.senderId),
+        );
+
+        // Fetch user info for senders with only phone numbers
+        const enrichSenderNames = async () => {
+            for (const senderId of uniqueSenderIds) {
+                if (!senderId) continue;
+
+                try {
+                    const userInfo = await getUserInfo(senderId);
+                    if (userInfo?.fullName && userInfo.fullName !== senderId) {
+                        // Update messages with actual sender name
+                        setSocketMessages((prev) =>
+                            prev.map((msg) =>
+                                msg.senderId === senderId &&
+                                /^\d{10,11}$/.test(msg.senderName)
+                                    ? { ...msg, senderName: userInfo.fullName }
+                                    : msg,
+                            ),
+                        );
+                    }
+                } catch (err) {
+                    console.warn(
+                        `[ChatPage] Failed to enrich user info for ${senderId}:`,
+                        err,
+                    );
+                }
+            }
+        };
+
+        enrichSenderNames();
+    }, [socketMessages.length]); // Only trigger when message count changes
 
     const recallLocalMessage = useCallback(
         (message: SocketMessage) => {
@@ -816,7 +906,9 @@ export const ChatPage: React.FC = () => {
                     m.messageType === 'IMAGE' || m.messageType === 'image'
                         ? 'image/*'
                         : undefined,
-                isRecalled: m.isDeleted,
+                // ✅ Message is recalled if isRevoked=true (from backend)
+                // Backend preserves message in DB with isRevoked flag
+                isRecalled: m.isRevoked === true,
                 reactions: Array.isArray(m.reactions)
                     ? m.reactions.map((reaction) => ({
                           userId: reaction.userId,

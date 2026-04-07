@@ -41,6 +41,9 @@ export interface MessageDetail {
     messageStatus?: MessageStatus;
     isPinned?: boolean;
     isDeleted?: boolean;
+    isRevoked?: boolean;
+    revokedBy?: string;
+    revokedAt?: Date | string;
     replyToMessageId?: string | null;
     seenBy?: SeenByItem[];
     createdAt?: Date | string;

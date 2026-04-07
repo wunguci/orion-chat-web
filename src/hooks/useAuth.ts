@@ -27,6 +27,24 @@ function initAuthState(): AuthState {
 
     if (storedToken && isTokenValid()) {
         console.log('✅ [useAuth] Authentication valid');
+
+        // Log token expiry info for debugging
+        try {
+            const parts = storedToken.split('.');
+            const payload = JSON.parse(atob(parts[1]));
+            if (payload.exp) {
+                const expiresAt = new Date(payload.exp * 1000);
+                const timeUntilExpiry = Math.floor(
+                    (expiresAt.getTime() - Date.now()) / 1000 / 60,
+                );
+                console.log(
+                    `   Token expires in ~${timeUntilExpiry} minutes at ${expiresAt.toLocaleTimeString()}`,
+                );
+            }
+        } catch (error) {
+            console.error('[useAuth] Error parsing token expiry:', error);
+        }
+
         return {
             token: storedToken,
             user: storedUser,
@@ -37,6 +55,20 @@ function initAuthState(): AuthState {
 
     // Token is invalid or missing, clear auth
     console.log('❌ [useAuth] Authentication invalid, clearing auth');
+    if (storedToken && !isTokenValid()) {
+        try {
+            const parts = storedToken.split('.');
+            const payload = JSON.parse(atob(parts[1]));
+            if (payload.exp) {
+                const expiresAt = new Date(payload.exp * 1000);
+                console.log(
+                    `   Token expired at ${expiresAt.toLocaleTimeString()}`,
+                );
+            }
+        } catch (error) {
+            console.error('[useAuth] Error parsing expired token:', error);
+        }
+    }
     logout();
     return {
         user: null,

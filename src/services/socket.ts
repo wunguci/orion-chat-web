@@ -466,7 +466,7 @@ export const sendMessage = (data: {
     mediaUrl?: string;
     fileName?: string;
     fileSize?: number;
-    replyToMessageId?: string;
+    replyToMessageId?: string;  
 }) => {
     chatSocketService.sendMessage(data);
 };

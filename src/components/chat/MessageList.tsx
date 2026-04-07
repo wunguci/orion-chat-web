@@ -10,12 +10,12 @@ const EMOJI_LIST = [
     '😮', // Wow
     '😢', // Sad
     '😡', // Angry
-    '🔥', // Fire/Hot
-    '😎', // Cool
-    '🤔', // Thinking
-    '✨', // Sparkle
-    '🎉', // Party
-    '👏', // Clap
+    // '🔥', // Fire/Hot
+    // '😎', // Cool
+    // '🤔', // Thinking
+    // '✨', // Sparkle
+    // '🎉', // Party
+    // '👏', // Clap
 ];
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
@@ -31,6 +31,7 @@ export type SocketMessage = {
     clientMessageId?: string;
     senderId: string;
     senderName: string;
+    senderAvatar?: string;
     content: string;
     timestamp: string;
     conversationId?: string;
@@ -60,6 +61,17 @@ export const MessageList: React.FC<{
     onForwardMessage,
     onReactMessage,
 }) => {
+    // 🔍 DEBUG: Log user ID on mount or change
+    useEffect(() => {
+        console.log('🔍 MessageList - currentUserId:', currentUserId);
+        if (socketMessages.length > 0) {
+            console.log('🔍 First message:', {
+                senderId: socketMessages[0].senderId,
+                senderBy: socketMessages[0].senderBy,
+                senderName: socketMessages[0].senderName,
+            });
+        }
+    }, [currentUserId, socketMessages.length]);
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
     const [openActionMenuKey, setOpenActionMenuKey] = useState<string | null>(
         null,
@@ -121,6 +133,7 @@ export const MessageList: React.FC<{
             date: new Date(m.timestamp).toLocaleDateString('vi-VN'),
             senderName: m.senderName,
             senderAvatar:
+                m.senderAvatar ||
                 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + m.senderId,
         }));
 
@@ -138,7 +151,21 @@ export const MessageList: React.FC<{
                     </div>
                 ) : (
                     socketMessages.map((msg) => {
-                        const isMe = msg.senderId === currentUserId;
+                        /**
+                         * ✅ Clear logic: check if message is from current user
+                         * - Verify currentUserId is not empty/falsy
+                         * - Check both senderId and senderBy (backend may return either)
+                         */
+                        const isMe =
+                            !!currentUserId &&
+                            (msg.senderBy === currentUserId ||
+                                msg.senderId === currentUserId);
+
+                        // 🔍 DEBUG: Log each message to see why isMe is wrong
+                        console.log(
+                            `📨 Message: "${msg.content?.substring(0, 20)}" | currentUserId: "${currentUserId}" | senderId: "${msg.senderId}" | senderBy: "${msg.senderBy}" | isMe: ${isMe}`,
+                        );
+
                         const messageKey = getMessageKey(msg);
                         const reactionStats = getReactionStats(msg);
                         const hasImage =
@@ -147,70 +174,82 @@ export const MessageList: React.FC<{
                         if (hasImage) imgCounter++;
                         const imgIdx = imgCounter;
 
+                        // Get sender avatar
+                        const senderAvatar =
+                            msg.senderAvatar ||
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderId || msg.senderBy}`;
+
                         return (
                             <div
                                 key={messageKey}
-                                className={`flex gap-2 px-4 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                                className={`flex gap-3 px-4 py-1 ${
+                                    isMe ? 'flex-row-reverse' : 'flex-row'
+                                }`}
                             >
-                                <div className="w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm">
-                                    <img
-                                        src={
-                                            'https://api.dicebear.com/7.x/avataaars/svg?seed=' +
-                                            msg.senderId
-                                        }
-                                        alt={msg.senderName}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
+                                {/* Avatar - Only show for other messages */}
+                                {!isMe ? (
+                                    <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden shadow-sm">
+                                        <img
+                                            src={senderAvatar}
+                                            alt={msg.senderName}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex-shrink-0 w-8" />
+                                )}
 
+                                {/* Message bubble container */}
                                 <div
-                                    className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col relative group`}
+                                    className={`flex flex-col gap-1 max-w-[70%] ${
+                                        isMe ? 'items-end' : 'items-start'
+                                    } relative group`}
                                 >
-                                    {!isMe && (
-                                        <p className="text-xs font-semibold text-slate-600 mb-0.5 px-3">
+                                    {/* Sender name - Only show for other messages */}
+                                    {!isMe && msg.senderName && (
+                                        <p className="text-xs font-semibold text-slate-600 px-3">
                                             {msg.senderName}
                                         </p>
                                     )}
 
-                                    <div
-                                        className={
-                                            msg.isFile &&
-                                            msg.fileUrl &&
-                                            msg.fileType?.startsWith('image/')
-                                                ? ''
-                                                : `px-4 py-2 rounded-2xl text-sm ${
-                                                      isMe
-                                                          ? 'bg-green-message text-white rounded-tr-none'
-                                                          : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
-                                                  }`
-                                        }
-                                    >
-                                        {msg.isRecalled ? (
-                                            <p className="italic text-slate-500 wrap-break-word">
-                                                Tin nhắn đã được thu hồi
-                                            </p>
-                                        ) : msg.isFile && msg.fileUrl ? (
-                                            msg.fileType?.startsWith(
-                                                'image/',
-                                            ) ? (
-                                                <img
-                                                    src={
-                                                        msg.fileUrl.startsWith(
-                                                            'http',
-                                                        ) ||
-                                                        msg.fileUrl.startsWith(
-                                                            'blob:',
-                                                        )
-                                                            ? msg.fileUrl
-                                                            : `${SERVER_URL}${msg.fileUrl}`
-                                                    }
-                                                    alt={msg.fileName}
-                                                    className="max-w-50 rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                                                    onClick={() =>
-                                                        setViewerIndex(imgIdx)
-                                                    }
-                                                />
-                                            ) : (
+                                    {/* ✅ IMAGE: Render without bubble background */}
+                                    {!msg.isRecalled &&
+                                    msg.isFile &&
+                                    msg.fileUrl &&
+                                    msg.fileType?.startsWith('image/') ? (
+                                        <img
+                                            src={
+                                                msg.fileUrl.startsWith(
+                                                    'http',
+                                                ) ||
+                                                msg.fileUrl.startsWith('blob:')
+                                                    ? msg.fileUrl
+                                                    : `${SERVER_URL}${msg.fileUrl}`
+                                            }
+                                            alt={msg.fileName}
+                                            className="max-w-sm rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                                            onClick={() =>
+                                                setViewerIndex(imgIdx)
+                                            }
+                                        />
+                                    ) : (
+                                        /* ✅ TEXT/FILE/RECALLED: Render with bubble background */
+                                        <div
+                                            className={`px-4 py-2 rounded-2xl text-sm ${
+                                                msg.isRecalled
+                                                    ? 'bg-gray-100 text-gray-500 shadow-none border border-gray-200'
+                                                    : isMe
+                                                      ? 'bg-green-message text-white rounded-br-none shadow-md'
+                                                      : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
+                                            }`}
+                                        >
+                                            {msg.isRecalled ? (
+                                                <div className="rounded-2xl">
+                                                    <p className="italic text-gray-500">
+                                                        Tin nhắn đã được thu hồi
+                                                    </p>
+                                                </div>
+                                            ) : msg.isFile && msg.fileUrl ? (
                                                 <a
                                                     href={
                                                         msg.fileUrl.startsWith(
@@ -221,33 +260,47 @@ export const MessageList: React.FC<{
                                                     }
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="flex items-center gap-2 text-blue-500 hover:text-blue-600 hover:underline text-sm"
+                                                    className={`flex items-center gap-2 hover:underline ${
+                                                        isMe
+                                                            ? 'text-white'
+                                                            : 'text-blue-500 hover:text-blue-600'
+                                                    }`}
                                                 >
                                                     📎 {msg.fileName}
                                                 </a>
-                                            )
-                                        ) : (
-                                            <p className="wrap-break-word">
-                                                {msg.content}
+                                            ) : (
+                                                <p className="break-words whitespace-pre-wrap">
+                                                    {msg.content}
+                                                </p>
+                                            )}
+
+                                            {/* Timestamp */}
+                                            <p
+                                                className={`text-[11px] mt-1 ${
+                                                    isMe
+                                                        ? 'text-green-100'
+                                                        : 'text-slate-400'
+                                                }`}
+                                            >
+                                                {new Date(
+                                                    msg.timestamp,
+                                                ).toLocaleTimeString('vi-VN', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
                                             </p>
-                                        )}
+                                        </div>
+                                    )}
 
-                                        <p
-                                            className={`text-[10px] mt-1 ${isMe ? 'text-green-message' : 'text-slate-400'}`}
-                                        >
-                                            {new Date(
-                                                msg.timestamp,
-                                            ).toLocaleTimeString('vi-VN', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                            })}
-                                        </p>
-                                    </div>
-
+                                    {/* Reactions display */}
                                     {!msg.isRecalled &&
                                         reactionStats.size > 0 && (
                                             <div
-                                                className={`flex items-center gap-2 mt-1.5 ${isMe ? 'justify-end' : 'justify-start'}`}
+                                                className={`flex items-center gap-1 mt-1 ${
+                                                    isMe
+                                                        ? 'justify-end'
+                                                        : 'justify-start'
+                                                }`}
                                             >
                                                 {Array.from(
                                                     reactionStats.entries(),
@@ -264,15 +317,15 @@ export const MessageList: React.FC<{
                                                                     emoji,
                                                                 )
                                                             }
-                                                            className={`flex items-center gap-0.5 px-2 py-1 rounded-full text-xs border transition-colors ${
+                                                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-colors ${
                                                                 reactedByMe
-                                                                    ? 'bg-green-message border-green-message text-white'
+                                                                    ? 'bg-green-100 border-green-400 text-green-700'
                                                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                                             }`}
                                                         >
                                                             <span>{emoji}</span>
                                                             {count > 1 && (
-                                                                <span className="text-[11px]">
+                                                                <span>
                                                                     {count}
                                                                 </span>
                                                             )}
@@ -282,25 +335,34 @@ export const MessageList: React.FC<{
                                             </div>
                                         )}
 
+                                    {/* Emoji reaction picker - On hover */}
                                     {!msg.isRecalled && (
                                         <div
-                                            className={`absolute -bottom-2 ${isMe ? '-left-2' : '-right-2'} opacity-0 group-hover:opacity-100 transition-opacity`}
+                                            className={`absolute -bottom-3 ${
+                                                isMe ? '-left-3' : '-right-3'
+                                            } opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
                                         >
                                             <div className="relative group/emoji">
                                                 <button
-                                                    className="w-6 h-6 rounded-full bg-white border border-slate-200 shadow text-sm hover:bg-green-message hover:text-white hover:border-green-message transition-colors flex items-center justify-center"
-                                                    title="Bày tỏ cảm xúc"
+                                                    className="w-7 h-7 rounded-full bg-white border border-slate-300 shadow-md text-lg flex items-center justify-center hover:scale-110 transition-transform"
+                                                    title="Thêm cảm xúc"
                                                 >
                                                     😊
                                                 </button>
+
+                                                {/* Emoji picker panel */}
                                                 <div
-                                                    className={`absolute bottom-8 ${isMe ? 'right-0' : 'left-0'} bg-white border border-slate-200 rounded-lg shadow-xl px-2 py-2.5 z-50 opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible transition-all`}
+                                                    className={`absolute bottom-9 ${
+                                                        isMe
+                                                            ? 'right-0'
+                                                            : 'left-0'
+                                                    } opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible transition-all duration-150 z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-2`}
                                                 >
-                                                    <div className="grid grid-cols-4 gap-1.5 w-32">
+                                                    <div className="grid grid-cols-6 w-40">
                                                         {EMOJI_LIST.map((e) => (
                                                             <button
                                                                 key={e}
-                                                                className="text-lg hover:scale-125 transition-transform leading-none p-1"
+                                                                className="text-lg hover:scale-125 transition-transform  hover:bg-slate-100 rounded"
                                                                 onClick={() =>
                                                                     onReactMessage?.(
                                                                         msg,
@@ -318,10 +380,13 @@ export const MessageList: React.FC<{
                                         </div>
                                     )}
 
-                                    <div
-                                        className={`absolute top-0 ${isMe ? '-left-11' : '-right-11'} opacity-0 group-hover:opacity-100 transition-opacity`}
-                                    >
-                                        <div className="relative">
+                                    {/* Action menu button - On hover */}
+                                    {!msg.isRecalled && (
+                                        <div
+                                            className={`absolute top-0 ${
+                                                isMe ? '-left-10' : '-right-10'
+                                            } opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
+                                        >
                                             <button
                                                 onClick={() =>
                                                     setOpenActionMenuKey(
@@ -331,34 +396,40 @@ export const MessageList: React.FC<{
                                                                 : messageKey,
                                                     )
                                                 }
-                                                className="w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm text-slate-500 hover:bg-slate-50"
-                                                title="Tùy chọn tin nhắn"
+                                                className="w-7 h-7 rounded-full bg-white border border-slate-300 shadow text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors font-bold text-lg flex items-center justify-center"
+                                                title="Tùy chọn"
                                             >
-                                                ⋯
+                                                ⋮
                                             </button>
 
+                                            {/* Action menu dropdown */}
                                             {openActionMenuKey ===
                                                 messageKey && (
                                                 <div
-                                                    className={`absolute top-8 ${isMe ? 'left-0' : 'right-0'} z-50 min-w-36 rounded-lg border border-slate-200 bg-white shadow-lg py-1`}
+                                                    className={`absolute top-8 ${
+                                                        isMe
+                                                            ? 'left-0'
+                                                            : 'right-0'
+                                                    } z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-40`}
                                                 >
-                                                    {isMe &&
-                                                        !msg.isRecalled && (
-                                                            <button
-                                                                onClick={() => {
-                                                                    onRecallMessage?.(
-                                                                        msg,
-                                                                    );
-                                                                    setOpenActionMenuKey(
-                                                                        null,
-                                                                    );
-                                                                }}
-                                                                className="w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
-                                                            >
-                                                                Thu hồi
-                                                            </button>
-                                                        )}
+                                                    {/* Recall button - Only for own messages */}
+                                                    {isMe && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onRecallMessage?.(
+                                                                    msg,
+                                                                );
+                                                                setOpenActionMenuKey(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
+                                                        >
+                                                            🔄 Thu hồi
+                                                        </button>
+                                                    )}
 
+                                                    {/* Delete button */}
                                                     <button
                                                         onClick={() => {
                                                             onDeleteMessage?.(
@@ -368,30 +439,29 @@ export const MessageList: React.FC<{
                                                                 null,
                                                             );
                                                         }}
-                                                        className="w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
                                                     >
-                                                        Xóa ở phía tôi
+                                                        🗑️ Xóa
                                                     </button>
 
-                                                    {!msg.isRecalled && (
-                                                        <button
-                                                            onClick={() => {
-                                                                onForwardMessage?.(
-                                                                    msg,
-                                                                );
-                                                                setOpenActionMenuKey(
-                                                                    null,
-                                                                );
-                                                            }}
-                                                            className="w-full px-3 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-100"
-                                                        >
-                                                            Chuyển tiếp
-                                                        </button>
-                                                    )}
+                                                    {/* Forward button */}
+                                                    <button
+                                                        onClick={() => {
+                                                            onForwardMessage?.(
+                                                                msg,
+                                                            );
+                                                            setOpenActionMenuKey(
+                                                                null,
+                                                            );
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                                    >
+                                                        ➡️ Chuyển tiếp
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         );

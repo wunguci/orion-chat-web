@@ -1,39 +1,56 @@
 /**
  * Get current user ID from localStorage auth_user
+ * Tries multiple field names: id, userId, phone, phoneNumber, sub
  */
 export const getCurrentUserId = (): string => {
     try {
         const authUser = localStorage.getItem('auth_user');
+        console.log('🔐 auth_user from localStorage:', authUser); // DEBUG
+
         if (authUser) {
             const parsed = JSON.parse(authUser);
-            if (parsed?.id) {
-                return parsed.id;
-            }
+            console.log('🔐 parsed auth_user:', parsed); // DEBUG
+
+            // Try multiple field names (backend may use different names)
+            const userId =
+                parsed?.id ||
+                parsed?.userId ||
+                parsed?.phone ||
+                parsed?.phoneNumber ||
+                parsed?.sub ||
+                '';
+
+            console.log('🔐 getCurrentUserId() returning:', userId); // DEBUG
+            return userId;
         }
     } catch (err) {
         console.error('Failed to parse auth_user from localStorage:', err);
     }
     // Fallback
+    console.warn(
+        '⚠️ getCurrentUserId() returning empty string - auth_user not set!',
+    );
     return '';
 };
 
 /**
  * Get current user full name from localStorage auth_user
+ * Tries multiple field names: fullName, name, userName
  */
 export const getCurrentUserName = (): string => {
     try {
         const authUser = localStorage.getItem('auth_user');
         if (authUser) {
             const parsed = JSON.parse(authUser);
-            if (parsed?.fullName) {
-                return parsed.fullName;
-            }
+            return (
+                parsed?.fullName || parsed?.name || parsed?.userName || 'User'
+            );
         }
     } catch (err) {
         console.error('Failed to parse auth_user from localStorage:', err);
     }
     // Fallback
-    return 'Guest';
+    return 'User';
 };
 
 /**
