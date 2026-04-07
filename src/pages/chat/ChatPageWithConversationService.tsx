@@ -9,16 +9,16 @@ import ConversationInfoPanel from '../../components/chat/ConversationInfoPanel';
 import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
 import {
-    connectSocket,
-    disconnectSocket,
-    sendMessage,
     joinConversation,
-    onMessageNew,
+    sendMessage,
     offMessageNew,
+    onMessageNew,
     onMessageReactionUpdated,
-    offMessageReactionUpdated,
     onMessageRecalled,
+    offMessageReactionUpdated,
     offMessageRecalled,
+    disconnectSocket,
+    chatSocketService,
 } from '../../services/socket';
 import {
     useConversations,
@@ -27,6 +27,7 @@ import {
 } from '../../hooks/useConversation';
 import { conversationApi } from '../../services/conversationApi';
 import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
+import { debugAuthStatus } from '../../utils/token';
 
 const USER_ID = getCurrentUserId();
 const USERNAME = getCurrentUserName();
@@ -112,22 +113,23 @@ export const ChatPage: React.FC = () => {
     >(null);
 
     // Fetch conversations
+    // ✅ No need to pass USER_ID - JWT token from localStorage is used
     const {
         conversations,
         loading: conversationsLoading,
         error: conversationsError,
-    } = useConversations(USER_ID);
+    } = useConversations();
 
     // Fetch selected conversation detail
+    // ✅ No need to pass USER_ID - JWT token from localStorage is used
     const { conversation: selectedConversation } = useConversationDetail(
         selectedConversationId || '',
-        USER_ID,
     );
 
     // Fetch messages for selected conversation
+    // ✅ No need to pass USER_ID - JWT token from localStorage is used
     const { messages: paginatedMessages } = useConversationMessages(
         selectedConversationId || '',
-        USER_ID,
         30,
     );
 
@@ -216,12 +218,26 @@ export const ChatPage: React.FC = () => {
         const initializeSocket = async () => {
             try {
                 setIsConnecting(true);
-                await connectSocket(USER_ID);
+                
+                // ✅ Debug: Check authentication status
+                debugAuthStatus();
+                
+                // ✅ Connect using JWT token from localStorage (no userId parameter needed)
+              chatSocketService.connect();
 
                 const messageHandler = (payload: IncomingSocketPayload) => {
+                    console.log(
+                        '[ChatPage] Received message from socket:',
+                        payload,
+                    );
+
                     const rawPayload =
                         payload?.message || payload?.data || payload;
                     const msg = toSocketMessage(rawPayload);
+
+                    console.log(
+                        `[ChatPage] Converted message: id=${msg.id}, conversationId=${msg.conversationId}, content="${msg.content.substring(0, 50)}"`,
+                    );
 
                     const hasVisibleContent =
                         msg.isRecalled ||
@@ -229,6 +245,9 @@ export const ChatPage: React.FC = () => {
                         (msg.isFile && !!msg.fileUrl);
 
                     if (!hasVisibleContent || !msg.conversationId) {
+                        console.warn(
+                            '[ChatPage] Message filtered out - no visible content or conversationId',
+                        );
                         return;
                     }
 
@@ -320,9 +339,13 @@ export const ChatPage: React.FC = () => {
                 };
 
                 messageListenerRef.current = messageHandler;
+                console.log('[ChatPage] Setting up socket message listeners...');
                 onMessageNew(messageHandler);
+                console.log('[ChatPage] onMessageNew listener registered');
                 onMessageReactionUpdated(reactionHandler);
+                console.log('[ChatPage] onMessageReactionUpdated listener registered');
                 onMessageRecalled(recallHandler);
+                console.log('[ChatPage] onMessageRecalled listener registered');
                 setError(null);
             } catch (err) {
                 setError(
@@ -342,9 +365,9 @@ export const ChatPage: React.FC = () => {
             if (messageListenerRef.current) {
                 offMessageNew();
             }
-            offMessageReactionUpdated();
-            offMessageRecalled();
-            disconnectSocket();
+           offMessageReactionUpdated();
+           offMessageRecalled();
+           disconnectSocket();
         };
     }, [toSocketMessage, selectedConversationId]);
 
@@ -405,7 +428,6 @@ export const ChatPage: React.FC = () => {
                 await conversationApi.recallMessage(
                     selectedConversationId,
                     message.id,
-                    USER_ID,
                 );
             } catch (err) {
                 console.error('Error recalling message:', err);
@@ -436,7 +458,6 @@ export const ChatPage: React.FC = () => {
                 await conversationApi.deleteMessageForMe(
                     selectedConversationId,
                     message.id,
-                    USER_ID,
                 );
             } catch (err) {
                 setHiddenMessageKeys((prev) => {
@@ -485,17 +506,20 @@ export const ChatPage: React.FC = () => {
                 return;
 
             const messageKey = getMessageKey(message);
+
             const previousReactions =
                 reactionOverrides[messageKey] || message.reactions || [];
+
             const existingMyReaction = previousReactions.find(
-                (reaction) => reaction.userId === USER_ID,
+                (r) => r.userId === USER_ID,
             );
 
             const isRemoving = existingMyReaction?.emoji === emoji;
 
             const nextReactions = previousReactions.filter(
-                (reaction) => reaction.userId !== USER_ID,
+                (r) => r.userId !== USER_ID,
             );
+
             if (!isRemoving) {
                 nextReactions.push({
                     userId: USER_ID,
@@ -510,63 +534,34 @@ export const ChatPage: React.FC = () => {
             }));
 
             try {
+                let response;
+
                 if (isRemoving) {
-                    const response = await conversationApi.removeReaction(
+                    response = await conversationApi.removeReaction(
                         selectedConversationId,
                         message.id,
-                        USER_ID,
                     );
-                    const serverReactions =
-                        response &&
-                        typeof response === 'object' &&
-                        Array.isArray(
-                            (response as { reactions?: unknown[] }).reactions,
-                        )
-                            ? (
-                                  response as {
-                                      reactions?: SocketMessage['reactions'];
-                                  }
-                              ).reactions || []
-                            : nextReactions;
-                    setReactionOverrides((prev) => ({
-                        ...prev,
-                        [messageKey]: serverReactions,
-                    }));
                 } else {
-                    const response = await conversationApi.reactToMessage(
+                    response = await conversationApi.reactToMessage(
                         selectedConversationId,
                         message.id,
-                        USER_ID,
                         emoji,
                     );
-                    const serverReactions =
-                        response &&
-                        typeof response === 'object' &&
-                        Array.isArray(
-                            (response as { reactions?: unknown[] }).reactions,
-                        )
-                            ? (
-                                  response as {
-                                      reactions?: SocketMessage['reactions'];
-                                  }
-                              ).reactions || []
-                            : nextReactions;
-                    setReactionOverrides((prev) => ({
-                        ...prev,
-                        [messageKey]: serverReactions,
-                    }));
                 }
+
+                const serverReactions = response?.reactions ?? nextReactions;
+
+                setReactionOverrides((prev) => ({
+                    ...prev,
+                    [messageKey]: serverReactions,
+                }));
             } catch (err) {
                 setReactionOverrides((prev) => ({
                     ...prev,
                     [messageKey]: previousReactions,
                 }));
-                console.error('Error reacting to message:', err);
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : 'Failed to react to message',
-                );
+
+                console.error('Error reacting:', err);
             }
         },
         [getMessageKey, reactionOverrides, selectedConversationId],
@@ -603,10 +598,10 @@ export const ChatPage: React.FC = () => {
                 return;
             }
 
+            // Note: userId should be included in request headers via API interceptor
             await conversationApi.forwardMessage(
                 forwardingMessage.id,
                 forwardTargetConversationId,
-                USER_ID,
                 clientMessageId,
             );
 
@@ -652,10 +647,23 @@ export const ChatPage: React.FC = () => {
                 ]);
 
                 // Send via socket
+                const receiverId = getReceiverId();
+                console.log(
+                    `[ChatPage] handleSend: text="${text}", receiverId="${receiverId}", conversationId="${selectedConversationId}"`,
+                );
+
+                if (!receiverId) {
+                    console.error(
+                        '[ChatPage] Cannot send message: receiverId is empty',
+                    );
+                    setError('Cannot determine receiver. Please try again.');
+                    return;
+                }
+
                 sendMessage({
                     requestId: `req_${Date.now()}`,
                     clientMessageId,
-                    receiverId: getReceiverId(),
+                    receiverId: receiverId,
                     type: 'text',
                     content: text,
                     conversationId: selectedConversationId,
@@ -715,7 +723,6 @@ export const ChatPage: React.FC = () => {
                     const uploadResponse = await conversationApi.uploadFile(
                         file,
                         selectedConversationId,
-                        USER_ID,
                     );
                     serverFileUrl = uploadResponse.mediaUrl;
                     uploadedFileType = uploadResponse.mimeType || fileType;

@@ -176,41 +176,290 @@ class SocketService {
 export const socketService = new SocketService();
 export default socketService;
 
-// Chat
-// import { io, Socket } from 'socket.io-client';
+// =============================
+// Chat Socket Service (JWT-based)
+// =============================
 
-const SERVER_URL = 'https://deceitfully-unquailing-haylee.ngrok-free.dev';
-let socket: Socket | null = null;
+const CHAT_NAMESPACE_URL = `${SOCKET_BASE_URL}/chat`;
 
-export const connectSocket = (userId: string): Socket => {
-    if (socket && socket.connected) return socket;
+class ChatSocketService {
+    private chatSocket: Socket | null = null;
 
-    socket = io(SERVER_URL + '/chat', {
-        transports: ['websocket'],
-        auth: { userId },
-    });
+    /**
+     * Kết nối socket chat sử dụng JWT token từ localStorage
+     * Tự động handle authentication mà không cần userId parameter
+     */
+    connect(): Socket {
+        if (this.chatSocket?.connected) {
+            console.log('[ChatSocketService] Already connected');
+            return this.chatSocket;
+        }
 
-    socket.on('connect', () => {
-        console.log('Socket connected:', socket ? socket.id : '');
-    });
+        const token = localStorage.getItem('auth_token');
 
-    socket.on('connect_error', (err) => {
-        console.error('Socket connect error:', err.message);
-    });
+        if (!token) {
+            console.error(
+                '[ChatSocketService] No auth token found, redirecting to login',
+            );
+            window.location.href = '/login';
+            throw new Error('No auth token found');
+        }
 
-    return socket;
+        console.log(
+            `[ChatSocketService] Connecting to chat namespace: ${CHAT_NAMESPACE_URL}`,
+        );
+        console.log(
+            `[ChatSocketService] Using JWT token: ${token.substring(0, 20)}...`,
+        );
+
+        this.chatSocket = io(CHAT_NAMESPACE_URL, {
+            transports: ['websocket'],
+            auth: { token }, // ✅ Sử dụng JWT token
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 5,
+        });
+
+        this.chatSocket.on('connect', () => {
+            console.log(
+                `[ChatSocketService] ✅ Connected: ${this.chatSocket?.id}`,
+            );
+        });
+
+        this.chatSocket.on('disconnect', (reason) => {
+            console.warn(`[ChatSocketService] ⚠️ Disconnected: ${reason}`);
+
+            // Log disconnect reasons
+            if (reason === 'io server disconnect') {
+                console.error(
+                    '[ChatSocketService] Server disconnected - likely auth/validation error',
+                );
+            } else if (reason === 'io client disconnect') {
+                console.log('[ChatSocketService] Client initiated disconnect');
+            }
+        });
+
+        this.chatSocket.on('connect_error', (err: any) => {
+            console.error(
+                '[ChatSocketService] ❌ Connection error:',
+                err?.message || err,
+            );
+            console.error('[ChatSocketService] Error data:', err?.data);
+
+            // ✅ Handle 401 - redirect to login
+            if (
+                err?.message?.includes('Authentication') ||
+                err?.data?.message?.includes('Authentication')
+            ) {
+                console.error(
+                    '[ChatSocketService] Auth failed - clearing token and redirecting',
+                );
+                localStorage.removeItem('auth_token');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1000);
+            }
+        });
+
+        this.chatSocket.on('error', (error: any) => {
+            console.error('[ChatSocketService] ❌ Socket error:', error);
+        });
+
+        return this.chatSocket;
+    }
+
+    disconnect() {
+        console.log('[ChatSocketService] Disconnecting');
+        this.chatSocket?.disconnect();
+        this.chatSocket = null;
+    }
+
+    getSocket(): Socket | null {
+        return this.chatSocket;
+    }
+
+    // ===== Chat Event Emitters =====
+
+    joinConversation(requestId: string, conversationId: string) {
+        if (!this.chatSocket) return;
+        this.chatSocket.emit('chat:join_conversation', {
+            requestId,
+            conversationId,
+        });
+    }
+
+    sendMessage(data: {
+        requestId: string;
+        clientMessageId: string;
+        conversationId: string;
+        receiverId: string;
+        type: 'text' | 'image' | 'file' | 'audio';
+        content: string;
+        mediaUrl?: string;
+        fileName?: string;
+        fileSize?: number;
+        replyToMessageId?: string;
+    }) {
+        if (!this.chatSocket) {
+            console.error(
+                '[ChatSocketService] ❌ Socket not initialized! Call connect() first.',
+            );
+            return;
+        }
+
+        if (!this.chatSocket.connected) {
+            console.error(
+                `[ChatSocketService] ⚠️ Socket not connected. Status: connected=${this.chatSocket.connected}`,
+            );
+            console.error(
+                '[ChatSocketService] Try reconnecting or check socket connection status',
+            );
+
+            // Attempt to reconnect
+            if (this.chatSocket.disconnected) {
+                console.log('[ChatSocketService] Attempting to reconnect...');
+                this.chatSocket.connect();
+            }
+            return;
+        }
+
+        console.log(
+            `[ChatSocketService] 📤 Sending message: clientId=${data.clientMessageId}, to=${data.receiverId}, conversationId=${data.conversationId}`,
+        );
+        console.log('[ChatSocketService] Message content:', data.content);
+
+        this.chatSocket.emit('chat:send_message', data);
+        console.log(
+            '[ChatSocketService] ✅ Message emitted successfully via socket',
+        );
+    }
+
+    fetchMessages(data: {
+        requestId: string;
+        conversationId: string;
+        cursor?: string | null;
+        limit?: number;
+    }) {
+        if (!this.chatSocket) return;
+        this.chatSocket.emit('chat:fetch_messages', data);
+    }
+
+    sendTyping(conversationId: string, isTyping: boolean) {
+        if (!this.chatSocket) return;
+        this.chatSocket.emit('chat:typing', { conversationId, isTyping });
+    }
+
+    // ===== Chat Event Listeners =====
+
+    onAck(cb: (ack: any) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:ack', cb);
+    }
+
+    offAck() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:ack');
+    }
+
+    onMessageNew(cb: (payload: any) => void) {
+        if (!this.chatSocket) {
+            console.warn(
+                '[ChatSocketService] onMessageNew: Socket not initialized',
+            );
+            return;
+        }
+
+        console.log('[ChatSocketService] Registering onMessageNew listener');
+        this.chatSocket.on('chat:message_new', (payload) => {
+            console.log(
+                '[ChatSocketService] chat:message_new event received:',
+                payload,
+            );
+            cb(payload);
+        });
+    }
+
+    offMessageNew() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_new');
+    }
+
+    onTyping(cb: (payload: any) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:typing', cb);
+    }
+
+    offTyping() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:typing');
+    }
+
+    onMessageReactionUpdated(
+        cb: (payload: {
+            conversationId: string;
+            messageId: string;
+            reactions: Array<{
+                userId: string;
+                emoji: string;
+                reactedAt: string;
+            }>;
+            actedBy: string;
+            action: 'set' | 'remove';
+            emoji?: string;
+            at: string;
+        }) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_reaction_updated', cb);
+    }
+
+    offMessageReactionUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_reaction_updated');
+    }
+
+    onMessageRecalled(
+        cb: (payload: {
+            conversationId: string;
+            messageId: string;
+            revokedBy: string;
+            revokedAt: string;
+            isDeleted: boolean;
+        }) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_recalled', cb);
+    }
+
+    offMessageRecalled() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_recalled');
+    }
+}
+
+// ===== Factory Instance =====
+export const chatSocketService = new ChatSocketService();
+
+// ===== Legacy Backward-Compatible Exports (for ChatPageWithConversationService) =====
+/**
+ * @deprecated Use chatSocketService.connect() instead
+ * Kept for backward compatibility
+ */
+export const connectSocket = (): Socket => {
+    return chatSocketService.connect();
 };
 
 export const disconnectSocket = () => {
-    if (socket) socket.disconnect();
-    socket = null;
+    chatSocketService.disconnect();
 };
 
-export const getSocket = () => socket;
+export const getSocket = (): Socket | null => {
+    return chatSocketService.getSocket();
+};
 
 export const joinConversation = (requestId: string, conversationId: string) => {
-    if (!socket) return;
-    socket.emit('chat:join_conversation', { requestId, conversationId });
+    chatSocketService.joinConversation(requestId, conversationId);
 };
 
 export const sendMessage = (data: {
@@ -225,8 +474,7 @@ export const sendMessage = (data: {
     fileSize?: number;
     replyToMessageId?: string;
 }) => {
-    if (!socket) return;
-    socket.emit('chat:send_message', data);
+    chatSocketService.sendMessage(data);
 };
 
 export const fetchMessages = (data: {
@@ -235,52 +483,35 @@ export const fetchMessages = (data: {
     cursor?: string | null;
     limit?: number;
 }) => {
-    if (!socket) return;
-    socket.emit('chat:fetch_messages', data);
+    chatSocketService.fetchMessages(data);
 };
 
 export const sendTyping = (conversationId: string, isTyping: boolean) => {
-    if (!socket) return;
-    socket.emit('chat:typing', { conversationId, isTyping });
+    chatSocketService.sendTyping(conversationId, isTyping);
 };
 
 export const onAck = (cb: (ack: any) => void) => {
-    if (!socket) return;
-    socket.on('chat:ack', cb);
+    chatSocketService.onAck(cb);
 };
 
 export const offAck = () => {
-    if (!socket) return;
-    socket.off('chat:ack');
+    chatSocketService.offAck();
 };
 
 export const onMessageNew = (cb: (payload: any) => void) => {
-    if (!socket) return;
-    socket.on('chat:message_new', cb);
+    chatSocketService.onMessageNew(cb);
 };
 
 export const offMessageNew = () => {
-    if (!socket) return;
-    socket.off('chat:message_new');
+    chatSocketService.offMessageNew();
 };
 
-export const sendFileMessage = (data: {
-    senderId: string;
-    senderName: string;
-    fileUrl: string;
-    fileName: string;
-    fileType: string;
-    timestamp: string;
-}) => socket?.emit('send_message', { ...data, content: '', isFile: true });
-
 export const onTyping = (cb: (payload: any) => void) => {
-    if (!socket) return;
-    socket.on('chat:typing', cb);
+    chatSocketService.onTyping(cb);
 };
 
 export const offTyping = () => {
-    if (!socket) return;
-    socket.off('chat:typing');
+    chatSocketService.offTyping();
 };
 
 export const onMessageReactionUpdated = (
@@ -294,13 +525,11 @@ export const onMessageReactionUpdated = (
         at: string;
     }) => void,
 ) => {
-    if (!socket) return;
-    socket.on('chat:message_reaction_updated', cb);
+    chatSocketService.onMessageReactionUpdated(cb);
 };
 
 export const offMessageReactionUpdated = () => {
-    if (!socket) return;
-    socket.off('chat:message_reaction_updated');
+    chatSocketService.offMessageReactionUpdated();
 };
 
 export const onMessageRecalled = (
@@ -312,11 +541,9 @@ export const onMessageRecalled = (
         isDeleted: boolean;
     }) => void,
 ) => {
-    if (!socket) return;
-    socket.on('chat:message_recalled', cb);
+    chatSocketService.onMessageRecalled(cb);
 };
 
 export const offMessageRecalled = () => {
-    if (!socket) return;
-    socket.off('chat:message_recalled');
+    chatSocketService.offMessageRecalled();
 };

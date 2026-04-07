@@ -23,122 +23,95 @@ class ConversationApiService {
             },
         });
 
-        // Add auth token to requests if available
+        // ✅ Attach JWT token
         this.api.interceptors.request.use((config) => {
             const token = localStorage.getItem('auth_token');
+
             if (token) {
+                config.headers = config.headers || {};
                 config.headers.Authorization = `Bearer ${token}`;
+                console.log(
+                    `[ConversationApiService] Request to: ${config.baseURL}${config.url}, Authorization: Bearer ${token.substring(0, 20)}...`,
+                );
+            } else {
+                console.warn(
+                    '[ConversationApiService] No auth_token found in localStorage!',
+                );
             }
+
             return config;
         });
 
-        // Handle errors
+        // ✅ Handle errors
         this.api.interceptors.response.use(
             (response) => response,
             (error) => {
+                if (error.response?.status === 401) {
+                    localStorage.removeItem('auth_token');
+                    window.location.href = '/login';
+                }
+
                 console.error('API Error:', error);
                 return Promise.reject(error);
             },
         );
     }
 
-    private getAuthHeader(): Record<string, string> {
-        const token = localStorage.getItem('auth_token');
-        return token ? { Authorization: `Bearer ${token}` } : {};
-    }
+    // =========================
+    // Conversations
+    // =========================
 
-    private async postToMessageEndpoint<T = unknown>(
-        path: string,
-        payload: Record<string, unknown>,
-    ): Promise<T> {
-        const headers = {
-            'Content-Type': 'application/json',
-            'ngrok-skip-browser-warning': 'true',
-            ...this.getAuthHeader(),
-        };
-
-        const baseUrl = API_BASE_URL.replace(/\/$/, '');
-        const endpointCandidates = [
-            `${baseUrl}/messages/${path}`,
-            `${baseUrl}/api/messages/${path}`,
-            `${baseUrl}/v1/messages/${path}`,
-            `${baseUrl}/conversations/messages/${path}`,
-        ];
-
-        let lastError: unknown;
-
-        for (const endpoint of endpointCandidates) {
-            try {
-                const response = await axios.post<T>(endpoint, payload, {
-                    headers,
-                });
-                return response.data;
-            } catch (error) {
-                if (
-                    axios.isAxiosError(error) &&
-                    error.response?.status !== 404
-                ) {
-                    throw error;
-                }
-                lastError = error;
-            }
-        }
-
-        throw lastError;
-    }
-
-    /**
-     * Get all conversations for the current user
-     */
-    async findAllByUserId(userId: string): Promise<ConversationView[]> {
-        const response = await this.api.get<ConversationView[]>('/', {
-            params: { userId },
-        });
+    async findAll(): Promise<ConversationView[]> {
+        const response = await this.api.get<ConversationView[]>('/');
         return response.data;
     }
 
-    /**
-     * Get conversation details by ID
-     */
-    async findDetailById(
-        conversationId: string,
-        userId: string,
-    ): Promise<ConversationView> {
+    async findDetailById(conversationId: string): Promise<ConversationView> {
         const response = await this.api.get<ConversationView>(
-            `/${conversationId}/messages`,
-            {
-                params: { userId },
-            },
+            `/${conversationId}`,
         );
         return response.data;
     }
 
-    /**
-     * Get paginated messages for a conversation
-     */
+    async createConversation(data: {
+        type: 'GROUP' | 'PRIVATE';
+        participantIds?: string[];
+        groupName?: string;
+        groupAvatar?: string;
+    }) {
+        const response = await this.api.post('/', data);
+        return response.data;
+    }
+
+    async leaveConversation(conversationId: string) {
+        const response = await this.api.post(`/${conversationId}/leave`);
+        return response.data;
+    }
+
+    // =========================
+    // Messages
+    // =========================
+
     async getMessagesByConversation(
         params: PaginatedMessagesParams,
     ): Promise<ConversationMessagesResult> {
-        const { conversationId, userId, cursor, limit = 30 } = params;
+        const { conversationId, cursor, limit = 30 } = params;
 
         const response = await this.api.get<ConversationMessagesResult>(
             `/${conversationId}/messages`,
             {
                 params: {
-                    userId,
                     cursor,
                     limit,
                 },
             },
         );
+
         return response.data;
     }
-    /**
-     * Send a message to a conversation
-     */
+
     async sendMessage(
         conversationId: string,
-        userId: string,
         content: string,
         options?: {
             messageType?: string;
@@ -150,50 +123,64 @@ class ConversationApiService {
     ) {
         const response = await this.api.post(`/${conversationId}/messages`, {
             content,
-            senderBy: userId,
             ...options,
         });
+
         return response.data;
     }
 
-    /**
-     * Update message read status
-     */
-    async markMessagesAsRead(
-        conversationId: string,
-        userId: string,
-        messageId: string,
-    ) {
+    async markMessagesAsRead(conversationId: string, messageId: string) {
         const response = await this.api.patch(
             `/${conversationId}/messages/${messageId}/read`,
-            {
-                userId,
-            },
         );
+
         return response.data;
     }
 
-    /**
-     * Delete a message
-     */
     async deleteMessage(conversationId: string, messageId: string) {
         const response = await this.api.delete(
             `/${conversationId}/messages/${messageId}`,
         );
+
         return response.data;
     }
 
-    /**
-     * Recall message for everyone
-     */
-    async recallMessage(
-        conversationId: string,
-        messageId: string,
-        userId: string,
-    ) {
+    async toggleMessagePin(conversationId: string, messageId: string) {
+        const response = await this.api.patch(
+            `/${conversationId}/messages/${messageId}/pin`,
+        );
+
+        return response.data;
+    }
+
+    // =========================
+    // Advanced message actions
+    // =========================
+
+    private async postToMessageEndpoint<T = unknown>(
+        path: string,
+        payload: Record<string, unknown>,
+    ): Promise<T> {
+        const baseUrl = API_BASE_URL.replace(/\/$/, '');
+
+        const response = await axios.post<T>(
+            `${baseUrl}/messages/${path}`,
+            payload,
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'true',
+                    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+                },
+            },
+        );
+
+        return response.data;
+    }
+
+    async recallMessage(conversationId: string, messageId: string) {
         return this.postToMessageEndpoint('revoke-for-everyone', {
             messageId,
-            userId,
             conversationId,
         });
     }
@@ -201,37 +188,25 @@ class ConversationApiService {
     async reactToMessage(
         conversationId: string,
         messageId: string,
-        userId: string,
         emoji: string,
     ) {
         return this.postToMessageEndpoint('emoji', {
             messageId,
-            userId,
             emoji,
             conversationId,
         });
     }
 
-    async removeReaction(
-        conversationId: string,
-        messageId: string,
-        userId: string,
-    ) {
+    async removeReaction(conversationId: string, messageId: string) {
         return this.postToMessageEndpoint('emoji/remove', {
             messageId,
-            userId,
             conversationId,
         });
     }
 
-    async deleteMessageForMe(
-        conversationId: string,
-        messageId: string,
-        userId: string,
-    ) {
+    async deleteMessageForMe(conversationId: string, messageId: string) {
         return this.postToMessageEndpoint('delete-for-me', {
             messageId,
-            userId,
             conversationId,
         });
     }
@@ -239,65 +214,24 @@ class ConversationApiService {
     async forwardMessage(
         sourceMessageId: string,
         targetConversationId: string,
-        forwardedBy: string,
         clientMessageId?: string,
         content?: string,
     ) {
         return this.postToMessageEndpoint('forward', {
             sourceMessageId,
             targetConversationId,
-            forwardedBy,
             clientMessageId,
             content,
         });
     }
 
-    /**
-     * Pin/Unpin a message
-     */
-    async toggleMessagePin(conversationId: string, messageId: string) {
-        const response = await this.api.patch(
-            `/${conversationId}/messages/${messageId}/pin`,
-        );
-        return response.data;
-    }
+    // =========================
+    // Upload
+    // =========================
 
-    /**
-     * Create a new conversation
-     */
-    async createConversation(
-        userId: string,
-        data: {
-            type: 'GROUP' | 'PRIVATE';
-            participantIds?: string[];
-            groupName?: string;
-            groupAvatar?: string;
-        },
-    ) {
-        const response = await this.api.post('/', {
-            createdBy: userId,
-            ...data,
-        });
-        return response.data;
-    }
-
-    /**
-     * Leave conversation
-     */
-    async leaveConversation(conversationId: string, userId: string) {
-        const response = await this.api.post(`/${conversationId}/leave`, {
-            userId,
-        });
-        return response.data;
-    }
-
-    /**
-     * Upload file and return URL
-     */
     async uploadFile(
         file: File,
         conversationId: string,
-        senderBy?: string,
     ): Promise<{
         mediaUrl: string;
         fileName: string;
@@ -308,47 +242,29 @@ class ConversationApiService {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('conversationId', conversationId);
-        if (senderBy) {
-            formData.append('senderBy', senderBy);
+
+        const response = await fetch(`${API_BASE_URL}/messages/upload`, {
+            method: 'POST',
+            headers: {
+                'ngrok-skip-browser-warning': 'true',
+                Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
         }
 
-        try {
-            const response = await fetch(`${API_BASE_URL}/messages/upload`, {
-                method: 'POST',
-                headers: {
-                    'ngrok-skip-browser-warning': 'true',
-                    ...this.getAuthHeader(),
-                },
-                body: formData,
-            });
+        const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(`Upload failed: ${response.statusText}`);
-            }
-
-            const data = (await response.json()) as {
-                mediaUrl?: string;
-                fileName?: string;
-                fileSize?: number;
-                mimeType?: string;
-                messageType?: string;
-            };
-
-            if (!data.mediaUrl) {
-                throw new Error('Upload response missing mediaUrl');
-            }
-
-            return {
-                mediaUrl: data.mediaUrl,
-                fileName: data.fileName || file.name,
-                fileSize: data.fileSize || file.size,
-                mimeType: data.mimeType || file.type,
-                messageType: data.messageType || 'FILE',
-            };
-        } catch (error) {
-            console.error('File upload error:', error);
-            throw error;
-        }
+        return {
+            mediaUrl: data.mediaUrl,
+            fileName: data.fileName || file.name,
+            fileSize: data.fileSize || file.size,
+            mimeType: data.mimeType || file.type,
+            messageType: data.messageType || 'FILE',
+        };
     }
 }
 

@@ -31,10 +31,7 @@ interface UseConversationMessagesResult {
     clear: () => void;
 }
 
-/**
- * Hook to fetch all conversations for current user
- */
-export const useConversations = (userId: string): UseConversationsResult => {
+export const useConversations = (): UseConversationsResult => {
     const [conversations, setConversations] = useState<ConversationView[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -43,7 +40,7 @@ export const useConversations = (userId: string): UseConversationsResult => {
         try {
             setLoading(true);
             setError(null);
-            const data = await conversationApi.findAllByUserId(userId);
+            const data = await conversationApi.findAll();
             setConversations(data);
         } catch (err) {
             setError(
@@ -55,7 +52,7 @@ export const useConversations = (userId: string): UseConversationsResult => {
         } finally {
             setLoading(false);
         }
-    }, [userId]);
+    }, []);
 
     const refreshConversations = useCallback(async () => {
         await fetchConversations();
@@ -76,10 +73,10 @@ export const useConversations = (userId: string): UseConversationsResult => {
 
 /**
  * Hook to fetch conversation details
+ * ✅ No userId parameter needed - JWT token from localStorage is used
  */
 export const useConversationDetail = (
     conversationId: string,
-    userId: string,
 ): UseConversationDetailResult => {
     const [conversation, setConversation] = useState<ConversationView | null>(
         null,
@@ -91,10 +88,8 @@ export const useConversationDetail = (
         try {
             setLoading(true);
             setError(null);
-            const data = await conversationApi.findDetailById(
-                conversationId,
-                userId,
-            );
+            // ✅ conversationApi.findDetailById() uses JWT token from localStorage
+            const data = await conversationApi.findDetailById(conversationId);
             setConversation(data);
         } catch (err) {
             setError(
@@ -106,13 +101,13 @@ export const useConversationDetail = (
         } finally {
             setLoading(false);
         }
-    }, [conversationId, userId]);
+    }, [conversationId]);
 
     useEffect(() => {
-        if (conversationId && userId) {
+        if (conversationId) {
             fetchDetail();
         }
-    }, [conversationId, userId, fetchDetail]);
+    }, [conversationId, fetchDetail]);
 
     return {
         conversation,
@@ -124,10 +119,10 @@ export const useConversationDetail = (
 
 /**
  * Hook for paginated messages in a conversation
+ * ✅ No userId parameter needed - JWT token from localStorage is used
  */
 export const useConversationMessages = (
     conversationId: string,
-    userId: string,
     pageSize = 30,
 ): UseConversationMessagesResult => {
     const [messages, setMessages] = useState<MessageDetail[]>([]);
@@ -139,16 +134,16 @@ export const useConversationMessages = (
     const cursorRef = useRef<string | undefined>(undefined);
 
     const loadMessages = useCallback(async () => {
-        if (!conversationId || !userId) return;
+        if (!conversationId) return;
 
         try {
             setIsLoading(true);
             setError(null);
             cursorRef.current = undefined;
 
+            // ✅ conversationApi.getMessagesByConversation() uses JWT token from localStorage
             const result = await conversationApi.getMessagesByConversation({
                 conversationId,
-                userId,
                 cursor: undefined,
                 limit: pageSize,
             });
@@ -165,11 +160,10 @@ export const useConversationMessages = (
         } finally {
             setIsLoading(false);
         }
-    }, [conversationId, userId, pageSize]);
+    }, [conversationId, pageSize]);
 
     const loadMoreMessages = useCallback(async () => {
-        if (!conversationId || !userId || !cursorRef.current || isLoading)
-            return;
+        if (!conversationId || !cursorRef.current || isLoading) return;
 
         try {
             setIsLoading(true);
@@ -177,7 +171,6 @@ export const useConversationMessages = (
 
             const result = await conversationApi.getMessagesByConversation({
                 conversationId,
-                userId,
                 cursor: cursorRef.current,
                 limit: pageSize,
             });
@@ -196,14 +189,14 @@ export const useConversationMessages = (
         } finally {
             setIsLoading(false);
         }
-    }, [conversationId, userId, pageSize, isLoading]);
+    }, [conversationId, pageSize, isLoading]);
 
-    // Load messages whenever conversation or user changes
+    // Load messages whenever conversation changes
     useEffect(() => {
-        if (conversationId && userId) {
+        if (conversationId) {
             loadMessages();
         }
-    }, [conversationId, userId, loadMessages]);
+    }, [conversationId, loadMessages]);
 
     const addMessage = useCallback((message: MessageDetail) => {
         setMessages((prev) => [message, ...prev]);
