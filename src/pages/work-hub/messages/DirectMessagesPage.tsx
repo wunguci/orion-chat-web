@@ -53,8 +53,8 @@ const DirectMessagesPage = () => {
   return (
     <div className="flex-1 flex overflow-hidden">
       {/* DM thread list */}
-      <div className="w-72 border-r border-[var(--wh-green-border-light)] bg-white flex flex-col">
-        <div className="p-4 border-b border-[var(--wh-green-border-light)]">
+      <div className="w-72 border-r border-wh-green-border-light bg-white flex flex-col">
+        <div className="p-4 border-b border-wh-green-border-light">
           <h2 className="font-semibold text-gray-900 mb-3">Direct Messages</h2>
           <div className="relative">
             <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
@@ -63,7 +63,7 @@ const DirectMessagesPage = () => {
               placeholder="Search people..."
               value={searchDm}
               onChange={(e) => setSearchDm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[var(--wh-green-primary)]"
+              className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-wh-green-primary"
             />
           </div>
         </div>
@@ -80,7 +80,7 @@ const DirectMessagesPage = () => {
                 onClick={() => setSelectedThreadId(thread.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 transition-all text-left border-b border-gray-50 ${
                   isActive
-                    ? "bg-[var(--wh-green-bg-light)]"
+                    ? "bg-wh-green-bg-light"
                     : "hover:bg-gray-50"
                 }`}
               >
@@ -129,7 +129,7 @@ const DirectMessagesPage = () => {
                   )}
                 </div>
                 {thread.unreadCount > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-[var(--wh-green-primary)] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-wh-green-primary text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
                     {thread.unreadCount}
                   </span>
                 )}
@@ -146,8 +146,8 @@ const DirectMessagesPage = () => {
         </div>
 
         {/* New DM button */}
-        <div className="p-3 border-t border-[var(--wh-green-border-light)]">
-          <button className="w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed border-[var(--wh-green-border-medium)] text-[var(--wh-green-primary)] rounded-lg hover:bg-[var(--wh-green-bg-light)] transition-colors text-sm font-medium">
+        <div className="p-3 border-t border-wh-green-border-light">
+          <button className="w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-dashed border-wh-green-border-medium text-wh-green-primary rounded-lg hover:bg-wh-green-bg-light transition-colors text-sm font-medium">
             <i className="fas fa-plus text-xs"></i>
             New Message
           </button>
@@ -159,7 +159,7 @@ const DirectMessagesPage = () => {
         {selectedThread ? (
           <>
             {/* Chat header */}
-            <div className="flex items-center justify-between px-6 py-3 border-b border-[var(--wh-green-border-light)]">
+            <div className="flex items-center justify-between px-6 py-3 border-b border-wh-green-border-light">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <img
@@ -232,7 +232,7 @@ const DirectMessagesPage = () => {
                       <div
                         className={`px-4 py-2.5 rounded-2xl text-sm ${
                           isOwn
-                            ? "bg-[var(--wh-green-primary)] text-white rounded-br-md"
+                            ? "bg-wh-green-primary text-white rounded-br-md"
                             : "bg-gray-100 text-gray-800 rounded-bl-md"
                         }`}
                       >
@@ -246,7 +246,7 @@ const DirectMessagesPage = () => {
                         </span>
                         {isOwn && (
                           <i
-                            className={`fas fa-check-double text-[10px] ${msg.isRead ? "text-[var(--wh-green-primary)]" : "text-gray-300"}`}
+                            className={`fas fa-check-double text-[10px] ${msg.isRead ? "text-wh-green-primary" : "text-gray-300"}`}
                           ></i>
                         )}
                       </div>
@@ -258,7 +258,7 @@ const DirectMessagesPage = () => {
 
             {/* Message input */}
             <div className="px-6 pb-4">
-              <div className="flex items-center gap-3 border border-[var(--wh-green-border-medium)] rounded-xl overflow-hidden px-4 py-2 focus-within:ring-2 focus-within:ring-[var(--wh-green-primary)] focus-within:border-transparent">
+              <div className="flex items-center gap-3 border border-wh-green-border-medium rounded-xl overflow-hidden px-4 py-2 focus-within:ring-2 focus-within:ring-wh-green-primary focus-within:border-transparent">
                 <button className="text-gray-400 hover:text-gray-600 transition-colors">
                   <i className="fas fa-paperclip"></i>
                 </button>
@@ -276,7 +276,7 @@ const DirectMessagesPage = () => {
                   <button
                     className={`p-2 rounded-lg transition-colors ${
                       messageInput.trim()
-                        ? "bg-[var(--wh-green-primary)] text-white hover:bg-[var(--wh-green-primary-hover)]"
+                        ? "bg-wh-green-primary text-white hover:bg-wh-green-primary-hover"
                         : "text-gray-300"
                     }`}
                   >
@@ -305,3 +305,4 @@ const DirectMessagesPage = () => {
 };
 
 export default DirectMessagesPage;
+

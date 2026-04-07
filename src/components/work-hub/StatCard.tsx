@@ -9,7 +9,7 @@ interface StatCardProps {
 
 const StatCard = ({ icon, iconColor, value, label, trend, trendDirection }: StatCardProps) => {
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5 transition-all hover:shadow-md hover:border-[var(--wh-green-primary)]">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-5 transition-all hover:shadow-md hover:border-wh-green-primary">
       <div className="flex items-start justify-between mb-3">
         <div
           className="w-11 h-11 rounded-lg flex items-center justify-center"
@@ -37,3 +37,4 @@ const StatCard = ({ icon, iconColor, value, label, trend, trendDirection }: Stat
 };
 
 export default StatCard;
+

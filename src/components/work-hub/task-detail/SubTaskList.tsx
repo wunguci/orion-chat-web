@@ -23,11 +23,11 @@ const SubTaskList = ({ subtasks, onToggle, onDelete, onAdd, maxDepth = 3 }: SubT
             <span>
               {doneCount}/{totalCount} subtasks
             </span>
-            <span className="font-medium text-[var(--wh-green-text-primary)]">{progress}%</span>
+            <span className="font-medium text-wh-green-text-primary">{progress}%</span>
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[var(--wh-green-primary)] rounded-full transition-all"
+              className="h-full bg-wh-green-primary rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -49,7 +49,7 @@ const SubTaskList = ({ subtasks, onToggle, onDelete, onAdd, maxDepth = 3 }: SubT
       {/* Add root subtask */}
       <button
         onClick={() => onAdd(null)}
-        className="mt-2 flex items-center gap-2 text-sm text-[var(--wh-green-text-muted)] hover:text-[var(--wh-green-primary)] py-1.5 px-3 rounded-lg hover:bg-[var(--wh-green-bg-light)] transition-colors"
+        className="mt-2 flex items-center gap-2 text-sm text-wh-green-text-muted hover:text-wh-green-primary py-1.5 px-3 rounded-lg hover:bg-wh-green-bg-light transition-colors"
       >
         <i className="fas fa-plus text-xs"></i>
         Add subtask
@@ -91,7 +91,7 @@ function RenderTree({
           {depth < maxDepth - 1 && (
             <button
               onClick={() => onAdd(st.id)}
-              className="ml-12 text-[11px] text-gray-300 hover:text-[var(--wh-green-text-muted)] py-0.5 transition-colors"
+              className="ml-12 text-[11px] text-gray-300 hover:text-wh-green-text-muted py-0.5 transition-colors"
               style={{ marginLeft: `${36 + depth * 24}px` }}
             >
               <i className="fas fa-plus mr-1"></i>Add child
@@ -122,3 +122,4 @@ function countDone(subtasks: SubTask[]): number {
 }
 
 export default SubTaskList;
+

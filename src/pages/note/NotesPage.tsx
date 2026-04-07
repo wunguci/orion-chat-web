@@ -10,7 +10,7 @@ import { getUser } from "../../utils/token";
 
 const NotesPage: React.FC = () => {
   const user = getUser();
-  const userId = user?.id || "";
+  const userId = user?.userId || user?.id || "";
 
   const [notes, setNotes] = useState<Note[]>([]);
   const [categories, setCategories] = useState<NoteCategory[]>([]);
@@ -28,7 +28,10 @@ const NotesPage: React.FC = () => {
 
   // Load notes và categories từ server
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       try {
@@ -45,11 +48,11 @@ const NotesPage: React.FC = () => {
           setActiveNoteId(notesRes.notes[0].noteId);
         }
       } catch (error) {
-        console.error('Failed to load notes:', error);
+        console.error("Failed to load notes:", error);
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchData();
   }, [userId]);
@@ -72,36 +75,35 @@ const NotesPage: React.FC = () => {
   }, [notes, searchQuery]);
 
   // Update note - debounce cho nội dung, cho tiêu đề/danh mục/ghim tức thì
-  const updateNote = useCallback(
-    (noteId: string, updates: Partial<Note>) => {
-      // Cập nhật local state ngay lập tức
-      setNotes((prev) =>
-        prev.map((n) => (n.noteId === noteId ? { ...n, ...updates } : n)),
-      );
+  const updateNote = useCallback((noteId: string, updates: Partial<Note>) => {
+    // Cập nhật local state ngay lập tức
+    setNotes((prev) =>
+      prev.map((n) => (n.noteId === noteId ? { ...n, ...updates } : n)),
+    );
 
-      // Debounce API call
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = setTimeout(async () => {
-        try {
-          const apiUpdates: Record<string, unknown> = {};
-          if (updates.title !== undefined) apiUpdates.title = updates.title;
-          if (updates.content !== undefined) apiUpdates.content = updates.content;
-          if (updates.categoryId !== undefined) apiUpdates.categoryId = updates.categoryId;
-          if (updates.isPinned !== undefined) apiUpdates.isPinned = updates.isPinned;
+    // Debounce API call
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const apiUpdates: Record<string, unknown> = {};
+        if (updates.title !== undefined) apiUpdates.title = updates.title;
+        if (updates.content !== undefined) apiUpdates.content = updates.content;
+        if (updates.categoryId !== undefined)
+          apiUpdates.categoryId = updates.categoryId;
+        if (updates.isPinned !== undefined)
+          apiUpdates.isPinned = updates.isPinned;
 
-          if (Object.keys(apiUpdates).length > 0) {
-            const updated = await noteService.update(noteId, apiUpdates);
-            setNotes((prev) =>
-              prev.map((n) => (n.noteId === noteId ? updated : n)),
-            );
-          }
-        } catch (error) {
-          console.error("Failed to update note:", error);
+        if (Object.keys(apiUpdates).length > 0) {
+          const updated = await noteService.update(noteId, apiUpdates);
+          setNotes((prev) =>
+            prev.map((n) => (n.noteId === noteId ? updated : n)),
+          );
         }
-      }, 500);
-    },
-    [],
-  );
+      } catch (error) {
+        console.error("Failed to update note:", error);
+      }
+    }, 500);
+  }, []);
 
   // Create note
   const createNote = useCallback(async () => {
@@ -121,13 +123,10 @@ const NotesPage: React.FC = () => {
   }, [categories]);
 
   // Delete note - show confirmation dialog
-  const deleteNote = useCallback(
-    (noteId: string) => {
-      setNoteToDelete(noteId);
-      setDeleteDialogOpen(true);
-    },
-    [],
-  );
+  const deleteNote = useCallback((noteId: string) => {
+    setNoteToDelete(noteId);
+    setDeleteDialogOpen(true);
+  }, []);
 
   // Confirm delete
   const confirmDelete = useCallback(async () => {
@@ -136,7 +135,7 @@ const NotesPage: React.FC = () => {
     try {
       // Find the note to delete for undo
       const noteToRestore = notes.find((n) => n.noteId === noteToDelete);
-      
+
       await noteService.delete(noteToDelete);
       setNotes((prev) => {
         const filtered = prev.filter((n) => n.noteId !== noteToDelete);
@@ -145,12 +144,12 @@ const NotesPage: React.FC = () => {
         }
         return filtered;
       });
-      
+
       // Show undo toast
       if (noteToRestore) {
         setDeletedNote(noteToRestore);
         setShowUndoToast(true);
-        
+
         // Clear previous undo timer
         if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
         // Auto-hide toast after 4 seconds
@@ -158,7 +157,7 @@ const NotesPage: React.FC = () => {
           setShowUndoToast(false);
         }, 4000);
       }
-      
+
       setNoteToDelete(null);
     } catch (error) {
       console.error("Failed to delete note:", error);
@@ -176,17 +175,17 @@ const NotesPage: React.FC = () => {
         content: deletedNote.content,
         categoryId: deletedNote.categoryId,
       });
-      
+
       // Restore pin state if needed
       if (deletedNote.isPinned) {
         await noteService.togglePin(restored.noteId);
         restored.isPinned = true;
       }
-      
+
       setNotes((prev) => [restored, ...prev]);
       setDeletedNote(null);
       setShowUndoToast(false);
-      
+
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     } catch (error) {
       console.error("Failed to restore note:", error);

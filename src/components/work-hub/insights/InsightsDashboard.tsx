@@ -19,23 +19,23 @@ const InsightsDashboard = ({ data }: InsightsDashboardProps) => {
     <div className="space-y-6">
       {/* Summary Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-[var(--wh-green-primary)]">{data.progressPercentage}%</div>
+        <div className="bg-white border border-wh-green-border-light rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-wh-green-primary">{data.progressPercentage}%</div>
           <div className="text-xs text-gray-500 mt-1">Overall Progress</div>
         </div>
-        <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-4 text-center">
+        <div className="bg-white border border-wh-green-border-light rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-gray-800">{data.totalTasks}</div>
           <div className="text-xs text-gray-500 mt-1">Total Tasks</div>
         </div>
-        <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-4 text-center">
+        <div className="bg-white border border-wh-green-border-light rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-green-600">{data.completedTasks}</div>
           <div className="text-xs text-gray-500 mt-1">Completed</div>
         </div>
-        <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-4 text-center">
+        <div className="bg-white border border-wh-green-border-light rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-red-500">{data.overdueTasks}</div>
           <div className="text-xs text-gray-500 mt-1">Overdue</div>
         </div>
-        <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-4 text-center">
+        <div className="bg-white border border-wh-green-border-light rounded-xl p-4 text-center">
           <div className="text-2xl font-bold text-amber-500">{completionRate}%</div>
           <div className="text-xs text-gray-500 mt-1">Completion Rate</div>
         </div>
@@ -63,3 +63,4 @@ const InsightsDashboard = ({ data }: InsightsDashboardProps) => {
 };
 
 export default InsightsDashboard;
+

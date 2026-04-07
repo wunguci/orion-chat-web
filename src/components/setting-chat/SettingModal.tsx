@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   User,
   Lock,
@@ -28,6 +28,16 @@ import ToggleSwitch from "../common/ToggleSwitch";
 import ToggleSwitchButton from "../common/ToggleSwitchButton";
 import SelectionButton from "../common/SelectionButton";
 import Button from "../common/Button";
+import { getUser, saveUserData } from "../../utils/token";
+import { updateUserProfile } from "../../services/userService";
+
+const API_BASE_URL = "http://localhost:3000";
+
+function toAbsoluteMediaUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+}
 
 type TabType =
   | "profile"
@@ -47,9 +57,12 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<TabType>("profile");
   const [formData, setFormData] = useState({
-    displayName: "Huynh Zang",
     username: "@zangthanks",
-    statusMessage: "Working on something cozy",
+    phoneNumber: "",
+    fullName: "",
+    email: "",
+    birthDate: "",
+    gender: "",
     pushNotifications: true,
     readReceipts: true,
     soundEffects: true,
@@ -70,18 +83,147 @@ export default function SettingsModal({
   });
 
   const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<{
+    avatar?: File;
+    cover?: File;
+  }>({});
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Load user data from localStorage on component mount
+  useEffect(() => {
+    const userData = getUser();
+    if (userData) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: userData.fullName || "",
+        phoneNumber: userData.phoneNumber || "",
+        email: userData.email || "",
+        birthDate: userData.birthDate || "",
+        gender: userData.gender || "",
+      }));
+      // Load avatar preview from user data
+      if (userData.avatarUrl) {
+        setAvatarPreview(toAbsoluteMediaUrl(userData.avatarUrl));
+      }
+    }
+  }, []);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
 
-  const handleSave = () => {
-    setHasChanges(false);
+  const handleFileSelect = (type: "avatar" | "cover", file: File) => {
+    setSelectedFiles((prev) => ({ ...prev, [type]: file }));
+    setHasChanges(true);
+
+    // Create preview for avatar
+    if (type === "avatar") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setAvatarPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      // Prepare update data - only profile User fields
+      const updateData = {
+        fullName: formData.fullName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        birthDate: formData.birthDate,
+        gender: formData.gender,
+      };
+
+      console.log("Saving profile with data:", updateData);
+      console.log("Selected files:", selectedFiles);
+      console.log("Calling updateUserProfile...");
+
+      // Call API
+      const result = await updateUserProfile(updateData, selectedFiles);
+
+      console.log("updateUserProfile result:", result);
+
+      // Update localStorage with new user data
+      const userData = getUser();
+      if (userData) {
+        const responseData =
+          result && typeof result === "object" && "data" in result
+            ? (result.data as Record<string, unknown>)
+            : null;
+
+        const avatarUrlFromResponse =
+          responseData && typeof responseData.avatarUrl === "string"
+            ? toAbsoluteMediaUrl(responseData.avatarUrl)
+            : undefined;
+
+        const updatedUser = {
+          ...userData,
+          ...updateData,
+          ...(responseData ?? {}),
+          ...(avatarUrlFromResponse
+            ? { avatarUrl: avatarUrlFromResponse }
+            : {}),
+        };
+        saveUserData(updatedUser);
+
+        if (avatarUrlFromResponse) {
+          setAvatarPreview(avatarUrlFromResponse);
+        }
+      }
+
+      setHasChanges(false);
+      setSelectedFiles({});
+      setSuccessMessage("Profile updated successfully!");
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update profile";
+      setError(errorMessage);
+      console.error("Error updating profile:", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDiscard = () => {
+    // Reload data from localStorage
+    const currentUserData = getUser();
+    if (currentUserData) {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: currentUserData.fullName || "",
+        phoneNumber: currentUserData.phoneNumber || "",
+        email: currentUserData.email || "",
+        birthDate: currentUserData.birthDate || "",
+        gender: currentUserData.gender || "",
+      }));
+    }
     setHasChanges(false);
+    setSelectedFiles({});
+    setError(null);
+    setSuccessMessage(null);
+
+    // Reload avatar preview from user data
+    const userData = getUser();
+    if (userData?.avatarUrl) {
+      setAvatarPreview(toAbsoluteMediaUrl(userData.avatarUrl));
+    }
   };
 
   const tabs = [
@@ -134,15 +276,23 @@ export default function SettingsModal({
               <div className="flex flex-col gap-8">
                 {/* Avatar Upload */}
                 <div className="bg-green-bg-light rounded-2xl p-6 border border-green-border-light flex items-center gap-4">
-                  <div className="w-25 h-25 rounded-full bg-linear-to-br from-green-bg-heavy to-green-border-light flex items-center justify-center text-2xl">
-                    <FontAwesomeIcon
-                      icon={faUser}
-                      className="text-white text-5xl"
-                    />
+                  <div className="w-25 h-25 rounded-full bg-linear-to-br from-green-bg-heavy to-green-border-light flex items-center justify-center text-2xl overflow-hidden">
+                    {avatarPreview ? (
+                      <img
+                        src={avatarPreview}
+                        alt="Avatar preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <FontAwesomeIcon
+                        icon={faUser}
+                        className="text-white text-5xl"
+                      />
+                    )}
                   </div>
                   <div className="flex flex-col gap-2.5">
                     <span className="text-xl font-bold text-gray-primary">
-                      Full Name
+                      {formData.fullName || "Your Name"}
                     </span>
                     <p className="text-sm font-semibold text-gray-primary">
                       JPG, GIF or PNG. Max size of 800K
@@ -150,13 +300,27 @@ export default function SettingsModal({
                     <div className="flex gap-2">
                       <Button
                         icon={<Upload size={20} />}
-                        onClick={() => {}}
+                        onClick={() => avatarInputRef.current?.click()}
                         label="Upload New"
                         type="submit"
                       />
                       <Button label="Remove" type="cancel" />
                     </div>
                   </div>
+
+                  {/* Hidden file inputs */}
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleFileSelect("avatar", file);
+                      }
+                    }}
+                    className="hidden"
+                  />
                 </div>
 
                 {/* Form Fields */}
@@ -164,10 +328,10 @@ export default function SettingsModal({
                   <div className="grid grid-cols-2 gap-6">
                     <InputTextWithLabel
                       label="Display Name"
-                      value={formData.displayName}
+                      value={formData.fullName}
                       placeholder="Enter your display name"
                       handleInputChange={handleInputChange}
-                      fieldName="displayName"
+                      fieldName="fullName"
                     />
                     <InputTextWithLabel
                       label="Username"
@@ -178,13 +342,56 @@ export default function SettingsModal({
                     />
                   </div>
 
-                  <InputTextWithLabel
-                    label="Status Message"
-                    value={formData.statusMessage}
-                    placeholder="Enter your status message"
-                    handleInputChange={handleInputChange}
-                    fieldName="statusMessage"
-                  />
+                  <div className="grid grid-cols-2 gap-6">
+                    <InputTextWithLabel
+                      label="Email"
+                      value={formData.email}
+                      placeholder="Enter your email"
+                      handleInputChange={handleInputChange}
+                      fieldName="email"
+                    />
+                    <InputTextWithLabel
+                      label="Phone Number"
+                      value={formData.phoneNumber}
+                      placeholder="Enter your phone number"
+                      handleInputChange={handleInputChange}
+                      fieldName="phoneNumber"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-semibold text-gray-primary">
+                        Birth Date
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.birthDate}
+                        onChange={(e) =>
+                          handleInputChange("birthDate", e.target.value)
+                        }
+                        className="px-4 py-3 border border-gray-200 rounded-lg text-gray-primary focus:outline-none focus:border-green-primary transition-colors"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-semibold text-gray-primary">
+                        Gender
+                      </label>
+                      <select
+                        value={formData.gender}
+                        onChange={(e) =>
+                          handleInputChange("gender", e.target.value)
+                        }
+                        className="px-4 py-3 border border-gray-200 rounded-lg text-gray-primary focus:outline-none focus:border-green-primary transition-colors"
+                      >
+                        <option value="other">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -230,13 +437,30 @@ export default function SettingsModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-green-border-light">
-              <Button
-                label="Discard Changes"
-                onClick={handleDiscard}
-                type="cancel"
-              />
-              <Button label="Save Changes" onClick={handleSave} />
+            <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+              {error && (
+                <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+              {successMessage && (
+                <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+                  {successMessage}
+                </div>
+              )}
+              <div className="flex justify-end gap-3">
+                <Button
+                  label="Discard Changes"
+                  onClick={handleDiscard}
+                  type="cancel"
+                  disabled={isSaving}
+                />
+                <Button
+                  label={isSaving ? "Saving..." : "Save Changes"}
+                  onClick={handleSave}
+                  disabled={isSaving || !hasChanges}
+                />
+              </div>
             </div>
           </div>
         );
@@ -652,7 +876,7 @@ export default function SettingsModal({
             </div>
 
             {/* Text Size */}
-            <div className="flex flex-col gap-3 items-start w-full">
+            {/* <div className="flex flex-col gap-3 items-start w-full">
               <span className="text-[22px] font-bold text-gray-primary">
                 Text Size
               </span>
@@ -676,7 +900,7 @@ export default function SettingsModal({
                 Adjusting the font size will change the scale all chat text
                 across the app.
               </p>
-            </div>
+            </div> */}
 
             {/* Action Buttons */}
             <div className="flex justify-between items-center pt-5 border-t border-gray-200">

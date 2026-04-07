@@ -12,7 +12,7 @@ const RoleSelector = ({ currentRole, onChange, disabled = false }: RoleSelectorP
       value={currentRole}
       onChange={(e) => onChange(e.target.value as WorkspaceRole)}
       disabled={disabled}
-      className="px-3 py-1.5 text-sm border border-[var(--wh-green-border-light)] rounded-lg bg-white text-gray-700 focus:outline-none focus:border-[var(--wh-green-primary)] disabled:opacity-50 disabled:cursor-not-allowed"
+      className="px-3 py-1.5 text-sm border border-wh-green-border-light rounded-lg bg-white text-gray-700 focus:outline-none focus:border-wh-green-primary disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <option value="owner">Owner</option>
       <option value="admin">Admin</option>
@@ -22,3 +22,4 @@ const RoleSelector = ({ currentRole, onChange, disabled = false }: RoleSelectorP
 };
 
 export default RoleSelector;
+

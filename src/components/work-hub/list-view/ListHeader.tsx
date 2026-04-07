@@ -24,14 +24,14 @@ const ListHeader = ({ sortConfig, onSort }: ListHeaderProps) => {
   const isActive = (field: string) => sortConfig.some((s) => s.field === field);
 
   return (
-    <div className="flex items-center bg-[var(--wh-green-bg-heavy)] px-4 py-2.5 rounded-t-lg border-b border-[var(--wh-green-border-light)]">
+    <div className="flex items-center bg-wh-green-bg-heavy px-4 py-2.5 rounded-t-lg border-b border-wh-green-border-light">
       {columns.map((col) => (
         <button
           key={col.field}
           onClick={() => onSort(col.field)}
           className={`${col.width} flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
             isActive(col.field)
-              ? "text-[var(--wh-green-primary)]"
+              ? "text-wh-green-primary"
               : "text-gray-500 hover:text-gray-700"
           }`}
         >
@@ -44,3 +44,4 @@ const ListHeader = ({ sortConfig, onSort }: ListHeaderProps) => {
 };
 
 export default ListHeader;
+

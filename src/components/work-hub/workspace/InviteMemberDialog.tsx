@@ -41,7 +41,7 @@ const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogPro
               onClick={() => { setActiveTab(tab.id); setInputValue(""); }}
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? "bg-[var(--wh-green-primary)] text-white"
+                  ? "bg-wh-green-primary text-white"
                   : "text-gray-600 hover:text-gray-800"
               }`}
             >
@@ -54,14 +54,14 @@ const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogPro
         {/* Input */}
         {activeTab === "link" ? (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 p-3 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg">
-              <i className="fas fa-link text-[var(--wh-green-text-muted)]"></i>
+            <div className="flex items-center gap-2 p-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg">
+              <i className="fas fa-link text-wh-green-text-muted"></i>
               <span className="text-sm text-gray-600 flex-1 truncate">
                 https://orion.chat/invite/ws1-abc123
               </span>
               <button
                 onClick={() => navigator.clipboard?.writeText("https://orion.chat/invite/ws1-abc123")}
-                className="text-xs text-[var(--wh-green-primary)] hover:text-[var(--wh-green-primary-hover)] font-medium"
+                className="text-xs text-wh-green-primary hover:text-wh-green-primary-hover font-medium"
               >
                 <i className="fas fa-copy mr-1"></i>Copy
               </button>
@@ -77,12 +77,12 @@ const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogPro
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={placeholders[activeTab]}
-              className="w-full px-4 py-3 bg-[var(--wh-green-bg-light)] border border-[var(--wh-green-border-light)] rounded-lg text-sm text-gray-900 focus:outline-none focus:border-[var(--wh-green-primary)] focus:ring-2 focus:ring-[var(--wh-green-primary)]/20"
+              className="w-full px-4 py-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-sm text-gray-900 focus:outline-none focus:border-wh-green-primary focus:ring-2 focus:ring-wh-green-primary/20"
             />
             <button
               onClick={handleInvite}
               disabled={!inputValue.trim()}
-              className="w-full px-4 py-2.5 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full px-4 py-2.5 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <i className="fas fa-paper-plane"></i>
               Send Invite
@@ -95,3 +95,4 @@ const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogPro
 };
 
 export default InviteMemberDialog;
+

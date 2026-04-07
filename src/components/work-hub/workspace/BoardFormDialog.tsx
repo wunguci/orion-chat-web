@@ -80,7 +80,7 @@ const BoardFormDialog = ({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Enter board name..."
-            className="w-full px-4 py-2.5 border border-[var(--wh-green-border-light)] rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] focus:ring-2 focus:ring-[var(--wh-green-primary)]/20"
+            className="w-full px-4 py-2.5 border border-wh-green-border-light rounded-lg text-sm focus:outline-none focus:border-wh-green-primary focus:ring-2 focus:ring-wh-green-primary/20"
           />
         </div>
 
@@ -93,7 +93,7 @@ const BoardFormDialog = ({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe this board..."
             rows={3}
-            className="w-full px-4 py-2.5 border border-[var(--wh-green-border-light)] rounded-lg text-sm focus:outline-none focus:border-[var(--wh-green-primary)] resize-none"
+            className="w-full px-4 py-2.5 border border-wh-green-border-light rounded-lg text-sm focus:outline-none focus:border-wh-green-primary resize-none"
           />
         </div>
 
@@ -125,7 +125,7 @@ const BoardFormDialog = ({
                 onClick={() => setIcon(ic.value)}
                 className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
                   icon === ic.value
-                    ? "bg-[var(--wh-green-primary)] text-white"
+                    ? "bg-wh-green-primary text-white"
                     : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                 }`}
                 title={ic.label}
@@ -147,7 +147,7 @@ const BoardFormDialog = ({
         <button
           onClick={handleSubmit}
           disabled={!name.trim()}
-          className="px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--wh-green-primary-hover)] transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors disabled:opacity-50"
         >
           {board ? "Update Board" : "Create Board"}
         </button>
@@ -157,3 +157,4 @@ const BoardFormDialog = ({
 };
 
 export default BoardFormDialog;
+

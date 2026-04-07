@@ -9,7 +9,7 @@ const WorkHubLayout = () => {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--wh-green-bg-light)]">
+    <div className="flex h-screen overflow-hidden bg-wh-green-bg-light">
       <SideBarWorkHub workspaceId={workspaceId} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Outlet />
@@ -19,3 +19,4 @@ const WorkHubLayout = () => {
 };
 
 export default WorkHubLayout;
+

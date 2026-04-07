@@ -11,7 +11,7 @@ interface ListViewProps {
 
 const ListView = ({ tasks, sortConfig, onSort, onTaskClick }: ListViewProps) => {
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-lg overflow-hidden">
+    <div className="bg-white border border-wh-green-border-light rounded-lg overflow-hidden">
       <ListHeader sortConfig={sortConfig} onSort={onSort} />
       <div className="max-h-[600px] overflow-y-auto">
         {tasks.length > 0 ? (
@@ -30,3 +30,4 @@ const ListView = ({ tasks, sortConfig, onSort, onTaskClick }: ListViewProps) => 
 };
 
 export default ListView;
+

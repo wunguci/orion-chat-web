@@ -13,8 +13,11 @@ import { FaUsers, FaBrain } from "react-icons/fa";
 import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
-import SettingsModal from "../setting-chat/SettingModal";
-import { useState } from "react";
+import SettingsModal from "../settings/SettingsModal";
+import { useState, useEffect } from "react";
+import ProfileModal from "../friend/ProfileModal";
+import type { User } from "../../types/user";
+import { getUser } from "../../utils/token";
 
 type ViewMode =
   | "chat"
@@ -33,17 +36,28 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Helper function để check active view dựa trên URL
+  const API_BASE_URL = "http://localhost:3000";
+
+  useEffect(() => {
+    const userData = getUser();
+    if (userData) {
+      setCurrentUser(userData);
+    }
+  }, []);
+
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  // Mock user data
-  const currentUser = {
-    name: "Trần Vũ",
-    avatar: undefined, // Hoặc URL ảnh thật
-    status: "online" as const,
+  const getAvatarUrl = (avatarPath?: string): string | undefined => {
+    if (!avatarPath) return undefined;
+    if (avatarPath.startsWith("http")) return avatarPath;
+
+    const fullUrl = `${API_BASE_URL}${avatarPath}`;
+
+    return fullUrl;
   };
 
   return (
@@ -56,11 +70,11 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
         {/* User Avatar */}
         <div className="mb-8">
           <Avatar
-            src={currentUser.avatar}
-            alt={currentUser.name}
+            src={getAvatarUrl(currentUser?.avatarUrl)}
+            alt={currentUser?.fullName || "User"}
             size="md"
-            status={currentUser.status}
-            onClick={() => console.log("Avatar clicked - navigate to profile")}
+            status={currentUser?.isOnline ? "online" : "offline"}
+            onClick={() => {}}
             className="cursor-pointer hover:opacity-80 transition-opacity"
           />
         </div>

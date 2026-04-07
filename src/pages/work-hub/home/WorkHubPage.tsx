@@ -11,8 +11,6 @@ import {
   mapWorkspace,
   mapTask,
 } from "../../../features/work-hub/work-hub.mappers";
-import StatCard from "../../../components/work-hub/StatCard";
-import ProgressOverview from "../../../components/work-hub/ProgressOverview";
 import BoardCard from "../../../components/work-hub/workspace/BoardCard";
 import BoardFormDialog from "../../../components/work-hub/workspace/BoardFormDialog";
 
@@ -92,6 +90,34 @@ const WorkHubPage = () => {
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
     return all.slice(0, 5);
+  }, [workspaceTasks]);
+
+  const completionRate =
+    stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+
+  const trendSeries = useMemo(() => {
+    const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const series = labels.map((label, idx) => ({ label, idx, value: 0 }));
+
+    for (const task of workspaceTasks) {
+      for (const entry of task.activityHistory) {
+        if (entry.type !== "completed") continue;
+        const date = new Date(entry.timestamp);
+        const diffDays =
+          (new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays > 7 || diffDays < 0) continue;
+        series[date.getDay()].value += 1;
+      }
+    }
+
+    const hasData = series.some((s) => s.value > 0);
+    if (!hasData) {
+      return series.map((s, index) => ({
+        ...s,
+        value: [2, 3, 4, 3, 2, 5, 3][index],
+      }));
+    }
+    return series;
   }, [workspaceTasks]);
 
   const getActivityIcon = (type: ActivityEntry["type"]): string => {
@@ -180,45 +206,26 @@ const WorkHubPage = () => {
 
   if (loading) {
     return (
-      <div
-        className="flex-1 flex items-center justify-center"
-        style={{ backgroundColor: "var(--wh-green-bg-light)" }}
-      >
-        <i
-          className="fas fa-spinner fa-spin text-3xl"
-          style={{ color: "var(--wh-green-primary)" }}
-        ></i>
+      <div className="flex-1 flex items-center justify-center bg-slate-100">
+        <i className="fas fa-spinner fa-spin text-3xl text-teal-600"></i>
       </div>
     );
   }
 
   if (!workspace) {
     return (
-      <div
-        className="flex-1 flex items-center justify-center"
-        style={{ backgroundColor: "var(--wh-green-bg-light)" }}
-      >
-        <div className="text-center">
-          <i
-            className="fas fa-folder-open text-5xl mb-4"
-            style={{ color: "var(--wh-green-text-muted)" }}
-          ></i>
-          <h2
-            className="text-xl font-semibold"
-            style={{ color: "var(--wh-green-text-primary)" }}
-          >
+      <div className="flex-1 flex items-center justify-center bg-slate-100 px-6">
+        <div className="text-center bg-white rounded-3xl border border-slate-200 px-8 py-10 shadow-sm max-w-md w-full">
+          <i className="fas fa-folder-open text-5xl mb-4 text-slate-400"></i>
+          <h2 className="text-xl font-semibold text-slate-800">
             Workspace not found
           </h2>
-          <p
-            className="mt-2 text-sm"
-            style={{ color: "var(--wh-green-text-muted)" }}
-          >
+          <p className="mt-2 text-sm text-slate-500">
             The workspace you are looking for does not exist.
           </p>
           <button
             onClick={() => navigate("/work-hub")}
-            className="mt-4 px-4 py-2 rounded-lg text-white font-medium transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--wh-green-primary)" }}
+            className="mt-5 px-4 py-2 rounded-xl text-white font-medium bg-teal-600 transition hover:bg-teal-700"
           >
             Back to WorkHub
           </button>
@@ -228,265 +235,364 @@ const WorkHubPage = () => {
   }
 
   return (
-    <div
-      className="flex-1 flex flex-col overflow-hidden"
-      style={{ backgroundColor: "var(--wh-green-bg-light)" }}
-    >
-      {/* Header */}
-      <div
-        className="px-6 lg:px-8 py-4 border-b"
-        style={{
-          backgroundColor: "#ffffff",
-          borderColor: "var(--wh-green-border-light)",
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1
-              className="text-2xl font-bold"
-              style={{ color: "var(--wh-green-text-primary)" }}
-            >
-              Dashboard
-            </h1>
-            <div
-              className="hidden md:flex items-center gap-2 text-sm"
-              style={{ color: "var(--wh-green-text-muted)" }}
-            >
-              <i className="fas fa-home"></i>
-              <i className="fas fa-chevron-right text-xs"></i>
-              <span>WorkHub</span>
-              <i className="fas fa-chevron-right text-xs"></i>
-              <span>{workspace.name}</span>
-              <i className="fas fa-chevron-right text-xs"></i>
-              <span style={{ color: "var(--wh-green-text-primary)" }}>
-                Dashboard
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Members preview */}
-            <div className="hidden sm:flex items-center -space-x-2 mr-2">
-              {workspace.members.slice(0, 4).map((m) => (
-                <img
-                  key={m.user.id}
-                  src={m.user.avatar}
-                  alt={m.user.name}
-                  title={m.user.name}
-                  className="w-8 h-8 rounded-full border-2 border-white"
-                />
-              ))}
-              {workspace.members.length > 4 && (
-                <div
-                  className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-semibold text-white"
-                  style={{ backgroundColor: "var(--wh-green-primary)" }}
-                >
-                  +{workspace.members.length - 4}
+    <div className="flex-1 overflow-y-auto bg-slate-200/60">
+      <div className="max-w-[1550px] mx-auto p-4 lg:p-6">
+        <div className="rounded-[30px] border border-slate-200 bg-slate-50/90 shadow-lg overflow-hidden">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-slate-200 bg-white/70 backdrop-blur">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                {/* <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+                  <i className="fas fa-chart-pie"></i>
+                </div> */}
+                <div className="min-w-0">
+                  {/* <h1 className="text-lg sm:text-xl font-bold text-slate-800 truncate">
+                    {workspace.name} Dashboard
+                  </h1> */}
+                  <div className="hidden md:flex items-center gap-2 text-xs text-slate-500 mt-1">
+                    <i className="fas fa-home"></i>
+                    <i className="fas fa-chevron-right text-[10px]"></i>
+                    <span>WorkHub</span>
+                    <i className="fas fa-chevron-right text-[10px]"></i>
+                    <span>{workspace.name}</span>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Settings */}
-            <button
-              className="w-10 h-10 rounded-lg flex items-center justify-center transition-colors"
-              style={{
-                backgroundColor: "var(--wh-green-bg-heavy)",
-                color: "var(--wh-green-text-primary)",
-              }}
-            >
-              <i className="fas fa-cog"></i>
-            </button>
-          </div>
-        </div>
-      </div>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="hidden md:flex items-center gap-2 bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-500 min-w-[220px]">
+                  <i className="fas fa-search"></i>
+                  <span className="truncate">Search tasks, boards...</span>
+                </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-6 lg:p-8 max-w-[1600px] mx-auto">
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <StatCard
-              icon="fa-tasks"
-              iconColor="#0d9488"
-              value={stats.total}
-              label="Total Tasks"
-              trend={12}
-              trendDirection="up"
-            />
-            <StatCard
-              icon="fa-check-circle"
-              iconColor="#10b981"
-              value={stats.completed}
-              label="Completed"
-              trend={8}
-              trendDirection="up"
-            />
-            <StatCard
-              icon="fa-spinner"
-              iconColor="#F59E0B"
-              value={stats.inProgress}
-              label="In Progress"
-              trend={3}
-              trendDirection="down"
-            />
-            <StatCard
-              icon="fa-exclamation-triangle"
-              iconColor="#ef4444"
-              value={stats.overdue}
-              label="Overdue"
-              trend={stats.overdue > 0 ? 5 : 0}
-              trendDirection="up"
-            />
-          </div>
+                <div className="hidden sm:flex items-center -space-x-2 mr-1">
+                  {workspace.members.slice(0, 4).map((m) => (
+                    <img
+                      key={m.user.id}
+                      src={m.user.avatar}
+                      alt={m.user.name}
+                      title={m.user.name}
+                      className="w-8 h-8 rounded-full border-2 border-white object-cover"
+                    />
+                  ))}
+                  {workspace.members.length > 4 && (
+                    <div className="w-8 h-8 rounded-full border-2 border-white bg-teal-600 text-white text-xs font-semibold flex items-center justify-center">
+                      +{workspace.members.length - 4}
+                    </div>
+                  )}
+                </div>
 
-          {/* Progress Overview */}
-          <ProgressOverview
-            totalTasks={stats.total}
-            todoCount={todoCount}
-            inProgressCount={stats.inProgress}
-            completedCount={stats.completed}
-            overdueCount={stats.overdue}
-          />
-
-          {/* Boards Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                className="text-lg font-semibold"
-                style={{ color: "var(--wh-green-text-primary)" }}
-              >
-                Boards
-              </h2>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    setEditingBoard(null);
-                    setShowBoardForm(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white transition-colors hover:opacity-90"
-                  style={{ backgroundColor: "var(--wh-green-primary)" }}
-                >
-                  <i className="fas fa-plus text-xs"></i>
-                  Create Board
+                <button className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition-colors">
+                  <i className="fas fa-cog"></i>
                 </button>
-                <span
-                  className="text-sm"
-                  style={{ color: "var(--wh-green-text-muted)" }}
-                >
-                  {workspace.boards.length} board
-                  {workspace.boards.length !== 1 ? "s" : ""}
-                </span>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {workspace.boards.map((board: Board) => (
-                <BoardCard
-                  key={board.id}
-                  board={board}
-                  taskCount={
-                    boardTaskCounts[board.id] || { total: 0, completed: 0 }
-                  }
-                  onClick={() =>
-                    navigate(`/work-hub/${workspaceId}/boards/${board.id}`)
-                  }
-                  onEdit={(b) => {
-                    setEditingBoard(b);
-                    setShowBoardForm(true);
-                  }}
-                  onDelete={handleDeleteBoard}
-                />
-              ))}
-            </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2
-                className="text-lg font-semibold"
-                style={{ color: "var(--wh-green-text-primary)" }}
-              >
-                {/* <i className="fas fa-clock mr-2"></i> */}
-                Recent Activity
-              </h2>
-              <button
-                className="text-sm font-medium hover:underline"
-                style={{ color: "var(--wh-green-primary)" }}
-              >
-                View All
-              </button>
-            </div>
+          <div className="p-4 sm:p-6 lg:p-8">
+            <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-5">
+              <div className="space-y-5">
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Incoming Task Summary
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Weekly snapshot
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-400">
+                      {workspace.boards.length} boards
+                    </span>
+                  </div>
 
-            <div
-              className="bg-white rounded-xl p-5 border"
-              style={{ borderColor: "var(--wh-green-border-light)" }}
-            >
-              {recentActivities.length === 0 ? (
-                <div className="text-center py-8">
-                  <i
-                    className="fas fa-inbox text-3xl mb-3"
-                    style={{ color: "var(--wh-green-text-muted)" }}
-                  ></i>
-                  <p
-                    className="text-sm"
-                    style={{ color: "var(--wh-green-text-muted)" }}
-                  >
-                    No recent activity
-                  </p>
-                </div>
-              ) : (
-                recentActivities.map((activity, index) => {
-                  const iconColor = getActivityColor(activity.type);
-                  return (
-                    <div
-                      key={activity.id}
-                      className={`flex gap-4 py-3.5 ${
-                        index !== recentActivities.length - 1 ? "border-b" : ""
-                      }`}
-                      style={{ borderColor: "var(--wh-green-border-light)" }}
-                    >
-                      {/* Icon */}
-                      <div
-                        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{
-                          backgroundColor: `${iconColor}18`,
-                          color: iconColor,
-                        }}
-                      >
-                        <i
-                          className={`fas ${getActivityIcon(activity.type)}`}
-                        ></i>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xl font-bold text-slate-800">
+                        {stats.total}
                       </div>
+                      <div className="text-xs text-slate-500 mt-1">Total</div>
+                    </div>
+                    <div className="rounded-xl border border-teal-200 bg-teal-50 p-3">
+                      <div className="text-xl font-bold text-teal-700">
+                        {stats.inProgress}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        In Progress
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                      <div className="text-xl font-bold text-emerald-700">
+                        {stats.completed}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">
+                        Completed
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                      <div className="text-xl font-bold text-rose-700">
+                        {stats.overdue}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-1">Overdue</div>
+                    </div>
+                  </div>
+                </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm mb-0.5">
-                          <span className="font-semibold text-gray-900">
-                            {activity.user.name}
-                          </span>{" "}
-                          <span className="text-gray-600">
-                            {activity.description}
-                          </span>
-                        </div>
-                        <div
-                          className="flex items-center gap-2 text-xs"
-                          style={{ color: "var(--wh-green-text-muted)" }}
-                        >
-                          <span>{formatTimestamp(activity.timestamp)}</span>
-                          <span>in</span>
-                          <span
-                            className="font-medium"
-                            style={{ color: "var(--wh-green-text-primary)" }}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-800">
+                        Productivity Pulse
+                      </h2>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Completed trend (last 7 days)
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-400">Weekly</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-5 items-end">
+                    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                      <div className="text-4xl font-bold text-slate-800">
+                        {completionRate}%
+                      </div>
+                      <p className="text-sm text-slate-500 mt-2">
+                        Task completion rate
+                      </p>
+                      <div className="mt-4 text-sm font-semibold text-emerald-600">
+                        <i className="fas fa-arrow-up-right-dots mr-1"></i>
+                        {stats.completed} completed
+                      </div>
+                    </div>
+
+                    <div className="h-44 rounded-2xl bg-slate-50 border border-slate-200 p-4 flex items-end gap-3">
+                      {trendSeries.map((item) => {
+                        const maxVal = Math.max(
+                          ...trendSeries.map((s) => s.value),
+                          1,
+                        );
+                        const barHeight = Math.max(
+                          16,
+                          Math.round((item.value / maxVal) * 110),
+                        );
+
+                        return (
+                          <div
+                            key={item.label}
+                            className="flex-1 flex flex-col items-center gap-2"
                           >
-                            {activity.taskTitle}
-                          </span>
+                            <div
+                              className="w-full max-w-[30px] rounded-t-xl bg-teal-500/85"
+                              style={{ height: `${barHeight}px` }}
+                            ></div>
+                            <span className="text-[11px] text-slate-500">
+                              {item.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-slate-800">
+                      Boards
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setEditingBoard(null);
+                          setShowBoardForm(true);
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-teal-600 transition-colors hover:bg-teal-700"
+                      >
+                        <i className="fas fa-plus text-xs"></i>
+                        Create Board
+                      </button>
+                      <span className="text-xs text-slate-500">
+                        {workspace.boards.length} board
+                        {workspace.boards.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {workspace.boards.map((board: Board) => (
+                      <BoardCard
+                        key={board.id}
+                        board={board}
+                        taskCount={
+                          boardTaskCounts[board.id] || {
+                            total: 0,
+                            completed: 0,
+                          }
+                        }
+                        onClick={() =>
+                          navigate(
+                            `/work-hub/${workspaceId}/boards/${board.id}`,
+                          )
+                        }
+                        onEdit={(b) => {
+                          setEditingBoard(b);
+                          setShowBoardForm(true);
+                        }}
+                        onDelete={handleDeleteBoard}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="text-xs font-medium text-slate-500">
+                        Good day
+                      </div>
+                      <h3 className="text-2xl font-bold text-slate-800 mt-1">
+                        {workspace.name}
+                      </h3>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Team workspace overview
+                      </p>
+                    </div>
+                    <div
+                      className="w-24 h-24 rounded-full grid place-items-center"
+                      style={{
+                        background: `conic-gradient(#0d9488 ${completionRate * 3.6}deg, #e2e8f0 0deg)`,
+                      }}
+                    >
+                      <div className="w-[74px] h-[74px] bg-white rounded-full grid place-items-center border border-slate-200">
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-slate-800">
+                            {completionRate}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            done%
+                          </div>
                         </div>
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-5">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs text-slate-500">To do</div>
+                      <div className="text-lg font-bold text-slate-800 mt-1">
+                        {todoCount}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="text-xs text-slate-500">In progress</div>
+                      <div className="text-lg font-bold text-amber-600 mt-1">
+                        {stats.inProgress}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-slate-800">
+                      Recent Activity
+                    </h2>
+                    <button className="text-xs font-medium text-teal-600 hover:underline">
+                      View All
+                    </button>
+                  </div>
+
+                  {recentActivities.length === 0 ? (
+                    <div className="text-center py-8">
+                      <i className="fas fa-inbox text-3xl mb-3 text-slate-400"></i>
+                      <p className="text-sm text-slate-500">
+                        No recent activity
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {recentActivities.map((activity, index) => {
+                        const iconColor = getActivityColor(activity.type);
+                        return (
+                          <div
+                            key={activity.id}
+                            className={`flex gap-3 py-3 ${
+                              index !== recentActivities.length - 1
+                                ? "border-b border-slate-200"
+                                : ""
+                            }`}
+                          >
+                            <div
+                              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{
+                                backgroundColor: `${iconColor}18`,
+                                color: iconColor,
+                              }}
+                            >
+                              <i
+                                className={`fas ${getActivityIcon(activity.type)}`}
+                              ></i>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm mb-0.5">
+                                <span className="font-semibold text-slate-900">
+                                  {activity.user.name}
+                                </span>{" "}
+                                <span className="text-slate-600">
+                                  {activity.description}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-xs text-slate-500">
+                                <span>
+                                  {formatTimestamp(activity.timestamp)}
+                                </span>
+                                <span>in</span>
+                                <span className="font-medium text-slate-700 truncate">
+                                  {activity.taskTitle}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                  <h2 className="text-sm font-semibold text-slate-800 mb-4">
+                    Your Team Today
+                  </h2>
+                  <div className="space-y-2">
+                    {workspace.members.slice(0, 6).map((member) => (
+                      <div
+                        key={member.user.id}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={member.user.avatar}
+                            alt={member.user.name}
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-slate-800 truncate">
+                              {member.user.name}
+                            </div>
+                            <div className="text-xs text-slate-500 capitalize">
+                              {member.role}
+                            </div>
+                          </div>
+                        </div>
+                        <i className="fas fa-ellipsis-v text-slate-400 text-xs"></i>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

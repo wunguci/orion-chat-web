@@ -13,7 +13,7 @@ const typeIcons: Record<string, string> = {
 
 const RiskAlertsList = ({ alerts }: RiskAlertsListProps) => {
   return (
-    <div className="bg-white border border-[var(--wh-green-border-light)] rounded-xl p-5">
+    <div className="bg-white border border-wh-green-border-light rounded-xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-800">
           <i className="fas fa-exclamation-triangle mr-2 text-amber-500"></i>
@@ -73,3 +73,4 @@ const RiskAlertsList = ({ alerts }: RiskAlertsListProps) => {
 };
 
 export default RiskAlertsList;
+

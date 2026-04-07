@@ -1,36 +1,169 @@
-import { useState } from "react";
-import { MOCK_FILES, MOCK_STORAGE_STATS } from "../../../data/work-hub-mock";
+import { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import { workHubApi } from "../../../features/work-hub/work-hub.api";
+import { mapWorkspaceFile } from "../../../features/work-hub/work-hub.mappers";
 import type { FileItem } from "../../../types/work-hub.types";
 
 const FilesPage = () => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [breadcrumbs, setBreadcrumbs] = useState<
+    { id: string | null; name: string }[]
+  >([{ id: null, name: "Files" }]);
   const [search, setSearch] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const allFiles = MOCK_FILES;
-  const stats = MOCK_STORAGE_STATS;
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadUrl, setUploadUrl] = useState("");
+  const [uploadMimeType, setUploadMimeType] = useState("");
+  const [uploadSize, setUploadSize] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    fileId: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
-  // Flatten to get files in current folder
-  const getCurrentFiles = (): FileItem[] => {
-    if (currentFolderId === null) {
-      return allFiles.filter((f) => f.parentId === null);
+  const fetchFiles = useCallback(
+    async (parentId?: string | null) => {
+      if (!workspaceId) return;
+      try {
+        setLoading(true);
+        const res = await workHubApi.getWorkspaceFiles(
+          workspaceId,
+          parentId ?? undefined,
+        );
+        const mapped = (res ?? []).map(mapWorkspaceFile);
+        setFiles(mapped);
+      } catch (err) {
+        console.error("Failed to fetch files:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [workspaceId],
+  );
+
+  useEffect(() => {
+    fetchFiles(currentFolderId);
+  }, [fetchFiles, currentFolderId]);
+
+  // Close context menu on outside click
+  useEffect(() => {
+    const handleClick = () => setContextMenu(null);
+    if (contextMenu) {
+      document.addEventListener("click", handleClick);
+      return () => document.removeEventListener("click", handleClick);
     }
-    const folder = allFiles.find((f) => f.id === currentFolderId);
-    return folder?.children || [];
+  }, [contextMenu]);
+
+  const navigateToFolder = (folderId: string, folderName: string) => {
+    setCurrentFolderId(folderId);
+    setSelectedFiles([]);
+    setBreadcrumbs((prev) => [...prev, { id: folderId, name: folderName }]);
   };
 
-  const currentFiles = getCurrentFiles().filter((f) =>
+  const navigateToBreadcrumb = (bcId: string | null, bcIndex: number) => {
+    setCurrentFolderId(bcId);
+    setSelectedFiles([]);
+    setBreadcrumbs((prev) => prev.slice(0, bcIndex + 1));
+  };
+
+  const handleCreateFolder = async () => {
+    if (!workspaceId || !newFolderName.trim()) return;
+    try {
+      setCreatingFolder(true);
+      await workHubApi.createWorkspaceFolder(workspaceId, {
+        name: newFolderName.trim(),
+        parentId: currentFolderId ?? undefined,
+      });
+      setShowNewFolderModal(false);
+      setNewFolderName("");
+      await fetchFiles(currentFolderId);
+    } catch (err) {
+      console.error("Failed to create folder:", err);
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const handleUploadFile = async () => {
+    if (!workspaceId || !uploadName.trim()) return;
+    try {
+      setUploading(true);
+      await workHubApi.createWorkspaceFile(workspaceId, {
+        name: uploadName.trim(),
+        mimeType: uploadMimeType || undefined,
+        size: uploadSize ? Number(uploadSize) : undefined,
+        url: uploadUrl || undefined,
+        parentId: currentFolderId ?? undefined,
+      });
+      setShowUploadModal(false);
+      setUploadName("");
+      setUploadUrl("");
+      setUploadMimeType("");
+      setUploadSize("");
+      await fetchFiles(currentFolderId);
+    } catch (err) {
+      console.error("Failed to upload file:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      await workHubApi.deleteWorkspaceFile(fileId);
+      setFiles((prev) => prev.filter((f) => f.id !== fileId));
+      setSelectedFiles((prev) => prev.filter((id) => id !== fileId));
+    } catch (err) {
+      console.error("Failed to delete file:", err);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      await Promise.all(
+        selectedFiles.map((id) => workHubApi.deleteWorkspaceFile(id)),
+      );
+      setSelectedFiles([]);
+      await fetchFiles(currentFolderId);
+    } catch (err) {
+      console.error("Failed to delete files:", err);
+    }
+  };
+
+  const handleRename = async () => {
+    if (!renameTarget || !renameTarget.name.trim()) return;
+    try {
+      await workHubApi.updateWorkspaceFile(renameTarget.id, {
+        name: renameTarget.name.trim(),
+      });
+      setRenameTarget(null);
+      await fetchFiles(currentFolderId);
+    } catch (err) {
+      console.error("Failed to rename file:", err);
+    }
+  };
+
+  const currentFiles = files.filter((f) =>
     f.name.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const breadcrumbs: { id: string | null; name: string }[] = [
-    { id: null, name: "Files" },
-  ];
-  if (currentFolderId) {
-    const folder = allFiles.find((f) => f.id === currentFolderId);
-    if (folder) breadcrumbs.push({ id: folder.id, name: folder.name });
-  }
+  // Compute storage stats from files
+  const totalSize = files.reduce((sum, f) => sum + (f.size || 0), 0);
 
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return bytes + " B";
@@ -66,25 +199,38 @@ const FilesPage = () => {
     );
   };
 
-  const usedPercent = (stats.usedBytes / stats.limitBytes) * 100;
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   return (
-    <div className="flex-1 overflow-auto bg-[var(--wh-green-bg-light)]">
+    <div className="flex-1 overflow-auto bg-wh-green-bg-light">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-white border-b border-[var(--wh-green-border-light)] px-6 py-4">
+      <div className="sticky top-0 z-10 bg-white border-b border-wh-green-border-light px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">Files</h1>
-            <p className="text-sm text-[var(--wh-green-text-muted)]">
+            <p className="text-sm text-wh-green-text-muted">
               Centralized file storage for workspace
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-2 px-3 py-2 border border-[var(--wh-green-border-medium)] text-[var(--wh-green-primary)] rounded-lg hover:bg-[var(--wh-green-bg-light)] transition-colors text-sm font-medium">
+            <button
+              onClick={() => setShowNewFolderModal(true)}
+              className="flex items-center gap-2 px-3 py-2 border border-wh-green-border-medium text-wh-green-primary rounded-lg hover:bg-wh-green-bg-light transition-colors text-sm font-medium"
+            >
               <i className="fas fa-folder-plus"></i>
               New Folder
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[var(--wh-green-primary)] text-white rounded-lg hover:bg-[var(--wh-green-primary-hover)] transition-colors text-sm font-medium">
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors text-sm font-medium"
+            >
               <i className="fas fa-cloud-upload-alt"></i>
               Upload
             </button>
@@ -100,7 +246,7 @@ const FilesPage = () => {
                   <i className="fas fa-chevron-right text-gray-300 text-xs"></i>
                 )}
                 <button
-                  onClick={() => setCurrentFolderId(bc.id)}
+                  onClick={() => navigateToBreadcrumb(bc.id, idx)}
                   className={`px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors ${
                     idx === breadcrumbs.length - 1
                       ? "text-gray-900 font-medium"
@@ -108,7 +254,7 @@ const FilesPage = () => {
                   }`}
                 >
                   {idx === 0 && (
-                    <i className="fas fa-hdd mr-1.5 text-[var(--wh-green-primary)]"></i>
+                    <i className="fas fa-hdd mr-1.5 text-wh-green-primary"></i>
                   )}
                   {bc.name}
                 </button>
@@ -125,7 +271,7 @@ const FilesPage = () => {
                 placeholder="Search files..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 border border-[var(--wh-green-border-medium)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--wh-green-primary)] focus:border-transparent w-56"
+                className="pl-9 pr-4 py-2 border border-wh-green-border-medium rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent w-56"
               />
             </div>
 
@@ -133,13 +279,13 @@ const FilesPage = () => {
             <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "grid" ? "bg-white text-[var(--wh-green-primary)] shadow-sm" : "text-gray-400"}`}
+                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "grid" ? "bg-white text-wh-green-primary shadow-sm" : "text-gray-400"}`}
               >
                 <i className="fas fa-th-large"></i>
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "list" ? "bg-white text-[var(--wh-green-primary)] shadow-sm" : "text-gray-400"}`}
+                className={`p-1.5 rounded-md text-sm transition-colors ${viewMode === "list" ? "bg-white text-wh-green-primary shadow-sm" : "text-gray-400"}`}
               >
                 <i className="fas fa-list"></i>
               </button>
@@ -148,212 +294,447 @@ const FilesPage = () => {
         </div>
       </div>
 
-      <div className="p-6">
-        {/* Storage bar */}
-        <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] p-4 mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">
-              Storage Usage
-            </span>
-            <span className="text-sm text-gray-500">
-              {formatSize(stats.usedBytes)} / {formatSize(stats.limitBytes)}
-            </span>
-          </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${usedPercent}%`,
-                backgroundColor:
-                  usedPercent > 80
-                    ? "var(--wh-priority-critical)"
-                    : "var(--wh-green-primary)",
-              }}
-            ></div>
+      {/* Loading state */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-3 border-wh-green-primary border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-sm text-gray-500">Loading files...</p>
           </div>
         </div>
+      ) : (
+        <div className="p-6">
+          {/* Storage bar */}
+          <div className="bg-white rounded-xl border border-wh-green-border-light p-4 mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                Current Folder
+              </span>
+              <span className="text-sm text-gray-500">
+                {currentFiles.length} items &middot; {formatSize(totalSize)}{" "}
+                total
+              </span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all bg-wh-green-primary"
+                style={{
+                  width: `${Math.min((totalSize / (5 * 1073741824)) * 100, 100)}%`,
+                }}
+              ></div>
+            </div>
+          </div>
 
-        {/* Selected actions */}
-        {selectedFiles.length > 0 && (
-          <div className="bg-[var(--wh-green-bg-medium)] rounded-xl p-3 mb-4 flex items-center justify-between">
-            <span className="text-sm text-[var(--wh-green-text-primary)] font-medium">
-              {selectedFiles.length} selected
-            </span>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-1.5 text-xs text-gray-600 hover:bg-white rounded-lg transition-colors">
-                <i className="fas fa-download mr-1"></i> Download
+          {/* Selected actions */}
+          {selectedFiles.length > 0 && (
+            <div className="bg-wh-green-bg-medium rounded-xl p-3 mb-4 flex items-center justify-between">
+              <span className="text-sm text-wh-green-text-primary font-medium">
+                {selectedFiles.length} selected
+              </span>
+              <div className="flex items-center gap-2">
+                <button className="px-3 py-1.5 text-xs text-gray-600 hover:bg-white rounded-lg transition-colors">
+                  <i className="fas fa-download mr-1"></i> Download
+                </button>
+                <button className="px-3 py-1.5 text-xs text-gray-600 hover:bg-white rounded-lg transition-colors">
+                  <i className="fas fa-arrows-alt mr-1"></i> Move
+                </button>
+                <button
+                  onClick={handleDeleteSelected}
+                  className="px-3 py-1.5 text-xs text-red-500 hover:bg-white rounded-lg transition-colors"
+                >
+                  <i className="fas fa-trash mr-1"></i> Delete
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* File Grid or List */}
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {currentFiles.map((item) => {
+                const fi = getFileIcon(item);
+                const isSelected = selectedFiles.includes(item.id);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() =>
+                      item.type === "folder"
+                        ? navigateToFolder(item.id, item.name)
+                        : toggleSelect(item.id)
+                    }
+                    className={`bg-white rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md group ${
+                      isSelected
+                        ? "border-wh-green-primary ring-2 ring-wh-green-primary/20"
+                        : "border-wh-green-border-light hover:border-wh-green-border-medium"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <i
+                        className={`fas ${fi.icon} text-2xl`}
+                        style={{ color: fi.color }}
+                      ></i>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setContextMenu({
+                            fileId: item.id,
+                            x: rect.right,
+                            y: rect.bottom,
+                          });
+                        }}
+                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-all p-1 rounded hover:bg-gray-100"
+                      >
+                        <i className="fas fa-ellipsis-v text-xs"></i>
+                      </button>
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 truncate mb-1">
+                      {item.name}
+                    </p>
+                    {item.type === "file" ? (
+                      <p className="text-xs text-gray-400">
+                        {formatSize(item.size || 0)}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-gray-400">Folder</p>
+                    )}
+                    {item.type === "file" && item.uploadedBy && (
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <img
+                          src={item.uploadedBy.avatar}
+                          alt=""
+                          className="w-4 h-4 rounded-full"
+                        />
+                        <span className="text-[11px] text-gray-400">
+                          {item.uploadedBy.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-wh-green-border-light overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
+                    <th className="text-left px-4 py-3 font-semibold">Name</th>
+                    <th className="text-left px-4 py-3 font-semibold">Size</th>
+                    <th className="text-left px-4 py-3 font-semibold">
+                      Uploaded By
+                    </th>
+                    <th className="text-left px-4 py-3 font-semibold">Date</th>
+                    <th className="text-left px-4 py-3 font-semibold">
+                      Access
+                    </th>
+                    <th className="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentFiles.map((item) => {
+                    const fi = getFileIcon(item);
+                    return (
+                      <tr
+                        key={item.id}
+                        onClick={() =>
+                          item.type === "folder"
+                            ? navigateToFolder(item.id, item.name)
+                            : toggleSelect(item.id)
+                        }
+                        className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
+                          selectedFiles.includes(item.id)
+                            ? "bg-wh-green-bg-light"
+                            : ""
+                        }`}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <i
+                              className={`fas ${fi.icon}`}
+                              style={{ color: fi.color }}
+                            ></i>
+                            <span className="text-sm font-medium text-gray-900">
+                              {item.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {item.type === "file"
+                            ? formatSize(item.size || 0)
+                            : "Folder"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {item.uploadedBy?.name || "\u2014"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {formatDate(item.uploadedAt)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                              item.accessLevel === "workspace"
+                                ? "bg-green-50 text-green-600"
+                                : item.accessLevel === "admin_only"
+                                  ? "bg-red-50 text-red-600"
+                                  : "bg-yellow-50 text-yellow-600"
+                            }`}
+                          >
+                            {item.accessLevel === "workspace"
+                              ? "Workspace"
+                              : item.accessLevel === "admin_only"
+                                ? "Admin"
+                                : "Specific"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect =
+                                e.currentTarget.getBoundingClientRect();
+                              setContextMenu({
+                                fileId: item.id,
+                                x: rect.right,
+                                y: rect.bottom,
+                              });
+                            }}
+                            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
+                          >
+                            <i className="fas fa-ellipsis-v text-xs"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {currentFiles.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+              <i className="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
+              <p className="font-medium text-gray-500">No files found</p>
+              <p className="text-sm">
+                Upload files or create folders to organize your workspace
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            onClick={() => {
+              const file = files.find((f) => f.id === contextMenu.fileId);
+              if (file) {
+                setRenameTarget({ id: file.id, name: file.name });
+              }
+              setContextMenu(null);
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            <i className="fas fa-pen w-4 text-gray-400"></i>
+            Rename
+          </button>
+          <button
+            onClick={() => {
+              handleDeleteFile(contextMenu.fileId);
+              setContextMenu(null);
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+          >
+            <i className="fas fa-trash w-4"></i>
+            Delete
+          </button>
+        </div>
+      )}
+
+      {/* New Folder Modal */}
+      {showNewFolderModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div className="p-5 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Create New Folder
+              </h2>
+            </div>
+            <div className="p-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Folder Name
+              </label>
+              <input
+                type="text"
+                placeholder="New Folder"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreateFolder();
+                }}
+              />
+            </div>
+            <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowNewFolderModal(false);
+                  setNewFolderName("");
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancel
               </button>
-              <button className="px-3 py-1.5 text-xs text-gray-600 hover:bg-white rounded-lg transition-colors">
-                <i className="fas fa-arrows-alt mr-1"></i> Move
-              </button>
-              <button className="px-3 py-1.5 text-xs text-red-500 hover:bg-white rounded-lg transition-colors">
-                <i className="fas fa-trash mr-1"></i> Delete
+              <button
+                onClick={handleCreateFolder}
+                disabled={creatingFolder}
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
+              >
+                {creatingFolder ? "Creating..." : "Create"}
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* File Grid or List */}
-        {viewMode === "grid" ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {currentFiles.map((item) => {
-              const fi = getFileIcon(item);
-              const isSelected = selectedFiles.includes(item.id);
-              return (
-                <div
-                  key={item.id}
-                  onClick={() =>
-                    item.type === "folder"
-                      ? setCurrentFolderId(item.id)
-                      : toggleSelect(item.id)
-                  }
-                  className={`bg-white rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md group ${
-                    isSelected
-                      ? "border-[var(--wh-green-primary)] ring-2 ring-[var(--wh-green-primary)]/20"
-                      : "border-[var(--wh-green-border-light)] hover:border-[var(--wh-green-border-medium)]"
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <i
-                      className={`fas ${fi.icon} text-2xl`}
-                      style={{ color: fi.color }}
-                    ></i>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                      className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600 transition-all p-1 rounded hover:bg-gray-100"
-                    >
-                      <i className="fas fa-ellipsis-v text-xs"></i>
-                    </button>
-                  </div>
-                  <p className="text-sm font-medium text-gray-900 truncate mb-1">
-                    {item.name}
-                  </p>
-                  {item.type === "file" ? (
-                    <p className="text-xs text-gray-400">
-                      {formatSize(item.size || 0)}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-gray-400">
-                      {item.children?.length || 0} items
-                    </p>
-                  )}
-                  {item.type === "file" && item.uploadedBy && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <img
-                        src={item.uploadedBy.avatar}
-                        alt=""
-                        className="w-4 h-4 rounded-full"
-                      />
-                      <span className="text-[11px] text-gray-400">
-                        {item.uploadedBy.name}
-                      </span>
-                    </div>
-                  )}
+      {/* Upload File Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div className="p-5 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Upload File
+              </h2>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  File Name *
+                </label>
+                <input
+                  type="text"
+                  placeholder="document.pdf"
+                  value={uploadName}
+                  onChange={(e) => setUploadName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  File URL
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://..."
+                  value={uploadUrl}
+                  onChange={(e) => setUploadUrl(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    MIME Type
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="application/pdf"
+                    value={uploadMimeType}
+                    onChange={(e) => setUploadMimeType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                  />
                 </div>
-              );
-            })}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Size (bytes)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="1024"
+                    value={uploadSize}
+                    onChange={(e) => setUploadSize(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setUploadName("");
+                  setUploadUrl("");
+                  setUploadMimeType("");
+                  setUploadSize("");
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUploadFile}
+                disabled={uploading || !uploadName.trim()}
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
+              >
+                {uploading ? "Uploading..." : "Upload"}
+              </button>
+            </div>
           </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-[var(--wh-green-border-light)] overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
-                  <th className="text-left px-4 py-3 font-semibold">Name</th>
-                  <th className="text-left px-4 py-3 font-semibold">Size</th>
-                  <th className="text-left px-4 py-3 font-semibold">
-                    Uploaded By
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold">Date</th>
-                  <th className="text-left px-4 py-3 font-semibold">Access</th>
-                  <th className="w-10"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentFiles.map((item) => {
-                  const fi = getFileIcon(item);
-                  return (
-                    <tr
-                      key={item.id}
-                      onClick={() =>
-                        item.type === "folder"
-                          ? setCurrentFolderId(item.id)
-                          : toggleSelect(item.id)
-                      }
-                      className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
-                        selectedFiles.includes(item.id)
-                          ? "bg-[var(--wh-green-bg-light)]"
-                          : ""
-                      }`}
-                    >
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <i
-                            className={`fas ${fi.icon}`}
-                            style={{ color: fi.color }}
-                          ></i>
-                          <span className="text-sm font-medium text-gray-900">
-                            {item.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {item.type === "file"
-                          ? formatSize(item.size || 0)
-                          : `${item.children?.length || 0} items`}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {item.uploadedBy?.name || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {item.uploadedAt}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            item.accessLevel === "workspace"
-                              ? "bg-green-50 text-green-600"
-                              : item.accessLevel === "admin_only"
-                                ? "bg-red-50 text-red-600"
-                                : "bg-yellow-50 text-yellow-600"
-                          }`}
-                        >
-                          {item.accessLevel === "workspace"
-                            ? "Workspace"
-                            : item.accessLevel === "admin_only"
-                              ? "Admin"
-                              : "Specific"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100"
-                        >
-                          <i className="fas fa-ellipsis-v text-xs"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        </div>
+      )}
 
-        {currentFiles.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-            <i className="fas fa-folder-open text-4xl mb-3 text-gray-300"></i>
-            <p className="font-medium text-gray-500">No files found</p>
-            <p className="text-sm">
-              Upload files or create folders to organize your workspace
-            </p>
+      {/* Rename Modal */}
+      {renameTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div className="p-5 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Rename</h2>
+            </div>
+            <div className="p-5">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                New Name
+              </label>
+              <input
+                type="text"
+                value={renameTarget.name}
+                onChange={(e) =>
+                  setRenameTarget({ ...renameTarget, name: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleRename();
+                  if (e.key === "Escape") setRenameTarget(null);
+                }}
+              />
+            </div>
+            <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                onClick={() => setRenameTarget(null)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRename}
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium"
+              >
+                Rename
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default FilesPage;
+

@@ -11,9 +11,9 @@ export const ROUTES = {
   },
   CHAT: {
     ROOT: "/chat",
-      GROUP: '/chat/group',
-      CONTACTS: '/chat/contacts',
-      CONVERSATION: (id: string) => `/chat/conversation/${id}`,
+    GROUP: "/chat/group",
+    CONTACTS: "/chat/contacts",
+    CONVERSATION: (id: string) => `/chat/conversation/${id}`,
   },
   WORK_HUB: {
     ROOT: "/work-hub",
@@ -34,14 +34,22 @@ export const ROUTES = {
     DIRECT_MESSAGES: (id: string) => `/work-hub/${id}/messages`,
     DM_THREAD: (workspaceId: string, threadId: string) =>
       `/work-hub/${workspaceId}/messages/${threadId}`,
+    GOALS: (id: string) => `/work-hub/${id}/goals`,
+    SPRINTS: (id: string) => `/work-hub/${id}/sprints`,
+    ROADMAP: (id: string) => `/work-hub/${id}/roadmap`,
+    WORKLOAD: (id: string) => `/work-hub/${id}/workload`,
+    AUTOMATIONS: (id: string) => `/work-hub/${id}/automations`,
+    REPORTS: (id: string) => `/work-hub/${id}/reports`,
+    LABELS: (id: string) => `/work-hub/${id}/labels`,
+    ACTIVITY_FEED: (id: string) => `/work-hub/${id}/activity`,
   },
-    NOTE: '/notes',
-    FRIENDS: '/friends',
-    AICHAT: '/aichat',
-    CALENDAR: '/calendar',
-    SETTINGS: '/settings',
-    PROFILE: '/profile',
-    NOT_FOUND: '*',
+  NOTE: "/notes",
+  FRIENDS: "/friends",
+  AICHAT: "/aichat",
+  CALENDAR: "/calendar",
+  SETTINGS: "/settings",
+  PROFILE: "/profile",
+  NOT_FOUND: "*",
 };
 
 /**
