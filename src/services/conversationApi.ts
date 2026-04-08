@@ -30,9 +30,6 @@ class ConversationApiService {
             if (token) {
                 config.headers = config.headers || {};
                 config.headers.Authorization = `Bearer ${token}`;
-                console.log(
-                    `[ConversationApiService] Request to: ${config.baseURL}${config.url}, Authorization: Bearer ${token.substring(0, 20)}...`,
-                );
             } else {
                 console.warn(
                     '[ConversationApiService] No auth_token found in localStorage!',
@@ -204,6 +201,88 @@ class ConversationApiService {
                 content,
             },
         );
+        return response.data;
+    }
+
+    // =========================
+    // Conversation Settings
+    // =========================
+
+    /**
+     * Cập nhật thời gian tự xóa tin nhắn
+     * @param conversationId ID của conversation
+     * @param autoDeleteDuration Số ngày (0 = không tự xóa, 1, 7, 30)
+     */
+    async updateAutoDeleteDuration(
+        conversationId: string,
+        autoDeleteDuration: number,
+    ) {
+        const response = await this.api.patch(
+            `/${conversationId}/auto-delete-duration`,
+            { autoDeleteDuration },
+        );
+        return response.data;
+    }
+
+    /**
+     * Ẩn conversation bằng mật khẩu
+     * @param conversationId ID của conversation
+     * @param password Mật khẩu để ẩn conversation
+     */
+    async hideConversation(conversationId: string, password: string) {
+        const response = await this.api.post(`/${conversationId}/hide`, {
+            password,
+        });
+        return response.data;
+    }
+
+    /**
+     * Bỏ ẩn conversation
+     * @param conversationId ID của conversation
+     * @param password Mật khẩu để tiết lộ conversation
+     */
+    async unhideConversation(conversationId: string, password: string) {
+        const response = await this.api.post(`/${conversationId}/reveal`, {
+            password,
+        });
+        return response.data;
+    }
+
+    /**
+     * Xóa lịch sử trò chuyện (chỉ ẩn client-side)
+     * @param conversationId ID của conversation
+     */
+    async clearConversationHistory(conversationId: string) {
+        const response = await this.api.post(
+            `/${conversationId}/clear-history`,
+        );
+        return response.data;
+    }
+
+    /**
+     * Chặn người dùng trong conversation (backend auto-detects other participant)
+     * @param conversationId ID của conversation
+     */
+    async blockUser(conversationId: string) {
+        const response = await this.api.post(`/${conversationId}/block`);
+        return response.data;
+    }
+
+    /**
+     * Bỏ chặn người dùng (backend auto-detects other participant)
+     * @param conversationId ID của conversation
+     */
+    async unblockUser(conversationId: string) {
+        const response = await this.api.post(`/${conversationId}/unblock`);
+        return response.data;
+    }
+
+    /**
+     * Kiểm tra xem người dùng hiện tại có bị chặn hay không
+     * Trả về: { isBlocked, blockedBy, blockedAt, canUnblock, conversationId, otherUserId }
+     */
+    async getBlockStatus(conversationId: string) {
+        const response = await this.api.get(`/${conversationId}/block-status`);
         return response.data;
     }
 

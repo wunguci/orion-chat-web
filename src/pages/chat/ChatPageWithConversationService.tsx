@@ -111,6 +111,8 @@ export const ChatPage: React.FC = () => {
     const [reactionOverrides, setReactionOverrides] = useState<
         Record<string, NonNullable<SocketMessage['reactions']>>
     >({});
+    const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
+    const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
     const messageListenerRef = useRef<
         ((msg: ChatSocketMessage) => void) | null
     >(null);
@@ -151,6 +153,47 @@ export const ChatPage: React.FC = () => {
         [],
     );
 
+    // ✅ Helper function to load block status
+    const loadBlockStatus = async (convId?: string) => {
+        const conversationId = convId || selectedConversation?.conversationId;
+        if (!conversationId) {
+            setIAmBlocked(false);
+            setIAmTheBlocker(false);
+            return;
+        }
+
+        try {
+            const response =
+                await conversationApi.getBlockStatus(conversationId);
+            // Backend response:
+            // - iAmBlocked: current user bị chặn
+            // - iAmTheBlocker: current user là người chặn (có nút bỏ chặn)
+            setIAmBlocked(response?.iAmBlocked || false);
+            setIAmTheBlocker(response?.iAmTheBlocker || false);
+           
+        } catch (error) {
+            console.error('Error loading block status:', error);
+            setIAmBlocked(false);
+            setIAmTheBlocker(false);
+        }
+    };
+
+    // ✅ Load block status when conversation changes
+    useEffect(() => {
+        loadBlockStatus();
+    }, [selectedConversation?.conversationId]);
+
+    // ✅ Poll block status every 5 seconds to detect when other user blocks/unblocks
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            if (selectedConversation?.conversationId) {
+                loadBlockStatus();
+            }
+        }, 5000); // Poll mỗi 5 giây
+
+        return () => clearInterval(intervalId);
+    }, [selectedConversation?.conversationId]);
+
     const getReceiverIdByConversationId = useCallback(
         (conversationId: string) => {
             const conversation = conversations.find(
@@ -163,6 +206,27 @@ export const ChatPage: React.FC = () => {
         },
         [conversations],
     );
+
+    // ✅ Handle unblock user - chỉ người chặn mới có thể mở chặn
+    const handleUnblockUser = async () => {
+        if (!selectedConversation?.conversationId) return;
+
+        // Verify current user là người chặn (iAmTheBlocker)
+        if (!iAmTheBlocker) {
+            console.error('Only the person who blocked can unblock');
+            return;
+        }
+
+        try {
+            await conversationApi.unblockUser(
+                selectedConversation.conversationId,
+            );
+            // Reload block status immediately để cả 2 bên đều biết
+            await loadBlockStatus();
+        } catch (error) {
+            console.error('Error unblocking user:', error);
+        }
+    };
 
     const toSocketMessage = useCallback(
         (payload: IncomingSocketPayload): ChatSocketMessage => {
@@ -235,18 +299,11 @@ export const ChatPage: React.FC = () => {
                 chatSocketService.connect();
 
                 const messageHandler = (payload: IncomingSocketPayload) => {
-                    console.log(
-                        '[ChatPage] Received message from socket:',
-                        payload,
-                    );
-
+                   
                     const rawPayload =
                         payload?.message || payload?.data || payload;
                     const msg = toSocketMessage(rawPayload);
 
-                    console.log(
-                        `[ChatPage] Converted message: id=${msg.id}, conversationId=${msg.conversationId}, content="${msg.content.substring(0, 50)}"`,
-                    );
 
                     const hasVisibleContent =
                         msg.isRecalled ||
@@ -325,16 +382,12 @@ export const ChatPage: React.FC = () => {
                     if (payload.conversationId !== selectedConversationId)
                         return;
 
-                    console.log('[ChatPage] recallHandler received:', payload);
 
                     setSocketMessages((prev) => {
                         let found = false;
                         const updated = prev.map((msg) => {
                             if (msg.id === payload.messageId) {
                                 found = true;
-                                console.log(
-                                    '[ChatPage] Found message in socketMessages, updating...',
-                                );
                                 return {
                                     ...msg,
                                     isRecalled: true,
@@ -348,9 +401,6 @@ export const ChatPage: React.FC = () => {
                         // ✅ If message not found in socketMessages (from paginatedMessages),
                         // add it to socketMessages so displayMessages will show it as recalled
                         if (!found) {
-                            console.log(
-                                '[ChatPage] Message not in socketMessages, adding recalled message...',
-                            );
                             updated.push({
                                 id: payload.messageId,
                                 senderId: payload.revokedBy,
@@ -375,17 +425,13 @@ export const ChatPage: React.FC = () => {
                 };
 
                 messageListenerRef.current = messageHandler;
-                console.log(
-                    '[ChatPage] Setting up socket message listeners...',
-                );
+               
                 onMessageNew(messageHandler);
-                console.log('[ChatPage] onMessageNew listener registered');
+               
                 onMessageReactionUpdated(reactionHandler);
-                console.log(
-                    '[ChatPage] onMessageReactionUpdated listener registered',
-                );
+               
                 onMessageRecalled(recallHandler);
-                console.log('[ChatPage] onMessageRecalled listener registered');
+               
                 setError(null);
             } catch (err) {
                 setError(
@@ -738,9 +784,7 @@ export const ChatPage: React.FC = () => {
 
                 // Send via socket
                 const receiverId = getReceiverId();
-                console.log(
-                    `[ChatPage] handleSend: text="${text}", receiverId="${receiverId}", conversationId="${selectedConversationId}"`,
-                );
+              
 
                 if (!receiverId) {
                     console.error(
@@ -1030,6 +1074,7 @@ export const ChatPage: React.FC = () => {
                                 )?.fullName ||
                                 'Conversation'
                             }
+                            isBlocked={iAmBlocked || iAmTheBlocker}
                         />
 
                         {/* Messages */}
@@ -1047,6 +1092,9 @@ export const ChatPage: React.FC = () => {
                         <ChatInput
                             onSend={handleSend}
                             onSendFile={handleSendFile}
+                            isBlocked={iAmBlocked || iAmTheBlocker}
+                            canUnblock={iAmTheBlocker}
+                            onUnblock={handleUnblockUser}
                         />
                     </>
                 ) : (
@@ -1063,7 +1111,15 @@ export const ChatPage: React.FC = () => {
             </div>
 
             {/* Conversation info panel */}
-            {selectedConversation && <ConversationInfoPanel />}
+            {selectedConversation && (
+                <ConversationInfoPanel
+                    isSidebarOpen={true}
+                    selectedConversation={selectedConversation}
+                    displayMessages={displayMessages}
+                    currentUserId={USER_ID}
+                    onBlockStatusChange={loadBlockStatus}
+                />
+            )}
 
             <Modal
                 isOpen={isForwardModalOpen}

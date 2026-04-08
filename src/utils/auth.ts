@@ -5,11 +5,9 @@
 export const getCurrentUserId = (): string => {
     try {
         const authUser = localStorage.getItem('auth_user');
-        console.log('🔐 auth_user from localStorage:', authUser); // DEBUG
-
+      
         if (authUser) {
             const parsed = JSON.parse(authUser);
-            console.log('🔐 parsed auth_user:', parsed); // DEBUG
 
             // Try multiple field names (backend may use different names)
             const userId =
@@ -20,7 +18,6 @@ export const getCurrentUserId = (): string => {
                 parsed?.sub ||
                 '';
 
-            console.log('🔐 getCurrentUserId() returning:', userId); // DEBUG
             return userId;
         }
     } catch (err) {

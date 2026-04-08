@@ -1,6 +1,10 @@
+/* eslint-disable no-useless-catch */
 import React, { useState } from 'react';
+import { Lock } from 'lucide-react';
 import { getCurrentUserId } from '../../utils/auth';
 import type { ConversationView } from '../../types/conversation';
+import { RevealConversationModal } from './RevealConversationModal';
+import { conversationApi } from '../../services/conversationApi';
 
 interface ChatSidebarProps {
     conversations: ConversationView[];
@@ -9,6 +13,7 @@ interface ChatSidebarProps {
     loading?: boolean;
     error?: string | null;
     onNewConversation?: () => void;
+    onConversationRevealed?: (conversationId: string) => void;
 }
 
 export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
@@ -18,15 +23,19 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     loading = false,
     error = null,
     onNewConversation,
+    onConversationRevealed,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [revealModalOpen, setRevealModalOpen] = useState(false);
+    const [selectedHiddenConversation, setSelectedHiddenConversation] =
+        useState<ConversationView | null>(null);
 
     const currentUserId = getCurrentUserId();
 
     // Filter conversations by search query
+    // If no search query: hide hidden conversations
+    // If search query: show all matching conversations (including hidden ones)
     const filteredConversations = conversations.filter((conv) => {
-        if (!searchQuery.trim()) return true;
-
         const query = searchQuery.toLowerCase();
         const conversationName =
             conv.type === 'GROUP'
@@ -34,7 +43,16 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 : conv.participants.find((p) => p.userId !== currentUserId)
                       ?.fullName || 'Unknown';
 
-        return conversationName.toLowerCase().includes(query);
+        const matchesSearch = conversationName.toLowerCase().includes(query);
+
+        // If searching, return matching conversations (including hidden ones)
+        if (query.trim()) {
+            return matchesSearch;
+        }
+
+        // If not searching, hide hidden conversations
+
+        return !conv.myIsHidden && matchesSearch;
     });
 
     const getConversationDisplayName = (conversation: ConversationView) => {
@@ -103,6 +121,45 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         });
     };
 
+    const handleConversationSelect = (conversation: ConversationView) => {
+        // If conversation is hidden and user is searching, show reveal modal
+        if (conversation.myIsHidden && searchQuery.trim()) {
+            setSelectedHiddenConversation(conversation);
+            setRevealModalOpen(true);
+        } else {
+            // Otherwise select normally
+            onSelectConversation(conversation.conversationId);
+        }
+    };
+
+    const handleRevealConversation = async (password: string) => {
+        if (!selectedHiddenConversation) return;
+
+        try {
+            await conversationApi.unhideConversation(
+                selectedHiddenConversation.conversationId,
+                password,
+            );
+
+            // Close modal and proceed to select conversation
+            setRevealModalOpen(false);
+            setSelectedHiddenConversation(null);
+
+            // Notify parent to refresh conversation list
+            if (onConversationRevealed) {
+                onConversationRevealed(
+                    selectedHiddenConversation.conversationId,
+                );
+            }
+
+            // Select the conversation
+            onSelectConversation(selectedHiddenConversation.conversationId);
+        } catch (err) {
+            // Error will be displayed in modal
+            throw err;
+        }
+    };
+
     return (
         <div className="flex w-80 flex-col gap-4 rounded-lg bg-white p-4 shadow-sm">
             {/* Header */}
@@ -157,11 +214,9 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                 <button
                                     key={conversation.conversationId}
                                     onClick={() =>
-                                        onSelectConversation(
-                                            conversation.conversationId,
-                                        )
+                                        handleConversationSelect(conversation)
                                     }
-                                    className={`w-full rounded-lg px-3 py-2 text-left transition-colors ${
+                                    className={`w-full rounded-lg px-3 py-2 text-left transition-colors relative ${
                                         selectedConversationId ===
                                         conversation.conversationId
                                             ? 'bg-blue-100 text-blue-900'
@@ -170,25 +225,38 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                 >
                                     <div className="flex items-start gap-3">
                                         {/* Avatar */}
-                                        {getConversationAvatar(conversation) ? (
-                                            <img
-                                                src={getConversationAvatar(
-                                                    conversation,
-                                                )}
-                                                alt={getConversationDisplayName(
-                                                    conversation,
-                                                )}
-                                                className="h-10 w-10 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-white">
-                                                {getConversationDisplayName(
-                                                    conversation,
-                                                )
-                                                    .charAt(0)
-                                                    .toUpperCase()}
-                                            </div>
-                                        )}
+                                        <div className="relative">
+                                            {getConversationAvatar(
+                                                conversation,
+                                            ) ? (
+                                                <img
+                                                    src={getConversationAvatar(
+                                                        conversation,
+                                                    )}
+                                                    alt={getConversationDisplayName(
+                                                        conversation,
+                                                    )}
+                                                    className="h-10 w-10 rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-blue-500 to-purple-600 text-white">
+                                                    {getConversationDisplayName(
+                                                        conversation,
+                                                    )
+                                                        .charAt(0)
+                                                        .toUpperCase()}
+                                                </div>
+                                            )}
+                                            {/* Hidden indicator */}
+                                            {conversation.myIsHidden && (
+                                                <div className="absolute -right-1 -bottom-1 bg-yellow-400 rounded-full p-1 shadow-sm">
+                                                    <Lock
+                                                        size={12}
+                                                        className="text-gray-700"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
 
                                         {/* Content */}
                                         <div className="flex-1 overflow-hidden">
@@ -206,9 +274,11 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                 </span>
                                             </div>
                                             <p className="truncate text-sm text-gray-600">
-                                                {getLastMessagePreview(
-                                                    conversation,
-                                                )}
+                                                {conversation.myIsHidden
+                                                    ? '🔒 Trò chuyện đã ẩn'
+                                                    : getLastMessagePreview(
+                                                          conversation,
+                                                      )}
                                             </p>
                                         </div>
                                     </div>
@@ -218,6 +288,21 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     )}
                 </div>
             )}
+
+            {/* Reveal conversation modal */}
+            <RevealConversationModal
+                isOpen={revealModalOpen}
+                onClose={() => {
+                    setRevealModalOpen(false);
+                    setSelectedHiddenConversation(null);
+                }}
+                onConfirm={handleRevealConversation}
+                conversationName={
+                    selectedHiddenConversation
+                        ? getConversationDisplayName(selectedHiddenConversation)
+                        : 'Trò chuyện'
+                }
+            />
         </div>
     );
 };

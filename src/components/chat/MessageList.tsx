@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Lock } from 'lucide-react';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
 
@@ -48,6 +49,7 @@ export const MessageList: React.FC<{
     socketMessages?: SocketMessage[];
     currentUserId?: string;
     conversationId?: string | null;
+    myIsHidden?: boolean;
     onRecallMessage?: (message: SocketMessage) => void;
     onDeleteMessage?: (message: SocketMessage) => void;
     onForwardMessage?: (message: SocketMessage) => void;
@@ -56,22 +58,14 @@ export const MessageList: React.FC<{
     socketMessages = [],
     currentUserId,
     conversationId,
+    myIsHidden = false,
     onRecallMessage,
     onDeleteMessage,
     onForwardMessage,
     onReactMessage,
 }) => {
     // 🔍 DEBUG: Log user ID on mount or change
-    useEffect(() => {
-        console.log('🔍 MessageList - currentUserId:', currentUserId);
-        if (socketMessages.length > 0) {
-            console.log('🔍 First message:', {
-                senderId: socketMessages[0].senderId,
-                senderBy: socketMessages[0].senderBy,
-                senderName: socketMessages[0].senderName,
-            });
-        }
-    }, [currentUserId, socketMessages.length]);
+    useEffect(() => {}, [currentUserId, socketMessages]);
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
     const [openActionMenuKey, setOpenActionMenuKey] = useState<string | null>(
         null,
@@ -116,6 +110,50 @@ export const MessageList: React.FC<{
         return grouped;
     };
 
+    const renderContentWithLinks = (content: string, isMe: boolean) => {
+        const urlRegex = /(https?:\/\/\S+|www\.\S+)/gi;
+        const parts = content.split(urlRegex);
+
+        return (
+            <>
+                {parts.map((part, idx) => {
+                    if (!part) return null;
+
+                    if (/^https?:\/\/|^www\./i.test(part)) {
+                        const href = part.startsWith('http')
+                            ? part
+                            : `https://${part}`;
+
+                        return (
+                            <a
+                                key={idx}
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`break-all hover:underline ${
+                                    isMe ? 'text-white' : 'text-blue-500'
+                                }`}
+                                onClick={(e) => {
+                                    if (!e.ctrlKey && !e.metaKey) {
+                                        e.preventDefault();
+                                    }
+                                }}
+                            >
+                                {part}
+                            </a>
+                        );
+                    }
+
+                    return (
+                        <span key={idx} className="break-all">
+                            {part}
+                        </span>
+                    );
+                })}
+            </>
+        );
+    };
+
     const allImages: ViewerImage[] = socketMessages
         .filter(
             (m): m is SocketMessage & { fileUrl: string; fileType: string } =>
@@ -145,7 +183,24 @@ export const MessageList: React.FC<{
                 ref={scrollContainerRef}
                 className="flex-1 bg-[#f5f7fa] overflow-y-auto py-4 space-y-4"
             >
-                {socketMessages.length === 0 ? (
+                {myIsHidden ? (
+                    <div className="flex items-center justify-center h-full text-slate-400">
+                        <div className="text-center space-y-4">
+                            <div className="flex justify-center">
+                                <Lock size={48} className="text-yellow-400" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700">
+                                    Trò chuyện đã bị ẩn
+                                </p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Hãy nhập mật khẩu chính xác để xem lại lịch
+                                    sử tin nhắn
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : socketMessages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">
                         <p>Không có tin nhắn nào. Bắt đầu cuộc trò chuyện!</p>
                     </div>
@@ -154,17 +209,10 @@ export const MessageList: React.FC<{
                         /**
                          * ✅ Clear logic: check if message is from current user
                          * - Verify currentUserId is not empty/falsy
-                         * - Check both senderId and senderBy (backend may return either)
+                         * - Check senderId from message
                          */
                         const isMe =
-                            !!currentUserId &&
-                            (msg.senderBy === currentUserId ||
-                                msg.senderId === currentUserId);
-
-                        // 🔍 DEBUG: Log each message to see why isMe is wrong
-                        console.log(
-                            `📨 Message: "${msg.content?.substring(0, 20)}" | currentUserId: "${currentUserId}" | senderId: "${msg.senderId}" | senderBy: "${msg.senderBy}" | isMe: ${isMe}`,
-                        );
+                            !!currentUserId && msg.senderId === currentUserId;
 
                         const messageKey = getMessageKey(msg);
                         const reactionStats = getReactionStats(msg);
@@ -177,7 +225,7 @@ export const MessageList: React.FC<{
                         // Get sender avatar
                         const senderAvatar =
                             msg.senderAvatar ||
-                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderId || msg.senderBy}`;
+                            `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderId}`;
 
                         return (
                             <div
@@ -188,7 +236,7 @@ export const MessageList: React.FC<{
                             >
                                 {/* Avatar - Only show for other messages */}
                                 {!isMe ? (
-                                    <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden shadow-sm">
+                                    <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden shadow-sm">
                                         <img
                                             src={senderAvatar}
                                             alt={msg.senderName}
@@ -196,7 +244,7 @@ export const MessageList: React.FC<{
                                         />
                                     </div>
                                 ) : (
-                                    <div className="flex-shrink-0 w-8" />
+                                    <div className="shrink-0 w-8" />
                                 )}
 
                                 {/* Message bubble container */}
@@ -269,8 +317,11 @@ export const MessageList: React.FC<{
                                                     📎 {msg.fileName}
                                                 </a>
                                             ) : (
-                                                <p className="break-words whitespace-pre-wrap">
-                                                    {msg.content}
+                                                <p className="break-all whitespace-pre-wrap">
+                                                    {renderContentWithLinks(
+                                                        msg.content,
+                                                        isMe,
+                                                    )}
                                                 </p>
                                             )}
 
@@ -339,7 +390,7 @@ export const MessageList: React.FC<{
                                     {!msg.isRecalled && (
                                         <div
                                             className={`absolute -bottom-3 ${
-                                                isMe ? '-left-3' : '-right-3'
+                                                isMe ? '-left-10' : '-right-10'
                                             } opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
                                         >
                                             <div className="relative group/emoji">

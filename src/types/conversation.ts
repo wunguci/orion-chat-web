@@ -87,6 +87,8 @@ export interface ConversationView {
     lastMessage: LastMessage | null;
     groupInfo: GroupInfo | null;
     participants: ParticipantInfo[];
+    myIsHidden?: boolean;
+    hidePasswordHash?: string | null;
 }
 
 export interface ConversationMessagesResult {
