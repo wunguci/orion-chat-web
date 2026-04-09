@@ -249,15 +249,31 @@ export default function SettingsModal({
     setSaveSuccess(null);
 
     try {
-      await updateUserProfile(profileData, selectedFiles);
+      const result = await updateUserProfile(profileData, selectedFiles);
 
       const userData = getUser();
       if (userData) {
+        const responseData =
+          result && typeof result === "object" && "data" in result
+            ? (result.data as Record<string, unknown>)
+            : null;
+
+        const avatarUrlFromResponse =
+          responseData && typeof responseData.avatarUrl === "string"
+            ? toAbsoluteMediaUrl(responseData.avatarUrl)
+            : undefined;
+
         const updatedUser = {
           ...userData,
           ...profileData,
+          ...(responseData ?? {}),
+          ...(avatarUrlFromResponse ? { avatarUrl: avatarUrlFromResponse } : {}),
         };
         saveUserData(updatedUser);
+
+        if (avatarUrlFromResponse) {
+          setAvatarPreview(avatarUrlFromResponse);
+        }
       }
 
       setHasProfileChanges(false);
