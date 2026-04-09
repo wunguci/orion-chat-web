@@ -40,6 +40,14 @@ export interface RecentlyActive {
   isActive?: boolean;
 }
 
+export interface BlockedFriend {
+  id: string;
+  name: string;
+  avatar: string;
+  blockedAt?: string;
+  isOnline?: boolean;
+}
+
 export interface CommunityGroup {
   id: string;
   name: string;
@@ -60,4 +68,18 @@ export interface CommunityInvite {
   status: "pending" | "accepted" | "declined" | "revoked";
   memberCount?: number;
   isPublic?: boolean;
+}
+
+export interface FriendProfile {
+  id: string;
+  fullName: string;
+  phoneNumber?: string;
+  email?: string | null;
+  avatarUrl?: string | null;
+  coverImage?: string | null;
+  gender?: string | null;
+  birthDate?: string | null;
+  createdAt?: string;
+  isOnline: boolean;
+  friendshipSince?: string;
 }

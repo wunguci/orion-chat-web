@@ -18,6 +18,8 @@ export interface FriendRequestApiItem {
   };
   receiver: {
     userId: string;
+    fullName?: string;
+    avatarUrl?: string | null;
   };
   status: "pending" | "accepted" | "declined" | "canceled";
   createdAt: string;
@@ -47,6 +49,20 @@ export interface GroupInviteApiItem {
   createdAt: string;
 }
 
+export interface FriendProfileApiItem {
+  id: string;
+  fullName: string;
+  phoneNumber?: string;
+  email?: string | null;
+  avatarUrl?: string | null;
+  coverImage?: string | null;
+  gender?: string | null;
+  birthDate?: string | null;
+  createdAt?: string;
+  isOnline: boolean;
+  friendshipSince?: string;
+}
+
 export const friendListService = {
   getFriends: (userId: string) =>
     api.get<FriendApiItem[]>(`/friends?userId=${userId}`),
@@ -54,6 +70,11 @@ export const friendListService = {
   getIncomingFriendRequests: (userId: string) =>
     api.get<FriendRequestApiItem[]>(
       `/friend-requests/incoming?userId=${userId}`,
+    ),
+
+  getOutgoingFriendRequests: (userId: string) =>
+    api.get<FriendRequestApiItem[]>(
+      `/friend-requests/outgoing?userId=${userId}`,
     ),
 
   acceptFriendRequest: (requestId: string, userId: string) =>
@@ -96,4 +117,29 @@ export const friendListService = {
 
   getRecentlyActive: (userId: string) =>
     api.get<FriendApiItem[]>(`/friends/recently-active?userId=${userId}`),
+
+  getBlockedFriends: (userId: string) =>
+    api.get<Array<FriendApiItem & { blockedAt?: string }>>(
+      `/friends/blocked?userId=${userId}`,
+    ),
+
+  getFriendProfile: (userId: string, friendId: string) =>
+    api.get<FriendProfileApiItem>(`/friends/${userId}/${friendId}/profile`),
+
+  removeFriend: (userId: string, friendId: string) =>
+    api.delete<{ success: boolean; message: string }>(
+      `/friends/${userId}/${friendId}`,
+    ),
+
+  blockFriend: (userId: string, friendId: string) =>
+    api.patch<{ success: boolean; message: string }>(
+      `/friends/${userId}/${friendId}/block`,
+      {},
+    ),
+
+  unblockFriend: (userId: string, friendId: string) =>
+    api.patch<{ success: boolean; message: string }>(
+      `/friends/${userId}/${friendId}/unblock`,
+      {},
+    ),
 };
