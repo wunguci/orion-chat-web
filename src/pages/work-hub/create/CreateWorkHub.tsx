@@ -451,7 +451,8 @@ const CreateWorkHub = () => {
     if (!formData.agreedToTerms) return;
 
     const user = getUser();
-    if (!user || !user.id) {
+    const userId = user?.id ?? user?.userId;
+    if (!userId) {
       navigate("/auth/login");
       return;
     }
@@ -463,7 +464,7 @@ const CreateWorkHub = () => {
         description: formData.step1.description,
         type: formData.step1.type.toUpperCase(),
         color: formData.step2.color,
-        ownerId: user.id,
+        ownerId: userId,
       });
       navigate(`/work-hub/${response.workspaceId}`);
     } catch (err) {
@@ -1116,4 +1117,3 @@ const CreateWorkHub = () => {
 };
 
 export default CreateWorkHub;
-
