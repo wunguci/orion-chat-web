@@ -5,11 +5,11 @@ import SearchBoxFriend from './SearchBoxFriend';
 import FriendListItem from './FriendListItem';
 
 export type FriendCategory =
-  | "friends"
-  | "requests"
-  | "groups"
-  | "group_invites"
-  | "blocked";
+    | 'friends'
+    | 'requests'
+    | 'groups'
+    | 'group_invites'
+    | 'blocked';
 
 interface FriendSidebarProps {
     searchQuery: string;
@@ -24,7 +24,8 @@ interface FriendSidebarProps {
     groupCount: number;
     groupInviteCount: number;
     blockedCount: number;
-    onChatClick?: (friendId: string, friendName: string) => void;
+    onChatClick?: (friendId: string) => void;
+    chatLoadingFriendId?: string | null;
 }
 
 const FriendSidebar: React.FC<FriendSidebarProps> = ({
@@ -41,11 +42,12 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({
     groupInviteCount,
     blockedCount,
     onChatClick,
+    chatLoadingFriendId,
 }) => {
     const [activeSubTab, setActiveSubTab] = useState<'All' | 'Online'>('All');
 
     const filteredFriends = useMemo(() => {
-        return friends.filter((friend) => {
+        const filtered = friends.filter((friend) => {
             const matchesSearch = friend.name
                 .toLowerCase()
                 .includes(searchQuery.toLowerCase());
@@ -53,28 +55,18 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({
             const matchesSubTab = activeSubTab === 'All' || isOnline;
             return matchesSearch && matchesSubTab;
         });
+
+        if (activeSubTab !== 'All') {
+            return filtered;
+        }
+
+        return [...filtered].sort((a, b) => {
+            const aOnline = a.status === 'online' || !!a.isOnline;
+            const bOnline = b.status === 'online' || !!b.isOnline;
+            if (aOnline === bOnline) return 0;
+            return bOnline ? 1 : -1;
+        });
     }, [friends, searchQuery, activeSubTab]);
-  const filteredFriends = useMemo(() => {
-    const filtered = friends.filter((friend) => {
-      const matchesSearch = friend.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
-      const isOnline = friend.status === "online" || !!friend.isOnline;
-      const matchesSubTab = activeSubTab === "All" || isOnline;
-      return matchesSearch && matchesSubTab;
-    });
-
-    if (activeSubTab !== "All") {
-      return filtered;
-    }
-
-    return [...filtered].sort((a, b) => {
-      const aOnline = a.status === "online" || !!a.isOnline;
-      const bOnline = b.status === "online" || !!b.isOnline;
-      if (aOnline === bOnline) return 0;
-      return bOnline ? 1 : -1;
-    });
-  }, [friends, searchQuery, activeSubTab]);
 
     return (
         <section className="w-80 flex flex-col border-r border-slate-200 bg-white z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
@@ -174,6 +166,10 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({
                                 onViewInfo={onViewFriendInfo}
                                 onRemoveFriend={onRemoveFriend}
                                 onBlockFriend={onBlockFriend}
+                                onChatClick={onChatClick}
+                                isChatLoading={
+                                    chatLoadingFriendId === friend.id
+                                }
                             />
                         ))}
                     </div>

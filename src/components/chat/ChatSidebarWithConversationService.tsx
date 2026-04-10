@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-catch */
 import React, { useState, useMemo } from 'react';
 import { Image, Lock, Pin } from 'lucide-react';
 import { getCurrentUserId } from '../../utils/auth';

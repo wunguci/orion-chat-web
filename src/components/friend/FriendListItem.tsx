@@ -4,14 +4,14 @@ import { MoreHorizontal } from 'lucide-react';
 import type { Friend } from '../../types/friend';
 import { useCall } from '../../hooks/useCall';
 import { getUser } from '../../utils/token';
-import { Avatar } from '../common/Avatar';
 
 interface FriendListItemProps {
     friend: Friend;
     onViewInfo: (friendId: string) => void;
     onRemoveFriend: (friendId: string) => void;
     onBlockFriend: (friendId: string) => void;
-    onChatClick?: (friendId: string, friendName: string) => void;
+    onChatClick?: (friendId: string) => void;
+    isChatLoading?: boolean;
 }
 
 const FriendListItem: React.FC<FriendListItemProps> = ({
@@ -19,6 +19,8 @@ const FriendListItem: React.FC<FriendListItemProps> = ({
     onViewInfo,
     onRemoveFriend,
     onBlockFriend,
+    onChatClick,
+    isChatLoading,
 }) => {
     const { initiateCall, status } = useCall();
     const [showActions, setShowActions] = useState(false);
@@ -76,7 +78,16 @@ const FriendListItem: React.FC<FriendListItemProps> = ({
     const isCallingBusy = status !== 'idle';
 
     return (
-        <div className="flex items-center gap-3 p-3 rounded-xl cursor-pointer duration-200 group relative bg-transparent hover:bg-slate-50 border border-transparent">
+        <div
+            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer duration-200 group relative bg-transparent hover:bg-slate-50 border border-transparent ${
+                isChatLoading ? 'opacity-60 pointer-events-none' : ''
+            }`}
+            onClick={() => {
+                if (!isChatLoading && onChatClick) {
+                    onChatClick(friend.id);
+                }
+            }}
+        >
             {/* Avatar */}
             <div className="relative">
                 <div
@@ -104,7 +115,12 @@ const FriendListItem: React.FC<FriendListItemProps> = ({
                 </p>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div
+                className="flex shrink-0 items-center gap-2"
+                onClick={(event) => {
+                    event.stopPropagation();
+                }}
+            >
                 <button
                     type="button"
                     title="Audio call"
