@@ -98,6 +98,22 @@ export function getUser(): User | null {
 }
 
 /**
+ * Debug: Check authentication status
+ */
+export function debugAuthStatus(): void {
+    const token = getToken();
+    const user = getUser();
+
+    console.log(
+        `[Auth Debug] Token: ${token ? `${token.substring(0, 20)}...` : 'NOT FOUND'}`,
+    );
+    console.log(`[Auth Debug] User:`, user);
+    console.log(
+        `[Auth Debug] Auth Status: ${token && user ? 'AUTHENTICATED' : 'NOT AUTHENTICATED'}`,
+    );
+}
+
+/**
  * Remove user data from localStorage
  */
 export function removeUser(): void {

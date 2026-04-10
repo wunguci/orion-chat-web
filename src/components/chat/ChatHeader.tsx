@@ -1,9 +1,10 @@
 import React from 'react';
-import { CiCircleList , CiPhone, CiSearch , CiVideoOn } from 'react-icons/ci';
+import { CiCircleList, CiPhone, CiSearch, CiVideoOn } from 'react-icons/ci';
 
-export const ChatHeader: React.FC<{ name?: string }> = ({
-    name = 'Olivia Isabella',
-}) => {
+export const ChatHeader: React.FC<{
+    name?: string;
+    isBlocked?: boolean;
+}> = ({ name = 'Olivia Isabella', isBlocked = false }) => {
     return (
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between text-gray-primary">
             <div className="flex items-center gap-3">
@@ -20,13 +21,37 @@ export const ChatHeader: React.FC<{ name?: string }> = ({
                 </div>
             </div>
             <div className="flex items-center gap-3 text-slate-300">
-                <button className="p-1 hover:bg-slate-200 rounded text-gray-primary">
+                {/* Audio call button - disabled if blocked */}
+                <button
+                    className={`p-1 rounded transition-colors ${
+                        isBlocked
+                            ? 'opacity-50 cursor-not-allowed bg-slate-100'
+                            : 'hover:bg-slate-200 text-gray-primary'
+                    }`}
+                    disabled={isBlocked}
+                    title={
+                        isBlocked ? 'Không thể gọi vì bạn bị chặn' : 'Gọi điện'
+                    }
+                >
                     <CiPhone className="w-5 h-5" />
                 </button>
                 <button className="p-1 hover:bg-slate-200 rounded text-gray-primary">
                     <CiSearch className="w-5 h-5" />
                 </button>
-                <button className="p-1 hover:bg-slate-200 rounded text-gray-primary">
+                {/* Video call button - disabled if blocked */}
+                <button
+                    className={`p-1 rounded transition-colors ${
+                        isBlocked
+                            ? 'opacity-50 cursor-not-allowed bg-slate-100'
+                            : 'hover:bg-slate-200 text-gray-primary'
+                    }`}
+                    disabled={isBlocked}
+                    title={
+                        isBlocked
+                            ? 'Không thể gọi video vì bạn bị chặn'
+                            : 'Gọi video'
+                    }
+                >
                     <CiVideoOn className="w-5 h-5" />
                 </button>
                 <button className="p-1 hover:bg-slate-200 rounded text-gray-primary">

@@ -1,5 +1,5 @@
 import { Socket } from "socket.io-client";
-import socketService from "../services/socket";
+import { socketService } from '../services/socket';
 import { useWebRTC } from "../hooks/useWebRTC";
 import type {
   CallState,
