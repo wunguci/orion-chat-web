@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Lock } from 'lucide-react';
+import { ArrowRight, Lock, Trash2, Undo2Icon } from 'lucide-react';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
 
@@ -230,6 +230,7 @@ export const MessageList: React.FC<{
                         return (
                             <div
                                 key={messageKey}
+                                id={`message-${msg.id}`}
                                 className={`flex gap-3 px-4 py-1 ${
                                     isMe ? 'flex-row-reverse' : 'flex-row'
                                 }`}
@@ -476,7 +477,11 @@ export const MessageList: React.FC<{
                                                             }}
                                                             className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
                                                         >
-                                                            🔄 Thu hồi
+                                                            <Undo2Icon
+                                                                size={16}
+                                                                className="inline mr-2"
+                                                            />
+                                                            Thu hồi
                                                         </button>
                                                     )}
 
@@ -492,7 +497,11 @@ export const MessageList: React.FC<{
                                                         }}
                                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
                                                     >
-                                                        🗑️ Xóa
+                                                        <Trash2
+                                                            size={16}
+                                                            className="inline mr-2"
+                                                        />
+                                                        Xóa
                                                     </button>
 
                                                     {/* Forward button */}
@@ -507,7 +516,11 @@ export const MessageList: React.FC<{
                                                         }}
                                                         className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
                                                     >
-                                                        ➡️ Chuyển tiếp
+                                                        <ArrowRight
+                                                            size={16}
+                                                            className="inline mr-2"
+                                                        />
+                                                        Chuyển tiếp
                                                     </button>
                                                 </div>
                                             )}

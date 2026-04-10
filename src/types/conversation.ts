@@ -89,6 +89,8 @@ export interface ConversationView {
     participants: ParticipantInfo[];
     myIsHidden?: boolean;
     hidePasswordHash?: string | null;
+    myIsPinned?: boolean;
+    myPinnedAt?: Date | string | null;
 }
 
 export interface ConversationMessagesResult {

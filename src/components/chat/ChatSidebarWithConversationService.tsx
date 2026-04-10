@@ -1,6 +1,5 @@
-/* eslint-disable no-useless-catch */
-import React, { useState } from 'react';
-import { Lock } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Image, Lock, Pin } from 'lucide-react';
 import { getCurrentUserId } from '../../utils/auth';
 import type { ConversationView } from '../../types/conversation';
 import { RevealConversationModal } from './RevealConversationModal';
@@ -32,28 +31,52 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
 
     const currentUserId = getCurrentUserId();
 
-    // Filter conversations by search query
-    // If no search query: hide hidden conversations
-    // If search query: show all matching conversations (including hidden ones)
-    const filteredConversations = conversations.filter((conv) => {
+    // ✅ Filter and sort conversations
+    // 1. Filter by search query and hidden status
+    // 2. Sort by: pinned status (descending) -> pinnedAt (newer first) -> lastMessage.createdAt (newer first)
+    const filteredConversations = useMemo(() => {
         const query = searchQuery.toLowerCase();
-        const conversationName =
-            conv.type === 'GROUP'
-                ? conv.groupInfo?.groupName || 'Group Chat'
-                : conv.participants.find((p) => p.userId !== currentUserId)
-                      ?.fullName || 'Unknown';
 
-        const matchesSearch = conversationName.toLowerCase().includes(query);
+        const filtered = conversations.filter((conv) => {
+            const conversationName =
+                conv.type === 'GROUP'
+                    ? conv.groupInfo?.groupName || 'Group Chat'
+                    : conv.participants.find((p) => p.userId !== currentUserId)
+                          ?.fullName || 'Unknown';
 
-        // If searching, return matching conversations (including hidden ones)
-        if (query.trim()) {
-            return matchesSearch;
-        }
+            const matchesSearch = conversationName
+                .toLowerCase()
+                .includes(query);
 
-        // If not searching, hide hidden conversations
+            // If searching, return matching conversations (including hidden ones)
+            if (query.trim()) {
+                return matchesSearch;
+            }
 
-        return !conv.myIsHidden && matchesSearch;
-    });
+            // If not searching, hide hidden conversations
+            return !conv.myIsHidden && matchesSearch;
+        });
+
+        // ✅ Sort by: pinned status -> pinnedAt (newer first) -> lastMessage.createdAt (newer first)
+        return filtered.sort((a, b) => {
+            // First, sort by pinned status (pinned conversations first)
+            if (a.myIsPinned !== b.myIsPinned) {
+                return a.myIsPinned ? -1 : 1;
+            }
+
+            // If both are pinned or both are not pinned, sort by pinnedAt (if pinned)
+            if (a.myIsPinned && b.myIsPinned) {
+                const pinnedAtA = new Date(a.myPinnedAt || 0).getTime();
+                const pinnedAtB = new Date(b.myPinnedAt || 0).getTime();
+                return pinnedAtB - pinnedAtA; // Newer pinned first
+            }
+
+            // If both are not pinned, sort by lastMessage.createdAt
+            const dateA = new Date(a.lastMessage?.createdAt || 0).getTime();
+            const dateB = new Date(b.lastMessage?.createdAt || 0).getTime();
+            return dateB - dateA; // Newer messages first
+        });
+    }, [conversations, searchQuery, currentUserId]);
 
     const getConversationDisplayName = (conversation: ConversationView) => {
         if (conversation.type === 'GROUP' && conversation.groupInfo) {
@@ -82,7 +105,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
 
     const getLastMessagePreview = (conversation: ConversationView) => {
         if (!conversation.lastMessage) {
-            return 'No messages yet';
+            return 'Không có tin nhắn';
         }
 
         const { content, senderBy, messageType } = conversation.lastMessage;
@@ -91,11 +114,25 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             return '📎 File attached';
         }
 
-        if (messageType === 'IMAGE' || messageType === 'image') {
-            return '🖼️ Image';
+        if (
+            messageType?.toLowerCase() === 'image' ||
+            messageType?.toLowerCase() === 'IMAGE'
+        ) {
+            return (
+                <span
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px',
+                    }}
+                >
+                    <Image className="w-4 h-4" />
+                    Image
+                </span>
+            );
         }
 
-        const senderLabel = senderBy === currentUserId ? 'You: ' : '';
+        const senderLabel = senderBy === currentUserId ? 'Bạn: ' : '';
 
         return `${senderLabel}${content || 'Message sent'}`.substring(0, 50);
     };
@@ -247,15 +284,25 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                         .toUpperCase()}
                                                 </div>
                                             )}
-                                            {/* Hidden indicator */}
-                                            {conversation.myIsHidden && (
-                                                <div className="absolute -right-1 -bottom-1 bg-yellow-400 rounded-full p-1 shadow-sm">
-                                                    <Lock
+                                            {/* ✅ Pin indicator */}
+                                            {conversation.myIsPinned && (
+                                                <div className="absolute -right-1 -bottom-1 bg-green-500 rounded-full p-1 shadow-sm border border-white">
+                                                    <Pin
                                                         size={12}
-                                                        className="text-gray-700"
+                                                        className="text-white fill-current"
                                                     />
                                                 </div>
                                             )}
+                                            {/* Hidden indicator */}
+                                            {conversation.myIsHidden &&
+                                                !conversation.myIsPinned && (
+                                                    <div className="absolute -right-1 -bottom-1 bg-yellow-400 rounded-full p-1 shadow-sm">
+                                                        <Lock
+                                                            size={12}
+                                                            className="text-gray-700"
+                                                        />
+                                                    </div>
+                                                )}
                                         </div>
 
                                         {/* Content */}

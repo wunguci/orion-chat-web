@@ -47,31 +47,31 @@ export const MediaContextMenu: React.FC<MediaContextMenuProps> = ({
 
     const menuItems = [
         {
-            label: 'Open document',
+            label: 'Mở tài liệu',
             icon: FileText,
             onClick: onOpen,
             color: 'text-gray-700',
         },
         {
-            label: 'Forward',
+            label: 'Chuyển tiếp',
             icon: Share2,
             onClick: onForward,
             color: 'text-gray-700',
         },
         {
-            label: 'Jump to message',
+            label: 'Chuyển đến tin nhắn',
             icon: ArrowRight,
             onClick: onJumpToMessage,
             color: 'text-gray-700',
         },
         {
-            label: 'Delete for me only',
+            label: 'Xóa chỉ cho tôi',
             icon: Trash2,
             onClick: onDeleteForMe,
             color: 'text-red-500',
         },
         {
-            label: 'Delete for everyone (Recall)',
+            label: 'Xóa cho tất cả (Thu hồi)',
             icon: Trash2,
             onClick: onRecall,
             color: 'text-red-500',

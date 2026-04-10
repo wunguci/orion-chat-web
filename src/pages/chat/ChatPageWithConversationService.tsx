@@ -6,7 +6,7 @@ import MessageList, {
     type SocketMessage,
 } from '../../components/chat/MessageList';
 import ChatInput from '../../components/chat/ChatInput';
-import ConversationInfoPanel from '../../components/chat/ConversationInfoPanel';
+import { ConversationInfoPanel } from '../../components/chat/ConversationInfoPanel';
 import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
 import {
@@ -1136,6 +1136,27 @@ export const ChatPage: React.FC = () => {
                     displayMessages={displayMessages}
                     currentUserId={USER_ID}
                     onBlockStatusChange={loadBlockStatus}
+                    onJumpToMessage={(messageId: string) => {
+                        // Try to scroll to message element in the DOM
+                        const messageElement = document.getElementById(
+                            `message-${messageId}`,
+                        );
+                        if (messageElement) {
+                            messageElement.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center',
+                            });
+                            // Highlight the message briefly
+                            messageElement.classList.add('bg-yellow-100');
+                            setTimeout(() => {
+                                messageElement.classList.remove(
+                                    'bg-yellow-100',
+                                );
+                            }, 2000);
+                        }
+                    }}
+                    onForwardMessage={handleOpenForwardModal}
+                    onPinStatusChange={refreshConversations}
                 />
             )}
 

@@ -7,6 +7,7 @@ import {
     Calendar,
 } from 'lucide-react';
 import { MediaContextMenu } from './MediaContextMenu';
+import { conversationApi } from '../../services/conversationApi';
 import type { SocketMessage } from './MessageList';
 
 interface MediaStoragePanelProps {
@@ -16,6 +17,7 @@ interface MediaStoragePanelProps {
         action: 'open' | 'forward' | 'jump' | 'deleteForMe' | 'recall',
         message: SocketMessage,
     ) => void;
+    conversationId?: string;
 }
 
 type MediaTab = 'photos' | 'files' | 'links';
@@ -36,6 +38,7 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
     displayMessages,
     onBack,
     onMediaAction,
+    conversationId,
 }) => {
     const [activeTab, setActiveTab] = useState<MediaTab>('photos');
     const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
@@ -46,6 +49,9 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
         position: { x: number; y: number };
         messageId?: string;
     }>({ isOpen: false, position: { x: 0, y: 0 } });
+    const [mediaActionError, setMediaActionError] = useState<string | null>(
+        null,
+    );
 
     const [filters, setFilters] = useState<FilterOptions>({
         sender: 'all',
@@ -205,26 +211,107 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
         });
     };
 
-    const handleMediaAction = (
-        action: 'open' | 'forward' | 'jump' | 'deleteForMe' | 'recall',
-    ) => {
-        const message =
-            activeTab === 'photos'
-                ? filteredImages.find(
-                      (m) => m.id === contextMenuState.messageId,
-                  )
-                : activeTab === 'files'
-                  ? filteredFiles.find(
-                        (m) => m.id === contextMenuState.messageId,
-                    )
-                  : filteredLinks.find(
-                        (m) => m.id === contextMenuState.messageId,
-                    );
+    const handleMediaAction = useCallback(
+        async (
+            action: 'open' | 'forward' | 'jump' | 'deleteForMe' | 'recall',
+        ) => {
+            const message =
+                activeTab === 'photos'
+                    ? filteredImages.find(
+                          (m) => m.id === contextMenuState.messageId,
+                      )
+                    : activeTab === 'files'
+                      ? filteredFiles.find(
+                            (m) => m.id === contextMenuState.messageId,
+                        )
+                      : filteredLinks.find(
+                            (m) => m.id === contextMenuState.messageId,
+                        );
 
-        if (message) {
-            onMediaAction?.(action, message);
-        }
-    };
+            if (!message) {
+                setMediaActionError('Message not found');
+                return;
+            }
+
+            try {
+                setMediaActionError(null);
+
+                switch (action) {
+                    case 'open': {
+                        if (!message.fileUrl) {
+                            setMediaActionError('Cannot open file');
+                            return;
+                        }
+                        // Open file in new tab
+                        window.open(message.fileUrl, '_blank');
+                        break;
+                    }
+
+                    case 'forward': {
+                        // Delegate to parent handler if available
+                        if (onMediaAction) {
+                            onMediaAction('forward', message);
+                        } else {
+                            setMediaActionError('Forward action not available');
+                        }
+                        break;
+                    }
+
+                    case 'jump': {
+                        // Delegate to parent handler if available
+                        if (onMediaAction) {
+                            onMediaAction('jump', message);
+                        } else {
+                            setMediaActionError('Jump action not available');
+                        }
+                        break;
+                    }
+
+                    case 'deleteForMe': {
+                        if (!conversationId) {
+                            setMediaActionError('Conversation ID not found');
+                            return;
+                        }
+                        await conversationApi.deleteMessageForMe(
+                            conversationId,
+                            message.id,
+                        );
+                        break;
+                    }
+
+                    case 'recall': {
+                        if (!conversationId) {
+                            setMediaActionError('Conversation ID not found');
+                            return;
+                        }
+                        await conversationApi.recallMessage(
+                            conversationId,
+                            message.id,
+                        );
+                        break;
+                    }
+                }
+
+                setContextMenuState({ ...contextMenuState, isOpen: false });
+            } catch (error) {
+                const errorMsg =
+                    error instanceof Error
+                        ? error.message
+                        : `Failed to perform ${action}`;
+                setMediaActionError(errorMsg);
+                console.error(errorMsg, error);
+            }
+        },
+        [
+            activeTab,
+            contextMenuState,
+            filteredImages,
+            filteredFiles,
+            filteredLinks,
+            onMediaAction,
+            conversationId,
+        ],
+    );
 
     return (
         <div className="w-90 border-l border-slate-200 bg-white flex flex-col overflow-y-auto rounded-2xl shadow-2xs">
@@ -397,7 +484,7 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
 
             {/* Custom Date Picker Modal */}
             {showCustomDatePicker && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fadeIn">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm animate-fadeIn">
                     <div className="bg-white rounded-lg shadow-xl p-6 w-96 border border-slate-200 animate-slideUp">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-gray-primary">
@@ -523,7 +610,7 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
                                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                                                 />
                                                 {/* Overlay on hover */}
-                                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
+                                                <div className="absolute inset-0  bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
                                                     <button
                                                         onClick={(e) =>
                                                             handleContextMenu(
@@ -688,6 +775,19 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* ✅ Error Notification */}
+            {mediaActionError && (
+                <div className="fixed bottom-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50 animate-slideUp">
+                    <p className="text-sm font-medium">{mediaActionError}</p>
+                    <button
+                        onClick={() => setMediaActionError(null)}
+                        className="mt-2 text-xs text-red-100 hover:text-white"
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            )}
 
             {/* Context Menu */}
             <MediaContextMenu

@@ -44,6 +44,9 @@ interface ConversationInfoPanelProps {
     displayMessages?: SocketMessage[];
     currentUserId?: string;
     onBlockStatusChange?: () => Promise<void>;
+    onJumpToMessage?: (messageId: string) => void;
+    onForwardMessage?: (message: SocketMessage) => void;
+    onPinStatusChange?: () => Promise<void>;
 }
 
 export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
@@ -52,6 +55,9 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     displayMessages = [],
     currentUserId = '',
     onBlockStatusChange,
+    onJumpToMessage,
+    onForwardMessage,
+    onPinStatusChange,
 }) => {
     // ✅ Get other participant (for PRIVATE chat)
     const otherParticipant = selectedConversation?.participants?.find(
@@ -131,6 +137,9 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     const [autoDeleteDuration, setAutoDeleteDuration] = useState(0);
     const [iAmBlocked, setIAmBlocked] = useState(false);
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false);
+    const [mediaActionError, setMediaActionError] = useState<string | null>(null);
+    const [isPinned, setIsPinned] = useState(selectedConversation?.myIsPinned || false);
+    const [isPinLoading, setIsPinLoading] = useState(false);
 
     // Derive isConversationHidden from selectedConversation to avoid setState cascade
     const isConversationHidden = selectedConversation?.myIsHidden || false;
@@ -265,6 +274,34 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         loadBlockStatus();
     }, [selectedConversation?.conversationId]);
 
+    // ✅ Update isPinned when selectedConversation changes
+    useEffect(() => {
+        setIsPinned(selectedConversation?.myIsPinned || false);
+    }, [selectedConversation?.myIsPinned]);
+
+    // ✅ Handle pin/unpin conversation
+    const handlePinConversation = async () => {
+        if (!selectedConversation?.conversationId) return;
+
+        try {
+            setIsPinLoading(true);
+            if (isPinned) {
+                await conversationApi.unpinConversation(selectedConversation.conversationId);
+            } else {
+                await conversationApi.pinConversation(selectedConversation.conversationId);
+            }
+            setIsPinned(!isPinned);
+            // ✅ Trigger parent to refresh conversations list (for real-time reorder in sidebar)
+            if (onPinStatusChange) {
+                await onPinStatusChange();
+            }
+        } catch (error) {
+            console.error('Error toggling pin status:', error);
+        } finally {
+            setIsPinLoading(false);
+        }
+    };
+
     return (
         <>
             {/* Auto Delete Modal */}
@@ -311,10 +348,21 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 <MediaStoragePanel
                     displayMessages={displayMessages}
                     onBack={() => setShowMediaStorage(false)}
+                    conversationId={selectedConversation?.conversationId}
                     onMediaAction={(action, message) => {
-                        console.log(`Media action: ${action}`, message);
-                        // Handle media actions here
-                        // TODO: Implement open, forward, jump to message, delete actions
+                        switch (action) {
+                            case 'forward':
+                                if (onForwardMessage) {
+                                    onForwardMessage(message);
+                                }
+                                break;
+                            case 'jump':
+                                if (onJumpToMessage) {
+                                    onJumpToMessage(message.id);
+                                }
+                                break;
+                            // Other actions (open, deleteForMe, recall) are handled in MediaStoragePanel
+                        }
                     }}
                 />
             )}
@@ -353,13 +401,21 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                         Tắt thông báo
                                     </span>
                                 </button>
-                                <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
+                                <button
+                                    onClick={handlePinConversation}
+                                    disabled={isPinLoading}
+                                    className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-colors flex-1 ${
+                                        isPinned
+                                            ? 'bg-green-50 hover:bg-green-100'
+                                            : 'hover:bg-white'
+                                    } ${isPinLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
                                     <Pin
                                         size={20}
-                                        className="text-green-primary"
+                                        className={isPinned ? 'text-green-600 fill-current' : 'text-green-primary'}
                                     />
-                                    <span className="text-xs text-gray-primary">
-                                        Ghi hội thoại
+                                    <span className={`text-xs ${isPinned ? 'text-green-600 font-medium' : 'text-gray-primary'}`}>
+                                        {isPinned ? 'Bỏ ghim' : 'Ghim hội thoại'}
                                     </span>
                                 </button>
                                 <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
@@ -460,7 +516,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                                 }
                                                             />
                                                             {/* Hover overlay with action button */}
-                                                            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                            <div className="absolute inset-0 bg-slate-800  bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-50">
                                                                 <button
                                                                     onClick={(
                                                                         e,
@@ -487,7 +543,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                                             },
                                                                         );
                                                                     }}
-                                                                    className="p-1 hover:bg-slate-700 rounded transition-colors"
+                                                                    className="p-1 hover:bg-slate-600 rounded transition-colors"
                                                                 >
                                                                     <MoreVertical
                                                                         size={
@@ -1070,36 +1126,139 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 </div>
             )}
 
-            {/* Context Menu */}
-            <MediaContextMenu
-                isOpen={contextMenuState.isOpen}
-                position={contextMenuState.position}
-                onOpen={() => {
-                    console.log('Open document');
-                    // TODO: Implement open action
-                }}
-                onForward={() => {
-                    console.log('Forward message');
-                    // TODO: Implement forward action
-                }}
-                onJumpToMessage={() => {
-                    console.log('Jump to message');
-                    // TODO: Implement jump to message action
-                }}
-                onDeleteForMe={() => {
-                    console.log('Delete for me');
-                    // TODO: Implement delete for me action
-                }}
-                onRecall={() => {
-                    console.log('Recall message');
-                    // TODO: Implement recall action
-                }}
-                onClose={() =>
-                    setContextMenuState({ ...contextMenuState, isOpen: false })
-                }
-            />
+            {/* ✅ Media Context Menu Handlers */}
+            {/* Get message from messageId */}
+            {(() => {
+                const getMessageById = (messageId?: string) => {
+                    if (!messageId) return null;
+                    return displayMessages.find((msg) => msg.id === messageId) || null;
+                };
+
+                const handleOpenDocument = async () => {
+                    const message = getMessageById(contextMenuState.messageId);
+                    if (!message || !message.fileUrl) {
+                        setMediaActionError('Cannot open file');
+                        return;
+                    }
+
+                    try {
+                        // Open file in new tab
+                        window.open(message.fileUrl, '_blank');
+                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                    } catch (error) {
+                        const errorMsg = error instanceof Error ? error.message : 'Failed to open file';
+                        setMediaActionError(errorMsg);
+                        console.error(errorMsg, error);
+                    }
+                };
+
+                const handleForwardClick = async () => {
+                    const message = getMessageById(contextMenuState.messageId);
+                    if (!message) {
+                        setMediaActionError('Message not found');
+                        return;
+                    }
+
+                    try {
+                        // Call parent handler if available
+                        if (onForwardMessage) {
+                            onForwardMessage(message);
+                        }
+                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                    } catch (error) {
+                        const errorMsg = error instanceof Error ? error.message : 'Failed to forward message';
+                        setMediaActionError(errorMsg);
+                        console.error(errorMsg, error);
+                    }
+                };
+
+                const handleJumpToMessage = async () => {
+                    const messageId = contextMenuState.messageId;
+                    if (!messageId) {
+                        setMediaActionError('Message ID not found');
+                        return;
+                    }
+
+                    try {
+                        // Call parent handler if available
+                        if (onJumpToMessage) {
+                            onJumpToMessage(messageId);
+                        }
+                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                    } catch (error) {
+                        const errorMsg = error instanceof Error ? error.message : 'Failed to jump to message';
+                        setMediaActionError(errorMsg);
+                        console.error(errorMsg, error);
+                    }
+                };
+
+                const handleDeleteForMe = async () => {
+                    const messageId = contextMenuState.messageId;
+                    if (!messageId || !selectedConversation?.conversationId) {
+                        setMediaActionError('Missing required information');
+                        return;
+                    }
+
+                    try {
+                        await conversationApi.deleteMessageForMe(
+                            selectedConversation.conversationId,
+                            messageId,
+                        );
+                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                        setMediaActionError(null);
+                    } catch (error) {
+                        const errorMsg = error instanceof Error ? error.message : 'Failed to delete message';
+                        setMediaActionError(errorMsg);
+                        console.error(errorMsg, error);
+                    }
+                };
+
+                const handleRecallMessage = async () => {
+                    const messageId = contextMenuState.messageId;
+                    if (!messageId || !selectedConversation?.conversationId) {
+                        setMediaActionError('Missing required information');
+                        return;
+                    }
+
+                    try {
+                        await conversationApi.recallMessage(
+                            selectedConversation.conversationId,
+                            messageId,
+                        );
+                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                        setMediaActionError(null);
+                    } catch (error) {
+                        const errorMsg = error instanceof Error ? error.message : 'Failed to recall message';
+                        setMediaActionError(errorMsg);
+                        console.error(errorMsg, error);
+                    }
+                };
+
+                return (
+                    <>
+                        {/* Error notification */}
+                        {mediaActionError && (
+                            <div className="fixed bottom-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50">
+                                {mediaActionError}
+                            </div>
+                        )}
+
+                        {/* Context Menu */}
+                        <MediaContextMenu
+                            isOpen={contextMenuState.isOpen}
+                            position={contextMenuState.position}
+                            onOpen={handleOpenDocument}
+                            onForward={handleForwardClick}
+                            onJumpToMessage={handleJumpToMessage}
+                            onDeleteForMe={handleDeleteForMe}
+                            onRecall={handleRecallMessage}
+                            onClose={() =>
+                                setContextMenuState({ ...contextMenuState, isOpen: false })
+                            }
+                        />
+                    </>
+                );
+            })()}
         </>
     );
 };
-
-export default ConversationInfoPanel;

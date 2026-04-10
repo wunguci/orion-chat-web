@@ -298,6 +298,28 @@ class ConversationApiService {
     }
 
     // =========================
+    // Pin Conversation
+    // =========================
+
+    /**
+     * Ghim cuộc hội thoại lên đầu danh sách
+     * @param conversationId ID của conversation
+     */
+    async pinConversation(conversationId: string) {
+        const response = await this.api.post(`/${conversationId}/pin`);
+        return response.data;
+    }
+
+    /**
+     * Bỏ ghim cuộc hội thoại
+     * @param conversationId ID của conversation
+     */
+    async unpinConversation(conversationId: string) {
+        const response = await this.api.post(`/${conversationId}/unpin`);
+        return response.data;
+    }
+
+    // =========================
     // Upload
     // =========================
 
