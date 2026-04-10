@@ -80,6 +80,17 @@ class ConversationApiService {
         return response.data;
     }
 
+    /**
+     * Get or create a PRIVATE conversation with a friend
+     * @param recipientId ID của friend
+     */
+    async getOrCreatePrivateConversation(recipientId: string) {
+        const response = await this.api.post('/private', {
+            recipientId,
+        });
+        return response.data;
+    }
+
     async leaveConversation(conversationId: string) {
         const response = await this.api.post(`/${conversationId}/leave`);
         return response.data;

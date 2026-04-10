@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import ChatSidebarWithConversationService from '../../components/chat/ChatSidebarWithConversationService';
 import ChatHeader from '../../components/chat/ChatHeader';
 import MessageList, {
@@ -81,6 +82,7 @@ export const ChatPage: React.FC = () => {
     // ✅ Get user ID inside component (after auth is loaded)
     const USER_ID = getCurrentUserId();
     const USERNAME = getCurrentUserName();
+    const location = useLocation();
 
     const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>(
         [],
@@ -117,12 +119,12 @@ export const ChatPage: React.FC = () => {
         ((msg: ChatSocketMessage) => void) | null
     >(null);
 
-    // Fetch conversations
-    // ✅ No need to pass USER_ID - JWT token from localStorage is used
+    // ✅ Fetch all conversations (for sidebar + forward modal)
     const {
         conversations,
         loading: conversationsLoading,
         error: conversationsError,
+        refreshConversations,
     } = useConversations();
 
     // Fetch selected conversation detail
@@ -170,7 +172,6 @@ export const ChatPage: React.FC = () => {
             // - iAmTheBlocker: current user là người chặn (có nút bỏ chặn)
             setIAmBlocked(response?.iAmBlocked || false);
             setIAmTheBlocker(response?.iAmTheBlocker || false);
-           
         } catch (error) {
             console.error('Error loading block status:', error);
             setIAmBlocked(false);
@@ -183,6 +184,16 @@ export const ChatPage: React.FC = () => {
         loadBlockStatus();
     }, [selectedConversation?.conversationId]);
 
+    // ✅ Auto-select conversation from location state (e.g., from friend chat click)
+    useEffect(() => {
+        const state = location.state as {
+            selectedConversationId?: string;
+        } | null;
+        if (state?.selectedConversationId && !selectedConversationId) {
+            setSelectedConversationId(state.selectedConversationId);
+        }
+    }, [location.state, selectedConversationId]);
+
     // ✅ Poll block status every 5 seconds to detect when other user blocks/unblocks
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -193,6 +204,17 @@ export const ChatPage: React.FC = () => {
 
         return () => clearInterval(intervalId);
     }, [selectedConversation?.conversationId]);
+
+    // ✅ Refresh conversations when navigating from friend page (new conversation created)
+    useEffect(() => {
+        if (location.state?.selectedConversationId) {
+            // Wait a moment for backend to fully process conversation creation
+            const timer = setTimeout(() => {
+                refreshConversations();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [location.state?.selectedConversationId, refreshConversations]);
 
     const getReceiverIdByConversationId = useCallback(
         (conversationId: string) => {
@@ -299,11 +321,9 @@ export const ChatPage: React.FC = () => {
                 chatSocketService.connect();
 
                 const messageHandler = (payload: IncomingSocketPayload) => {
-                   
                     const rawPayload =
                         payload?.message || payload?.data || payload;
                     const msg = toSocketMessage(rawPayload);
-
 
                     const hasVisibleContent =
                         msg.isRecalled ||
@@ -382,7 +402,6 @@ export const ChatPage: React.FC = () => {
                     if (payload.conversationId !== selectedConversationId)
                         return;
 
-
                     setSocketMessages((prev) => {
                         let found = false;
                         const updated = prev.map((msg) => {
@@ -425,13 +444,13 @@ export const ChatPage: React.FC = () => {
                 };
 
                 messageListenerRef.current = messageHandler;
-               
+
                 onMessageNew(messageHandler);
-               
+
                 onMessageReactionUpdated(reactionHandler);
-               
+
                 onMessageRecalled(recallHandler);
-               
+
                 setError(null);
             } catch (err) {
                 setError(
@@ -784,7 +803,6 @@ export const ChatPage: React.FC = () => {
 
                 // Send via socket
                 const receiverId = getReceiverId();
-              
 
                 if (!receiverId) {
                     console.error(
