@@ -115,6 +115,7 @@ export const ChatPage: React.FC = () => {
     >({});
     const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
+    const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true); // Track conversation info panel visibility
     const messageListenerRef = useRef<
         ((msg: ChatSocketMessage) => void) | null
     >(null);
@@ -1093,6 +1094,9 @@ export const ChatPage: React.FC = () => {
                                 'Conversation'
                             }
                             isBlocked={iAmBlocked || iAmTheBlocker}
+                            onPanelToggle={() =>
+                                setIsInfoPanelOpen(!isInfoPanelOpen)
+                            }
                         />
 
                         {/* Messages */}
@@ -1129,9 +1133,9 @@ export const ChatPage: React.FC = () => {
             </div>
 
             {/* Conversation info panel */}
-            {selectedConversation && (
+            {selectedConversation && isInfoPanelOpen && (
                 <ConversationInfoPanel
-                    isSidebarOpen={true}
+                    isSidebarOpen={isInfoPanelOpen}
                     selectedConversation={selectedConversation}
                     displayMessages={displayMessages}
                     currentUserId={USER_ID}

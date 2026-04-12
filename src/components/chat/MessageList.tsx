@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Lock, Trash2, Undo2Icon } from 'lucide-react';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
+import { VideoMessage } from './VideoMessage';
 
 // Inspired by Zalo's emoji reactions
 const EMOJI_LIST = [
@@ -36,7 +37,7 @@ export type SocketMessage = {
     content: string;
     timestamp: string;
     conversationId?: string;
-    type?: 'text' | 'image' | 'file' | 'audio';
+    type?: 'text' | 'image' | 'file' | 'audio' | 'video';
     isFile?: boolean;
     fileUrl?: string;
     fileName?: string;
@@ -216,6 +217,16 @@ export const MessageList: React.FC<{
 
                         const messageKey = getMessageKey(msg);
                         const reactionStats = getReactionStats(msg);
+
+                        // Video detection: check fileType, fileName, or URL
+                        const videoExtensions =
+                            /\.(mp4|webm|mov|avi|mkv|flv|wmv|m4v|3gp)$/i;
+                        const hasVideo =
+                            msg.isFile &&
+                            (msg.fileType?.startsWith('video/') === true ||
+                                videoExtensions.test(msg.fileName || '') ||
+                                videoExtensions.test(msg.fileUrl || ''));
+
                         const hasImage =
                             msg.isFile &&
                             msg.fileType?.startsWith('image/') === true;
@@ -245,7 +256,7 @@ export const MessageList: React.FC<{
                                         />
                                     </div>
                                 ) : (
-                                    <div className="shrink-0 w-8" />
+                                    <div className="shrink-0" />
                                 )}
 
                                 {/* Message bubble container */}
@@ -261,11 +272,26 @@ export const MessageList: React.FC<{
                                         </p>
                                     )}
 
-                                    {/* ✅ IMAGE: Render without bubble background */}
+                                    {/* ✅ VIDEO: Render video component */}
                                     {!msg.isRecalled &&
                                     msg.isFile &&
                                     msg.fileUrl &&
-                                    msg.fileType?.startsWith('image/') ? (
+                                    hasVideo ? (
+                                        <VideoMessage
+                                            videoUrl={
+                                                msg.fileUrl.startsWith(
+                                                    'http',
+                                                ) ||
+                                                msg.fileUrl.startsWith('blob:')
+                                                    ? msg.fileUrl
+                                                    : `${SERVER_URL}${msg.fileUrl}`
+                                            }
+                                            fileName={msg.fileName || 'Video'}
+                                        />
+                                    ) : !msg.isRecalled &&
+                                      msg.isFile &&
+                                      msg.fileUrl &&
+                                      msg.fileType?.startsWith('image/') ? (
                                         <img
                                             src={
                                                 msg.fileUrl.startsWith(

@@ -59,7 +59,6 @@ export const CreateConversationModal: React.FC<
             setError(null);
 
             const conversation = await conversationApi.createConversation(
-                currentUserId,
                 {
                     type: conversationType,
                     participantIds: selectedUsers,

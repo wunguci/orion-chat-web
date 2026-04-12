@@ -4,7 +4,8 @@ import { CiCircleList, CiPhone, CiSearch, CiVideoOn } from 'react-icons/ci';
 export const ChatHeader: React.FC<{
     name?: string;
     isBlocked?: boolean;
-}> = ({ name = 'Olivia Isabella', isBlocked = false }) => {
+    onPanelToggle?: () => void;
+}> = ({ name = 'Olivia Isabella', isBlocked = false, onPanelToggle }) => {
     return (
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between text-gray-primary">
             <div className="flex items-center gap-3">
@@ -54,7 +55,11 @@ export const ChatHeader: React.FC<{
                 >
                     <CiVideoOn className="w-5 h-5" />
                 </button>
-                <button className="p-1 hover:bg-slate-200 rounded text-gray-primary">
+                <button
+                    onClick={onPanelToggle}
+                    className="p-1 hover:bg-slate-200 rounded text-gray-primary"
+                    title="Thông tin hội thoại"
+                >
                     <CiCircleList className="w-5 h-5" />
                 </button>
             </div>

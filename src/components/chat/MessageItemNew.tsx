@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { VideoMessage } from './VideoMessage';
 
 /**
  * Message interface matching MongoDB schema
@@ -169,6 +170,15 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                         {message.fileName || 'File'}
                     </span>
                 </a>
+            );
+        }
+
+        if (message.messageType === 'VIDEO' && message.mediaUrl) {
+            return (
+                <VideoMessage
+                    videoUrl={message.mediaUrl}
+                    fileName={message.fileName || 'Video'}
+                />
             );
         }
 
