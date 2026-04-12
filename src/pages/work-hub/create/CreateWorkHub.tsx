@@ -73,6 +73,11 @@ interface ProgressStep {
 
 const TOTAL_STEPS = 4;
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
+
 const PROGRESS_STEPS: ProgressStep[] = [
   { number: 1, label: "Workspace Info" },
   { number: 2, label: "Customize" },
@@ -314,7 +319,7 @@ function getCurrentUserId(): string | null {
 
 async function getFallbackOwnerIdFromBackend(): Promise<string | null> {
   try {
-    const res = await fetch("http://localhost:3000/users");
+    const res = await fetch(`${API_BASE_URL}/users`);
     // const res = await fetch(`https://deceitfully-unquailing-haylee.ngrok-free.dev/users?name=${encodeURIComponent(TEST_OWNER_FULL_NAME)}`);
 
     if (!res.ok) return null;
@@ -346,7 +351,7 @@ function normalizeName(value: string): string {
 
 async function getTestOwnerIdByName(fullName: string): Promise<string | null> {
   try {
-    const res = await fetch("http://localhost:3000/users");
+    const res = await fetch(`${API_BASE_URL}/users`);
     // const res = await fetch(`https://deceitfully-unquailing-haylee.ngrok-free.dev/users?name=${encodeURIComponent(fullName)}`);
     if (!res.ok) return null;
 
@@ -1119,4 +1124,3 @@ const CreateWorkHub = () => {
 };
 
 export default CreateWorkHub;
-

@@ -37,7 +37,10 @@ import {
   useUserDevices,
 } from "../../hooks/useSettings";
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
 
 function toAbsoluteMediaUrl(url?: string | null): string | null {
   if (!url) return null;
@@ -267,7 +270,9 @@ export default function SettingsModal({
           ...userData,
           ...profileData,
           ...(responseData ?? {}),
-          ...(avatarUrlFromResponse ? { avatarUrl: avatarUrlFromResponse } : {}),
+          ...(avatarUrlFromResponse
+            ? { avatarUrl: avatarUrlFromResponse }
+            : {}),
         };
         saveUserData(updatedUser);
 
