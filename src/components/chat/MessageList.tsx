@@ -227,9 +227,14 @@ export const MessageList: React.FC<{
                                 videoExtensions.test(msg.fileName || '') ||
                                 videoExtensions.test(msg.fileUrl || ''));
 
+                        // Image detection: check fileType, fileName, or URL (same as video)
+                        const imageExtensions =
+                            /\.(jpg|jpeg|png|gif|webp|bmp|svg|ico)$/i;
                         const hasImage =
                             msg.isFile &&
-                            msg.fileType?.startsWith('image/') === true;
+                            (msg.fileType?.startsWith('image/') === true ||
+                                imageExtensions.test(msg.fileName || '') ||
+                                imageExtensions.test(msg.fileUrl || ''));
                         if (hasImage) imgCounter++;
                         const imgIdx = imgCounter;
 
@@ -291,7 +296,7 @@ export const MessageList: React.FC<{
                                     ) : !msg.isRecalled &&
                                       msg.isFile &&
                                       msg.fileUrl &&
-                                      msg.fileType?.startsWith('image/') ? (
+                                      hasImage ? (
                                         <img
                                             src={
                                                 msg.fileUrl.startsWith(

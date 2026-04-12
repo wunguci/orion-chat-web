@@ -109,7 +109,13 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             return 'Không có tin nhắn';
         }
 
-        const { content, senderBy, messageType } = conversation.lastMessage;
+        const { content, senderBy, messageType, isRecalled } =
+            conversation.lastMessage;
+
+        // ✅ Check if message is recalled first
+        if (isRecalled) {
+            return 'Tin nhắn đã được thu hồi';
+        }
 
         if (messageType === 'FILE' || messageType === 'file') {
             return '📎 File attached';

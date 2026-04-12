@@ -2,8 +2,8 @@
 import { io, Socket } from 'socket.io-client';
 
 const RAW_SOCKET_URL =
-  (import.meta.env["VITE_SOCKET_URL"] as string | undefined) ||
-  "http://localhost:3000"; /* Đảm bảo không có dấu gạch chéo ở cuối */
+    (import.meta.env['VITE_SOCKET_URL'] as string | undefined) ||
+    'http://localhost:3000'; /* Đảm bảo không có dấu gạch chéo ở cuối */
 
 const normalizeSocketBaseUrl = (url: string) =>
     url.replace(/\/$/, '').replace(/\/call$/, '');
@@ -41,15 +41,15 @@ class SocketService {
         return this.socket;
     }
 
-  // kết nối call socket (namespace /call)
-  connectCall(userId: string, token?: string) {
-    // nếu userId thay đổi, ngắt kết nối socket cũ.
-    if (this.currentUserId && this.currentUserId !== userId) {
-      console.log(
-        `[SocketService] UserId changed from ${this.currentUserId} to ${userId}, reconnecting...`,
-      );
-      this.disconnectCall();
-    }
+    // kết nối call socket (namespace /call)
+    connectCall(userId: string, token?: string) {
+        // nếu userId thay đổi, ngắt kết nối socket cũ.
+        if (this.currentUserId && this.currentUserId !== userId) {
+            console.log(
+                `[SocketService] UserId changed from ${this.currentUserId} to ${userId}, reconnecting...`,
+            );
+            this.disconnectCall();
+        }
 
         // nếu đã kết nối với cùng userId, trả về socket hiện có.
         if (this.callSocket?.connected && this.currentUserId === userId) {
@@ -75,22 +75,22 @@ class SocketService {
             transports: ['websocket'],
         });
 
-    this.callSocket.on("connect", () => {
-      console.log(
-        `[SocketService] Call socket connected: ${this.callSocket?.id} (userId: ${userId})`,
-      );
-    });
+        this.callSocket.on('connect', () => {
+            console.log(
+                `[SocketService] Call socket connected: ${this.callSocket?.id} (userId: ${userId})`,
+            );
+        });
 
-    this.callSocket.on("disconnect", (reason) => {
-      console.log(
-        `[SocketService] Call socket disconnected. Reason: ${reason}`,
-      );
-    });
+        this.callSocket.on('disconnect', (reason) => {
+            console.log(
+                `[SocketService] Call socket disconnected. Reason: ${reason}`,
+            );
+        });
 
-    this.callSocket.on("connect_error", (error) => {
-      // console.error("[SocketService] Call socket connection error:", error);
-      this.disconnectCall();
-    });
+        this.callSocket.on('connect_error', (error) => {
+            // console.error("[SocketService] Call socket connection error:", error);
+            this.disconnectCall();
+        });
 
         return this.callSocket;
     }
@@ -129,9 +129,9 @@ class SocketService {
             );
         });
 
-    this.presenceSocket.on("connect_error", (error) => {
-      // console.error("[SocketService] Presence socket connection error:", error);
-    });
+        this.presenceSocket.on('connect_error', (error) => {
+            // console.error("[SocketService] Presence socket connection error:", error);
+        });
 
         return this.presenceSocket;
     }
@@ -140,31 +140,31 @@ class SocketService {
         return this.presenceSocket;
     }
 
-  // disconnect all sockets
-  disconnect() {
-    console.log("[SocketService] Disconnecting all sockets");
-    this.socket?.disconnect();
-    this.callSocket?.disconnect();
-    this.presenceSocket?.disconnect();
-    this.socket = null;
-    this.callSocket = null;
-    this.presenceSocket = null;
-    this.currentUserId = null;
-  }
+    // disconnect all sockets
+    disconnect() {
+        console.log('[SocketService] Disconnecting all sockets');
+        this.socket?.disconnect();
+        this.callSocket?.disconnect();
+        this.presenceSocket?.disconnect();
+        this.socket = null;
+        this.callSocket = null;
+        this.presenceSocket = null;
+        this.currentUserId = null;
+    }
 
-  // disconnect only call socket
-  disconnectCall() {
-    console.log("[SocketService] Disconnecting call socket");
-    this.callSocket?.disconnect();
-    this.callSocket = null;
-    this.currentUserId = null;
-  }
+    // disconnect only call socket
+    disconnectCall() {
+        console.log('[SocketService] Disconnecting call socket');
+        this.callSocket?.disconnect();
+        this.callSocket = null;
+        this.currentUserId = null;
+    }
 
-  disconnectPresence() {
-    console.log("[SocketService] Disconnecting presence socket");
-    this.presenceSocket?.disconnect();
-    this.presenceSocket = null;
-  }
+    disconnectPresence() {
+        console.log('[SocketService] Disconnecting presence socket');
+        this.presenceSocket?.disconnect();
+        this.presenceSocket = null;
+    }
 }
 
 export const socketService = new SocketService();
@@ -461,12 +461,12 @@ export const sendMessage = (data: {
     clientMessageId: string;
     conversationId: string;
     receiverId: string;
-    type: 'text' | 'image' | 'file' | 'audio';
+    type: 'text' | 'image' | 'file' | 'audio' | 'video';
     content: string;
     mediaUrl?: string;
     fileName?: string;
     fileSize?: number;
-    replyToMessageId?: string;  
+    replyToMessageId?: string;
 }) => {
     chatSocketService.sendMessage(data);
 };

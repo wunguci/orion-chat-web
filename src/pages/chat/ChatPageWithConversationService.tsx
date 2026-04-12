@@ -32,11 +32,30 @@ import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 import { debugAuthStatus } from '../../utils/token';
 import { getUserInfo } from '../../services/userService';
 
+const mergeMessageForRealtimePreview = (
+    existing: SocketMessage,
+    incoming: SocketMessage,
+): SocketMessage => {
+    return {
+        ...existing,
+        ...incoming,
+        content: incoming.content || existing.content,
+        fileUrl: incoming.fileUrl || existing.fileUrl,
+        fileName: incoming.fileName || existing.fileName,
+        fileType: incoming.fileType || existing.fileType,
+        type: incoming.type || existing.type,
+        isFile:
+            typeof incoming.isFile === 'boolean'
+                ? incoming.isFile
+                : existing.isFile,
+    };
+};
+
 export const ChatPage: React.FC = () => {
     type ChatSocketMessage = SocketMessage & {
         clientMessageId?: string;
         conversationId?: string;
-        type?: 'text' | 'image' | 'file' | 'audio';
+        type?: 'text' | 'image' | 'file' | 'audio' | 'video';
     };
 
     type IncomingSocketPayload = {
@@ -52,7 +71,7 @@ export const ChatPage: React.FC = () => {
         timestamp?: string;
         createdAt?: string;
         isFile?: boolean;
-        type?: 'text' | 'image' | 'file' | 'audio';
+        type?: 'text' | 'image' | 'file' | 'audio' | 'video';
         messageType?:
             | 'TEXT'
             | 'IMAGE'
@@ -68,6 +87,7 @@ export const ChatPage: React.FC = () => {
         mediaUrl?: string;
         fileName?: string;
         fileType?: string;
+        mimeType?: string;
         isDeleted?: boolean;
         isRecalled?: boolean;
         reactions?: Array<{
@@ -78,6 +98,24 @@ export const ChatPage: React.FC = () => {
         conversationId?: string;
         message?: Partial<IncomingSocketPayload>;
         data?: Partial<IncomingSocketPayload>;
+    };
+
+    // Chuẩn hóa message type để dùng chung cho mọi nguồn dữ liệu (socket/api)
+    const normalizeMessageType = (rawType?: string) => {
+        if (!rawType) return undefined;
+        const normalized = rawType.toLowerCase();
+
+        if (
+            normalized === 'text' ||
+            normalized === 'image' ||
+            normalized === 'file' ||
+            normalized === 'audio' ||
+            normalized === 'video'
+        ) {
+            return normalized as 'text' | 'image' | 'file' | 'audio' | 'video';
+        }
+
+        return undefined;
     };
 
     // ✅ Get user ID inside component (after auth is loaded)
@@ -96,7 +134,8 @@ export const ChatPage: React.FC = () => {
     const [hiddenMessageKeys, setHiddenMessageKeys] = useState<Set<string>>(
         new Set(),
     );
-    const [recalledMessageKeys, setRecalledMessageKeys] = useState<Set<string>>(
+    // Theo dõi các message đã thu hồi theo thời gian thực để áp dụng cho cả dữ liệu phân trang + socket.
+    const [recalledMessageIds, setRecalledMessageIds] = useState<Set<string>>(
         new Set(),
     );
     const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
@@ -150,7 +189,7 @@ export const ChatPage: React.FC = () => {
             (p) => p.userId !== USER_ID,
         );
         return otherParticipant?.userId ?? USER_ID;
-    }, [selectedConversation]);
+    }, [selectedConversation, USER_ID]);
 
     const getMessageKey = useCallback(
         (message: Pick<SocketMessage, 'id' | 'clientMessageId'>) =>
@@ -158,34 +197,49 @@ export const ChatPage: React.FC = () => {
         [],
     );
 
-    // ✅ Helper function to load block status
-    const loadBlockStatus = async (convId?: string) => {
-        const conversationId = convId || selectedConversation?.conversationId;
-        if (!conversationId) {
-            setIAmBlocked(false);
-            setIAmTheBlocker(false);
-            return;
-        }
+    // Đánh dấu message đã thu hồi theo realtime (dùng cho cả local optimistic và event từ socket).
+    const markMessageAsRecalled = useCallback((messageId?: string) => {
+        if (!messageId) return;
 
-        try {
-            const response =
-                await conversationApi.getBlockStatus(conversationId);
-            // Backend response:
-            // - iAmBlocked: current user bị chặn
-            // - iAmTheBlocker: current user là người chặn (có nút bỏ chặn)
-            setIAmBlocked(response?.iAmBlocked || false);
-            setIAmTheBlocker(response?.iAmTheBlocker || false);
-        } catch (error) {
-            console.error('Error loading block status:', error);
-            setIAmBlocked(false);
-            setIAmTheBlocker(false);
-        }
-    };
+        setRecalledMessageIds((prev) => {
+            const next = new Set(prev);
+            next.add(messageId);
+            return next;
+        });
+    }, []);
+
+    // ✅ Helper function to load block status
+    const loadBlockStatus = useCallback(
+        async (convId?: string) => {
+            const conversationId =
+                convId || selectedConversation?.conversationId;
+            if (!conversationId) {
+                setIAmBlocked(false);
+                setIAmTheBlocker(false);
+                return;
+            }
+
+            try {
+                const response =
+                    await conversationApi.getBlockStatus(conversationId);
+                // Backend response:
+                // - iAmBlocked: current user bị chặn
+                // - iAmTheBlocker: current user là người chặn (có nút bỏ chặn)
+                setIAmBlocked(response?.iAmBlocked || false);
+                setIAmTheBlocker(response?.iAmTheBlocker || false);
+            } catch (error) {
+                console.error('Error loading block status:', error);
+                setIAmBlocked(false);
+                setIAmTheBlocker(false);
+            }
+        },
+        [selectedConversation?.conversationId],
+    );
 
     // ✅ Load block status when conversation changes
     useEffect(() => {
         loadBlockStatus();
-    }, [selectedConversation?.conversationId]);
+    }, [loadBlockStatus]);
 
     // ✅ Auto-select conversation from location state (e.g., from friend chat click)
     useEffect(() => {
@@ -206,7 +260,7 @@ export const ChatPage: React.FC = () => {
         }, 5000); // Poll mỗi 5 giây
 
         return () => clearInterval(intervalId);
-    }, [selectedConversation?.conversationId]);
+    }, [loadBlockStatus, selectedConversation?.conversationId]);
 
     // ✅ Refresh conversations when navigating from friend page (new conversation created)
     useEffect(() => {
@@ -229,7 +283,7 @@ export const ChatPage: React.FC = () => {
             );
             return otherParticipant?.userId || '';
         },
-        [conversations],
+        [conversations, USER_ID],
     );
 
     // ✅ Handle unblock user - chỉ người chặn mới có thể mở chặn
@@ -256,10 +310,25 @@ export const ChatPage: React.FC = () => {
     const toSocketMessage = useCallback(
         (payload: IncomingSocketPayload): ChatSocketMessage => {
             const messageType = payload?.messageType || payload?.type;
+            const normalizedMessageType = normalizeMessageType(
+                typeof messageType === 'string' ? messageType : undefined,
+            );
             const isImageType =
                 messageType === 'IMAGE' ||
                 messageType === 'image' ||
-                payload?.fileType?.startsWith('image/');
+                payload?.fileType?.startsWith('image/') ||
+                payload?.mimeType?.startsWith('image/');
+
+            // ✅ Better fileType inference from messageType
+            let inferredFileType = payload?.fileType || payload?.mimeType;
+            if (!inferredFileType && messageType) {
+                const type = messageType.toLowerCase();
+                if (type === 'image') {
+                    inferredFileType = 'image/jpeg'; // Default image MIME type
+                } else if (type === 'video') {
+                    inferredFileType = 'video/mp4'; // Default video MIME type
+                }
+            }
 
             // Get sender ID and use it as fallback for name
             const senderId =
@@ -286,14 +355,17 @@ export const ChatPage: React.FC = () => {
                     payload?.isFile ||
                     payload?.type === 'file' ||
                     payload?.type === 'image' ||
+                    payload?.type === 'video' ||
                     messageType === 'FILE' ||
                     messageType === 'IMAGE' ||
+                    messageType === 'VIDEO' ||
                     messageType === 'file' ||
-                    messageType === 'image',
+                    messageType === 'image' ||
+                    messageType === 'video',
                 fileUrl: payload?.fileUrl || payload?.mediaUrl,
                 fileName: payload?.fileName,
                 fileType:
-                    payload?.fileType || (isImageType ? 'image/*' : undefined),
+                    inferredFileType || (isImageType ? 'image/*' : undefined),
                 isRecalled: payload?.isRecalled || payload?.isDeleted,
                 reactions: Array.isArray(payload?.reactions)
                     ? payload.reactions
@@ -305,7 +377,7 @@ export const ChatPage: React.FC = () => {
                           }))
                     : [],
                 conversationId: payload?.conversationId,
-                type: payload?.type,
+                type: normalizedMessageType,
             };
         },
         [],
@@ -351,15 +423,19 @@ export const ChatPage: React.FC = () => {
 
                         if (existingIndex >= 0) {
                             const next = [...prev];
-                            next[existingIndex] = {
-                                ...next[existingIndex],
-                                ...msg,
-                            };
+                            next[existingIndex] =
+                                mergeMessageForRealtimePreview(
+                                    next[existingIndex],
+                                    msg,
+                                );
                             return next;
                         }
 
                         return [...prev, msg];
                     });
+
+                    // ✅ Update sidebar with latest message
+                    refreshConversations();
                 };
 
                 const reactionHandler = (payload: {
@@ -405,45 +481,34 @@ export const ChatPage: React.FC = () => {
                     if (payload.conversationId !== selectedConversationId)
                         return;
 
+                    // Đảm bảo message từ API pagination cũng đổi trạng thái ngay mà không cần reload.
+                    markMessageAsRecalled(payload.messageId);
+
                     setSocketMessages((prev) => {
-                        let found = false;
+                        // ✅ ONLY update existing messages - DO NOT push new placeholder messages
+                        // This prevents duplicate "Tin nhắn đã được thu hồi" appearing
                         const updated = prev.map((msg) => {
-                            if (msg.id === payload.messageId) {
-                                found = true;
+                            // Check both id AND clientMessageId for proper matching
+                            if (
+                                msg.id === payload.messageId ||
+                                msg.clientMessageId === payload.messageId
+                            ) {
                                 return {
                                     ...msg,
                                     isRecalled: true,
-                                    content: msg.content, // ✅ Keep original content in memory
-                                    // But UI will not display it when isRecalled=true
+                                    // Keep original content in memory for auditing
                                 };
                             }
                             return msg;
                         });
 
-                        // ✅ If message not found in socketMessages (from paginatedMessages),
-                        // add it to socketMessages so displayMessages will show it as recalled
-                        if (!found) {
-                            updated.push({
-                                id: payload.messageId,
-                                senderId: payload.revokedBy,
-                                senderName: 'Unknown',
-                                content: '',
-                                isRecalled: true,
-                                timestamp: new Date(
-                                    payload.revokedAt,
-                                ).toISOString(),
-                                conversationId: payload.conversationId,
-                            });
-                        }
-
                         return updated;
                     });
+                    // isRecalled property is now the single source of truth
+                    // No redundant recalledMessageKeys Set tracking
 
-                    setRecalledMessageKeys((prev) => {
-                        const next = new Set(prev);
-                        next.add(payload.messageId);
-                        return next;
-                    });
+                    // ✅ Update sidebar to show "Tin nhắn đã được thu hồi" in real-time
+                    refreshConversations();
                 };
 
                 messageListenerRef.current = messageHandler;
@@ -477,7 +542,12 @@ export const ChatPage: React.FC = () => {
             offMessageRecalled();
             disconnectSocket();
         };
-    }, [toSocketMessage, selectedConversationId]);
+    }, [
+        toSocketMessage,
+        selectedConversationId,
+        refreshConversations,
+        markMessageAsRecalled,
+    ]);
 
     // Handle conversation selection
     const handleSelectConversation = useCallback((conversationId: string) => {
@@ -488,6 +558,11 @@ export const ChatPage: React.FC = () => {
     useEffect(() => {
         if (!selectedConversationId) return;
         joinConversation(`join_${Date.now()}`, selectedConversationId);
+    }, [selectedConversationId]);
+
+    useEffect(() => {
+        // Reset override recall theo từng conversation để tránh ảnh hưởng chéo.
+        setRecalledMessageIds(new Set());
     }, [selectedConversationId]);
 
     // Enhance sender names for messages that only have phone numbers (backward compatibility)
@@ -538,17 +613,15 @@ export const ChatPage: React.FC = () => {
         };
 
         enrichSenderNames();
-    }, [socketMessages.length]); // Only trigger when message count changes
+    }, [socketMessages]);
 
     const recallLocalMessage = useCallback(
         (message: SocketMessage) => {
-            const messageKey = getMessageKey(message);
-
-            setRecalledMessageKeys((prev) => {
-                const next = new Set(prev);
-                next.add(messageKey);
-                return next;
-            });
+            // Optimistic update: bên gửi thấy đổi ngay lập tức.
+            markMessageAsRecalled(message.id);
+            if (message.clientMessageId) {
+                markMessageAsRecalled(message.clientMessageId);
+            }
 
             setSocketMessages((prev) =>
                 prev.map((msg) => {
@@ -571,7 +644,7 @@ export const ChatPage: React.FC = () => {
                 }),
             );
         },
-        [getMessageKey],
+        [markMessageAsRecalled],
     );
 
     const executeRecallMessage = useCallback(
@@ -596,7 +669,7 @@ export const ChatPage: React.FC = () => {
                 );
             }
         },
-        [selectedConversationId, recallLocalMessage],
+        [selectedConversationId, recallLocalMessage, USER_ID],
     );
 
     const executeDeleteMessage = useCallback(
@@ -722,7 +795,7 @@ export const ChatPage: React.FC = () => {
                 console.error('Error reacting:', err);
             }
         },
-        [getMessageKey, reactionOverrides, selectedConversationId],
+        [getMessageKey, reactionOverrides, selectedConversationId, USER_ID],
     );
 
     const handleOpenForwardModal = useCallback((message: SocketMessage) => {
@@ -832,7 +905,7 @@ export const ChatPage: React.FC = () => {
                 );
             }
         },
-        [selectedConversationId, getReceiverId],
+        [selectedConversationId, getReceiverId, USER_ID, USERNAME],
     );
 
     // Handle sending file
@@ -843,10 +916,19 @@ export const ChatPage: React.FC = () => {
             try {
                 const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-                // Determine file type
+                // Determine file type with VIDEO support
                 const fileType = file.type;
                 const isImage = fileType.startsWith('image/');
-                const messageType = isImage ? 'image' : 'file';
+                const isVideo =
+                    fileType.startsWith('video/') ||
+                    /\.(mp4|webm|mov|avi|mkv|flv|wmv|m4v|3gp)$/i.test(
+                        file.name,
+                    );
+                const messageType = isImage
+                    ? 'image'
+                    : isVideo
+                      ? 'video'
+                      : 'file';
 
                 // Create local preview URL for immediate display
                 const tempFileUrl = URL.createObjectURL(file);
@@ -909,7 +991,7 @@ export const ChatPage: React.FC = () => {
                     requestId: `req_${Date.now()}`,
                     clientMessageId,
                     receiverId: getReceiverId(),
-                    type: messageType as 'image' | 'file',
+                    type: messageType as 'image' | 'file' | 'video',
                     content: file.name,
                     mediaUrl: serverFileUrl,
                     fileName: file.name,
@@ -923,7 +1005,7 @@ export const ChatPage: React.FC = () => {
                 );
             }
         },
-        [selectedConversationId, getReceiverId],
+        [selectedConversationId, getReceiverId, USER_ID, USERNAME],
     );
 
     // Combine paginated messages and socket messages
@@ -938,7 +1020,7 @@ export const ChatPage: React.FC = () => {
                 )?.fullName || 'Unknown'
             );
         },
-        [selectedConversation],
+        [selectedConversation, USER_ID, USERNAME],
     );
 
     const paginatedAsSocketMessages: SocketMessage[] = paginatedMessages.map(
@@ -962,15 +1044,20 @@ export const ChatPage: React.FC = () => {
                           new Date().toISOString()),
                 isFile:
                     m.messageType === 'FILE' ||
+                    m.messageType === 'VIDEO' ||
                     m.messageType === 'IMAGE' ||
                     m.messageType === 'file' ||
+                    m.messageType === 'video' ||
                     m.messageType === 'image',
                 fileUrl: m.mediaUrl,
                 fileName: m.fileName,
+                // Giữ MIME hợp lý để MessageList nhận diện preview ngay cả khi URL không có extension
                 fileType:
                     m.messageType === 'IMAGE' || m.messageType === 'image'
                         ? 'image/*'
-                        : undefined,
+                        : m.messageType === 'VIDEO' || m.messageType === 'video'
+                          ? 'video/*'
+                          : undefined,
                 // ✅ Message is recalled if isRevoked=true (from backend)
                 // Backend preserves message in DB with isRevoked flag
                 isRecalled: m.isRevoked === true,
@@ -1003,12 +1090,19 @@ export const ChatPage: React.FC = () => {
             (message.isFile && !!message.fileUrl);
         if (!hasVisibleContent) continue;
 
-        const key =
-            (message as ChatSocketMessage).clientMessageId ||
-            message.id ||
-            `${message.senderId}_${message.timestamp}_${message.content}_${message.fileUrl || ''}`;
+        // ✅ Use message.id as primary key for deduplication
+        // Prevents duplicate entries when message exists in both pagination and socket updates
+        const key = message.id;
 
-        messageMap.set(key, message);
+        // ✅ If already exists, prefer version with isRecalled=true (more recent from socket)
+        if (messageMap.has(key)) {
+            const existing = messageMap.get(key)!;
+            if (message.isRecalled && !existing.isRecalled) {
+                messageMap.set(key, message);
+            }
+        } else {
+            messageMap.set(key, message);
+        }
     }
 
     const displayMessages: SocketMessage[] = Array.from(messageMap.values())
@@ -1024,8 +1118,12 @@ export const ChatPage: React.FC = () => {
         })
         .map((msg) => ({
             ...msg,
+            // Ưu tiên trạng thái thu hồi realtime từ socket để không cần reload trang.
             isRecalled:
-                msg.isRecalled || recalledMessageKeys.has(getMessageKey(msg)),
+                msg.isRecalled ||
+                recalledMessageIds.has(msg.id) ||
+                (!!msg.clientMessageId &&
+                    recalledMessageIds.has(msg.clientMessageId)),
             reactions: reactionOverrides[getMessageKey(msg)] || msg.reactions,
             senderId: msg.senderId || USER_ID,
             senderName: msg.senderName || getSenderName(msg.senderId),

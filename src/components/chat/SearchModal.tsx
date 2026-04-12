@@ -21,7 +21,7 @@ export type SocketMessage = {
     reactions?: Array<{
         userId: string;
         emoji: string;
-        reactedAt: string;
+        reactedAt?: string;
     }>;
 };
 
@@ -144,7 +144,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
 
     return (
         <div className="w-90 border-l border-slate-200 bg-white flex flex-col overflow-y-auto rounded-2xl shadow-2xs">
-                {/* Header with back button */}
+            {/* Header with back button */}
             <div className="p-4 border-b border-slate-200 flex items-center gap-3 bg-white">
                 <button
                     onClick={onClose}
@@ -220,14 +220,20 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 {!searchQuery.trim() ? (
                     <div className="flex items-center justify-center h-full text-gray-400">
                         <div className="text-center p-6">
-                            <Search size={40} className="mx-auto mb-2 opacity-50" />
+                            <Search
+                                size={40}
+                                className="mx-auto mb-2 opacity-50"
+                            />
                             <p className="text-sm">Nhập từ khóa để tìm kiếm</p>
                         </div>
                     </div>
                 ) : displayResults.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-gray-400">
                         <div className="text-center p-6">
-                            <Search size={40} className="mx-auto mb-2 opacity-50" />
+                            <Search
+                                size={40}
+                                className="mx-auto mb-2 opacity-50"
+                            />
                             <p className="text-sm">Không tìm thấy kết quả</p>
                         </div>
                     </div>
@@ -240,9 +246,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                             return (
                                 <div
                                     key={msg.id}
-                                    onClick={() =>
-                                        handleMessageClick(msg.id)
-                                    }
+                                    onClick={() => handleMessageClick(msg.id)}
                                     className="p-2 rounded border border-slate-200 hover:bg-blue-50 cursor-pointer transition-colors"
                                 >
                                     {/* Sender info */}
@@ -255,9 +259,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                                             />
                                         )}
                                         <span className="text-xs font-medium text-gray-900">
-                                            {isSelf
-                                                ? 'Bạn'
-                                                : msg.senderName}
+                                            {isSelf ? 'Bạn' : msg.senderName}
                                         </span>
                                         <span className="text-xs text-gray-500">
                                             {format(
@@ -296,7 +298,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             {/* Footer - Result count */}
             {searchQuery.trim() && displayResults.length > 0 && (
                 <div className="p-3 border-t border-slate-200 bg-slate-50 text-xs text-gray-600">
-                    Tìm thấy <span className="font-semibold">{displayResults.length}</span> kết quả
+                    Tìm thấy{' '}
+                    <span className="font-semibold">
+                        {displayResults.length}
+                    </span>{' '}
+                    kết quả
                 </div>
             )}
         </div>

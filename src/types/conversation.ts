@@ -60,6 +60,7 @@ export interface LastMessage {
     senderBy?: string;
     createdAt?: Date | string;
     messageStatus?: MessageStatus;
+    isRecalled?: boolean;
 }
 
 export interface GroupInfo {
