@@ -7,6 +7,7 @@ import MessageList, {
 } from "../../components/chat/MessageList";
 import ChatInput from "../../components/chat/ChatInput";
 import { ConversationInfoPanel } from "../../components/chat/ConversationInfoPanel";
+import { SearchModal } from "../../components/chat/SearchModal";
 import Modal from "../../components/common/Modal";
 import { Dialog } from "../../components/common/Dialog";
 import {
@@ -135,6 +136,8 @@ export const ChatPage: React.FC = () => {
     useState<SocketMessage | null>(null);
   const [pendingDeleteMessage, setPendingDeleteMessage] =
     useState<SocketMessage | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true);
   const [reactionOverrides, setReactionOverrides] = useState<
     Record<string, NonNullable<SocketMessage["reactions"]>>
   >({});
@@ -544,6 +547,8 @@ export const ChatPage: React.FC = () => {
   const handleSelectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
     setSocketMessages([]); // Clear socket messages on new conversation
+    setIsSearchOpen(false);
+    setIsInfoPanelOpen(true);
   }, []);
 
   useEffect(() => {
@@ -1391,6 +1396,11 @@ export const ChatPage: React.FC = () => {
               onVideoCall={() => {
                 void handleStartCall("video");
               }}
+              onSearchClick={() => setIsSearchOpen(true)}
+              onPanelToggle={() => {
+                setIsSearchOpen(false);
+                setIsInfoPanelOpen((prev) => !prev);
+              }}
             />
 
             {/* Messages */}
@@ -1427,8 +1437,30 @@ export const ChatPage: React.FC = () => {
         )}
       </div>
 
-      {/* Conversation info panel */}
-      {selectedConversation && (
+      {/* Right panel: SearchModal thay cho ConversationInfoPanel khi dang tim kiem */}
+      {selectedConversation && isSearchOpen ? (
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          messages={displayMessages}
+          currentUserId={USER_ID}
+          onSelectMessage={(messageId: string) => {
+            const messageElement = document.getElementById(
+              `message-${messageId}`,
+            );
+            if (messageElement) {
+              messageElement.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              });
+              messageElement.classList.add("bg-yellow-100");
+              setTimeout(() => {
+                messageElement.classList.remove("bg-yellow-100");
+              }, 2000);
+            }
+          }}
+        />
+      ) : selectedConversation && isInfoPanelOpen ? (
         <ConversationInfoPanel
           isSidebarOpen={true}
           selectedConversation={selectedConversation}
@@ -1455,7 +1487,7 @@ export const ChatPage: React.FC = () => {
           onForwardMessage={handleOpenForwardModal}
           onPinStatusChange={refreshConversations}
         />
-      )}
+      ) : null}
 
       <Modal
         isOpen={isForwardModalOpen}

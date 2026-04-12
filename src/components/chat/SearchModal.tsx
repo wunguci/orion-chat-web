@@ -12,7 +12,7 @@ export type SocketMessage = {
     content: string;
     timestamp: string;
     conversationId?: string;
-    type?: 'text' | 'image' | 'file' | 'audio' | 'video';
+    type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
     isFile?: boolean;
     fileUrl?: string;
     fileName?: string;
@@ -51,20 +51,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     const [filterType, setFilterType] = useState<FilterType>('all');
     const [contentType, setContentType] = useState<ContentType>('all');
 
-    // Get unique senders
-    const senders = useMemo(() => {
-        const unique = new Map<string, string>();
-        messages.forEach((msg) => {
-            if (!unique.has(msg.senderId)) {
-                unique.set(msg.senderId, msg.senderName);
-            }
-        });
-        return Array.from(unique.entries()).map(([id, name]) => ({
-            id,
-            name,
-        }));
-    }, [messages]);
-
     // Filter messages based on query and filters
     const searchResults = useMemo(() => {
         if (!searchQuery.trim()) {
@@ -95,8 +81,8 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         };
 
         // Separate messages and files
-        let textMessages: SocketMessage[] = [];
-        let fileMessages: SocketMessage[] = [];
+        const textMessages: SocketMessage[] = [];
+        const fileMessages: SocketMessage[] = [];
 
         messages.forEach((msg) => {
             if (msg.isRecalled) return;
@@ -276,7 +262,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                                             <div className="flex items-center gap-1">
                                                 <File
                                                     size={14}
-                                                    className="text-blue-500 flex-shrink-0"
+                                                    className="text-blue-500 shrink-0"
                                                 />
                                                 <span className="truncate font-medium">
                                                     {msg.fileName}
