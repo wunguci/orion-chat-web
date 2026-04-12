@@ -31,7 +31,7 @@ const NoteEditor: React.FC<NoteEditorProps> = ({
     if (note && editorRef.current && !quillInstance.current) {
       quillInstance.current = new Quill(editorRef.current, {
         theme: "snow",
-        placeholder: "Type something amazing...",
+        placeholder: "Start writing your note...",
         modules: {
           toolbar: [
             [{ header: [1, 2, 3, false] }],
