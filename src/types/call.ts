@@ -31,6 +31,8 @@ export interface CallState {
   startTime: number | null;
   wasAnswered?: boolean; // Theo dõi xem cuộc gọi đã được trả lời/chấp nhận hay chưa.
   wasRejected?: boolean; // Theo dõi xem cuộc gọi đã được từ chối hay chưa.
+    incomingVideoUpgradeRequest?: boolean;
+    isRequestingVideoUpgrade?: boolean;
 }
 
 export interface IncomingCallData {

@@ -59,6 +59,7 @@ export const MessageList: React.FC<{
   currentUserId?: string;
   conversationId?: string | null;
   myIsHidden?: boolean;
+  onCallBackMessage?: (message: SocketMessage) => void;
   onRecallMessage?: (message: SocketMessage) => void;
   onDeleteMessage?: (message: SocketMessage) => void;
   onForwardMessage?: (message: SocketMessage) => void;
@@ -68,6 +69,7 @@ export const MessageList: React.FC<{
   currentUserId,
   conversationId,
   myIsHidden = false,
+  onCallBackMessage,
   onRecallMessage,
   onDeleteMessage,
   onForwardMessage,
@@ -265,7 +267,7 @@ export const MessageList: React.FC<{
                       isMe={isMe}
                       isInitiator={msg.callData?.isInitiator || false}
                       onCallBack={() => {
-                        // TODO: Implement call back
+                        onCallBackMessage?.(msg);
                       }}
                     />
                   ) : !msg.isRecalled &&

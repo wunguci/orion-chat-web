@@ -36,10 +36,10 @@ export const ChatPage: React.FC = () => {
   type ChatSocketMessage = SocketMessage & {
     clientMessageId?: string;
     conversationId?: string;
-    type?: 'text' | 'image' | 'file' | 'audio' | 'call';
+    type?: "text" | "image" | "file" | "audio" | "call";
     callData?: {
-      callType?: 'audio' | 'video';
-      callStatus?: 'completed' | 'missed' | 'declined';
+      callType?: "audio" | "video";
+      callStatus?: "completed" | "missed" | "declined";
       duration?: number;
       isInitiator?: boolean;
       wasRejected?: boolean;
@@ -86,8 +86,8 @@ export const ChatPage: React.FC = () => {
     }>;
     conversationId?: string;
     callData?: {
-      callType?: 'audio' | 'video';
-      callStatus?: 'completed' | 'missed' | 'declined';
+      callType?: "audio" | "video";
+      callStatus?: "completed" | "missed" | "declined";
       duration?: number;
       isInitiator?: boolean;
       wasRejected?: boolean;
@@ -99,11 +99,18 @@ export const ChatPage: React.FC = () => {
   // Get user ID inside component (after auth is loaded)
   const USER_ID = getCurrentUserId();
   const USERNAME = getCurrentUserName();
-  const { initiateCall, status: callStatus, startTime: callStartTime, isInitiator, wasAnswered, wasRejected } = useCall();
+  const {
+    initiateCall,
+    status: callStatus,
+    startTime: callStartTime,
+    isInitiator,
+    wasAnswered,
+    wasRejected,
+  } = useCall();
   const location = useLocation();
 
   const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>([]);
-  const prevCallStatusRef = useRef<typeof callStatus>('idle');
+  const prevCallStatusRef = useRef<typeof callStatus>("idle");
   const wasInitiatorRef = useRef(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -268,17 +275,17 @@ export const ChatPage: React.FC = () => {
   const toSocketMessage = useCallback(
     (payload: IncomingSocketPayload): ChatSocketMessage => {
       const messageType = payload?.messageType || payload?.type;
-      const normalizedType = String(messageType || '').toLowerCase();
-      const resolvedType: ChatSocketMessage['type'] =
-        normalizedType === 'image'
-          ? 'image'
-          : normalizedType === 'file'
-            ? 'file'
-            : normalizedType === 'audio'
-              ? 'audio'
-              : normalizedType === 'call'
-                ? 'call'
-                : 'text';
+      const normalizedType = String(messageType || "").toLowerCase();
+      const resolvedType: ChatSocketMessage["type"] =
+        normalizedType === "image"
+          ? "image"
+          : normalizedType === "file"
+            ? "file"
+            : normalizedType === "audio"
+              ? "audio"
+              : normalizedType === "call"
+                ? "call"
+                : "text";
       const isImageType =
         messageType === "IMAGE" ||
         messageType === "image" ||
@@ -351,7 +358,7 @@ export const ChatPage: React.FC = () => {
             msg.isRecalled ||
             msg.content.trim().length > 0 ||
             (msg.isFile && !!msg.fileUrl) ||
-            (msg.type === 'call' && !!msg.callData);
+            (msg.type === "call" && !!msg.callData);
 
           if (!hasVisibleContent || !msg.conversationId) {
             console.warn(
@@ -672,9 +679,9 @@ export const ChatPage: React.FC = () => {
     // Lưu vai trò người gọi vào ref vì CallContext có thể reset rất nhanh trước khi effect chạy.
     if (
       isInitiator &&
-      (callStatus === 'calling' ||
-        callStatus === 'ringing' ||
-        callStatus === 'connected')
+      (callStatus === "calling" ||
+        callStatus === "ringing" ||
+        callStatus === "connected")
     ) {
       wasInitiatorRef.current = true;
     }
@@ -686,21 +693,21 @@ export const ChatPage: React.FC = () => {
     }
 
     const hadActiveCall =
-      prevStatus === 'calling' ||
-      prevStatus === 'ringing' ||
-      prevStatus === 'connected';
+      prevStatus === "calling" ||
+      prevStatus === "ringing" ||
+      prevStatus === "connected";
     const callJustEnded =
       hadActiveCall &&
-      (callStatus === 'idle' ||
-        callStatus === 'failed' ||
-        callStatus === 'rejected' ||
-        callStatus === 'ended');
+      (callStatus === "idle" ||
+        callStatus === "failed" ||
+        callStatus === "rejected" ||
+        callStatus === "ended");
 
     if (callJustEnded) {
       if (
         selectedConversationId &&
         selectedConversation &&
-        selectedConversation.type === 'PRIVATE' &&
+        selectedConversation.type === "PRIVATE" &&
         USERNAME &&
         USER_ID
       ) {
@@ -709,7 +716,7 @@ export const ChatPage: React.FC = () => {
             const otherParticipant = selectedConversation?.participants?.find(
               (p) => p.userId !== USER_ID,
             );
-            
+
             if (!otherParticipant) {
               return;
             }
@@ -724,23 +731,24 @@ export const ChatPage: React.FC = () => {
               : 0;
 
             // Chuẩn hóa trạng thái theo góc nhìn người gọi, rồi dùng chung cho cả hai phía.
-            let callHistoryStatus: 'completed' | 'missed' | 'declined' = 'completed';
+            let callHistoryStatus: "completed" | "missed" | "declined" =
+              "completed";
 
             if (wasRejected) {
               // Ưu tiên cờ từ chối tường minh để tránh race condition khi state reset nhanh.
-              callHistoryStatus = 'declined';
-            } else if (prevStatus === 'connected') {
+              callHistoryStatus = "declined";
+            } else if (prevStatus === "connected") {
               // Người nhận đã bắt máy và cuộc gọi kết thúc bình thường.
-              callHistoryStatus = 'completed';
-            } else if (callStatus === 'rejected' || callStatus === 'failed') {
+              callHistoryStatus = "completed";
+            } else if (callStatus === "rejected" || callStatus === "failed") {
               // Người nhận từ chối hoặc tín hiệu lỗi trong lúc chờ bắt máy.
-              callHistoryStatus = 'declined';
+              callHistoryStatus = "declined";
             } else if (
-              (prevStatus === 'calling' || prevStatus === 'ringing') &&
-              (callStatus === 'idle' || callStatus === 'ended')
+              (prevStatus === "calling" || prevStatus === "ringing") &&
+              (callStatus === "idle" || callStatus === "ended")
             ) {
               // Người gọi tự hủy trước khi người nhận bắt máy.
-              callHistoryStatus = 'missed';
+              callHistoryStatus = "missed";
             }
 
             const callMessage: ChatSocketMessage = {
@@ -748,16 +756,16 @@ export const ChatPage: React.FC = () => {
               clientMessageId,
               senderId: USER_ID,
               senderName: USERNAME,
-              content: '',
+              content: "",
               timestamp: now,
               conversationId: selectedConversationId,
-              type: 'call',
+              type: "call",
               callData: {
-                callType: 'audio',
+                callType: "audio",
                 callStatus: callHistoryStatus,
                 duration: duration,
                 isInitiator: true,
-                wasRejected: callHistoryStatus === 'declined',
+                wasRejected: callHistoryStatus === "declined",
               },
             };
 
@@ -767,13 +775,13 @@ export const ChatPage: React.FC = () => {
               requestId: `req_${Date.now()}`,
               clientMessageId,
               receiverId: otherParticipant.userId,
-              type: 'call',
-              content: '',
+              type: "call",
+              content: "",
               conversationId: selectedConversationId,
               callData: callMessage.callData,
             });
           } catch (err) {
-            console.error('Error logging call to chat:', err);
+            console.error("Error logging call to chat:", err);
           }
         };
 
@@ -785,7 +793,17 @@ export const ChatPage: React.FC = () => {
     }
 
     prevCallStatusRef.current = callStatus;
-  }, [callStatus, selectedConversationId, callStartTime, selectedConversation, USERNAME, USER_ID, isInitiator, wasAnswered, wasRejected]);
+  }, [
+    callStatus,
+    selectedConversationId,
+    callStartTime,
+    selectedConversation,
+    USERNAME,
+    USER_ID,
+    isInitiator,
+    wasAnswered,
+    wasRejected,
+  ]);
 
   const handleReactMessage = useCallback(
     async (message: SocketMessage, emoji: string) => {
@@ -1086,6 +1104,42 @@ export const ChatPage: React.FC = () => {
     ],
   );
 
+  const handleCallBackMessage = useCallback(
+    async (message: SocketMessage) => {
+      if (!selectedConversation || !otherParticipant) return;
+      if (selectedConversation.type !== "PRIVATE") return;
+
+      if (callStatus !== "idle") {
+        setError("You are currently on another call.");
+        return;
+      }
+
+      const callbackType = message.callData?.callType || "audio";
+      const currentUser = getUser();
+
+      await initiateCall(
+        selectedConversation.conversationId,
+        otherParticipant.userId,
+        callbackType,
+        {
+          name: otherParticipant.fullName || "Unknown",
+          avatar: otherParticipant.avatarUrl || undefined,
+        },
+        {
+          name: currentUser?.fullName || USERNAME,
+          avatar: currentUser?.avatarUrl || undefined,
+        },
+      );
+    },
+    [
+      selectedConversation,
+      otherParticipant,
+      callStatus,
+      initiateCall,
+      USERNAME,
+    ],
+  );
+
   const getSenderName = useCallback(
     (senderId?: string) => {
       if (!senderId) return "Unknown";
@@ -1096,7 +1150,7 @@ export const ChatPage: React.FC = () => {
           ?.fullName || "Unknown"
       );
     },
-    [selectedConversation],
+    [selectedConversation, USER_ID, USERNAME],
   );
 
   const paginatedAsSocketMessages: SocketMessage[] = paginatedMessages.map(
@@ -1142,15 +1196,15 @@ export const ChatPage: React.FC = () => {
             }))
           : [],
         type:
-          m.messageType === 'CALL' || m.messageType === 'call'
-            ? 'call'
-            : m.messageType === 'IMAGE' || m.messageType === 'image'
-              ? 'image'
-              : m.messageType === 'FILE' || m.messageType === 'file'
-                ? 'file'
-                : m.messageType === 'AUDIO' || m.messageType === 'audio'
-                  ? 'audio'
-                  : 'text',
+          m.messageType === "CALL" || m.messageType === "call"
+            ? "call"
+            : m.messageType === "IMAGE" || m.messageType === "image"
+              ? "image"
+              : m.messageType === "FILE" || m.messageType === "file"
+                ? "file"
+                : m.messageType === "AUDIO" || m.messageType === "audio"
+                  ? "audio"
+                  : "text",
         callData: m.callData,
       };
     },
@@ -1169,7 +1223,7 @@ export const ChatPage: React.FC = () => {
       message.isRecalled ||
       message.content.trim().length > 0 ||
       (message.isFile && !!message.fileUrl) ||
-      (message.type === 'call' && !!(message as ChatSocketMessage).callData); // ✅ Include call messages
+      (message.type === "call" && !!(message as ChatSocketMessage).callData); // ✅ Include call messages
     if (!hasVisibleContent) continue;
 
     const key =
@@ -1286,6 +1340,7 @@ export const ChatPage: React.FC = () => {
               socketMessages={displayMessages}
               currentUserId={USER_ID}
               conversationId={selectedConversationId}
+              onCallBackMessage={handleCallBackMessage}
               onRecallMessage={handleRequestRecallMessage}
               onDeleteMessage={handleRequestDeleteMessage}
               onForwardMessage={handleOpenForwardModal}
