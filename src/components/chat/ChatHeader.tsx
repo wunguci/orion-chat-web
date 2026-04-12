@@ -5,7 +5,13 @@ export const ChatHeader: React.FC<{
     name?: string;
     isBlocked?: boolean;
     onPanelToggle?: () => void;
-}> = ({ name = 'Olivia Isabella', isBlocked = false, onPanelToggle }) => {
+    onSearchClick?: () => void;
+}> = ({
+    name = 'Olivia Isabella',
+    isBlocked = false,
+    onPanelToggle,
+    onSearchClick,
+}) => {
     return (
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between text-gray-primary">
             <div className="flex items-center gap-3">
@@ -31,12 +37,18 @@ export const ChatHeader: React.FC<{
                     }`}
                     disabled={isBlocked}
                     title={
-                        isBlocked ? 'Không thể gọi vì bạn bị chặn' : 'Gọi điện'
+                        isBlocked
+                            ? 'Không thể gọi vì bạn bị chặn'
+                            : 'Gọi điện'
                     }
                 >
                     <CiPhone className="w-5 h-5" />
                 </button>
-                <button className="p-1 hover:bg-slate-200 rounded text-gray-primary">
+                <button
+                    onClick={onSearchClick}
+                    className="p-1 hover:bg-slate-200 rounded text-gray-primary transition-colors"
+                    title="Tìm kiếm tin nhắn"
+                >
                     <CiSearch className="w-5 h-5" />
                 </button>
                 {/* Video call button - disabled if blocked */}
