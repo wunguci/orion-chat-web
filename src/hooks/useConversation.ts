@@ -8,6 +8,14 @@ interface UseConversationsResult {
     error: string | null;
     fetchConversations: () => Promise<void>;
     refreshConversations: () => Promise<void>;
+    updateConversationLastMessage: (
+        conversationId: string,
+        lastMessage: NonNullable<ConversationView['lastMessage']>,
+    ) => void;
+    markConversationLastMessageRecalled: (
+        conversationId: string,
+        messageId: string,
+    ) => void;
 }
 
 interface UseConversationDetailResult {
@@ -58,6 +66,76 @@ export const useConversations = (): UseConversationsResult => {
         await fetchConversations();
     }, [fetchConversations]);
 
+    const updateConversationLastMessage = useCallback(
+        (
+            conversationId: string,
+            lastMessage: NonNullable<ConversationView['lastMessage']>,
+        ) => {
+            setConversations((prev) =>
+                prev.map((conversation) =>
+                    conversation.conversationId === conversationId
+                        ? {
+                              ...conversation,
+                              // Cập nhật lastMessage ngay để ChatSidebar render real-time.
+                              lastMessage,
+                          }
+                        : conversation,
+                ),
+            );
+        },
+        [],
+    );
+
+    const markConversationLastMessageRecalled = useCallback(
+        (conversationId: string, messageId: string) => {
+            setConversations((prev) =>
+                prev.map((conversation) => {
+                    if (conversation.conversationId !== conversationId) {
+                        return conversation;
+                    }
+
+                    if (!conversation.lastMessage) {
+                        return conversation;
+                    }
+
+                    const last = conversation.lastMessage as
+                        | (typeof conversation.lastMessage & {
+                              messageId?: string;
+                              _id?: string;
+                              clientMessageId?: string;
+                          })
+                        | null;
+
+                    const isSameLastMessage =
+                        last?.messageId === messageId ||
+                        last?._id === messageId ||
+                        last?.clientMessageId === messageId;
+
+                    const hasAnyLastMessageId =
+                        !!last?.messageId ||
+                        !!last?._id ||
+                        !!last?.clientMessageId;
+
+                    // Nếu backend không trả id cho lastMessage thì fallback: vẫn cập nhật realtime cho preview.
+                    if (!isSameLastMessage && hasAnyLastMessageId) {
+                        return conversation;
+                    }
+
+                    return {
+                        ...conversation,
+                        lastMessage: {
+                            ...conversation.lastMessage,
+                            content: 'Tin nhắn đã được thu hồi',
+                            isRecalled: true,
+                            // Giữ nguyên metadata còn lại để sidebar vẫn sort theo thời gian cũ.
+                        },
+                    };
+                }),
+            );
+        },
+        [],
+    );
+
     useEffect(() => {
         fetchConversations();
     }, [fetchConversations]);
@@ -68,6 +146,8 @@ export const useConversations = (): UseConversationsResult => {
         error,
         fetchConversations,
         refreshConversations,
+        updateConversationLastMessage,
+        markConversationLastMessageRecalled,
     };
 };
 

@@ -167,6 +167,8 @@ export const ChatPage: React.FC = () => {
         loading: conversationsLoading,
         error: conversationsError,
         refreshConversations,
+        updateConversationLastMessage,
+        markConversationLastMessageRecalled,
     } = useConversations();
 
     // Fetch selected conversation detail
@@ -434,6 +436,28 @@ export const ChatPage: React.FC = () => {
                         return [...prev, msg];
                     });
 
+                    // Cập nhật lastMessage tức thì để ChatSidebar re-render không cần chờ API.
+                    if (msg.conversationId) {
+                        const normalizedType = (
+                            msg.type || (msg.isFile ? 'file' : 'text')
+                        ).toUpperCase();
+
+                        updateConversationLastMessage(msg.conversationId, {
+                            messageId: msg.id,
+                            clientMessageId: msg.clientMessageId,
+                            content: msg.content,
+                            messageType: normalizedType as
+                                | 'TEXT'
+                                | 'IMAGE'
+                                | 'FILE'
+                                | 'VIDEO'
+                                | 'AUDIO',
+                            senderBy: msg.senderId,
+                            createdAt: msg.timestamp,
+                            isRecalled: !!msg.isRecalled,
+                        });
+                    }
+
                     // ✅ Update sidebar with latest message
                     refreshConversations();
                 };
@@ -478,8 +502,15 @@ export const ChatPage: React.FC = () => {
                     revokedAt: string;
                     isRevoked?: boolean;
                 }) => {
-                    if (payload.conversationId !== selectedConversationId)
+                    // Cập nhật preview sidebar cho mọi cuộc trò chuyện ngay khi có recall event.
+                    markConversationLastMessageRecalled(
+                        payload.conversationId,
+                        payload.messageId,
+                    );
+
+                    if (payload.conversationId !== selectedConversationId) {
                         return;
+                    }
 
                     // Đảm bảo message từ API pagination cũng đổi trạng thái ngay mà không cần reload.
                     markMessageAsRecalled(payload.messageId);
@@ -506,9 +537,6 @@ export const ChatPage: React.FC = () => {
                     });
                     // isRecalled property is now the single source of truth
                     // No redundant recalledMessageKeys Set tracking
-
-                    // ✅ Update sidebar to show "Tin nhắn đã được thu hồi" in real-time
-                    refreshConversations();
                 };
 
                 messageListenerRef.current = messageHandler;
@@ -547,6 +575,8 @@ export const ChatPage: React.FC = () => {
         selectedConversationId,
         refreshConversations,
         markMessageAsRecalled,
+        updateConversationLastMessage,
+        markConversationLastMessageRecalled,
     ]);
 
     // Handle conversation selection
@@ -623,6 +653,20 @@ export const ChatPage: React.FC = () => {
                 markMessageAsRecalled(message.clientMessageId);
             }
 
+            // Cập nhật luôn lastMessage của sidebar để người gửi thấy trạng thái thu hồi ngay.
+            if (selectedConversationId) {
+                markConversationLastMessageRecalled(
+                    selectedConversationId,
+                    message.id,
+                );
+                if (message.clientMessageId) {
+                    markConversationLastMessageRecalled(
+                        selectedConversationId,
+                        message.clientMessageId,
+                    );
+                }
+            }
+
             setSocketMessages((prev) =>
                 prev.map((msg) => {
                     const sameMessage =
@@ -644,7 +688,11 @@ export const ChatPage: React.FC = () => {
                 }),
             );
         },
-        [markMessageAsRecalled],
+        [
+            markConversationLastMessageRecalled,
+            markMessageAsRecalled,
+            selectedConversationId,
+        ],
     );
 
     const executeRecallMessage = useCallback(

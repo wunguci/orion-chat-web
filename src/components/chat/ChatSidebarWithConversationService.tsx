@@ -112,8 +112,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         const { content, senderBy, messageType, isRecalled } =
             conversation.lastMessage;
 
-        // ✅ Check if message is recalled first
-        if (isRecalled) {
+        // Ưu tiên hiển thị trạng thái thu hồi nếu backend hoặc state local đã đánh dấu.
+        if (isRecalled || content === 'Tin nhắn đã được thu hồi') {
             return 'Tin nhắn đã được thu hồi';
         }
 

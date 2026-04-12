@@ -55,6 +55,9 @@ export interface MessageDetail {
 }
 
 export interface LastMessage {
+    messageId?: string;
+    _id?: string;
+    clientMessageId?: string;
     content?: string;
     messageType?: MessageType;
     senderBy?: string;
