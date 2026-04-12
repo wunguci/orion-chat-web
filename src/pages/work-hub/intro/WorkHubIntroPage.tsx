@@ -229,12 +229,15 @@ const WorkHubIntroPage = () => {
 
       const user = getUser();
       if (!user || !user.userId) {
+      if (!user || !user.userId) {
         navigate("/auth/login");
         return;
       }
 
       try {
-        const userWorkspaces = await workHubApi.getWorkspaces(user.userId);
+        const userWorkspaces = await workHubApi.getWorkspaces(
+          user.userId?.toString() || "",
+        );
         if (userWorkspaces && userWorkspaces.length > 0) {
           setWorkspaces(userWorkspaces);
           if (userWorkspaces.length === 1) {

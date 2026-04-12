@@ -15,6 +15,8 @@ export const CallModal: React.FC = () => {
     isVideoEnabled,
     startTime,
     error,
+    incomingVideoUpgradeRequest,
+    respondVideoUpgradeRequest,
   } = useCall();
 
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -117,6 +119,35 @@ export const CallModal: React.FC = () => {
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
           <CallControls />
         </div>
+
+        {/* incoming video-upgrade request for ongoing audio call */}
+        {status === "connected" &&
+          callType === "audio" &&
+          incomingVideoUpgradeRequest && (
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-black/70 border border-white/20 rounded-xl px-4 py-3 text-white backdrop-blur-sm">
+              <p className="text-sm mb-3">
+                {otherUser?.name || "Đối phương"} muốn chuyển sang video call
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  onClick={() => {
+                    void respondVideoUpgradeRequest(false);
+                  }}
+                  className="px-3 py-1.5 rounded-md bg-red-500 hover:bg-red-600 text-sm"
+                >
+                  Từ chối
+                </button>
+                <button
+                  onClick={() => {
+                    void respondVideoUpgradeRequest(true);
+                  }}
+                  className="px-3 py-1.5 rounded-md bg-green-500 hover:bg-green-600 text-sm"
+                >
+                  Đồng ý
+                </button>
+              </div>
+            </div>
+          )}
       </div>
     </div>
   );

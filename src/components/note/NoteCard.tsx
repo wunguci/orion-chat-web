@@ -9,6 +9,15 @@ interface NoteCardProps {
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, isActive, onClick }) => {
+  const getContentPreview = (raw: string) => {
+    const plain = raw
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return plain || "No content...";
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const hours = date.getHours().toString().padStart(2, "0");
@@ -56,7 +65,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, isActive, onClick }) => {
       </div>
 
       <p className="text-[13px] text-slate-500 line-clamp-1 mb-2">
-        {note.content || "No content..."}
+        {getContentPreview(note.content || "")}
       </p>
 
       <div className="flex items-center text-[12px] text-slate-400 font-medium">

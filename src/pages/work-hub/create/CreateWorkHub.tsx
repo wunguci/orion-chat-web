@@ -459,7 +459,7 @@ const CreateWorkHub = () => {
     if (!formData.agreedToTerms) return;
 
     const user = getUser();
-    if (!user || !user.id) {
+    if (!user || !user.userId) {
       navigate("/auth/login");
       return;
     }
@@ -471,7 +471,7 @@ const CreateWorkHub = () => {
         description: formData.step1.description,
         type: formData.step1.type.toUpperCase(),
         color: formData.step2.color,
-        ownerId: user.id,
+        ownerId: user.userId?.toString() || "",
       });
       navigate(`/work-hub/${response.workspaceId}`);
     } catch (err) {

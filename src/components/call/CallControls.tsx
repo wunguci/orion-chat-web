@@ -3,6 +3,7 @@ import { FaMicrophone } from "react-icons/fa";
 import { HiMiniSpeakerXMark } from "react-icons/hi2";
 import { FiCamera, FiCameraOff } from "react-icons/fi";
 import { MdCallEnd } from "react-icons/md";
+import { HiOutlineVideoCamera } from "react-icons/hi2";
 
 export const CallControls: React.FC = () => {
   const {
@@ -12,6 +13,9 @@ export const CallControls: React.FC = () => {
     toggleVideo,
     endCall,
     callType,
+    status,
+    requestVideoUpgrade,
+    isRequestingVideoUpgrade,
   } = useCall();
 
   return (
@@ -45,6 +49,22 @@ export const CallControls: React.FC = () => {
           <span className="text-white text-xl">
             {isVideoEnabled ? <FiCamera /> : <FiCameraOff />}
           </span>
+        </button>
+      )}
+
+      {/* request video upgrade for ongoing audio call */}
+      {callType === "audio" && status === "connected" && (
+        <button
+          onClick={requestVideoUpgrade}
+          disabled={!!isRequestingVideoUpgrade}
+          className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center transition"
+          title={
+            isRequestingVideoUpgrade
+              ? "Đang gửi yêu cầu video..."
+              : "Yêu cầu chuyển sang video call"
+          }
+        >
+          <HiOutlineVideoCamera className="text-white text-xl" />
         </button>
       )}
 

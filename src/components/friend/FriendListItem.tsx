@@ -2,14 +2,14 @@ import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import type { Friend } from '../../types/friend';
-import { useCall } from '../../hooks/useCall';
-import { getUser } from '../../utils/token';
 
 interface FriendListItemProps {
     friend: Friend;
     onViewInfo: (friendId: string) => void;
     onRemoveFriend: (friendId: string) => void;
     onBlockFriend: (friendId: string) => void;
+    onStartCall?: (friendId: string, callType: 'audio' | 'video') => void;
+    isCallingBusy?: boolean;
     onChatClick?: (friendId: string) => void;
     isChatLoading?: boolean;
 }
@@ -19,10 +19,11 @@ const FriendListItem: React.FC<FriendListItemProps> = ({
     onViewInfo,
     onRemoveFriend,
     onBlockFriend,
+    onStartCall,
+    isCallingBusy = false,
     onChatClick,
     isChatLoading,
 }) => {
-    const { initiateCall, status } = useCall();
     const [showActions, setShowActions] = useState(false);
     const actionMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,28 +55,9 @@ const FriendListItem: React.FC<FriendListItemProps> = ({
     }, [showActions]);
 
     const handleStartCall = async (callType: 'audio' | 'video') => {
-        const currentUser = getUser();
-        const currentUserId = currentUser?.userId || currentUser?.id;
-        if (!currentUserId || !friend.id) return;
-
-        const conversationId = [currentUserId, friend.id].sort().join('-');
-
-        await initiateCall(
-            `friend-${conversationId}`,
-            friend.id,
-            callType,
-            {
-                name: friend.name,
-                avatar: friend.avatar,
-            },
-            {
-                name: currentUser.fullName,
-                avatar: currentUser.avatarUrl || undefined,
-            },
-        );
+        if (!onStartCall) return;
+        onStartCall(friend.id, callType);
     };
-
-    const isCallingBusy = status !== 'idle';
 
     return (
         <div

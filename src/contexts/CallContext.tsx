@@ -1,5 +1,5 @@
 import { Socket } from "socket.io-client";
-import { socketService } from '../services/socket';
+import { socketService } from "../services/socket";
 import { useWebRTC } from "../hooks/useWebRTC";
 import type {
   CallState,
@@ -25,6 +25,8 @@ export interface CallContextValue extends CallState {
   endCall: () => void;
   toggleAudio: () => void;
   toggleVideo: () => void;
+  requestVideoUpgrade: () => void;
+  respondVideoUpgradeRequest: (accepted: boolean) => void;
   incomingCall: IncomingCallData | null;
 }
 
@@ -56,6 +58,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     otherUser: null,
     error: null,
     startTime: null,
+    wasAnswered: false,
+    wasRejected: false,
+    incomingVideoUpgradeRequest: false,
+    isRequestingVideoUpgrade: false,
   });
 
   const [incomingCall, setIncomingCall] = useState<IncomingCallData | null>(
@@ -91,7 +97,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     cleanup: cleanupWebRTC,
   } = useWebRTC({
     onRemoteStream: (stream) => {
-      console.log("Remote stream received");
       setCallState((prev) => ({
         ...prev,
         remoteStream: stream,
@@ -117,7 +122,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       }
     },
     onConnectionStateChange: (state) => {
-      console.log("Connection state changed:", state);
       if (state === "failed") {
         // Chỉ set failed khi thực sự "failed", không set khi "disconnected"
         // ICE restart trong useWebRTC sẽ tự xử lý
@@ -147,7 +151,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         receiverId: targetUserId,
         offer,
       });
-      console.log("[CallContext] ICE restart offer emitted");
     },
   });
 
@@ -168,6 +171,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       otherUser: null,
       error: null,
       startTime: null,
+      wasAnswered: false,
+      wasRejected: false,
+      incomingVideoUpgradeRequest: false,
+      isRequestingVideoUpgrade: false,
     });
     setIncomingCall(null);
     setPendingOffer(null);
@@ -187,7 +194,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           callData.callType === "video",
           true,
         );
-        console.log("[CallContext] Local stream obtained:", stream);
         setCallState((prev) => ({ ...prev, localStream: stream }));
       } catch (streamError) {
         console.error("[CallContext] Could not get local stream:", streamError);
@@ -200,14 +206,11 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       }
 
       const answer = await handleOffer(offerData.offer);
-      console.log("[CallContext] Answer created:", answer);
-
       socket.emit("call:answer", {
         callId: offerData.callId,
         callerId: offerData.callerId,
         answer,
       });
-      console.log("[CallContext] Answer sent to caller");
 
       setPendingOffer(null);
       setIncomingCall(null);
@@ -241,26 +244,17 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
   // khởi tạo call socket - chỉ depend trên userId để tránh listener bị tear down/rebuild
   useEffect(() => {
-    console.log("[CallContext] Initializing socket for userId:", userId);
     const socket = socketService.connectCall(userId);
     callSocketRef.current = socket;
 
-    // debug: nghe tất cả các sự kiện
-    socket.onAny((eventName, ...args) => {
-      console.log(`[CallContext] >>> Received event: ${eventName}`, args);
-    });
-
     // listen to incoming call
     const handleIncomingCall = (data: IncomingCallData) => {
-      console.log("[CallContext] Incoming call:", data);
       setIncomingCall(data);
     };
     socket.on("call:incoming", handleIncomingCall);
 
     // listen to call offer - lưu offer, chưa xử lý
     const handleCallOffer = async (data: CallOfferData) => {
-      console.log("[CallContext] Received offer:", data);
-
       // Offer trong cuộc gọi đang active (renegotiation / ICE restart)
       if (
         currentCallIdRef.current === data.callId &&
@@ -273,7 +267,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
             callerId: data.callerId,
             answer,
           });
-          console.log("[CallContext] Renegotiation answer sent");
         } catch (error) {
           console.error(
             "[CallContext] Error handling renegotiation offer:",
@@ -304,7 +297,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
     // listen to call answer
     const handleCallAnswer = async (data: CallAnswerData) => {
-      console.log("[CallContext] Received answer:", data);
       try {
         await handleAnswerRef.current(data.answer);
       } catch (error) {
@@ -315,7 +307,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
     // listen to ICE candidates
     const handleIceCandidate = async (data: IceCandidateData) => {
-      console.log("[CallContext] Received ICE candidate");
       try {
         await addIceCandidateRef.current(data.candidate);
       } catch (error) {
@@ -325,11 +316,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     socket.on("call:ice-candidate", handleIceCandidate);
 
     // listen to call accepted (caller side - cập nhật UI khi receiver chấp nhận)
-    const handleCallAccepted = (data: {
-      callId: string;
-      receiverId: string;
-    }) => {
-      console.log("[CallContext] Call accepted by receiver:", data);
+    const handleCallAccepted = () => {
       setCallState((prev) => {
         if (prev.isCaller && prev.status === "calling") {
           return { ...prev, status: "ringing" };
@@ -340,22 +327,27 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     socket.on("call:accept", handleCallAccepted);
 
     // listen to call rejected
-    const handleCallRejected = (data?: {
-      callId?: string;
-      rejectedBy?: string;
-    }) => {
-      console.log("[CallContext] Call rejected:", data);
-      setCallState((prev) => ({ ...prev, status: "rejected" }));
-      cleanupCallRef.current();
+    const handleCallRejected = () => {
+      setCallState((prev) => ({
+        ...prev,
+        status: "rejected",
+        wasRejected: true,
+      }));
+      // Hoãn dọn dẹp ngắn để effect phía chat kịp đọc trạng thái cuối "rejected".
+      setTimeout(() => {
+        cleanupCallRef.current();
+      }, 250);
     };
     socket.on("call:reject", handleCallRejected);
     socket.on("call:rejected", handleCallRejected);
 
     // listen to call ended
     const handleCallEnded = () => {
-      console.log("[CallContext] Call ended");
       setCallState((prev) => ({ ...prev, status: "ended" }));
-      cleanupCallRef.current();
+      // Hoãn dọn dẹp ngắn để effect phía chat kịp đọc trạng thái cuối "ended".
+      setTimeout(() => {
+        cleanupCallRef.current();
+      }, 250);
     };
     socket.on("call:ended", handleCallEnded);
 
@@ -365,9 +357,58 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       mediaType: "video" | "audio";
       enabled: boolean;
     }) => {
-      console.log("[CallContext] Media toggled:", data);
+      void data;
     };
     socket.on("call:media-toggled", handleMediaToggled);
+
+    const handleVideoUpgradeRequest = (data: {
+      callId: string;
+      requesterId: string;
+    }) => {
+      if (data.callId !== currentCallIdRef.current) return;
+      setCallState((prev) => ({
+        ...prev,
+        incomingVideoUpgradeRequest: true,
+      }));
+    };
+    socket.on("call:video-upgrade-request", handleVideoUpgradeRequest);
+
+    const handleVideoUpgradeResponse = async (data: {
+      callId: string;
+      responderId: string;
+      accepted: boolean;
+    }) => {
+      if (data.callId !== currentCallIdRef.current) return;
+
+      setCallState((prev) => ({
+        ...prev,
+        isRequestingVideoUpgrade: false,
+      }));
+
+      if (!data.accepted) {
+        return;
+      }
+
+      try {
+        const stream = await getLocalStream(true, true);
+        setCallState((prev) => ({
+          ...prev,
+          callType: "video",
+          localStream: stream,
+          isVideoEnabled: true,
+        }));
+
+        const offer = await createOffer();
+        socket.emit("call:offer", {
+          callId: data.callId,
+          receiverId: data.responderId,
+          offer,
+        });
+      } catch (error) {
+        console.error("[CallContext] Error upgrading to video:", error);
+      }
+    };
+    socket.on("call:video-upgrade-response", handleVideoUpgradeResponse);
 
     // listen to errors
     const handleCallError = (error: { message: string; code?: string }) => {
@@ -392,8 +433,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     socket.on("call:error", handleCallError);
 
     return () => {
-      console.log("[CallContext] Cleaning up socket listeners");
-      socket.offAny();
       socket.off("call:incoming", handleIncomingCall);
       socket.off("call:offer", handleCallOffer);
       socket.off("call:answer", handleCallAnswer);
@@ -403,9 +442,11 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       socket.off("call:rejected", handleCallRejected);
       socket.off("call:ended", handleCallEnded);
       socket.off("call:media-toggled", handleMediaToggled);
+      socket.off("call:video-upgrade-request", handleVideoUpgradeRequest);
+      socket.off("call:video-upgrade-response", handleVideoUpgradeResponse);
       socket.off("call:error", handleCallError);
     };
-  }, [userId]); // Chỉ depend trên userId - các callbacks dùng refs
+  }, [userId, getLocalStream, createOffer]); // Chỉ depend trên userId - các callbacks dùng refs
 
   // khởi tạo call
   const initiateCall = useCallback(
@@ -465,7 +506,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           });
         });
       } catch (error) {
-        console.log("Error initiating call:", error);
+        console.error("Error initiating call:", error);
         setCallState((prev) => ({
           ...prev,
           error: "Failed to start call",
@@ -486,11 +527,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     if (!socket) return;
 
     try {
-      console.log(
-        "[CallContext] Accepting call with type:",
-        incomingCall.callType,
-      );
-      console.log("[CallContext] Pending offer exists?", !!pendingOffer);
       acceptedCallIdRef.current = incomingCall.callId;
 
       setCallState((prev) => ({
@@ -510,7 +546,6 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
       // chuẩn bị kết nối peer và local trước khi tạo câu trả lời
       if (pendingOffer) {
-        console.log("[CallContext] Processing pending offer");
         await processAcceptedOffer(pendingOffer, incomingCall);
       } else {
         console.warn(
@@ -518,12 +553,17 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         );
       }
 
+      // Mark call as answered
+      setCallState((prev) => ({
+        ...prev,
+        wasAnswered: true,
+      }));
+
       // thông báo cho người gọi biết cuộc gọi đã được chấp nhận.
       socket.emit("call:accept", {
         callId: incomingCall.callId,
         targetUserId: incomingCall.callerId,
       });
-      console.log("[CallContext] Accept notification sent");
 
       if (pendingOffer) {
         setIncomingCall(null);
@@ -548,6 +588,12 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
     const socket = callSocketRef.current;
     if (!socket) return;
+
+    // Mark as rejected before emitting
+    setCallState((prev) => ({
+      ...prev,
+      wasRejected: true,
+    }));
 
     socket.emit("call:reject", {
       callId: incomingCall.callId,
@@ -619,6 +665,57 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     callState.otherUser,
   ]);
 
+  const requestVideoUpgrade = useCallback(() => {
+    const socket = callSocketRef.current;
+    if (!socket || !callState.callId || !callState.otherUser) return;
+    if (callState.callType !== "audio") return;
+
+    socket.emit("call:request-video-upgrade", {
+      callId: callState.callId,
+      targetUserId: callState.otherUser.id,
+    });
+
+    setCallState((prev) => ({
+      ...prev,
+      isRequestingVideoUpgrade: true,
+    }));
+  }, [callState.callId, callState.otherUser, callState.callType]);
+
+  const respondVideoUpgradeRequest = useCallback(
+    async (accepted: boolean) => {
+      const socket = callSocketRef.current;
+      if (!socket || !callState.callId || !callState.otherUser) return;
+
+      socket.emit("call:respond-video-upgrade", {
+        callId: callState.callId,
+        targetUserId: callState.otherUser.id,
+        accepted,
+      });
+
+      if (!accepted) {
+        setCallState((prev) => ({
+          ...prev,
+          incomingVideoUpgradeRequest: false,
+        }));
+        return;
+      }
+
+      try {
+        const stream = await getLocalStream(true, true);
+        setCallState((prev) => ({
+          ...prev,
+          incomingVideoUpgradeRequest: false,
+          callType: "video",
+          localStream: stream,
+          isVideoEnabled: true,
+        }));
+      } catch (error) {
+        console.error("[CallContext] Error accepting video upgrade:", error);
+      }
+    },
+    [callState.callId, callState.otherUser, getLocalStream],
+  );
+
   const value: CallContextValue = {
     ...callState,
     initiateCall,
@@ -627,6 +724,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     endCall,
     toggleAudio,
     toggleVideo,
+    requestVideoUpgrade,
+    respondVideoUpgradeRequest,
     incomingCall,
   };
 

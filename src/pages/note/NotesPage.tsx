@@ -112,7 +112,9 @@ const NotesPage: React.FC = () => {
     try {
       const newNote = await noteService.create({
         title: "New Note",
-        content: "",
+        // Use Quill empty document HTML so backend accepts non-empty content
+        // while the editor still shows placeholder text.
+        content: "<p><br></p>",
         categoryId: categories[0].categoryId,
       });
       setNotes((prev) => [newNote, ...prev]);

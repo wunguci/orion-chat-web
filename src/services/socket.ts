@@ -288,12 +288,19 @@ class ChatSocketService {
         clientMessageId: string;
         conversationId: string;
         receiverId: string;
-        type: 'text' | 'image' | 'file' | 'audio';
+        type: 'text' | 'image' | 'file' | 'audio' | 'call';
         content: string;
         mediaUrl?: string;
         fileName?: string;
         fileSize?: number;
         replyToMessageId?: string;
+        callData?: {
+            callType?: 'audio' | 'video';
+            callStatus?: 'completed' | 'missed' | 'declined';
+            duration?: number;
+            isInitiator?: boolean;
+            wasRejected?: boolean;
+        };
     }) {
         if (!this.chatSocket) {
             console.error(
@@ -461,12 +468,19 @@ export const sendMessage = (data: {
     clientMessageId: string;
     conversationId: string;
     receiverId: string;
-    type: 'text' | 'image' | 'file' | 'audio' | 'video';
+    type: 'text' | 'image' | 'file' | 'audio' | 'call';
     content: string;
     mediaUrl?: string;
     fileName?: string;
     fileSize?: number;
     replyToMessageId?: string;
+    callData?: {
+        callType?: 'audio' | 'video';
+        callStatus?: 'completed' | 'missed' | 'declined';
+        duration?: number;
+        isInitiator?: boolean;
+        wasRejected?: boolean;
+    };
 }) => {
     chatSocketService.sendMessage(data);
 };

@@ -23,6 +23,10 @@ const FALLBACK_CALL_CONTEXT: CallContextValue = {
   endCall: () => undefined,
   toggleAudio: () => undefined,
   toggleVideo: () => undefined,
+  incomingVideoUpgradeRequest: false,
+  isRequestingVideoUpgrade: false,
+  requestVideoUpgrade: () => undefined,
+  respondVideoUpgradeRequest: () => undefined,
 };
 
 export const useCall = () => {
