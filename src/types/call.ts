@@ -29,6 +29,8 @@ export interface CallState {
   otherUser: CallUser | null;
   error: string | null;
   startTime: number | null;
+  wasAnswered?: boolean; // Theo dõi xem cuộc gọi đã được trả lời/chấp nhận hay chưa.
+  wasRejected?: boolean; // Theo dõi xem cuộc gọi đã được từ chối hay chưa.
 }
 
 export interface IncomingCallData {

@@ -20,6 +20,8 @@ interface FriendSidebarProps {
     onViewFriendInfo: (friendId: string) => void;
     onRemoveFriend: (friendId: string) => void;
     onBlockFriend: (friendId: string) => void;
+    onStartCall?: (friendId: string, callType: 'audio' | 'video') => void;
+    isCallingBusy?: boolean;
     requestCount: number;
     groupCount: number;
     groupInviteCount: number;
@@ -37,6 +39,8 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({
     onViewFriendInfo,
     onRemoveFriend,
     onBlockFriend,
+    onStartCall,
+    isCallingBusy = false,
     requestCount,
     groupCount,
     groupInviteCount,
@@ -166,6 +170,8 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({
                                 onViewInfo={onViewFriendInfo}
                                 onRemoveFriend={onRemoveFriend}
                                 onBlockFriend={onBlockFriend}
+                                onStartCall={onStartCall}
+                                isCallingBusy={isCallingBusy}
                                 onChatClick={onChatClick}
                                 isChatLoading={
                                     chatLoadingFriendId === friend.id

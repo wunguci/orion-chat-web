@@ -18,7 +18,7 @@ import type {
     SuggestedFriend,
 } from '../../types/friend';
 import { friendListService } from '../../services/friendListService';
-import socketService from '../../services/socket';
+import socketService, { chatSocketService, sendMessage } from '../../services/socket';
 import { getUser } from '../../utils/token';
 import { useCall } from '../../hooks/useCall';
 import { useCreateOrOpenConversation } from '../../hooks/useCreateOrOpenConversation';
@@ -82,7 +82,20 @@ const FriendListPage = () => {
     const [chatErrorMessage, setChatErrorMessage] = useState('');
     const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const { initiateCall, status: callStatus } = useCall();
+    const {
+        initiateCall,
+        status: callStatus,
+        startTime: callStartTime,
+        isInitiator,
+        wasRejected,
+    } = useCall();
+    const prevCallStatusRef = useRef<typeof callStatus>('idle');
+    const wasInitiatorRef = useRef(false);
+    const activeCallMetaRef = useRef<{
+        conversationId: string;
+        receiverId: string;
+        callType: 'audio' | 'video';
+    } | null>(null);
 
     const navigate = useNavigate();
     const { createOrOpenConversation } = useCreateOrOpenConversation();
@@ -107,6 +120,94 @@ const FriendListPage = () => {
             }
         };
     }, []);
+
+    useEffect(() => {
+        const prevStatus = prevCallStatusRef.current;
+
+        if (
+            isInitiator &&
+            (callStatus === 'calling' ||
+                callStatus === 'ringing' ||
+                callStatus === 'connected')
+        ) {
+            wasInitiatorRef.current = true;
+        }
+
+        if (!wasInitiatorRef.current) {
+            prevCallStatusRef.current = callStatus;
+            return;
+        }
+
+        const hadActiveCall =
+            prevStatus === 'calling' ||
+            prevStatus === 'ringing' ||
+            prevStatus === 'connected';
+        const callJustEnded =
+            hadActiveCall &&
+            (callStatus === 'idle' ||
+                callStatus === 'failed' ||
+                callStatus === 'rejected' ||
+                callStatus === 'ended');
+
+        if (!callJustEnded) {
+            prevCallStatusRef.current = callStatus;
+            return;
+        }
+
+        const activeMeta = activeCallMetaRef.current;
+        if (activeMeta) {
+            let callHistoryStatus: 'completed' | 'missed' | 'declined' =
+                'completed';
+
+            if (wasRejected || callStatus === 'rejected' || callStatus === 'failed') {
+                callHistoryStatus = 'declined';
+            } else if (prevStatus === 'connected') {
+                callHistoryStatus = 'completed';
+            } else {
+                callHistoryStatus = 'missed';
+            }
+
+            const duration = callStartTime
+                ? Math.floor((Date.now() - callStartTime) / 1000)
+                : 0;
+
+            const emitCallHistory = async () => {
+                try {
+                    const socket = chatSocketService.connect();
+
+                    if (!socket.connected) {
+                        await new Promise<void>((resolve) => {
+                            socket.once('connect', () => resolve());
+                        });
+                    }
+
+                    sendMessage({
+                        requestId: `req_${Date.now()}`,
+                        clientMessageId: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                        receiverId: activeMeta.receiverId,
+                        type: 'call',
+                        content: '',
+                        conversationId: activeMeta.conversationId,
+                        callData: {
+                            callType: activeMeta.callType,
+                            callStatus: callHistoryStatus,
+                            duration,
+                            isInitiator: true,
+                            wasRejected: callHistoryStatus === 'declined',
+                        },
+                    });
+                } catch (error) {
+                    console.error('Failed to persist call history from friend list:', error);
+                }
+            };
+
+            void emitCallHistory();
+        }
+
+        wasInitiatorRef.current = false;
+        activeCallMetaRef.current = null;
+        prevCallStatusRef.current = callStatus;
+    }, [callStatus, callStartTime, isInitiator, wasRejected]);
 
     const mapFriendFromApi = (item: {
         id: string;
@@ -571,7 +672,10 @@ const FriendListPage = () => {
         }
     };
 
-    const handleCallFromProfile = async (friendId: string) => {
+    const handleStartCallFromFriend = async (
+        friendId: string,
+        callType: 'audio' | 'video',
+    ) => {
         const currentUser = getUser();
         const currentUserId = currentUser?.userId || currentUser?.id;
         const friend = friends.find((item) => item.id === friendId);
@@ -584,21 +688,44 @@ const FriendListPage = () => {
             return;
         }
 
-        const conversationId = [currentUserId, friend.id].sort().join('-');
+        try {
+            const conversationId = await createOrOpenConversation(friend.id);
+            if (!conversationId) {
+                window.alert('Không thể tạo hoặc mở cuộc trò chuyện để gọi.');
+                return;
+            }
 
-        await initiateCall(
-            `friend-${conversationId}`,
-            friend.id,
-            'audio',
-            {
-                name: friend.name,
-                avatar: friend.avatar,
-            },
-            {
-                name: currentUser.fullName,
-                avatar: currentUser.avatarUrl || undefined,
-            },
-        );
+            wasInitiatorRef.current = true;
+            activeCallMetaRef.current = {
+                conversationId,
+                receiverId: friend.id,
+                callType,
+            };
+
+            await initiateCall(
+                conversationId,
+                friend.id,
+                callType,
+                {
+                    name: friend.name,
+                    avatar: friend.avatar,
+                },
+                {
+                    name: currentUser.fullName,
+                    avatar: currentUser.avatarUrl || undefined,
+                },
+            );
+        } catch (error) {
+            wasInitiatorRef.current = false;
+            activeCallMetaRef.current = null;
+            const message =
+                error instanceof Error ? error.message : 'Failed to start call';
+            window.alert(message);
+        }
+    };
+
+    const handleCallFromProfile = async (friendId: string) => {
+        await handleStartCallFromFriend(friendId, 'audio');
     };
 
     const handleChatClick = async (friendId: string) => {
@@ -653,6 +780,10 @@ const FriendListPage = () => {
                 onViewFriendInfo={handleViewFriendInfo}
                 onRemoveFriend={handleRequestRemoveFriend}
                 onBlockFriend={handleRequestBlockFriend}
+                onStartCall={(friendId, callType) => {
+                    void handleStartCallFromFriend(friendId, callType);
+                }}
+                isCallingBusy={callStatus !== 'idle'}
                 requestCount={counts.requestCount}
                 groupCount={counts.groupCount}
                 groupInviteCount={counts.groupInviteCount}
