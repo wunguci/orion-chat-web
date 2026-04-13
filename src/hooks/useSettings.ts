@@ -203,13 +203,13 @@ export const useUserSettings = () => {
     setLoading(true);
     try {
       const response = await userSettingsApi.getMySettings();
-      console.log("[useUserSettings] Fetched settings:", response.data);
+      //console.log("[useUserSettings] Fetched settings:", response.data);
       setSettings(response.data);
       setError(null);
     } catch (err: any) {
       const errorMsg =
         err.response?.data?.message || "Failed to fetch settings";
-      console.error("[useUserSettings] Fetch error:", errorMsg, err);
+      //console.error("[useUserSettings] Fetch error:", errorMsg, err);
       setError(errorMsg);
     } finally {
       setLoading(false);
@@ -218,18 +218,18 @@ export const useUserSettings = () => {
 
   const updateSettings = useCallback(
     async (updates: Partial<UserSettings>) => {
-      console.log("[useUserSettings] Updating with:", updates);
+      //console.log("[useUserSettings] Updating with:", updates);
       try {
         const response = await userSettingsApi.updateMySettings(updates);
-        console.log("[useUserSettings] Update response:", response.data);
+        //console.log("[useUserSettings] Update response:", response.data);
         setSettings(response.data);
         setError(null);
 
         // Wait a bit longer and refetch to verify the update persisted
         setTimeout(() => {
-          console.log("[useUserSettings] Refetching after update...");
+          //console.log("[useUserSettings] Refetching after update...");
           fetchSettings().catch((err) => {
-            console.error("[useUserSettings] Refetch failed, retrying:", err);
+            //console.error("[useUserSettings] Refetch failed, retrying:", err);
             // Retry once more if first attempt fails
             setTimeout(() => fetchSettings(), 500);
           });
@@ -264,7 +264,7 @@ export const useNotificationSettings = () => {
     setLoading(true);
     try {
       const response = await notificationSettingsApi.getMySettings();
-      console.log("[useNotificationSettings] Fetched settings:", response.data);
+      //console.log("[useNotificationSettings] Fetched settings:", response.data);
       setSettings(response.data);
       setError(null);
     } catch (err: any) {
@@ -279,20 +279,20 @@ export const useNotificationSettings = () => {
 
   const updateSettings = useCallback(
     async (updates: Partial<NotificationSettings>) => {
-      console.log("[useNotificationSettings] Updating with:", updates);
+      //console.log("[useNotificationSettings] Updating with:", updates);
       try {
         const response =
           await notificationSettingsApi.updateMySettings(updates);
-        console.log(
-          "[useNotificationSettings] Update response:",
-          response.data,
-        );
+        // console.log(
+        //   "[useNotificationSettings] Update response:",
+        //   response.data,
+        // );
         setSettings(response.data);
         setError(null);
 
         // Wait a bit longer and refetch to verify the update persisted
         setTimeout(() => {
-          console.log("[useNotificationSettings] Refetching after update...");
+          //console.log("[useNotificationSettings] Refetching after update...");
           fetchSettings().catch((err) => {
             console.error(
               "[useNotificationSettings] Refetch failed, retrying:",
@@ -351,7 +351,7 @@ export const usePrivacySettings = () => {
     setLoading(true);
     try {
       const response = await privacySettingsApi.getMySettings();
-      console.log("[usePrivacySettings] Fetched settings:", response.data);
+      //console.log("[usePrivacySettings] Fetched settings:", response.data);
       setSettings(response.data);
       setError(null);
     } catch (err: any) {
@@ -366,21 +366,21 @@ export const usePrivacySettings = () => {
 
   const updateSettings = useCallback(
     async (updates: Partial<PrivacySettings>) => {
-      console.log("[usePrivacySettings] Updating with:", updates);
+      //console.log("[usePrivacySettings] Updating with:", updates);
       try {
         const response = await privacySettingsApi.updateMySettings(updates);
-        console.log("[usePrivacySettings] Update response:", response.data);
+        //console.log("[usePrivacySettings] Update response:", response.data);
         setSettings(response.data);
         setError(null);
 
         // Wait a bit longer and refetch to verify the update persisted
         setTimeout(() => {
-          console.log("[usePrivacySettings] Refetching after update...");
+          //console.log("[usePrivacySettings] Refetching after update...");
           fetchSettings().catch((err) => {
-            console.error(
-              "[usePrivacySettings] Refetch failed, retrying:",
-              err,
-            );
+            // console.error(
+            //   "[usePrivacySettings] Refetch failed, retrying:",
+            //   err,
+            // );
             // Retry once more if first attempt fails
             setTimeout(() => fetchSettings(), 500);
           });
@@ -413,12 +413,12 @@ export const useUserDevices = () => {
 
   const fetchDevices = useCallback(async () => {
     setLoading(true);
-    console.log("[useUserDevices] Fetching devices...");
+    //console.log("[useUserDevices] Fetching devices...");
     try {
       const response = await userDevicesApi.getMyDevices();
       const fetchedDevices = Array.isArray(response.data) ? response.data : [];
-      console.log("[useUserDevices] Devices fetched:", fetchedDevices);
-      console.log("[useUserDevices] Device count:", fetchedDevices.length);
+      // console.log("[useUserDevices] Devices fetched:", fetchedDevices);
+      // console.log("[useUserDevices] Device count:", fetchedDevices.length);
 
       if (fetchedDevices.length > 0) {
         setDevices(markCurrentDevice(fetchedDevices));
@@ -429,9 +429,9 @@ export const useUserDevices = () => {
       const createPayload = buildCurrentDeviceCreatePayload();
       if (createPayload) {
         try {
-          console.log(
-            "[useUserDevices] No devices found. Creating current web device...",
-          );
+          // console.log(
+          //   "[useUserDevices] No devices found. Creating current web device...",
+          // );
           await userDevicesApi.createDevice(createPayload);
           const refreshed = await userDevicesApi.getMyDevices();
           const refreshedDevices = Array.isArray(refreshed.data)
@@ -443,10 +443,10 @@ export const useUserDevices = () => {
             return;
           }
         } catch (createErr) {
-          console.warn(
-            "[useUserDevices] Failed to create current device. Using local fallback.",
-            createErr,
-          );
+          // console.warn(
+          //   "[useUserDevices] Failed to create current device. Using local fallback.",
+          //   createErr,
+          // );
         }
       }
 

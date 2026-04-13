@@ -7,8 +7,9 @@ import type {
 } from '../types/auth.types';
 
 const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_SERVER_URL ||
+    'http://localhost:3000';
 type NavigatorUADataLike = {
     brands?: Array<{ brand: string; version: string }>;
 };
@@ -227,7 +228,7 @@ export async function login(
             error.message.includes('Failed to fetch')
         ) {
             throw new Error(
-                `Không thể kết nối tới server. Vui lòng kiểm tra backend đang chạy trên http://localhost:3000`,
+                `Không thể kết nối tới server. Vui lòng kiểm tra backend đang chạy trên ${API_BASE_URL}`,
             );
         }
         throw error;
