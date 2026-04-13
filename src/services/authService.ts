@@ -201,7 +201,6 @@ export async function login(
             body: JSON.stringify({
                 phoneNumber,
                 password,
-                platform: 'web',
                 ...deviceMetadata,
             }),
         });
@@ -237,15 +236,19 @@ export async function login(
 // Logout user
 export async function logout(token: string): Promise<{ message: string }> {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        // Try the new logout-with-token endpoint first (doesn't require Authorization header)
+        // This handles the case where token was invalidated by session conflict
+        const response = await fetch(`${API_BASE_URL}/auth/logout-with-token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Platform': 'web',
-                Authorization: `Bearer ${token}`,
             },
             credentials: 'include',
-            body: JSON.stringify({ platform: 'web' }),
+            body: JSON.stringify({
+                token,
+                platform: 'web',
+            }),
         });
 
         if (!response.ok) {

@@ -90,7 +90,7 @@ export default function RegisterPage() {
         }
     };
 
-    /* ==================== Step 3: Complete Register ==================== */
+    /* Step 3: Complete Register */
     const handleCompleteRegister = async () => {
         setError(null);
         setMessage(null);
@@ -110,12 +110,40 @@ export default function RegisterPage() {
             return;
         }
 
+        // Validate age - must be 15 or older
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (
+            monthDiff < 0 ||
+            (monthDiff === 0 && today.getDate() < birthDate.getDate())
+        ) {
+            age--;
+        }
+
+        if (age < 15) {
+            setError('Bạn phải ít nhất 15 tuổi để đăng ký');
+            return;
+        }
+
         setLoading(true);
         try {
+            // Capitalize first letter of each word
+            const capitalizedName = fullName
+                .trim()
+                .split(' ')
+                .map(
+                    (word) =>
+                        word.charAt(0).toUpperCase() +
+                        word.slice(1).toLowerCase(),
+                )
+                .join(' ');
+
             const result = await completeRegister({
                 phoneNumber: phone,
                 password,
-                fullName,
+                fullName: capitalizedName,
                 birthDate: dob,
                 gender,
             });
@@ -237,7 +265,13 @@ export default function RegisterPage() {
                                         onChange={(e) =>
                                             setPasswordAgain(e.target.value)
                                         }
-                                        className="w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-gray-50/70 hover:border hover:border-(--color-login) focus:bg-white focus:ring-2 focus:ring-(--color-login) focus:border focus:border-(--color-login) outline-none transition-all placeholder-gray-400"
+                                        className={`w-full px-4 py-3.5 rounded-xl bg-gray-50/70 hover:border focus:bg-white focus:ring-1 focus:border outline-none transition-all placeholder-gray-400 ${
+                                            passwordAgain && password
+                                                ? passwordAgain === password
+                                                    ? 'border border-(--color-login) focus:ring-(--color-login) focus:border-(--color-login)'
+                                                    : 'border border-red-600 focus:ring-red-600 focus:border-red-600'
+                                                : 'border border-gray-300 focus:ring-(--color-login) focus:border-(--color-login)'
+                                        }`}
                                     />
                                     <button
                                         type="button"
@@ -389,10 +423,43 @@ export default function RegisterPage() {
                                         maxLength={1}
                                         value={v}
                                         onChange={(e) => {
-                                            const copy = [...otp];
-                                            copy[i] = e.target.value;
-                                            setOtp(copy);
+                                            const value = e.target.value;
+                                            if (/^\d*$/.test(value)) {
+                                                const copy = [...otp];
+                                                copy[i] = value;
+                                                setOtp(copy);
+
+                                                // Auto-jump to next field if filled
+                                                if (value && i < 5) {
+                                                    const nextInput =
+                                                        document.querySelector(
+                                                            `input[name="otp-${i + 1}"]`,
+                                                        ) as HTMLInputElement;
+                                                    nextInput?.focus();
+                                                }
+                                            }
                                         }}
+                                        onKeyDown={(e) => {
+                                            // Backspace - delete current & jump back
+                                            if (e.key === 'Backspace') {
+                                                const copy = [...otp];
+                                                if (!copy[i] && i > 0) {
+                                                    // If current empty, delete previous & jump back
+                                                    copy[i - 1] = '';
+                                                    setOtp(copy);
+                                                    const prevInput =
+                                                        document.querySelector(
+                                                            `input[name="otp-${i - 1}"]`,
+                                                        ) as HTMLInputElement;
+                                                    prevInput?.focus();
+                                                } else {
+                                                    // Delete current field
+                                                    copy[i] = '';
+                                                    setOtp(copy);
+                                                }
+                                            }
+                                        }}
+                                        name={`otp-${i}`}
                                         className="w-15 h-15 text-center text-2xl text-gray-500 font-semibold rounded-xl border border-gray-300 bg-gray-50/70 hover:border hover:border-(--color-login) focus:bg-white focus:ring-2 focus:ring-(--color-login) focus:border focus:border-(--color-login) outline-none transition-all placeholder-gray-400"
                                     />
                                 ))}
@@ -460,9 +527,24 @@ export default function RegisterPage() {
                                 <input
                                     placeholder="Full name"
                                     value={fullName}
-                                    onChange={(e) =>
-                                        setFullName(e.target.value)
-                                    }
+                                    onChange={(e) => {
+                                        const text = e.target.value;
+                                        // Auto-capitalize first letter of each word
+                                        const capitalized = text
+                                            .split(' ')
+                                            .map((word) => {
+                                                if (word.length === 0)
+                                                    return '';
+                                                return (
+                                                    word
+                                                        .charAt(0)
+                                                        .toUpperCase() +
+                                                    word.slice(1).toLowerCase()
+                                                );
+                                            })
+                                            .join(' ');
+                                        setFullName(capitalized);
+                                    }}
                                     className="w-full px-4 py-3.5 rounded-xl border border-gray-300 bg-gray-50/70 hover:border hover:border-(--color-login) focus:bg-white focus:ring-2 focus:ring-(--color-login) focus:border focus:border-(--color-login) outline-none transition-all placeholder-gray-400"
                                 />
                             </div>

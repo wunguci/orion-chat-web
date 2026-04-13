@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '../types/auth.types';
 import { getToken, getUser, logout, isTokenValid } from '../utils/token';
+import { logout as apiLogout } from '../services/authService';
 
 interface AuthState {
     user: User | null;
@@ -26,7 +27,7 @@ function initAuthState(): AuthState {
     console.log('   User data:', storedUser);
 
     if (storedToken && isTokenValid()) {
-        console.log('✅ [useAuth] Authentication valid');
+        console.log('[useAuth] Authentication valid');
 
         // Log token expiry info for debugging
         try {
@@ -92,6 +93,23 @@ export function useAuth(): UseAuthReturn {
     }, []);
 
     const handleLogout = () => {
+        // Call backend logout endpoint first (if token exists)
+        if (authState.token) {
+            try {
+                apiLogout(authState.token).catch((error) => {
+                    console.warn(
+                        'Backend logout call failed, clearing local state anyway:',
+                        error,
+                    );
+                    // Continue with local logout even if API fails
+                });
+            } catch (error) {
+                console.warn('Error calling logout API:', error);
+                // Continue with local logout even if API fails
+            }
+        }
+
+        // Clear local auth data
         logout();
         setAuthState({
             user: null,

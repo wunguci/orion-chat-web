@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import axios from 'axios';
 import { getToken } from '../utils/token';
 

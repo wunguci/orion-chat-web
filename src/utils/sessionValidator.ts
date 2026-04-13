@@ -60,38 +60,47 @@ export async function checkSessionValidity(): Promise<CheckSessionResponse> {
 export async function handleSessionExpired(): Promise<void> {
     console.log('[Session] Handling expired session...');
 
+    // Show mandatory alert - only OK button, user MUST click OK
+    alert(
+        'Phiên đăng nhập của bạn đã hết hạn.\n\n' + 'Vui lòng đăng nhập lại.',
+    );
+
     try {
         const token = getToken();
         if (token) {
-            await logoutApi(token);
+            try {
+                await logoutApi(token);
+                console.log('[Session] Backend logout successful');
+            } catch (error) {
+                console.warn('[Session] Backend logout failed:', error);
+            }
         }
     } catch (error) {
         console.error('[Session] Error during logout:', error);
     }
 
-    // Clear localStorage
+    // Clear all auth data
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_session_id');
+    localStorage.removeItem('auth_device_id');
+    localStorage.removeItem('remembered_phone');
+    localStorage.removeItem('rememberMe');
 
-    // Get if this is from token expiry or other reason
-    const fromTokenExpiry = !getToken();
-    const message = fromTokenExpiry
-        ? '⏰ Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.'
-        : 'Phiên làm việc đã hết hạn.';
+    // Clear sessionStorage
+    sessionStorage.clear();
 
-    console.warn('[Session]', message);
+    // Dispatch logout event for multi-tab sync
+    window.dispatchEvent(
+        new StorageEvent('storage', {
+            key: 'logout',
+            oldValue: null,
+            newValue: 'token_expired_' + Date.now(),
+            storageArea: localStorage,
+        }),
+    );
 
-    // Show notification (minimal - don't block)
-    // User can dismiss it or just wait for redirect
-    if (fromTokenExpiry) {
-        // Redirect to login page after a short delay
-        setTimeout(() => {
-            window.location.href = '/auth/login';
-        }, 500);
-    } else {
-        alert(message);
-        setTimeout(() => {
-            window.location.href = '/auth/login';
-        }, 500);
-    }
+    console.log('[Session] Redirecting to login page...');
+    // Redirect ngay lập tức
+    window.location.href = '/auth/login?session_expired=true';
 }

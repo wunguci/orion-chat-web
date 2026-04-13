@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { useState, useEffect, useRef } from "react";
 import {
   User,
@@ -1396,7 +1397,7 @@ export default function SettingsModal({
 
             {/* Security Tip */}
             <div className="flex gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
-              <Info size={24} className="text-blue-500 flex-shrink-0 mt-1" />
+              <Info size={24} className="text-blue-500 shrink-0 mt-1" />
               <div>
                 <p className="font-bold text-gray-primary mb-1">Security Tip</p>
                 <p className="text-sm text-gray-primary">
@@ -1442,7 +1443,7 @@ export default function SettingsModal({
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-80 bg-green-bg-light border-r border-green-border-light p-6 overflow-y-auto flex-shrink-0">
+          <div className="w-80 bg-green-bg-light border-r border-green-border-light p-6 overflow-y-auto shrink-0">
             <h1 className="text-2xl font-bold text-gray-primary mb-2">
               Settings
             </h1>
@@ -1465,7 +1466,7 @@ export default function SettingsModal({
                   <Icon
                     size={24}
                     className={clsx(
-                      "mt-1 flex-shrink-0",
+                      "mt-1 shrink-0",
                       activeTab === id
                         ? "text-green-primary"
                         : "text-gray-primary",

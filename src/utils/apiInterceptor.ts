@@ -1,12 +1,11 @@
 /** eslint-disable */
-import { handleSessionExpired } from './sessionValidator';
 
 interface FetchOptions extends RequestInit {
     skipSessionCheck?: boolean;
 }
 
 /**
- * Enhanced fetch wrapper with automatic session validation
+ * xác thực phiên tự động
  */
 export async function apiFetch(
     url: string,
@@ -21,20 +20,16 @@ export async function apiFetch(
             try {
                 const data = await response.clone().json();
 
-                // If it's session expired, handle logout
+                // nếu phiên làm việc đã hết hạn
                 if (
                     data.message &&
-                    data.message.includes('Phiên làm việc đã hết hạn')
+                    data.message.includes('Phiên làm việc đã hết hạn !!!')
                 ) {
-                    console.warn(
-                        '[API Interceptor] Session expired detected:',
-                        data.message,
-                    );
-                    handleSessionExpired();
+                    console.warn('Session expired detected:', data.message);
+
                     throw new Error(data.message);
                 }
             } catch (error) {
-                // If response is not JSON or other error, just return the response
                 if (
                     error instanceof Error &&
                     error.message.includes('Phiên làm việc')
@@ -51,9 +46,7 @@ export async function apiFetch(
     }
 }
 
-/**
- * Wrapper for common GET requests
- */
+// GET request wrapper
 export function apiGet(url: string, options: FetchOptions = {}) {
     return apiFetch(url, {
         method: 'GET',
@@ -61,9 +54,7 @@ export function apiGet(url: string, options: FetchOptions = {}) {
     });
 }
 
-/**
- * Wrapper for common POST requests
- */
+// POST request wrapper
 export function apiPost(
     url: string,
     body?: unknown,
@@ -80,9 +71,7 @@ export function apiPost(
     });
 }
 
-/**
- * Wrapper for common PUT requests
- */
+// PUT request wrapper
 export function apiPut(
     url: string,
     body?: unknown,
@@ -99,9 +88,7 @@ export function apiPut(
     });
 }
 
-/**
- * Wrapper for common DELETE requests
- */
+// DELETE request wrapper
 export function apiDelete(url: string, options: FetchOptions = {}) {
     return apiFetch(url, {
         method: 'DELETE',

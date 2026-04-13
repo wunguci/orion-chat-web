@@ -156,7 +156,7 @@ export default function ForgotPasswordPage() {
                 confirmPassword: password,
             });
 
-            alert('✅ Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+            alert('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
             navigate('/login');
             console.log('[handleResetPassword] Password reset successfully');
         } catch (err: any) {
@@ -431,7 +431,7 @@ export default function ForgotPasswordPage() {
                                             password === ''
                                                 ? 'border border-gray-300 focus:bg-white focus:border-[#006275] focus:ring-2 focus:ring-[#006275]/20'
                                                 : password === newPassword
-                                                  ? 'border-2 border-green-500 bg-green-50/30 focus:bg-white focus:border-green-600 focus:ring-2 focus:ring-green-500/20'
+                                                  ? 'border-2 border-green-message bg-green-50/30 focus:bg-white focus:border-green-message focus:ring-2 focus:ring-green-500/20'
                                                   : 'border-2 border-red-500 bg-red-50/30 focus:bg-white focus:border-red-600 focus:ring-2 focus:ring-red-500/20'
                                         }`}
                                     />

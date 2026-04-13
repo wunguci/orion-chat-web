@@ -10,8 +10,8 @@ interface UseCreateOrOpenConversationResult {
 
 /**
  * Hook to get or create a PRIVATE conversation with a friend
- * ✅ Calls backend API to create/fetch conversation
- * ✅ Returns conversation ID if successful
+ * Calls backend API to create/fetch conversation
+ * Returns conversation ID if successful
  */
 export const useCreateOrOpenConversation =
     (): UseCreateOrOpenConversationResult => {
@@ -33,7 +33,7 @@ export const useCreateOrOpenConversation =
                         throw new Error('Recipient ID is required');
                     }
 
-                    // ✅ Call backend API to create or get private conversation
+                    // Call backend API to create or get private conversation
                     const conversation =
                         await conversationApi.getOrCreatePrivateConversation(
                             recipientId,

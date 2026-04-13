@@ -1,4 +1,4 @@
-import { getToken, logout } from '../utils/token';
+import { getToken } from '../utils/token';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(
     /\/+$/,
@@ -16,53 +16,81 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
         'X-Platform': 'web',
     };
 
-    // Add authorization header if token exists
+    // thêm xác thực nếu token tồn tại
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Merge with any additional headers from options (but don't override our defaults)
+    // gộp các header tùy chọn
     if (options?.headers) {
         const optionHeaders = options.headers as Record<string, string>;
         Object.keys(optionHeaders).forEach((key) => {
-            // Only add if not already set by us
+            // chỉ thêm nếu chưa được thiết lập bởi chúng tôi
             if (!headers[key.toLowerCase()]) {
                 headers[key] = optionHeaders[key];
             }
         });
     }
 
-    const res = await fetch(buildUrl(path), {
-        ...options,
-        headers,
-    });
+    try {
+        const res = await fetch(buildUrl(path), {
+            ...options,
+            headers,
+        });
 
-    if (!res.ok) {
-        const error = await res
-            .json()
-            .catch(() => ({ message: res.statusText }));
-        const errorMessage =
-            typeof error.message === 'string'
-                ? error.message.toLowerCase()
-                : '';
+        if (!res.ok) {
+            const error = await res
+                .json()
+                .catch(() => ({ message: res.statusText }));
+            const errorMessage =
+                typeof error.message === 'string'
+                    ? error.message.toLowerCase()
+                    : '';
 
-        if (
-            res.status === 401 &&
-            (errorMessage.includes('token has expired') ||
-                errorMessage.includes('token expired') ||
-                errorMessage.includes('invalid token signature'))
-        ) {
-            logout();
-            throw new Error(
-                'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
-            );
+            // Kiểm tra nếu là lỗi xung đột phiên
+            if (res.status === 401) {
+                const isSessionMismatch =
+                    errorMessage.includes('đã đăng nhập ở nơi khác') ||
+                    errorMessage.includes('hoặc bạn đã đăng nhập') ||
+                    errorMessage.includes('web khác') ||
+                    errorMessage.includes('mobile khác');
+
+                const isTokenExpired =
+                    errorMessage.includes('token has expired') ||
+                    errorMessage.includes('token expired') ||
+                    errorMessage.includes('invalid token signature');
+
+                console.log('[API] 401 Check:', {
+                    isSessionMismatch,
+                    isTokenExpired,
+                    errorMessage,
+                });
+
+                if (isSessionMismatch) {
+                    console.warn(
+                        '[API] Session mismatch detected:',
+                        errorMessage,
+                    );
+                    // Don't alert/logout here - let useTokenExpiry handle it
+                    throw new Error(`Session mismatch: ${errorMessage}`);
+                } else if (isTokenExpired) {
+                    console.warn('Token hết hạn:', errorMessage);
+                    // Don't logout here - let useTokenExpiry handle it
+                    throw new Error(
+                        'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+                    );
+                }
+            }
+
+            throw new Error(error.message || 'API Error');
         }
 
-        throw new Error(error.message || 'API Error');
+        const text = await res.text();
+        return text ? JSON.parse(text) : ({} as T);
+    } catch (err) {
+        console.error('Request API failed:', err);
+        throw err;
     }
-
-    const text = await res.text();
-    return text ? JSON.parse(text) : ({} as T);
 }
 
 export const api = {

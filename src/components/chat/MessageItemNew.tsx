@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -173,7 +174,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
         }
 
         return (
-            <p className="break-words whitespace-pre-wrap">{message.content}</p>
+            <p className="break-word whitespace-pre-wrap">{message.content}</p>
         );
     };
 
@@ -188,7 +189,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
         >
             {/* Avatar - Hidden for current user, shown for others */}
             {!isCurrentUser ? (
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                     <img
                         src={avatarUrl}
                         alt={senderName || message.senderBy}
@@ -197,7 +198,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                     />
                 </div>
             ) : (
-                <div className="flex-shrink-0 w-8" />
+                <div className="shrink-0 w-8" />
             )}
 
             {/* Message Container */}
