@@ -23,6 +23,14 @@ import {
     Ban,
     Unlock,
 } from 'lucide-react';
+import {
+    FaFileArchive,
+    FaFileExcel,
+    FaFilePdf,
+    FaFilePowerpoint,
+    FaFileWord,
+} from 'react-icons/fa';
+import { FiFile, FiFileText, FiImage, FiMusic, FiVideo } from 'react-icons/fi';
 import Checkbox from '../common/Checkbox';
 import ToggleSwitch from '../common/ToggleSwitch';
 import { MediaStoragePanel } from './MediaStoragePanel';
@@ -59,6 +67,43 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     onForwardMessage,
     onPinStatusChange,
 }) => {
+    const renderFileIcon = (icon?: SocketMessage['fileIcon']) => {
+        switch (icon) {
+            case 'image':
+                return (
+                    <FiImage className="w-4 h-4 text-emerald-600 shrink-0" />
+                );
+            case 'video':
+                return <FiVideo className="w-4 h-4 text-blue-600 shrink-0" />;
+            case 'audio':
+                return <FiMusic className="w-4 h-4 text-indigo-600 shrink-0" />;
+            case 'file-pdf':
+                return <FaFilePdf className="w-4 h-4 text-red-600 shrink-0" />;
+            case 'file-word':
+                return (
+                    <FaFileWord className="w-4 h-4 text-blue-700 shrink-0" />
+                );
+            case 'file-excel':
+                return (
+                    <FaFileExcel className="w-4 h-4 text-green-700 shrink-0" />
+                );
+            case 'file-powerpoint':
+                return (
+                    <FaFilePowerpoint className="w-4 h-4 text-orange-600 shrink-0" />
+                );
+            case 'file-archive':
+                return (
+                    <FaFileArchive className="w-4 h-4 text-amber-700 shrink-0" />
+                );
+            case 'file-text':
+                return (
+                    <FiFileText className="w-4 h-4 text-slate-600 shrink-0" />
+                );
+            default:
+                return <FiFile className="w-4 h-4 text-slate-500 shrink-0" />;
+        }
+    };
+
     // ✅ Get other participant (for PRIVATE chat)
     const otherParticipant = selectedConversation?.participants?.find(
         (p) => p.userId !== currentUserId,
@@ -80,7 +125,9 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
             (msg) =>
                 msg.isFile &&
                 msg.fileUrl &&
-                msg.fileType?.startsWith('image/') === true &&
+                (msg.fileType?.startsWith('image/') === true ||
+                    msg.fileCategory === 'image' ||
+                    msg.type === 'image') &&
                 !msg.isRecalled,
         );
 
@@ -88,7 +135,9 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
             (msg) =>
                 msg.isFile &&
                 msg.fileUrl &&
-                !msg.fileType?.startsWith('image/') &&
+                !(msg.fileType?.startsWith('image/') === true) &&
+                msg.fileCategory !== 'image' &&
+                msg.type !== 'image' &&
                 !msg.isRecalled,
         );
 
@@ -137,8 +186,12 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     const [autoDeleteDuration, setAutoDeleteDuration] = useState(0);
     const [iAmBlocked, setIAmBlocked] = useState(false);
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false);
-    const [mediaActionError, setMediaActionError] = useState<string | null>(null);
-    const [isPinned, setIsPinned] = useState(selectedConversation?.myIsPinned || false);
+    const [mediaActionError, setMediaActionError] = useState<string | null>(
+        null,
+    );
+    const [isPinned, setIsPinned] = useState(
+        selectedConversation?.myIsPinned || false,
+    );
     const [isPinLoading, setIsPinLoading] = useState(false);
 
     // Derive isConversationHidden from selectedConversation to avoid setState cascade
@@ -286,9 +339,13 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         try {
             setIsPinLoading(true);
             if (isPinned) {
-                await conversationApi.unpinConversation(selectedConversation.conversationId);
+                await conversationApi.unpinConversation(
+                    selectedConversation.conversationId,
+                );
             } else {
-                await conversationApi.pinConversation(selectedConversation.conversationId);
+                await conversationApi.pinConversation(
+                    selectedConversation.conversationId,
+                );
             }
             setIsPinned(!isPinned);
             // ✅ Trigger parent to refresh conversations list (for real-time reorder in sidebar)
@@ -412,10 +469,18 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 >
                                     <Pin
                                         size={20}
-                                        className={isPinned ? 'text-green-600 fill-current' : 'text-green-primary'}
+                                        className={
+                                            isPinned
+                                                ? 'text-green-600 fill-current'
+                                                : 'text-green-primary'
+                                        }
                                     />
-                                    <span className={`text-xs ${isPinned ? 'text-green-600 font-medium' : 'text-gray-primary'}`}>
-                                        {isPinned ? 'Bỏ ghim' : 'Ghim hội thoại'}
+                                    <span
+                                        className={`text-xs ${isPinned ? 'text-green-600 font-medium' : 'text-gray-primary'}`}
+                                    >
+                                        {isPinned
+                                            ? 'Bỏ ghim'
+                                            : 'Ghim hội thoại'}
                                     </span>
                                 </button>
                                 <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
@@ -579,20 +644,9 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                                 rel="noreferrer"
                                                                 className="flex items-center gap-2 flex-1 min-w-0"
                                                             >
-                                                                <svg
-                                                                    width="16"
-                                                                    height="16"
-                                                                    viewBox="0 0 24 24"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    strokeWidth="2"
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    className="text-slate-500 shrink-0"
-                                                                >
-                                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                                                    <polyline points="14 2 14 8 20 8" />
-                                                                </svg>
+                                                                {renderFileIcon(
+                                                                    msg.fileIcon,
+                                                                )}
                                                                 <span className="text-xs text-slate-700 truncate">
                                                                     {
                                                                         msg.fileName
@@ -1131,7 +1185,10 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
             {(() => {
                 const getMessageById = (messageId?: string) => {
                     if (!messageId) return null;
-                    return displayMessages.find((msg) => msg.id === messageId) || null;
+                    return (
+                        displayMessages.find((msg) => msg.id === messageId) ||
+                        null
+                    );
                 };
 
                 const handleOpenDocument = async () => {
@@ -1144,9 +1201,15 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                     try {
                         // Open file in new tab
                         window.open(message.fileUrl, '_blank');
-                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                        setContextMenuState({
+                            ...contextMenuState,
+                            isOpen: false,
+                        });
                     } catch (error) {
-                        const errorMsg = error instanceof Error ? error.message : 'Failed to open file';
+                        const errorMsg =
+                            error instanceof Error
+                                ? error.message
+                                : 'Failed to open file';
                         setMediaActionError(errorMsg);
                         console.error(errorMsg, error);
                     }
@@ -1164,9 +1227,15 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                         if (onForwardMessage) {
                             onForwardMessage(message);
                         }
-                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                        setContextMenuState({
+                            ...contextMenuState,
+                            isOpen: false,
+                        });
                     } catch (error) {
-                        const errorMsg = error instanceof Error ? error.message : 'Failed to forward message';
+                        const errorMsg =
+                            error instanceof Error
+                                ? error.message
+                                : 'Failed to forward message';
                         setMediaActionError(errorMsg);
                         console.error(errorMsg, error);
                     }
@@ -1184,9 +1253,15 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                         if (onJumpToMessage) {
                             onJumpToMessage(messageId);
                         }
-                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                        setContextMenuState({
+                            ...contextMenuState,
+                            isOpen: false,
+                        });
                     } catch (error) {
-                        const errorMsg = error instanceof Error ? error.message : 'Failed to jump to message';
+                        const errorMsg =
+                            error instanceof Error
+                                ? error.message
+                                : 'Failed to jump to message';
                         setMediaActionError(errorMsg);
                         console.error(errorMsg, error);
                     }
@@ -1204,10 +1279,16 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                             selectedConversation.conversationId,
                             messageId,
                         );
-                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                        setContextMenuState({
+                            ...contextMenuState,
+                            isOpen: false,
+                        });
                         setMediaActionError(null);
                     } catch (error) {
-                        const errorMsg = error instanceof Error ? error.message : 'Failed to delete message';
+                        const errorMsg =
+                            error instanceof Error
+                                ? error.message
+                                : 'Failed to delete message';
                         setMediaActionError(errorMsg);
                         console.error(errorMsg, error);
                     }
@@ -1225,10 +1306,16 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                             selectedConversation.conversationId,
                             messageId,
                         );
-                        setContextMenuState({ ...contextMenuState, isOpen: false });
+                        setContextMenuState({
+                            ...contextMenuState,
+                            isOpen: false,
+                        });
                         setMediaActionError(null);
                     } catch (error) {
-                        const errorMsg = error instanceof Error ? error.message : 'Failed to recall message';
+                        const errorMsg =
+                            error instanceof Error
+                                ? error.message
+                                : 'Failed to recall message';
                         setMediaActionError(errorMsg);
                         console.error(errorMsg, error);
                     }
@@ -1253,7 +1340,10 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                             onDeleteForMe={handleDeleteForMe}
                             onRecall={handleRecallMessage}
                             onClose={() =>
-                                setContextMenuState({ ...contextMenuState, isOpen: false })
+                                setContextMenuState({
+                                    ...contextMenuState,
+                                    isOpen: false,
+                                })
                             }
                         />
                     </>

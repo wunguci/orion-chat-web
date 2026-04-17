@@ -288,7 +288,7 @@ class ChatSocketService {
         clientMessageId: string;
         conversationId: string;
         receiverId: string;
-        type: 'text' | 'image' | 'file' | 'audio' | 'call';
+        type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
         content: string;
         mediaUrl?: string;
         fileName?: string;
@@ -468,7 +468,7 @@ export const sendMessage = (data: {
     clientMessageId: string;
     conversationId: string;
     receiverId: string;
-    type: 'text' | 'image' | 'file' | 'audio' | 'call';
+    type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
     content: string;
     mediaUrl?: string;
     fileName?: string;
