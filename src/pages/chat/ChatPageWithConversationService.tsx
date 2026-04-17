@@ -96,7 +96,7 @@ export const ChatPage: React.FC = () => {
     data?: Partial<IncomingSocketPayload>;
   };
 
-  // Get user ID inside component (after auth is loaded)
+  // Lấy user ID trong component (sau khi auth đã load xong)
   const USER_ID = getCurrentUserId();
   const USERNAME = getCurrentUserName();
   const {
@@ -138,13 +138,13 @@ export const ChatPage: React.FC = () => {
   const [reactionOverrides, setReactionOverrides] = useState<
     Record<string, NonNullable<SocketMessage["reactions"]>>
   >({});
-  const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
-  const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
+  const [iAmBlocked, setIAmBlocked] = useState(false); // Người dùng hiện tại bị chặn
+  const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Người dùng hiện tại là người chặn (có thể bỏ chặn)
   const messageListenerRef = useRef<((msg: ChatSocketMessage) => void) | null>(
     null,
   );
 
-  // Fetch all conversations (for sidebar + forward modal)
+  // Lấy toàn bộ conversations (cho sidebar + modal chuyển tiếp)
   const {
     conversations,
     loading: conversationsLoading,
@@ -152,14 +152,14 @@ export const ChatPage: React.FC = () => {
     refreshConversations,
   } = useConversations();
 
-  // Fetch selected conversation detail
-  // No need to pass USER_ID - JWT token from localStorage is used
+  // Lấy chi tiết conversation đang chọn
+  // Không cần truyền USER_ID - sử dụng JWT token từ localStorage
   const { conversation: selectedConversation } = useConversationDetail(
     selectedConversationId || "",
   );
 
-  // Fetch messages for selected conversation
-  // No need to pass USER_ID - JWT token from localStorage is used
+  // Lấy messages cho conversation đang chọn
+  // Không cần truyền USER_ID - sử dụng JWT token từ localStorage
   const { messages: paginatedMessages } = useConversationMessages(
     selectedConversationId || "",
     30,
@@ -180,7 +180,7 @@ export const ChatPage: React.FC = () => {
     [],
   );
 
-  // Helper function to load block status
+  // Hàm trợ giúp để tải trạng thái chặn
   const loadBlockStatus = async (convId?: string) => {
     const conversationId = convId || selectedConversation?.conversationId;
     if (!conversationId) {
@@ -191,9 +191,9 @@ export const ChatPage: React.FC = () => {
 
     try {
       const response = await conversationApi.getBlockStatus(conversationId);
-      // Backend response:
-      // - iAmBlocked: current user bị chặn
-      // - iAmTheBlocker: current user là người chặn (có nút bỏ chặn)
+      // Dữ liệu backend trả về:
+      // - iAmBlocked: người dùng hiện tại bị chặn
+      // - iAmTheBlocker: người dùng hiện tại là người chặn (có nút bỏ chặn)
       setIAmBlocked(response?.iAmBlocked || false);
       setIAmTheBlocker(response?.iAmTheBlocker || false);
     } catch (error) {
@@ -203,12 +203,12 @@ export const ChatPage: React.FC = () => {
     }
   };
 
-  // Load block status when conversation changes
+  // Tải trạng thái chặn khi conversation thay đổi
   useEffect(() => {
     loadBlockStatus();
   }, [selectedConversation?.conversationId]);
 
-  // Auto-select conversation from location state (e.g., from friend chat click)
+  // Tự chọn conversation từ location state (ví dụ: click chat từ trang bạn bè)
   useEffect(() => {
     const state = location.state as {
       selectedConversationId?: string;
@@ -218,7 +218,7 @@ export const ChatPage: React.FC = () => {
     }
   }, [location.state, selectedConversationId]);
 
-  // Poll block status every 5 seconds to detect when other user blocks/unblocks
+  // Poll trạng thái chặn mỗi 5 giây để phát hiện khi đối phương chặn/bỏ chặn
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (selectedConversation?.conversationId) {
@@ -229,10 +229,10 @@ export const ChatPage: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [selectedConversation?.conversationId]);
 
-  // Refresh conversations when navigating from friend page (new conversation created)
+  // Refresh conversations khi điều hướng từ trang bạn bè (vừa tạo conversation mới)
   useEffect(() => {
     if (location.state?.selectedConversationId) {
-      // Wait a moment for backend to fully process conversation creation
+      // Đợi một chút để backend xử lý xong việc tạo conversation
       const timer = setTimeout(() => {
         refreshConversations();
       }, 500);
@@ -253,11 +253,11 @@ export const ChatPage: React.FC = () => {
     [conversations],
   );
 
-  // Handle unblock user - chỉ người chặn mới có thể mở chặn
+  // Xử lý bỏ chặn - chỉ người chặn mới có thể bỏ chặn
   const handleUnblockUser = async () => {
     if (!selectedConversation?.conversationId) return;
 
-    // Verify current user là người chặn (iAmTheBlocker)
+    // Xác nhận người dùng hiện tại là người chặn (iAmTheBlocker)
     if (!iAmTheBlocker) {
       console.error("Only the person who blocked can unblock");
       return;
@@ -265,7 +265,7 @@ export const ChatPage: React.FC = () => {
 
     try {
       await conversationApi.unblockUser(selectedConversation.conversationId);
-      // Reload block status immediately để cả 2 bên đều biết
+      // Tải lại trạng thái chặn ngay để cả 2 bên đều cập nhật
       await loadBlockStatus();
     } catch (error) {
       console.error("Error unblocking user:", error);
@@ -291,7 +291,7 @@ export const ChatPage: React.FC = () => {
         messageType === "image" ||
         payload?.fileType?.startsWith("image/");
 
-      // Get sender ID and use it as fallback for name
+      // Lấy sender ID và dùng làm tên fallback
       const senderId = payload?.senderId || payload?.senderBy || "unknown";
 
       return {
@@ -303,7 +303,7 @@ export const ChatPage: React.FC = () => {
           `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         clientMessageId: payload?.clientMessageId,
         senderId: senderId,
-        // Use senderName if provided, otherwise use senderId (phone/userId) as fallback
+        // Dùng senderName nếu có, nếu không thì dùng senderId (phone/userId) làm fallback
         senderName: payload?.senderName || senderId,
         senderAvatar: payload?.senderAvatar,
         content: payload?.content || "",
@@ -338,16 +338,16 @@ export const ChatPage: React.FC = () => {
     [],
   );
 
-  // Initialize socket connection
+  // Khởi tạo kết nối socket
   useEffect(() => {
     const initializeSocket = async () => {
       try {
         setIsConnecting(true);
 
-        // ✅ Debug: Check authentication status
+        // Kiểm tra trạng thái xác thực
         debugAuthStatus();
 
-        // ✅ Connect using JWT token from localStorage (no userId parameter needed)
+        // Kết nối bằng JWT token từ localStorage (không cần truyền userId)
         chatSocketService.connect();
 
         const messageHandler = (payload: IncomingSocketPayload) => {
@@ -437,15 +437,15 @@ export const ChatPage: React.FC = () => {
                 return {
                   ...msg,
                   isRecalled: true,
-                  content: msg.content, // ✅ Keep original content in memory
-                  // But UI will not display it when isRecalled=true
+                  content: msg.content, // Giữ nội dung gốc trong bộ nhớ
+                  // Nhưng UI sẽ không hiển thị khi isRecalled=true
                 };
               }
               return msg;
             });
 
-            // ✅ If message not found in socketMessages (from paginatedMessages),
-            // add it to socketMessages so displayMessages will show it as recalled
+            // Nếu không tìm thấy message trong socketMessages (từ paginatedMessages),
+            // thêm vào socketMessages để displayMessages hiển thị trạng thái đã thu hồi
             if (!found) {
               updated.push({
                 id: payload.messageId,
@@ -499,38 +499,46 @@ export const ChatPage: React.FC = () => {
     };
   }, [toSocketMessage, selectedConversationId]);
 
-  // Handle conversation selection
+  // Xử lý chọn conversation
   const handleSelectConversation = useCallback((conversationId: string) => {
     setSelectedConversationId(conversationId);
-    setSocketMessages([]); // Clear socket messages on new conversation
+    setSocketMessages([]); // Xóa socket messages khi chuyển conversation mới
   }, []);
 
   useEffect(() => {
     if (!selectedConversationId) return;
+
+    // Phát sự kiện global để module notification mark-read đúng conversation.
+    window.dispatchEvent(
+      new CustomEvent("chat:conversation_opened", {
+        detail: { conversationId: selectedConversationId },
+      }),
+    );
+
     joinConversation(`join_${Date.now()}`, selectedConversationId);
   }, [selectedConversationId]);
 
-  // Enhance sender names for messages that only have phone numbers (backward compatibility)
-  // New messages from backend already include senderName
+  // Làm giàu sender name cho message chỉ có số điện thoại (tương thích ngược)
+  // Message mới từ backend đã có senderName
   useEffect(() => {
     if (socketMessages.length === 0) return;
 
-    // Find messages with only phone numbers as sender names (need enrichment)
+    // Tìm message có senderName chỉ là số điện thoại (cần làm giàu)
     const messagesToEnrich = socketMessages.filter(
       (msg) =>
         msg.senderName &&
-        /^\d{10,11}$/.test(msg.senderName) && // Looks like a phone number
-        msg.senderName === msg.senderId, // senderName is same as senderId (not enriched yet)
+        /^\d{10,11}$/.test(msg.senderName) && // Trông giống số điện thoại
+        msg.senderName === msg.senderId, // senderName trùng senderId (chưa làm giàu)
     );
 
     if (messagesToEnrich.length === 0) return;
 
-    // Collect unique sender IDs that need enrichment
+    // Thu thập các sender ID duy nhất cần làm giàu
     const uniqueSenderIds = new Set(
       messagesToEnrich.map((msg) => msg.senderId),
     );
 
-    // Fetch user info for senders with only phone numbers
+    // Lấy user info cho sender chỉ có số điện thoại
     const enrichSenderNames = async () => {
       for (const senderId of uniqueSenderIds) {
         if (!senderId) continue;
@@ -538,7 +546,7 @@ export const ChatPage: React.FC = () => {
         try {
           const userInfo = await getUserInfo(senderId);
           if (userInfo?.fullName && userInfo.fullName !== senderId) {
-            // Update messages with actual sender name
+            // Cập nhật message bằng tên người gửi thực tế
             setSocketMessages((prev) =>
               prev.map((msg) =>
                 msg.senderId === senderId && /^\d{10,11}$/.test(msg.senderName)
@@ -557,7 +565,7 @@ export const ChatPage: React.FC = () => {
     };
 
     enrichSenderNames();
-  }, [socketMessages.length]); // Only trigger when message count changes
+  }, [socketMessages.length]); // Chỉ chạy khi số lượng message thay đổi
 
   const recallLocalMessage = useCallback(
     (message: SocketMessage) => {
@@ -672,7 +680,7 @@ export const ChatPage: React.FC = () => {
     setIsDeleteConfirmOpen(false);
   }, [pendingDeleteMessage, executeDeleteMessage]);
 
-  // Log exactly one call-history message when a call transitions to a terminal state.
+  // Chỉ ghi đúng một call-history message khi cuộc gọi chuyển sang trạng thái kết thúc.
   useEffect(() => {
     const prevStatus = prevCallStatusRef.current;
 
@@ -788,7 +796,7 @@ export const ChatPage: React.FC = () => {
         logCallToChat();
       }
 
-      // Reset after writing one history message for this call lifecycle.
+      // Reset sau khi đã ghi xong một bản ghi lịch sử cho vòng đời cuộc gọi này.
       wasInitiatorRef.current = false;
     }
 
@@ -902,7 +910,7 @@ export const ChatPage: React.FC = () => {
         return;
       }
 
-      // Note: userId should be included in request headers via API interceptor
+      // Lưu ý: userId nên được đưa vào request headers qua API interceptor
       await conversationApi.forwardMessage(
         forwardingMessage.id,
         forwardTargetConversationId,
@@ -926,7 +934,7 @@ export const ChatPage: React.FC = () => {
     getReceiverIdByConversationId,
   ]);
 
-  // Handle sending message
+  // Xử lý gửi tin nhắn
   const handleSend = useCallback(
     async (text: string) => {
       if (!text.trim() || !selectedConversationId) return;
@@ -948,7 +956,7 @@ export const ChatPage: React.FC = () => {
           },
         ]);
 
-        // Send via socket
+        // Gửi qua socket
         const receiverId = getReceiverId();
 
         if (!receiverId) {
@@ -973,7 +981,7 @@ export const ChatPage: React.FC = () => {
     [selectedConversationId, getReceiverId],
   );
 
-  // Handle sending file
+  // Xử lý gửi tệp
   const handleSendFile = useCallback(
     async (file: File) => {
       if (!selectedConversationId) return;
@@ -981,15 +989,15 @@ export const ChatPage: React.FC = () => {
       try {
         const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-        // Determine file type
+        // Xác định loại tệp
         const fileType = file.type;
         const isImage = fileType.startsWith("image/");
         const messageType = isImage ? "image" : "file";
 
-        // Create local preview URL for immediate display
+        // Tạo URL preview cục bộ để hiển thị ngay
         const tempFileUrl = URL.createObjectURL(file);
 
-        // Add temporary message with local preview
+        // Thêm message tạm với preview cục bộ
         setSocketMessages((prev) => [
           ...prev,
           {
@@ -1003,12 +1011,12 @@ export const ChatPage: React.FC = () => {
             type: messageType,
             isFile: true,
             fileName: file.name,
-            fileUrl: tempFileUrl, // Use blob URL for immediate display
+            fileUrl: tempFileUrl, // Dùng blob URL để hiển thị ngay
             fileType: fileType,
           },
         ]);
 
-        // Upload file first because backend requires mediaUrl for media messages
+        // Upload tệp trước vì backend yêu cầu mediaUrl cho media messages
         let serverFileUrl = "";
         let uploadedFileType = fileType;
 
@@ -1020,7 +1028,7 @@ export const ChatPage: React.FC = () => {
           serverFileUrl = uploadResponse.mediaUrl;
           uploadedFileType = uploadResponse.mimeType || fileType;
 
-          // Update the message with server URL after successful upload
+          // Cập nhật message bằng URL từ server sau khi upload thành công
           setSocketMessages((prev) =>
             prev.map((msg) =>
               msg.clientMessageId === clientMessageId
@@ -1040,7 +1048,7 @@ export const ChatPage: React.FC = () => {
           throw uploadErr;
         }
 
-        // Send message via socket with file URL
+        // Gửi message qua socket kèm file URL
         sendMessage({
           requestId: `req_${Date.now()}`,
           clientMessageId,
@@ -1060,7 +1068,7 @@ export const ChatPage: React.FC = () => {
     [selectedConversationId, getReceiverId],
   );
 
-  // Kết hợp các thông báo phân trang và thông báo socket
+  // Kết hợp dữ liệu phân trang và dữ liệu socket
   const otherParticipant = selectedConversation?.participants?.find(
     (p) => p.userId !== USER_ID,
   );
@@ -1182,8 +1190,8 @@ export const ChatPage: React.FC = () => {
           m.messageType === "IMAGE" || m.messageType === "image"
             ? "image/*"
             : undefined,
-        // ✅ Message is recalled if isRevoked=true (from backend)
-        // Backend preserves message in DB with isRevoked flag
+        // Message được coi là đã thu hồi nếu isRevoked=true (từ backend)
+        // Backend vẫn giữ message trong DB với cờ isRevoked
         isRecalled: m.isRevoked === true,
         reactions: Array.isArray(m.reactions)
           ? m.reactions.map((reaction) => ({
@@ -1223,7 +1231,7 @@ export const ChatPage: React.FC = () => {
       message.isRecalled ||
       message.content.trim().length > 0 ||
       (message.isFile && !!message.fileUrl) ||
-      (message.type === "call" && !!(message as ChatSocketMessage).callData); // ✅ Include call messages
+      (message.type === "call" && !!(message as ChatSocketMessage).callData); // Bao gồm cả call messages
     if (!hasVisibleContent) continue;
 
     const key =
@@ -1378,7 +1386,7 @@ export const ChatPage: React.FC = () => {
           currentUserId={USER_ID}
           onBlockStatusChange={loadBlockStatus}
           onJumpToMessage={(messageId: string) => {
-            // Try to scroll to message element in the DOM
+            // Cố gắng cuộn tới phần tử message trong DOM
             const messageElement = document.getElementById(
               `message-${messageId}`,
             );
@@ -1387,7 +1395,7 @@ export const ChatPage: React.FC = () => {
                 behavior: "smooth",
                 block: "center",
               });
-              // Highlight the message briefly
+              // Highlight message trong thời gian ngắn
               messageElement.classList.add("bg-yellow-100");
               setTimeout(() => {
                 messageElement.classList.remove("bg-yellow-100");

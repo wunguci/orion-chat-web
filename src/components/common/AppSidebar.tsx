@@ -2,7 +2,6 @@
 import type React from "react";
 import {
   MdChat,
-  MdContacts,
   MdOutlineWork,
   MdNote,
   MdCalendarToday,
@@ -14,9 +13,9 @@ import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
 import SettingsModal from "../settings/SettingsModal";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { User } from "../../types/auth.types";
-import { getUser } from "../../utils/token";
+import NotificationCenter from "../notifications/NotificationCenter";
 
 type ViewMode =
   | "chat"
@@ -29,36 +28,22 @@ type ViewMode =
 interface SidebarProps {
   currentView: ViewMode;
   setView: (view: ViewMode) => void;
+  currentUser: User;
 }
 
-const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
+const AppSidebar: React.FC<SidebarProps> = ({
+  currentView,
+  setView,
+  currentUser,
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSettingOpen, setIsSettingOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const resolvedUserId = currentUser?.userId || currentUser?.id;
 
   const API_BASE_URL = "http://localhost:3000";
-
-  useEffect(() => {
-    const userData = getUser();
-    if (userData) {
-      setCurrentUser(userData);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === "auth_user") {
-        setCurrentUser(getUser());
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -110,6 +95,7 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
               navigate(ROUTES.CHAT.ROOT);
             }}
             label="Chat"
+            badgeCount={unreadChatCount}
           />
           <NavItem
             icon={FaUsers}
@@ -151,6 +137,13 @@ const AppSidebar: React.FC<SidebarProps> = ({ currentView, setView }) => {
 
         {/* Settings at bottom */}
         <div className="mt-auto gap-4 flex flex-col items-center">
+          <NotificationCenter
+            userId={resolvedUserId}
+            open={isNotificationOpen}
+            onToggle={() => setIsNotificationOpen((prev) => !prev)}
+            onUnreadMessageCountChange={setUnreadChatCount}
+          />
+
           <NavItem
             icon={MdOutlineWork}
             active={location.pathname.startsWith(ROUTES.WORK_HUB.ROOT)}
@@ -174,6 +167,7 @@ interface NavItemProps {
   active: boolean;
   onClick: () => void;
   label: string;
+  badgeCount?: number;
 }
 
 const NavItem: React.FC<NavItemProps> = ({
@@ -181,11 +175,12 @@ const NavItem: React.FC<NavItemProps> = ({
   active,
   onClick,
   label,
+  badgeCount = 0,
 }) => {
   return (
     <button
       onClick={onClick}
-      className={`w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
+      className={`relative w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
         active
           ? "bg-teal-400 text-primary shadow-sm"
           : "text-slate-400 hover:bg-slate-200"
@@ -194,6 +189,11 @@ const NavItem: React.FC<NavItemProps> = ({
       aria-label={label}
     >
       <Icon className="w-5 h-5" />
+      {badgeCount > 0 && (
+        <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-red-500 px-1 text-center text-[10px] leading-4 font-semibold text-white">
+          {badgeCount > 99 ? "99+" : badgeCount}
+        </span>
+      )}
     </button>
   );
 };
