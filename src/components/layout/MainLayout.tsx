@@ -20,7 +20,7 @@ export const MainLayout = () => {
     <CallProvider userId={userId}>
       <div className="flex h-screen overflow-hidden bg-white">
         {/* Sidebar  */}
-        <AppSidebar currentView="chat" setView={() => {}} />
+        <AppSidebar currentView="chat" setView={() => {}} currentUser={user} />
 
         {/* Main content  */}
         <div className="flex-1 overflow-hidden">
