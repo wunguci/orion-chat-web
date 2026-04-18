@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Lock, Trash2, Undo2Icon } from 'lucide-react';
 import {
     FaFileArchive,
@@ -44,6 +44,14 @@ export type SocketMessage = {
     senderAvatar?: string;
     content: string;
     timestamp: string;
+    messageStatus?:
+        | 'SENDING'
+        | 'SENT'
+        | 'DELIVERED'
+        | 'READ'
+        | 'SEEN'
+        | 'FAILED'
+        | 'UPLOADING';
     conversationId?: string;
     type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
     isFile?: boolean;
@@ -66,6 +74,11 @@ export type SocketMessage = {
     uploadStatus?: 'uploading' | 'sent' | 'failed';
     errorMessage?: string;
     isRecalled?: boolean;
+    isDeleted?: boolean;
+    deletedForUsers?: string[];
+    replyToMessageId?: string;
+    forwardedFromMessageId?: string;
+    seenBy?: Array<string | { userId: string; seenAt?: string }>;
     reactions?: MessageReaction[];
     callData?: {
         callType?: 'audio' | 'video';
@@ -243,6 +256,36 @@ export const MessageList: React.FC<{
                 m.senderAvatar ||
                 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + m.senderId,
         }));
+
+    const messageLookup = useMemo(() => {
+        const lookup = new Map<string, SocketMessage>();
+        socketMessages.forEach((msg) => {
+            lookup.set(msg.id, msg);
+            if (msg.clientMessageId) {
+                lookup.set(msg.clientMessageId, msg);
+            }
+        });
+        return lookup;
+    }, [socketMessages]);
+
+    const getSeenCount = (message: SocketMessage) => {
+        if (!Array.isArray(message.seenBy)) return 0;
+
+        return message.seenBy.reduce((count, item) => {
+            if (typeof item === 'string') {
+                return item && item !== currentUserId ? count + 1 : count;
+            }
+
+            return item.userId && item.userId !== currentUserId
+                ? count + 1
+                : count;
+        }, 0);
+    };
+
+    const resolveReplyMessage = (message: SocketMessage) => {
+        if (!message.replyToMessageId) return null;
+        return messageLookup.get(message.replyToMessageId) || null;
+    };
 
     let imgCounter = -1;
 
@@ -437,97 +480,154 @@ export const MessageList: React.FC<{
                                             />
                                         </div>
                                     ) : (
-                                        /* ✅ TEXT/FILE/RECALLED: Render with bubble background */
-                                        <div
-                                            className={`px-4 py-2 rounded-2xl text-sm ${
-                                                msg.isRecalled
-                                                    ? 'bg-gray-100 text-gray-500 shadow-none border border-gray-200'
-                                                    : isMe
-                                                      ? 'bg-green-message text-white rounded-br-none shadow-md'
-                                                      : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
-                                            }`}
-                                        >
-                                            {msg.isRecalled ? (
-                                                <div className="rounded-2xl">
-                                                    <p className="italic text-gray-500">
-                                                        Tin nhắn đã được thu hồi
-                                                    </p>
-                                                </div>
-                                            ) : msg.isFile && msg.fileUrl ? (
-                                                <a
-                                                    href={
-                                                        msg.fileUrl.startsWith(
-                                                            'http',
-                                                        )
-                                                            ? msg.fileUrl
-                                                            : `${SERVER_URL}${msg.fileUrl}`
-                                                    }
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className={`flex items-center gap-2 p-2 rounded-xl border ${
+                                        <>
+                                            {resolveReplyMessage(msg) && (
+                                                <div
+                                                    className={`mb-2 max-w-full rounded-xl border px-3 py-2 text-xs ${
                                                         isMe
-                                                            ? 'text-white border-white/30'
-                                                            : 'text-blue-500 hover:text-blue-600 border-slate-200'
+                                                            ? 'border-white/20 bg-white/10 text-white'
+                                                            : 'border-slate-200 bg-slate-50 text-slate-600'
                                                     }`}
                                                 >
-                                                    <span className="shrink-0">
-                                                        {renderFileIcon(
-                                                            msg.fileIcon,
-                                                        )}
-                                                    </span>
-                                                    <span className="truncate">
-                                                        {msg.fileName}
-                                                    </span>
-                                                </a>
-                                            ) : (
-                                                <p className="break-all whitespace-pre-wrap">
-                                                    {renderContentWithLinks(
-                                                        msg.content,
-                                                        isMe,
-                                                    )}
-                                                </p>
+                                                    <div className="font-semibold">
+                                                        Trả lời{' '}
+                                                        {resolveReplyMessage(
+                                                            msg,
+                                                        )?.senderName ||
+                                                            'tin nhắn'}
+                                                    </div>
+                                                    <div className="truncate opacity-80">
+                                                        {resolveReplyMessage(
+                                                            msg,
+                                                        )?.content ||
+                                                            resolveReplyMessage(
+                                                                msg,
+                                                            )?.fileName ||
+                                                            'Tin nhắn'}
+                                                    </div>
+                                                </div>
                                             )}
 
-                                            {/* Timestamp */}
-                                            <p
-                                                className={`text-[11px] mt-1 ${
-                                                    isMe
-                                                        ? 'text-green-100'
-                                                        : 'text-slate-400'
+                                            {msg.forwardedFromMessageId && (
+                                                <div
+                                                    className={`mb-2 rounded-xl border px-3 py-2 text-[11px] italic ${
+                                                        isMe
+                                                            ? 'border-white/20 bg-white/10 text-white'
+                                                            : 'border-slate-200 bg-slate-50 text-slate-500'
+                                                    }`}
+                                                >
+                                                    Tin nhắn được chuyển tiếp
+                                                </div>
+                                            )}
+
+                                            {/* ✅ TEXT/FILE/RECALLED: Render with bubble background */}
+                                            <div
+                                                className={`px-4 py-2 rounded-2xl text-sm ${
+                                                    msg.isRecalled
+                                                        ? 'bg-gray-100 text-gray-500 shadow-none border border-gray-200'
+                                                        : isMe
+                                                          ? 'bg-green-message text-white rounded-br-none shadow-md'
+                                                          : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
                                                 }`}
                                             >
-                                                {new Date(
-                                                    msg.timestamp,
-                                                ).toLocaleTimeString('vi-VN', {
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                })}
-                                                {isMe && (
-                                                    <span
-                                                        className={`ml-2 font-medium ${
-                                                            msg.uploadStatus ===
-                                                            'failed'
-                                                                ? 'text-rose-200'
-                                                                : msg.uploadStatus ===
-                                                                    'uploading'
-                                                                  ? 'text-amber-100'
-                                                                  : 'text-green-100'
+                                                {msg.isRecalled ? (
+                                                    <div className="rounded-2xl">
+                                                        <p className="italic text-gray-500">
+                                                            Tin nhắn đã được thu
+                                                            hồi
+                                                        </p>
+                                                    </div>
+                                                ) : msg.isFile &&
+                                                  msg.fileUrl ? (
+                                                    <a
+                                                        href={
+                                                            msg.fileUrl.startsWith(
+                                                                'http',
+                                                            )
+                                                                ? msg.fileUrl
+                                                                : `${SERVER_URL}${msg.fileUrl}`
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={`flex items-center gap-2 p-2 rounded-xl border ${
+                                                            isMe
+                                                                ? 'text-white border-white/30'
+                                                                : 'text-blue-500 hover:text-blue-600 border-slate-200'
                                                         }`}
                                                     >
-                                                        {getUploadStatusLabel(
-                                                            msg.uploadStatus,
+                                                        <span className="shrink-0">
+                                                            {renderFileIcon(
+                                                                msg.fileIcon,
+                                                            )}
+                                                        </span>
+                                                        <span className="truncate">
+                                                            {msg.fileName}
+                                                        </span>
+                                                    </a>
+                                                ) : (
+                                                    <p className="break-all whitespace-pre-wrap">
+                                                        {renderContentWithLinks(
+                                                            msg.content,
+                                                            isMe,
                                                         )}
-                                                    </span>
-                                                )}
-                                            </p>
-                                            {isMe &&
-                                                msg.uploadStatus === 'failed' &&
-                                                msg.errorMessage && (
-                                                    <p className="text-[11px] mt-1 text-rose-200 break-all">
-                                                        {msg.errorMessage}
                                                     </p>
                                                 )}
-                                        </div>
+
+                                                {/* Timestamp */}
+                                                <p
+                                                    className={`text-[11px] mt-1 ${
+                                                        isMe
+                                                            ? 'text-green-100'
+                                                            : 'text-slate-400'
+                                                    }`}
+                                                >
+                                                    {new Date(
+                                                        msg.timestamp,
+                                                    ).toLocaleTimeString(
+                                                        'vi-VN',
+                                                        {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        },
+                                                    )}
+                                                    {isMe && (
+                                                        <span
+                                                            className={`ml-2 font-medium ${
+                                                                msg.uploadStatus ===
+                                                                'failed'
+                                                                    ? 'text-rose-200'
+                                                                    : msg.uploadStatus ===
+                                                                        'uploading'
+                                                                      ? 'text-amber-100'
+                                                                      : 'text-green-100'
+                                                            }`}
+                                                        >
+                                                            {getUploadStatusLabel(
+                                                                msg.uploadStatus,
+                                                            )}
+                                                        </span>
+                                                    )}
+                                                    {isMe &&
+                                                        getSeenCount(msg) >
+                                                            0 && (
+                                                            <span className="ml-2 text-emerald-200 font-medium">
+                                                                Đã xem{' '}
+                                                                {getSeenCount(
+                                                                    msg,
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                </p>
+                                                {isMe &&
+                                                    msg.uploadStatus ===
+                                                        'failed' &&
+                                                    msg.errorMessage && (
+                                                        <p className="text-[11px] mt-1 text-rose-200 break-all">
+                                                            {msg.errorMessage}
+                                                        </p>
+                                                    )}
+                                            </div>
+                                        </>
                                     )}
 
                                     {/* Reactions display */}

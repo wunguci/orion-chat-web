@@ -16,6 +16,85 @@ const API_BASE_URL =
     import.meta.env.VITE_SOCKET_URL ||
     'http://localhost:3000';
 
+export type ConversationMediaItem = {
+    _id?: string;
+    messageId?: string;
+    clientMessageId?: string;
+    conversationId?: string;
+    senderBy?: string;
+    senderName?: string;
+    senderAvatar?: string;
+    content?: string;
+    messageType?: string;
+    mediaUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    fileExtension?: string;
+    fileCategory?: 'image' | 'video' | 'audio' | 'file';
+    fileIcon?:
+        | 'image'
+        | 'video'
+        | 'audio'
+        | 'file'
+        | 'file-pdf'
+        | 'file-word'
+        | 'file-excel'
+        | 'file-powerpoint'
+        | 'file-archive'
+        | 'file-text';
+    createdAt?: string;
+    updatedAt?: string;
+    isRevoked?: boolean;
+    deletedForUsers?: string[];
+};
+
+type UploadBatchResponseItem = {
+    mediaUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    messageType?: string;
+    fileExtension?: string;
+    fileCategory?: 'image' | 'video' | 'audio' | 'file';
+    fileIcon?:
+        | 'image'
+        | 'video'
+        | 'audio'
+        | 'file'
+        | 'file-pdf'
+        | 'file-word'
+        | 'file-excel'
+        | 'file-powerpoint'
+        | 'file-archive'
+        | 'file-text';
+};
+
+type SendFileResponse = {
+    messageId?: string;
+    clientMessageId?: string;
+    conversationId?: string;
+    createdAt?: string;
+    mediaUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    mimeType?: string;
+    messageType?: string;
+    fileExtension?: string;
+    fileCategory?: 'image' | 'video' | 'audio' | 'file';
+    fileIcon?:
+        | 'image'
+        | 'video'
+        | 'audio'
+        | 'file'
+        | 'file-pdf'
+        | 'file-word'
+        | 'file-excel'
+        | 'file-powerpoint'
+        | 'file-archive'
+        | 'file-text';
+};
+
 class ConversationApiService {
     private api: AxiosInstance;
     private readonly messagesBaseUrl = `${API_BASE_URL}/messages`;
@@ -76,12 +155,23 @@ class ConversationApiService {
         return response.data;
     }
 
-    async createConversation(data: {
-        type: 'GROUP' | 'PRIVATE';
-        participantIds?: string[];
-        groupName?: string;
-        groupAvatar?: string;
-    }) {
+    async createConversation(
+        data:
+            | {
+                  type: 'PRIVATE';
+                  recipientId: string;
+              }
+            | {
+                  type: 'GROUP';
+                  groupName: string;
+                  memberIds: string[];
+                  memberNicknames?: Array<{
+                      userId: string;
+                      nickname: string;
+                  }>;
+                  groupAvatar?: string;
+              },
+    ) {
         const response = await this.api.post('/', data);
         return response.data;
     }
@@ -120,6 +210,24 @@ class ConversationApiService {
                 },
             },
         );
+
+        return response.data;
+    }
+
+    async getConversationMedia(
+        conversationId: string,
+        cursor?: string,
+        limit = 30,
+    ) {
+        const response = await this.api.get<{
+            items: ConversationMediaItem[];
+            nextCursor: string | null;
+        }>(`/${conversationId}/media`, {
+            params: {
+                cursor,
+                limit,
+            },
+        });
 
         return response.data;
     }
@@ -459,34 +567,42 @@ class ConversationApiService {
         return {
             conversationId: String(data.conversationId || conversationId),
             items: Array.isArray(data.items)
-                ? data.items.map((item: any, index: number) => {
-                      const file = files[index];
-                      const fallback = buildClientMediaMetadata({
-                          fileName: file?.name,
-                          mimeType: file?.type,
-                          preferredMessageType: options?.messageType
-                              ? String(options.messageType)
-                              : undefined,
-                      });
+                ? (data.items as UploadBatchResponseItem[]).map(
+                      (item, index: number) => {
+                          const file = files[index];
+                          const fallback = buildClientMediaMetadata({
+                              fileName: file?.name,
+                              mimeType: file?.type,
+                              preferredMessageType: options?.messageType
+                                  ? String(options.messageType)
+                                  : undefined,
+                          });
 
-                      return {
-                          mediaUrl: String(item?.mediaUrl || ''),
-                          fileName: String(item?.fileName || file?.name || ''),
-                          fileSize: Number(item?.fileSize || file?.size || 0),
-                          mimeType: String(
-                              item?.mimeType || file?.type || fallback.mimeType,
-                          ),
-                          messageType: String(
-                              item?.messageType || fallback.messageType,
-                          ),
-                          fileExtension: String(
-                              item?.fileExtension || fallback.fileExtension,
-                          ),
-                          fileCategory:
-                              item?.fileCategory || fallback.fileCategory,
-                          fileIcon: item?.fileIcon || fallback.fileIcon,
-                      };
-                  })
+                          return {
+                              mediaUrl: String(item?.mediaUrl || ''),
+                              fileName: String(
+                                  item?.fileName || file?.name || '',
+                              ),
+                              fileSize: Number(
+                                  item?.fileSize || file?.size || 0,
+                              ),
+                              mimeType: String(
+                                  item?.mimeType ||
+                                      file?.type ||
+                                      fallback.mimeType,
+                              ),
+                              messageType: String(
+                                  item?.messageType || fallback.messageType,
+                              ),
+                              fileExtension: String(
+                                  item?.fileExtension || fallback.fileExtension,
+                              ),
+                              fileCategory:
+                                  item?.fileCategory || fallback.fileCategory,
+                              fileIcon: item?.fileIcon || fallback.fileIcon,
+                          };
+                      },
+                  )
                 : [],
         };
     }
@@ -539,7 +655,7 @@ class ConversationApiService {
     }): Promise<{
         conversationId: string;
         count: number;
-        items: any[];
+        items: SendFileResponse[];
         failedItems?: Array<{ index: number; error: string }>;
     }> {
         const formData = new FormData();
@@ -578,7 +694,7 @@ class ConversationApiService {
                 ),
             );
 
-            const items: any[] = [];
+            const items: SendFileResponse[] = [];
             const failedItems: Array<{ index: number; error: string }> = [];
             settled.forEach((result, index) => {
                 if (result.status === 'fulfilled') {

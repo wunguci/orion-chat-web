@@ -8,13 +8,12 @@ interface CreateConversationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: (conversation: ConversationView) => void;
-    currentUserId: string;
     availableUsers?: Array<{ id: string; name: string; avatar?: string }>;
 }
 
 export const CreateConversationModal: React.FC<
     CreateConversationModalProps
-> = ({ isOpen, onClose, onSuccess, currentUserId, availableUsers = [] }) => {
+> = ({ isOpen, onClose, onSuccess, availableUsers = [] }) => {
     const [conversationType, setConversationType] = useState<
         'PRIVATE' | 'GROUP'
     >('PRIVATE');
@@ -58,14 +57,26 @@ export const CreateConversationModal: React.FC<
             setLoading(true);
             setError(null);
 
-            const conversation = await conversationApi.createConversation(
-                {
-                    type: conversationType,
-                    participantIds: selectedUsers,
-                    groupName:
-                        conversationType === 'GROUP' ? groupName : undefined,
-                },
-            );
+            const conversation =
+                conversationType === 'PRIVATE'
+                    ? await conversationApi.createConversation({
+                          type: 'PRIVATE',
+                          recipientId: selectedUsers[0],
+                      })
+                    : await conversationApi.createConversation({
+                          type: 'GROUP',
+                          groupName: groupName.trim(),
+                          memberIds: selectedUsers,
+                          memberNicknames: selectedUsers.map((userId) => {
+                              const user = availableUsers.find(
+                                  (item) => item.id === userId,
+                              );
+                              return {
+                                  userId,
+                                  nickname: user?.name || 'Member',
+                              };
+                          }),
+                      });
 
             onSuccess?.(conversation);
             handleReset();

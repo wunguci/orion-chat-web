@@ -87,7 +87,7 @@ class SocketService {
             );
         });
 
-        this.callSocket.on('connect_error', (error) => {
+        this.callSocket.on('connect_error', () => {
             // console.error("[SocketService] Call socket connection error:", error);
             this.disconnectCall();
         });
@@ -129,7 +129,7 @@ class SocketService {
             );
         });
 
-        this.presenceSocket.on('connect_error', (error) => {
+        this.presenceSocket.on('connect_error', () => {
             // console.error("[SocketService] Presence socket connection error:", error);
         });
 
@@ -176,8 +176,93 @@ export default socketService;
 
 const CHAT_NAMESPACE_URL = `${SOCKET_BASE_URL}/chat`;
 
+type SocketAckSuccess<T> = {
+    ok: true;
+    requestId: string;
+    data: T;
+};
+
+type SocketAckError = {
+    ok: false;
+    requestId: string;
+    error: {
+        code: string;
+        message: string;
+        retriable: boolean;
+    };
+};
+
+type SocketAckResponse<T> = SocketAckSuccess<T> | SocketAckError;
+
+type ChatSendMessagePayload = {
+    requestId: string;
+    clientMessageId: string;
+    conversationId: string;
+    receiverId?: string;
+    type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
+    content: string;
+    mediaUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    replyToMessageId?: string;
+    forwardedFromMessageId?: string;
+    callData?: {
+        callType?: 'audio' | 'video';
+        callStatus?: 'completed' | 'missed' | 'declined';
+        duration?: number;
+        isInitiator?: boolean;
+        wasRejected?: boolean;
+    };
+};
+
+type ChatMessageSeenPayload = {
+    conversationId: string;
+    messageId: string;
+    userId: string;
+    seenAt: string;
+};
+
+type ChatMessageDeletedPayload = {
+    conversationId: string;
+    messageId: string;
+    deletedBy: string;
+    isDeleted: boolean;
+    at: string;
+};
+
+type ChatTypingPayload = {
+    conversationId: string;
+    userId: string;
+    isTyping: boolean;
+    at: string;
+};
+
+type ChatMessageReactionPayload = {
+    conversationId: string;
+    messageId: string;
+    reactions: Array<{
+        userId: string;
+        emoji: string;
+        reactedAt: string;
+    }>;
+    actedBy: string;
+    action: 'set' | 'remove';
+    emoji?: string;
+    at: string;
+};
+
+type ChatMessageRecalledPayload = {
+    conversationId: string;
+    messageId: string;
+    revokedBy: string;
+    revokedAt: string;
+    isDeleted: boolean;
+};
+
 class ChatSocketService {
     private chatSocket: Socket | null = null;
+    private joinedConversationIds = new Set<string>();
+    private listenersBound = false;
 
     /**
      * Kết nối socket chat sử dụng JWT token từ localStorage
@@ -215,10 +300,13 @@ class ChatSocketService {
             reconnectionAttempts: 5,
         });
 
+        this.bindLifecycleListeners();
+
         this.chatSocket.on('connect', () => {
             console.log(
                 `[ChatSocketService] ✅ Connected: ${this.chatSocket?.id}`,
             );
+            this.resubscribeJoinedRooms();
         });
 
         this.chatSocket.on('disconnect', (reason) => {
@@ -234,29 +322,32 @@ class ChatSocketService {
             }
         });
 
-        this.chatSocket.on('connect_error', (err: any) => {
-            console.error(
-                '[ChatSocketService] ❌ Connection error:',
-                err?.message || err,
-            );
-            console.error('[ChatSocketService] Error data:', err?.data);
-
-            // ✅ Handle 401 - redirect to login
-            if (
-                err?.message?.includes('Authentication') ||
-                err?.data?.message?.includes('Authentication')
-            ) {
+        this.chatSocket.on(
+            'connect_error',
+            (err: { message?: string; data?: { message?: string } }) => {
                 console.error(
-                    '[ChatSocketService] Auth failed - clearing token and redirecting',
+                    '[ChatSocketService] ❌ Connection error:',
+                    err?.message || err,
                 );
-                localStorage.removeItem('auth_token');
-                setTimeout(() => {
-                    window.location.href = '/login';
-                }, 1000);
-            }
-        });
+                console.error('[ChatSocketService] Error data:', err?.data);
 
-        this.chatSocket.on('error', (error: any) => {
+                // ✅ Handle 401 - redirect to login
+                if (
+                    err?.message?.includes('Authentication') ||
+                    err?.data?.message?.includes('Authentication')
+                ) {
+                    console.error(
+                        '[ChatSocketService] Auth failed - clearing token and redirecting',
+                    );
+                    localStorage.removeItem('auth_token');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1000);
+                }
+            },
+        );
+
+        this.chatSocket.on('error', (error: unknown) => {
             console.error('[ChatSocketService] ❌ Socket error:', error);
         });
 
@@ -267,6 +358,8 @@ class ChatSocketService {
         console.log('[ChatSocketService] Disconnecting');
         this.chatSocket?.disconnect();
         this.chatSocket = null;
+        this.joinedConversationIds.clear();
+        this.listenersBound = false;
     }
 
     getSocket(): Socket | null {
@@ -275,38 +368,97 @@ class ChatSocketService {
 
     // ===== Chat Event Emitters =====
 
-    joinConversation(requestId: string, conversationId: string) {
-        if (!this.chatSocket) return;
-        this.chatSocket.emit('chat:join_conversation', {
-            requestId,
-            conversationId,
+    private emitWithAck<T>(
+        event: string,
+        data: Record<string, unknown>,
+    ): Promise<SocketAckResponse<T>> {
+        return new Promise((resolve, reject) => {
+            if (!this.chatSocket) {
+                reject(new Error('Chat socket is not initialized'));
+                return;
+            }
+
+            this.chatSocket
+                .timeout(10000)
+                .emit(
+                    event,
+                    data,
+                    (error: Error | null, response: SocketAckResponse<T>) => {
+                        if (error) {
+                            reject(error);
+                            return;
+                        }
+
+                        resolve(response);
+                    },
+                );
         });
     }
 
-    sendMessage(data: {
-        requestId: string;
-        clientMessageId: string;
-        conversationId: string;
-        receiverId: string;
-        type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
-        content: string;
-        mediaUrl?: string;
-        fileName?: string;
-        fileSize?: number;
-        replyToMessageId?: string;
-        callData?: {
-            callType?: 'audio' | 'video';
-            callStatus?: 'completed' | 'missed' | 'declined';
-            duration?: number;
-            isInitiator?: boolean;
-            wasRejected?: boolean;
-        };
-    }) {
+    private bindLifecycleListeners() {
+        if (!this.chatSocket || this.listenersBound) {
+            return;
+        }
+
+        this.listenersBound = true;
+        this.chatSocket.on('reconnect', () => {
+            this.resubscribeJoinedRooms();
+        });
+    }
+
+    private resubscribeJoinedRooms() {
+        if (!this.chatSocket?.connected) return;
+
+        for (const conversationId of this.joinedConversationIds) {
+            this.chatSocket.emit('chat:join_conversation', {
+                requestId: `rejoin_${conversationId}_${Date.now()}`,
+                conversationId,
+            });
+        }
+    }
+
+    async joinConversation(requestId: string, conversationId: string) {
+        if (!this.chatSocket) return null;
+
+        const response = await this.emitWithAck<{ conversationId: string }>(
+            'chat:join_conversation',
+            {
+                requestId,
+                conversationId,
+            },
+        );
+
+        if (response.ok) {
+            this.joinedConversationIds.add(conversationId);
+        }
+
+        return response;
+    }
+
+    async leaveConversation(requestId: string, conversationId: string) {
+        if (!this.chatSocket) return null;
+
+        const response = await this.emitWithAck<{ conversationId: string }>(
+            'chat:leave_conversation',
+            {
+                requestId,
+                conversationId,
+            },
+        );
+
+        if (response.ok) {
+            this.joinedConversationIds.delete(conversationId);
+        }
+
+        return response;
+    }
+
+    async sendMessage(data: ChatSendMessagePayload) {
         if (!this.chatSocket) {
             console.error(
                 '[ChatSocketService] ❌ Socket not initialized! Call connect() first.',
             );
-            return;
+            throw new Error('Socket not initialized');
         }
 
         if (!this.chatSocket.connected) {
@@ -322,28 +474,38 @@ class ChatSocketService {
                 console.log('[ChatSocketService] Attempting to reconnect...');
                 this.chatSocket.connect();
             }
-            return;
+            throw new Error('Socket not connected');
         }
 
         console.log(
-            `[ChatSocketService] 📤 Sending message: clientId=${data.clientMessageId}, to=${data.receiverId}, conversationId=${data.conversationId}`,
+            `[ChatSocketService] 📤 Sending message: clientId=${data.clientMessageId}, conversationId=${data.conversationId}`,
         );
         console.log('[ChatSocketService] Message content:', data.content);
 
-        this.chatSocket.emit('chat:send_message', data);
+        const response = await this.emitWithAck<{
+            messageId: string;
+            clientMessageId: string;
+            timestamp: string;
+        }>('chat:send_message', data);
+
         console.log(
             '[ChatSocketService] ✅ Message emitted successfully via socket',
         );
+        return response;
     }
 
-    fetchMessages(data: {
+    async markMessageRead(data: {
         requestId: string;
         conversationId: string;
-        cursor?: string | null;
-        limit?: number;
+        messageId: string;
     }) {
-        if (!this.chatSocket) return;
-        this.chatSocket.emit('chat:fetch_messages', data);
+        if (!this.chatSocket) return null;
+
+        return this.emitWithAck<{
+            conversationId: string;
+            messageId: string;
+            seenAt: string;
+        }>('chat:message_read', data);
     }
 
     sendTyping(conversationId: string, isTyping: boolean) {
@@ -353,7 +515,7 @@ class ChatSocketService {
 
     // ===== Chat Event Listeners =====
 
-    onAck(cb: (ack: any) => void) {
+    onAck(cb: (ack: unknown) => void) {
         if (!this.chatSocket) return;
         this.chatSocket.on('chat:ack', cb);
     }
@@ -363,7 +525,7 @@ class ChatSocketService {
         this.chatSocket.off('chat:ack');
     }
 
-    onMessageNew(cb: (payload: any) => void) {
+    onMessageNew(cb: (payload: unknown) => void) {
         if (!this.chatSocket) {
             console.warn(
                 '[ChatSocketService] onMessageNew: Socket not initialized',
@@ -386,7 +548,7 @@ class ChatSocketService {
         this.chatSocket.off('chat:message_new');
     }
 
-    onTyping(cb: (payload: any) => void) {
+    onTyping(cb: (payload: ChatTypingPayload) => void) {
         if (!this.chatSocket) return;
         this.chatSocket.on('chat:typing', cb);
     }
@@ -397,19 +559,7 @@ class ChatSocketService {
     }
 
     onMessageReactionUpdated(
-        cb: (payload: {
-            conversationId: string;
-            messageId: string;
-            reactions: Array<{
-                userId: string;
-                emoji: string;
-                reactedAt: string;
-            }>;
-            actedBy: string;
-            action: 'set' | 'remove';
-            emoji?: string;
-            at: string;
-        }) => void,
+        cb: (payload: ChatMessageReactionPayload) => void,
     ) {
         if (!this.chatSocket) return;
         this.chatSocket.on('chat:message_reaction_updated', cb);
@@ -420,15 +570,7 @@ class ChatSocketService {
         this.chatSocket.off('chat:message_reaction_updated');
     }
 
-    onMessageRecalled(
-        cb: (payload: {
-            conversationId: string;
-            messageId: string;
-            revokedBy: string;
-            revokedAt: string;
-            isDeleted: boolean;
-        }) => void,
-    ) {
+    onMessageRecalled(cb: (payload: ChatMessageRecalledPayload) => void) {
         if (!this.chatSocket) return;
         this.chatSocket.on('chat:message_recalled', cb);
     }
@@ -436,6 +578,46 @@ class ChatSocketService {
     offMessageRecalled() {
         if (!this.chatSocket) return;
         this.chatSocket.off('chat:message_recalled');
+    }
+
+    onMessageDeleted(cb: (payload: ChatMessageDeletedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_deleted', cb);
+    }
+
+    offMessageDeleted() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_deleted');
+    }
+
+    onMessageSeen(cb: (payload: ChatMessageSeenPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_seen', cb);
+    }
+
+    offMessageSeen() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_seen');
+    }
+
+    onReconnect(cb: () => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('reconnect', cb);
+    }
+
+    offReconnect(cb: () => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('reconnect', cb);
+    }
+
+    fetchMessages(data: {
+        requestId: string;
+        conversationId: string;
+        cursor?: string | null;
+        limit?: number;
+    }) {
+        if (!this.chatSocket) return;
+        this.chatSocket.emit('chat:fetch_messages', data);
     }
 }
 
@@ -460,20 +642,21 @@ export const getSocket = (): Socket | null => {
 };
 
 export const joinConversation = (requestId: string, conversationId: string) => {
-    chatSocketService.joinConversation(requestId, conversationId);
+    return chatSocketService.joinConversation(requestId, conversationId);
 };
 
 export const sendMessage = (data: {
     requestId: string;
     clientMessageId: string;
     conversationId: string;
-    receiverId: string;
+    receiverId?: string;
     type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
     content: string;
     mediaUrl?: string;
     fileName?: string;
     fileSize?: number;
     replyToMessageId?: string;
+    forwardedFromMessageId?: string;
     callData?: {
         callType?: 'audio' | 'video';
         callStatus?: 'completed' | 'missed' | 'declined';
@@ -482,7 +665,14 @@ export const sendMessage = (data: {
         wasRejected?: boolean;
     };
 }) => {
-    chatSocketService.sendMessage(data);
+    return chatSocketService.sendMessage(data);
+};
+
+export const leaveConversation = (
+    requestId: string,
+    conversationId: string,
+) => {
+    return chatSocketService.leaveConversation(requestId, conversationId);
 };
 
 export const fetchMessages = (data: {
@@ -498,7 +688,15 @@ export const sendTyping = (conversationId: string, isTyping: boolean) => {
     chatSocketService.sendTyping(conversationId, isTyping);
 };
 
-export const onAck = (cb: (ack: any) => void) => {
+export const markMessageRead = (data: {
+    requestId: string;
+    conversationId: string;
+    messageId: string;
+}) => {
+    return chatSocketService.markMessageRead(data);
+};
+
+export const onAck = (cb: (ack: unknown) => void) => {
     chatSocketService.onAck(cb);
 };
 
@@ -506,7 +704,7 @@ export const offAck = () => {
     chatSocketService.offAck();
 };
 
-export const onMessageNew = (cb: (payload: any) => void) => {
+export const onMessageNew = (cb: (payload: unknown) => void) => {
     chatSocketService.onMessageNew(cb);
 };
 
@@ -514,7 +712,7 @@ export const offMessageNew = () => {
     chatSocketService.offMessageNew();
 };
 
-export const onTyping = (cb: (payload: any) => void) => {
+export const onTyping = (cb: (payload: unknown) => void) => {
     chatSocketService.onTyping(cb);
 };
 
@@ -554,4 +752,24 @@ export const onMessageRecalled = (
 
 export const offMessageRecalled = () => {
     chatSocketService.offMessageRecalled();
+};
+
+export const onMessageDeleted = (
+    cb: (payload: ChatMessageDeletedPayload) => void,
+) => {
+    chatSocketService.onMessageDeleted(cb);
+};
+
+export const offMessageDeleted = () => {
+    chatSocketService.offMessageDeleted();
+};
+
+export const onMessageSeen = (
+    cb: (payload: ChatMessageSeenPayload) => void,
+) => {
+    chatSocketService.onMessageSeen(cb);
+};
+
+export const offMessageSeen = () => {
+    chatSocketService.offMessageSeen();
 };

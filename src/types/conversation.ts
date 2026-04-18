@@ -103,6 +103,7 @@ export interface GroupInfo {
 export interface ParticipantInfo {
     userId: string;
     fullName: string | null;
+    nickname?: string | null;
     avatarUrl: string | null;
     role: ParticipantRole;
     joinedAt: Date | string;

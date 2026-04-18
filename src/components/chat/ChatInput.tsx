@@ -64,6 +64,7 @@ export const ChatInput: React.FC<{
     onSend?: (text: string) => void;
     onSendFile?: (file: File) => Promise<void>;
     onSendFiles?: (files: File[]) => Promise<void>;
+    onTypingChange?: (isTyping: boolean) => void;
     isBlocked?: boolean;
     canUnblock?: boolean;
     onUnblock?: () => void;
@@ -71,6 +72,7 @@ export const ChatInput: React.FC<{
     onSend,
     onSendFile,
     onSendFiles,
+    onTypingChange,
     isBlocked,
     canUnblock,
     onUnblock,
@@ -80,6 +82,7 @@ export const ChatInput: React.FC<{
     const [attachments, setAttachments] = useState<AttachFile[]>([]);
     const [text, setText] = useState('');
     const [validationError, setValidationError] = useState<string | null>(null);
+    const typingTimeoutRef = useRef<number | null>(null);
 
     const inputRefs = useRef<Record<MediaType, HTMLInputElement | null>>({
         image: null,
@@ -107,6 +110,29 @@ export const ChatInput: React.FC<{
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    useEffect(() => {
+        if (!onTypingChange) return;
+
+        if (typingTimeoutRef.current) {
+            window.clearTimeout(typingTimeoutRef.current);
+        }
+
+        if (text.trim()) {
+            onTypingChange(true);
+            typingTimeoutRef.current = window.setTimeout(() => {
+                onTypingChange(false);
+            }, 1500);
+        } else {
+            onTypingChange(false);
+        }
+
+        return () => {
+            if (typingTimeoutRef.current) {
+                window.clearTimeout(typingTimeoutRef.current);
+            }
+        };
+    }, [onTypingChange, text]);
 
     const handleFiles = (files: FileList | null) => {
         if (!files) return;
@@ -182,6 +208,7 @@ export const ChatInput: React.FC<{
         setAttachments([]);
         setText('');
         setValidationError(null);
+        onTypingChange?.(false);
     };
 
     const triggerPicker = (type: MediaType) => {
@@ -367,6 +394,7 @@ export const ChatInput: React.FC<{
                         <input
                             value={text}
                             onChange={(e) => setText(e.target.value)}
+                            onBlur={() => onTypingChange?.(false)}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();

@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, {
+    useEffect,
+    useState,
+    useRef,
+    useCallback,
+    useMemo,
+} from 'react';
 import { useLocation } from 'react-router-dom';
 import ChatSidebarWithConversationService from '../../components/chat/ChatSidebarWithConversationService';
 import ChatHeader from '../../components/chat/ChatHeader';
@@ -11,7 +17,6 @@ import { SearchModal } from '../../components/chat/SearchModal';
 import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
 import {
-    joinConversation,
     sendMessage,
     offMessageNew,
     onMessageNew,
@@ -19,14 +24,19 @@ import {
     onMessageRecalled,
     offMessageReactionUpdated,
     offMessageRecalled,
-    disconnectSocket,
-    chatSocketService,
+    onTyping,
+    offTyping,
+    onMessageDeleted,
+    offMessageDeleted,
+    onMessageSeen,
+    offMessageSeen,
 } from '../../services/socket';
 import {
     useConversations,
     useConversationDetail,
     useConversationMessages,
 } from '../../hooks/useConversation';
+import { useChatRoom } from '../../hooks/useChatRoom';
 import { conversationApi } from '../../services/conversationApi';
 import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 import { debugAuthStatus, getUser } from '../../utils/token';
@@ -145,10 +155,12 @@ export const ChatPage: React.FC = () => {
     >({});
     const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
+    const [typingUserNames, setTypingUserNames] = useState<string[]>([]);
     const messageListenerRef = useRef<
         ((msg: ChatSocketMessage) => void) | null
     >(null);
     const pendingMediaHydrationRef = useRef<Set<string>>(new Set());
+    const lastReadMessageIdRef = useRef<string | null>(null);
 
     // Fetch all conversations (for sidebar + forward modal)
     const {
@@ -172,6 +184,17 @@ export const ChatPage: React.FC = () => {
         selectedConversationId || '',
         30,
     );
+
+    const {
+        emitTyping,
+        emitRead,
+        sendMessage: sendChatMessage,
+        joinStatus,
+    } = useChatRoom({
+        conversationId: selectedConversationId,
+        enabled: true,
+        onJoinError: setError,
+    });
 
     const getReceiverId = useCallback(() => {
         if (!selectedConversation) return '';
@@ -263,19 +286,6 @@ export const ChatPage: React.FC = () => {
             return () => clearTimeout(timer);
         }
     }, [location.state?.selectedConversationId, refreshConversations]);
-
-    const getReceiverIdByConversationId = useCallback(
-        (conversationId: string) => {
-            const conversation = conversations.find(
-                (item) => item.conversationId === conversationId,
-            );
-            const otherParticipant = conversation?.participants?.find(
-                (p) => p.userId !== USER_ID,
-            );
-            return otherParticipant?.userId || '';
-        },
-        [conversations, USER_ID],
-    );
 
     // Handle unblock user - chỉ người chặn mới có thể mở chặn
     const handleUnblockUser = async () => {
@@ -463,198 +473,269 @@ export const ChatPage: React.FC = () => {
         [toSocketMessage],
     );
 
-    // Initialize socket connection
+    // Initialize socket listeners once; room lifecycle is handled by useChatRoom.
     useEffect(() => {
-        const initializeSocket = async () => {
-            try {
-                setIsConnecting(true);
+        debugAuthStatus();
+        setIsConnecting(false);
 
-                // ✅ Debug: Check authentication status
-                debugAuthStatus();
+        const messageHandler = (payload: IncomingSocketPayload) => {
+            const rawPayload = payload?.message || payload?.data || payload;
+            const msg = toSocketMessage(rawPayload);
 
-                // ✅ Connect using JWT token from localStorage (no userId parameter needed)
-                chatSocketService.connect();
+            const hasVisibleContent =
+                msg.isRecalled ||
+                msg.content.trim().length > 0 ||
+                (msg.isFile && !!msg.fileUrl) ||
+                (msg.type === 'call' && !!msg.callData);
 
-                const messageHandler = (payload: IncomingSocketPayload) => {
-                    const rawPayload =
-                        payload?.message || payload?.data || payload;
-                    const msg = toSocketMessage(rawPayload);
-
-                    const hasVisibleContent =
-                        msg.isRecalled ||
-                        msg.content.trim().length > 0 ||
-                        (msg.isFile && !!msg.fileUrl) ||
-                        (msg.type === 'call' && !!msg.callData);
-
-                    if (!hasVisibleContent || !msg.conversationId) {
-                        console.warn(
-                            '[ChatPage] Message filtered out - no visible content or conversationId',
-                        );
-                        return;
-                    }
-
-                    setSocketMessages((prev) => {
-                        const existingIndex = prev.findIndex(
-                            (p) =>
-                                (!!msg.clientMessageId &&
-                                    p.clientMessageId ===
-                                        msg.clientMessageId) ||
-                                p.id === msg.id,
-                        );
-
-                        if (existingIndex >= 0) {
-                            const next = [...prev];
-                            const current = next[existingIndex];
-                            next[existingIndex] = {
-                                ...current,
-                                ...msg,
-                                isFile: msg.isFile || current.isFile,
-                                fileUrl: msg.fileUrl || current.fileUrl,
-                                fileName: msg.fileName || current.fileName,
-                                fileType: msg.fileType || current.fileType,
-                                type: msg.type || current.type,
-                            };
-                            return next;
-                        }
-
-                        return [...prev, msg];
-                    });
-
-                    if (msg.isFile && !msg.fileUrl) {
-                        void hydrateMediaMessage(msg);
-                    }
-
-                    // Cap nhat lastMessage local de sidebar render realtime, khong can cho refresh API.
-                    if (msg.conversationId) {
-                        const normalizedType = (
-                            msg.type || (msg.isFile ? 'file' : 'text')
-                        ).toUpperCase();
-
-                        updateConversationLastMessage(msg.conversationId, {
-                            messageId: msg.id,
-                            clientMessageId: msg.clientMessageId,
-                            content: msg.content,
-                            messageType: normalizedType as
-                                | 'TEXT'
-                                | 'IMAGE'
-                                | 'FILE'
-                                | 'VIDEO'
-                                | 'AUDIO',
-                            senderBy: msg.senderId,
-                            createdAt: msg.timestamp,
-                            isRecalled: !!msg.isRecalled,
-                        });
-                    }
-                };
-
-                const reactionHandler = (payload: {
-                    conversationId: string;
-                    messageId: string;
-                    reactions: Array<{
-                        userId: string;
-                        emoji: string;
-                        reactedAt: string;
-                    }>;
-                    actedBy: string;
-                    action: 'set' | 'remove';
-                    emoji?: string;
-                    at: string;
-                }) => {
-                    if (payload.conversationId !== selectedConversationId)
-                        return;
-
-                    setSocketMessages((prev) =>
-                        prev.map((msg) =>
-                            msg.id === payload.messageId
-                                ? {
-                                      ...msg,
-                                      reactions: payload.reactions,
-                                  }
-                                : msg,
-                        ),
-                    );
-
-                    setReactionOverrides((prev) => ({
-                        ...prev,
-                        [payload.messageId]: payload.reactions,
-                    }));
-                };
-
-                const recallHandler = (payload: {
-                    conversationId: string;
-                    messageId: string;
-                    revokedBy: string;
-                    revokedAt: string;
-                    isRevoked?: boolean;
-                }) => {
-                    // Cap nhat preview cua sidebar cho moi conversation ngay khi nhan event recall.
-                    markConversationLastMessageRecalled(
-                        payload.conversationId,
-                        payload.messageId,
-                    );
-
-                    if (payload.conversationId !== selectedConversationId)
-                        return;
-
-                    markMessageAsRecalled(payload.messageId);
-
-                    setSocketMessages((prev) => {
-                        let found = false;
-                        const updated = prev.map((msg) => {
-                            if (msg.id === payload.messageId) {
-                                found = true;
-                                return {
-                                    ...msg,
-                                    isRecalled: true,
-                                    content: msg.content, // ✅ Keep original content in memory
-                                    // But UI will not display it when isRecalled=true
-                                };
-                            }
-                            return msg;
-                        });
-
-                        // ✅ If message not found in socketMessages (from paginatedMessages),
-                        // add it to socketMessages so displayMessages will show it as recalled
-                        if (!found) {
-                            updated.push({
-                                id: payload.messageId,
-                                senderId: payload.revokedBy,
-                                senderName: 'Unknown',
-                                content: '',
-                                isRecalled: true,
-                                timestamp: new Date(
-                                    payload.revokedAt,
-                                ).toISOString(),
-                                conversationId: payload.conversationId,
-                            });
-                        }
-
-                        return updated;
-                    });
-                };
-
-                messageListenerRef.current = messageHandler;
-
-                onMessageNew(messageHandler);
-
-                onMessageReactionUpdated(reactionHandler);
-
-                onMessageRecalled(recallHandler);
-
-                setError(null);
-            } catch (err) {
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : 'Failed to connect to chat',
+            if (!hasVisibleContent || !msg.conversationId) {
+                console.warn(
+                    '[ChatPage] Message filtered out - no visible content or conversationId',
                 );
-                console.error('Socket connection error:', err);
-            } finally {
-                setIsConnecting(false);
+                return;
+            }
+
+            setSocketMessages((prev) => {
+                const existingIndex = prev.findIndex(
+                    (p) =>
+                        (!!msg.clientMessageId &&
+                            p.clientMessageId === msg.clientMessageId) ||
+                        p.id === msg.id,
+                );
+
+                if (existingIndex >= 0) {
+                    const next = [...prev];
+                    const current = next[existingIndex];
+                    next[existingIndex] = {
+                        ...current,
+                        ...msg,
+                        isFile: msg.isFile || current.isFile,
+                        fileUrl: msg.fileUrl || current.fileUrl,
+                        fileName: msg.fileName || current.fileName,
+                        fileType: msg.fileType || current.fileType,
+                        type: msg.type || current.type,
+                    };
+                    return next;
+                }
+
+                return [...prev, msg];
+            });
+
+            if (msg.isFile && !msg.fileUrl) {
+                void hydrateMediaMessage(msg);
+            }
+
+            if (msg.conversationId) {
+                const normalizedType = (
+                    msg.type || (msg.isFile ? 'file' : 'text')
+                ).toUpperCase();
+
+                updateConversationLastMessage(msg.conversationId, {
+                    messageId: msg.id,
+                    clientMessageId: msg.clientMessageId,
+                    content: msg.content,
+                    messageType: normalizedType as
+                        | 'TEXT'
+                        | 'IMAGE'
+                        | 'FILE'
+                        | 'VIDEO'
+                        | 'AUDIO',
+                    senderBy: msg.senderId,
+                    createdAt: msg.timestamp,
+                    isRecalled: !!msg.isRecalled,
+                });
             }
         };
 
-        initializeSocket();
+        const reactionHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            reactions: Array<{
+                userId: string;
+                emoji: string;
+                reactedAt: string;
+            }>;
+            actedBy: string;
+            action: 'set' | 'remove';
+            emoji?: string;
+            at: string;
+        }) => {
+            if (payload.conversationId !== selectedConversationId) return;
+
+            setSocketMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === payload.messageId ||
+                    msg.clientMessageId === payload.messageId
+                        ? {
+                              ...msg,
+                              reactions: payload.reactions,
+                          }
+                        : msg,
+                ),
+            );
+
+            setReactionOverrides((prev) => ({
+                ...prev,
+                [payload.messageId]: payload.reactions,
+            }));
+        };
+
+        const recallHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            revokedBy: string;
+            revokedAt: string;
+            isRevoked?: boolean;
+        }) => {
+            markConversationLastMessageRecalled(
+                payload.conversationId,
+                payload.messageId,
+            );
+
+            if (payload.conversationId !== selectedConversationId) return;
+
+            markMessageAsRecalled(payload.messageId);
+
+            setSocketMessages((prev) => {
+                let found = false;
+                const updated = prev.map((msg) => {
+                    if (
+                        msg.id === payload.messageId ||
+                        msg.clientMessageId === payload.messageId
+                    ) {
+                        found = true;
+                        return {
+                            ...msg,
+                            isRecalled: true,
+                        };
+                    }
+                    return msg;
+                });
+
+                if (!found) {
+                    updated.push({
+                        id: payload.messageId,
+                        senderId: payload.revokedBy,
+                        senderName: 'Unknown',
+                        content: '',
+                        isRecalled: true,
+                        timestamp: new Date(payload.revokedAt).toISOString(),
+                        conversationId: payload.conversationId,
+                        type: 'text',
+                    });
+                }
+
+                return updated;
+            });
+        };
+
+        const deletedHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            deletedBy: string;
+            isDeleted: boolean;
+            at: string;
+        }) => {
+            if (payload.deletedBy !== USER_ID) return;
+
+            if (payload.conversationId === selectedConversationId) {
+                setHiddenMessageKeys((prev) => {
+                    const next = new Set(prev);
+                    next.add(payload.messageId);
+                    return next;
+                });
+            }
+
+            setSocketMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === payload.messageId ||
+                    msg.clientMessageId === payload.messageId
+                        ? {
+                              ...msg,
+                              deletedForUsers: Array.from(
+                                  new Set([
+                                      ...(msg.deletedForUsers || []),
+                                      USER_ID,
+                                  ]),
+                              ),
+                          }
+                        : msg,
+                ),
+            );
+        };
+
+        const seenHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            userId: string;
+            seenAt: string;
+        }) => {
+            if (payload.conversationId !== selectedConversationId) return;
+
+            setSocketMessages((prev) =>
+                prev.map((msg) => {
+                    if (
+                        msg.id !== payload.messageId &&
+                        msg.clientMessageId !== payload.messageId
+                    ) {
+                        return msg;
+                    }
+
+                    const currentSeenBy = Array.isArray(msg.seenBy)
+                        ? msg.seenBy
+                        : [];
+
+                    const nextSeenBy = currentSeenBy.filter(
+                        (item) => item !== payload.userId,
+                    );
+
+                    nextSeenBy.push(payload.userId);
+
+                    return {
+                        ...msg,
+                        seenBy: nextSeenBy,
+                        messageStatus:
+                            msg.senderId === USER_ID
+                                ? 'READ'
+                                : msg.messageStatus,
+                    };
+                }),
+            );
+        };
+
+        messageListenerRef.current = messageHandler;
+        onMessageNew((payload) =>
+            messageHandler(payload as IncomingSocketPayload),
+        );
+        onMessageReactionUpdated(reactionHandler);
+        onMessageRecalled(recallHandler);
+        onMessageDeleted(deletedHandler);
+        onMessageSeen(seenHandler);
+        onTyping((payload) => {
+            const typingPayload = payload as {
+                conversationId: string;
+                userId: string;
+                isTyping: boolean;
+                at: string;
+            };
+
+            if (typingPayload.conversationId !== selectedConversationId) return;
+            if (typingPayload.userId === USER_ID) return;
+
+            const participantName =
+                selectedConversation?.participants?.find(
+                    (participant) =>
+                        participant.userId === typingPayload.userId,
+                )?.fullName || typingPayload.userId;
+
+            setTypingUserNames((prev) => {
+                const next = prev.filter((name) => name !== participantName);
+                if (typingPayload.isTyping) {
+                    next.push(participantName);
+                }
+                return next;
+            });
+        });
 
         return () => {
             if (messageListenerRef.current) {
@@ -662,7 +743,9 @@ export const ChatPage: React.FC = () => {
             }
             offMessageReactionUpdated();
             offMessageRecalled();
-            disconnectSocket();
+            offMessageDeleted();
+            offMessageSeen();
+            offTyping();
         };
     }, [
         toSocketMessage,
@@ -671,6 +754,8 @@ export const ChatPage: React.FC = () => {
         markMessageAsRecalled,
         markConversationLastMessageRecalled,
         updateConversationLastMessage,
+        USER_ID,
+        selectedConversation?.participants,
     ]);
 
     // Handle conversation selection
@@ -680,11 +765,6 @@ export const ChatPage: React.FC = () => {
         setIsSearchOpen(false);
         setIsInfoPanelOpen(true);
     }, []);
-
-    useEffect(() => {
-        if (!selectedConversationId) return;
-        joinConversation(`join_${Date.now()}`, selectedConversationId);
-    }, [selectedConversationId]);
 
     useEffect(() => {
         // Reset state thu hoi theo tung conversation de tranh anh huong cheo.
@@ -792,6 +872,13 @@ export const ChatPage: React.FC = () => {
 
     const executeRecallMessage = useCallback(
         async (message: SocketMessage) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền thu hồi tin nhắn trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
             if (!selectedConversationId || message.senderId !== USER_ID) return;
 
             recallLocalMessage(message);
@@ -812,11 +899,18 @@ export const ChatPage: React.FC = () => {
                 );
             }
         },
-        [selectedConversationId, recallLocalMessage, USER_ID],
+        [joinStatus, selectedConversationId, recallLocalMessage, USER_ID],
     );
 
     const executeDeleteMessage = useCallback(
         async (message: SocketMessage) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền xóa tin nhắn trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
             const messageKey = getMessageKey(message);
             setHiddenMessageKeys((prev) => {
                 const next = new Set(prev);
@@ -847,7 +941,7 @@ export const ChatPage: React.FC = () => {
                 );
             }
         },
-        [getMessageKey, selectedConversationId],
+        [joinStatus, getMessageKey, selectedConversationId],
     );
 
     const handleRequestRecallMessage = useCallback((message: SocketMessage) => {
@@ -1016,6 +1110,13 @@ export const ChatPage: React.FC = () => {
 
     const handleReactMessage = useCallback(
         async (message: SocketMessage, emoji: string) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền thao tác trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
             if (!selectedConversationId || message.id.startsWith('msg_'))
                 return;
 
@@ -1078,7 +1179,13 @@ export const ChatPage: React.FC = () => {
                 console.error('Error reacting:', err);
             }
         },
-        [getMessageKey, reactionOverrides, selectedConversationId, USER_ID],
+        [
+            getMessageKey,
+            joinStatus,
+            reactionOverrides,
+            selectedConversationId,
+            USER_ID,
+        ],
     );
 
     const handleOpenForwardModal = useCallback((message: SocketMessage) => {
@@ -1088,15 +1195,12 @@ export const ChatPage: React.FC = () => {
     }, []);
 
     const handleForwardMessage = useCallback(async () => {
-        if (!forwardingMessage || !forwardTargetConversationId) return;
-
-        const receiverId = getReceiverIdByConversationId(
-            forwardTargetConversationId,
-        );
-        if (!receiverId) {
-            setError('Không tìm thấy người nhận cho cuộc trò chuyện này.');
+        if (joinStatus === 'error') {
+            setError('Bạn không có quyền thao tác trong cuộc trò chuyện này.');
             return;
         }
+
+        if (!forwardingMessage || !forwardTargetConversationId) return;
 
         if (forwardingMessage.fileUrl?.startsWith('blob:')) {
             setError('Không thể chuyển tiếp tệp khi chưa upload xong.');
@@ -1132,19 +1236,25 @@ export const ChatPage: React.FC = () => {
         } finally {
             setIsForwarding(false);
         }
-    }, [
-        forwardingMessage,
-        forwardTargetConversationId,
-        getReceiverIdByConversationId,
-    ]);
+    }, [forwardingMessage, forwardTargetConversationId, joinStatus]);
 
     // Handle sending message
     const handleSend = useCallback(
         async (text: string) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
             if (!text.trim() || !selectedConversationId) return;
 
             try {
                 const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const now = new Date().toISOString();
+                const isGroupConversation =
+                    selectedConversation?.type === 'GROUP';
 
                 setSocketMessages((prev) => [
                     ...prev,
@@ -1154,31 +1264,29 @@ export const ChatPage: React.FC = () => {
                         senderId: USER_ID,
                         senderName: USERNAME,
                         content: text,
-                        timestamp: new Date().toISOString(),
+                        timestamp: now,
                         conversationId: selectedConversationId,
                         type: 'text',
+                        uploadStatus: 'sent',
                     },
                 ]);
 
-                // Send via socket
-                const receiverId = getReceiverId();
+                const receiverId = isGroupConversation
+                    ? undefined
+                    : getReceiverId();
 
-                if (!receiverId) {
-                    console.error(
-                        '[ChatPage] Cannot send message: receiverId is empty',
-                    );
-                    setError('Cannot determine receiver. Please try again.');
-                    return;
-                }
-
-                sendMessage({
+                const ack = await sendChatMessage({
                     requestId: `req_${Date.now()}`,
                     clientMessageId,
-                    receiverId: receiverId,
+                    receiverId,
                     type: 'text',
                     content: text,
                     conversationId: selectedConversationId,
                 });
+
+                if (ack?.ok === false) {
+                    throw new Error(ack.error.message);
+                }
             } catch (err) {
                 console.error('Error sending message:', err);
                 setError(
@@ -1186,18 +1294,51 @@ export const ChatPage: React.FC = () => {
                         ? err.message
                         : 'Failed to send message',
                 );
+
+                setSocketMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.content === text && msg.senderId === USER_ID
+                            ? {
+                                  ...msg,
+                                  uploadStatus: 'failed',
+                                  errorMessage:
+                                      err instanceof Error
+                                          ? err.message
+                                          : 'Failed to send message',
+                              }
+                            : msg,
+                    ),
+                );
             }
         },
-        [selectedConversationId, getReceiverId, USER_ID, USERNAME],
+        [
+            joinStatus,
+            selectedConversation,
+            selectedConversationId,
+            getReceiverId,
+            sendChatMessage,
+            USER_ID,
+            USERNAME,
+        ],
     );
 
     // Handle sending file
     const handleSendFile = useCallback(
         async (file: File) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền gửi tệp trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
             if (!selectedConversationId) return;
 
             try {
                 const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const now = new Date().toISOString();
+                const isGroupConversation =
+                    selectedConversation?.type === 'GROUP';
 
                 // Determine file type
                 const fileType = file.type;
@@ -1221,13 +1362,14 @@ export const ChatPage: React.FC = () => {
                         senderId: USER_ID,
                         senderName: USERNAME,
                         content: file.name,
-                        timestamp: new Date().toISOString(),
+                        timestamp: now,
                         conversationId: selectedConversationId,
                         type: messageType,
                         isFile: true,
                         fileName: file.name,
                         fileUrl: tempFileUrl, // Use blob URL for immediate display
                         fileType: fileType,
+                        uploadStatus: 'uploading',
                     },
                 ]);
 
@@ -1251,6 +1393,7 @@ export const ChatPage: React.FC = () => {
                                       ...msg,
                                       fileUrl: serverFileUrl,
                                       fileType: uploadedFileType,
+                                      uploadStatus: 'sent',
                                   }
                                 : msg,
                         ),
@@ -1266,10 +1409,12 @@ export const ChatPage: React.FC = () => {
                 }
 
                 // Send message via socket with file URL
-                sendMessage({
+                const ack = await sendChatMessage({
                     requestId: `req_${Date.now()}`,
                     clientMessageId,
-                    receiverId: getReceiverId(),
+                    receiverId: isGroupConversation
+                        ? undefined
+                        : getReceiverId(),
                     type: messageType as 'image' | 'video' | 'file',
                     content: file.name,
                     mediaUrl: serverFileUrl,
@@ -1277,14 +1422,41 @@ export const ChatPage: React.FC = () => {
                     fileSize: file.size,
                     conversationId: selectedConversationId,
                 });
+
+                if (ack?.ok === false) {
+                    throw new Error(ack.error.message);
+                }
             } catch (err) {
                 console.error('Error sending file:', err);
                 setError(
                     err instanceof Error ? err.message : 'Failed to send file',
                 );
+
+                setSocketMessages((prev) =>
+                    prev.map((msg) =>
+                        msg.senderId === USER_ID && msg.content === file.name
+                            ? {
+                                  ...msg,
+                                  uploadStatus: 'failed',
+                                  errorMessage:
+                                      err instanceof Error
+                                          ? err.message
+                                          : 'Failed to send file',
+                              }
+                            : msg,
+                    ),
+                );
             }
         },
-        [selectedConversationId, getReceiverId, USER_ID, USERNAME],
+        [
+            joinStatus,
+            selectedConversation,
+            selectedConversationId,
+            getReceiverId,
+            sendChatMessage,
+            USER_ID,
+            USERNAME,
+        ],
     );
 
     // Kết hợp các thông báo phân trang và thông báo socket
@@ -1520,9 +1692,30 @@ export const ChatPage: React.FC = () => {
             senderName: resolveSenderName(msg.senderName, msg.senderId),
         }));
 
+    const latestUnreadMessageId = useMemo(() => {
+        const latestIncoming = [...displayMessages]
+            .reverse()
+            .find(
+                (msg) =>
+                    msg.conversationId === selectedConversationId &&
+                    msg.senderId !== USER_ID &&
+                    !msg.isRecalled &&
+                    !msg.isDeleted,
+            );
+
+        return latestIncoming?.id || latestIncoming?.clientMessageId || null;
+    }, [displayMessages, selectedConversationId, USER_ID]);
+
+    useEffect(() => {
+        if (!selectedConversationId || !latestUnreadMessageId) return;
+        if (lastReadMessageIdRef.current === latestUnreadMessageId) return;
+
+        lastReadMessageIdRef.current = latestUnreadMessageId;
+        void emitRead(latestUnreadMessageId);
+    }, [emitRead, latestUnreadMessageId, selectedConversationId]);
+
     const forwardableConversations = conversations.filter(
         (conversation) =>
-            conversation.type === 'PRIVATE' &&
             conversation.conversationId !== selectedConversationId,
     );
 
@@ -1589,9 +1782,11 @@ export const ChatPage: React.FC = () => {
                                     : otherParticipant?.avatarUrl || undefined
                             }
                             subtitle={
-                                selectedConversation.type === 'GROUP'
-                                    ? 'Group conversation'
-                                    : 'Online'
+                                typingUserNames.length > 0
+                                    ? `${typingUserNames.join(', ')} đang nhập...`
+                                    : selectedConversation.type === 'GROUP'
+                                      ? 'Group conversation'
+                                      : 'Online'
                             }
                             isBlocked={iAmBlocked || iAmTheBlocker}
                             disableCallButtons={disableCallButtons}
@@ -1624,6 +1819,7 @@ export const ChatPage: React.FC = () => {
                         <ChatInput
                             onSend={handleSend}
                             onSendFile={handleSendFile}
+                            onTypingChange={emitTyping}
                             isBlocked={iAmBlocked || iAmTheBlocker}
                             canUnblock={iAmTheBlocker}
                             onUnblock={handleUnblockUser}
@@ -1695,6 +1891,14 @@ export const ChatPage: React.FC = () => {
                     }}
                     onForwardMessage={handleOpenForwardModal}
                     onPinStatusChange={refreshConversations}
+                    onConversationCreated={async (conversation) => {
+                        if (conversation?.conversationId) {
+                            setSelectedConversationId(
+                                conversation.conversationId,
+                            );
+                        }
+                        await refreshConversations();
+                    }}
                 />
             ) : null}
 
