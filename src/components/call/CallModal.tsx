@@ -20,6 +20,7 @@ export const CallModal: React.FC = () => {
   } = useCall();
 
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
 
   // Hàm play video an toàn - xử lý autoplay bị block
   const safePlay = useCallback(async (video: HTMLVideoElement) => {
@@ -39,16 +40,6 @@ export const CallModal: React.FC = () => {
     }
   }, []);
 
-  // Dùng ref callback cho local video - tự động gán srcObject mỗi khi element mount
-  const localVideoRefCallback = useCallback(
-    (videoEl: HTMLVideoElement | null) => {
-      if (videoEl && localStream) {
-        videoEl.srcObject = localStream;
-      }
-    },
-    [localStream],
-  );
-
   // gắn luồng remote vào video element
   useEffect(() => {
     const videoEl = remoteVideoRef.current;
@@ -57,6 +48,22 @@ export const CallModal: React.FC = () => {
       safePlay(videoEl);
     }
   }, [remoteStream, safePlay]);
+
+  // gắn local stream vào preview và đảm bảo video phát được
+  useEffect(() => {
+    const videoEl = localVideoRef.current;
+    if (!videoEl) {
+      return;
+    }
+
+    if (!localStream) {
+      videoEl.srcObject = null;
+      return;
+    }
+
+    videoEl.srcObject = localStream;
+    void safePlay(videoEl);
+  }, [localStream, safePlay]);
 
   // không hiển thị modal nếu idle
   if (status === "idle") return null;
@@ -94,7 +101,7 @@ export const CallModal: React.FC = () => {
           <div className="absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden shadow-lg">
             {isVideoEnabled ? (
               <video
-                ref={localVideoRefCallback}
+                ref={localVideoRef}
                 autoPlay
                 playsInline
                 muted

@@ -72,6 +72,9 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   const currentOtherUserIdRef = useRef<string | null>(null);
   const incomingCallRef = useRef<IncomingCallData | null>(null);
   const acceptedCallIdRef = useRef<string | null>(null);
+  const failedStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const callSocketRef = useRef<Socket | null>(null);
 
@@ -122,17 +125,31 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       }
     },
     onConnectionStateChange: (state) => {
-      if (state === "failed") {
-        // Chỉ set failed khi thực sự "failed", không set khi "disconnected"
-        // ICE restart trong useWebRTC sẽ tự xử lý
-        setCallState((prev) => ({
-          ...prev,
-          error: "Connection failed",
-          status: "failed",
-        }));
+      if (failedStateTimerRef.current) {
+        clearTimeout(failedStateTimerRef.current);
+        failedStateTimerRef.current = null;
       }
-      // "disconnected" chỉ là tạm thời, WebRTC có thể tự recover
-      // useWebRTC sẽ tự ICE restart nếu vẫn disconnected sau 3s
+
+      if (state === "connected") {
+        return;
+      }
+
+      if (state === "failed" || state === "disconnected") {
+        failedStateTimerRef.current = setTimeout(() => {
+          setCallState((prev) => {
+            if (prev.status === "connected" || prev.remoteStream) {
+              return prev;
+            }
+
+            return {
+              ...prev,
+              error: "Connection failed",
+              status: "failed",
+            };
+          });
+          failedStateTimerRef.current = null;
+        }, 4000);
+      }
     },
     onIceRestart: async (offer) => {
       const socket = callSocketRef.current;
@@ -156,6 +173,11 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
   // cleanup call
   const cleanupCall = useCallback(() => {
+    if (failedStateTimerRef.current) {
+      clearTimeout(failedStateTimerRef.current);
+      failedStateTimerRef.current = null;
+    }
+
     cleanupWebRTC();
     setCallState({
       callId: null,
