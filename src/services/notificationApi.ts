@@ -19,4 +19,7 @@ export const notificationApi = {
 
   markAllAsRead: () =>
     api.patch<{ success: boolean }>("/notifications/me/read-all", {}),
+
+  deleteNotification: (id: string) =>
+    api.delete<{ success: boolean }>(`/notifications/${id}`),
 };
