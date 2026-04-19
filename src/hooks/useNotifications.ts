@@ -105,6 +105,16 @@ export function useNotifications(userId?: string) {
       if (pending.length === 0) return;
 
       await Promise.all(pending.map((item) => markAsRead(item._id)));
+
+      try {
+        const unread = await notificationApi.getUnreadCount();
+        setUnreadCount(unread.count || 0);
+      } catch (error) {
+        console.error(
+          "Failed to refresh unread count after conversation read:",
+          error,
+        );
+      }
     },
     [notifications, markAsRead],
   );

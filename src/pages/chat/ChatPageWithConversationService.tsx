@@ -1558,6 +1558,7 @@ export const ChatPage: React.FC = () => {
             (p) => p.userId === senderRef,
           )?.avatarUrl,
         ),
+        conversationId: m.conversationId || selectedConversationId || undefined,
         content: m.content || "",
         timestamp:
           typeof m.createdAt === "string"
@@ -1676,6 +1677,15 @@ export const ChatPage: React.FC = () => {
 
     lastReadMessageIdRef.current = latestUnreadMessageId;
     void emitRead(latestUnreadMessageId);
+
+    window.dispatchEvent(
+      new CustomEvent("chat:conversation_read", {
+        detail: {
+          conversationId: selectedConversationId,
+          messageId: latestUnreadMessageId,
+        },
+      }),
+    );
   }, [emitRead, latestUnreadMessageId, selectedConversationId]);
 
   const forwardableConversations = conversations.filter(

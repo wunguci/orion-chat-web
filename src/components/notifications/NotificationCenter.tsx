@@ -69,6 +69,42 @@ const typeMeta: Record<
   },
 };
 
+const resolveNotificationContent = (
+  notification: AppNotification,
+  defaultTitle: string,
+) => {
+  if (notification.type !== "message" && notification.type !== "call") {
+    return {
+      title: notification.title || defaultTitle,
+      body: notification.body,
+    };
+  }
+
+  const metadata = (notification.metadata || {}) as {
+    senderName?: string;
+    conversationType?: string;
+    groupName?: string;
+  };
+
+  const senderName = metadata.senderName || notification.title || "Someone";
+  const isGroupMessage =
+    metadata.conversationType === "GROUP" || !!metadata.groupName;
+
+  if (isGroupMessage) {
+    const groupName = metadata.groupName || "group";
+
+    return {
+      title: `${senderName} in ${groupName} group`,
+      body: notification.body,
+    };
+  }
+
+  return {
+    title: `${senderName} sent to you`,
+    body: notification.body,
+  };
+};
+
 function NotificationToastStack({
   items,
   onDismiss,
@@ -102,6 +138,10 @@ function NotificationToastStack({
       {items.map(({ id, notification }) => {
         const meta = typeMeta[notification.type] || typeMeta.system;
         const Icon = meta.icon;
+        const resolved = resolveNotificationContent(
+          notification,
+          meta.defaultTitle,
+        );
 
         return (
           <div
@@ -128,10 +168,10 @@ function NotificationToastStack({
 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-800">
-                  {notification.title || meta.defaultTitle}
+                  {resolved.title}
                 </p>
                 <p className="mt-1 line-clamp-2 text-xs text-slate-600">
-                  {notification.body}
+                  {resolved.body}
                 </p>
               </div>
 
@@ -187,6 +227,11 @@ export default function NotificationCenter({
   }, [onUnreadTypeCountsChange, unreadTypeCounts]);
 
   useEffect(() => {
+    const globalWindow = window as Window & {
+      __unreadByConversation?: Record<string, number>;
+    };
+    globalWindow.__unreadByConversation = unreadByConversation;
+
     window.dispatchEvent(
       new CustomEvent("notifications:unread_by_conversation", {
         detail: { unreadByConversation },
@@ -195,8 +240,30 @@ export default function NotificationCenter({
   }, [unreadByConversation]);
 
   useEffect(() => {
-    // Lắng nghe sự kiện mở conversation để mark-read đúng theo cuộc trò chuyện.
-    const handleConversationOpened = (event: Event) => {
+    const handleRequestUnreadByConversation = () => {
+      window.dispatchEvent(
+        new CustomEvent("notifications:unread_by_conversation", {
+          detail: { unreadByConversation },
+        }),
+      );
+    };
+
+    window.addEventListener(
+      "notifications:request_unread_by_conversation",
+      handleRequestUnreadByConversation,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "notifications:request_unread_by_conversation",
+        handleRequestUnreadByConversation,
+      );
+    };
+  }, [unreadByConversation]);
+
+  useEffect(() => {
+    // Chỉ mark-read khi chat đã phát tín hiệu read thực sự.
+    const handleConversationRead = (event: Event) => {
       const customEvent = event as CustomEvent<{ conversationId?: string }>;
       const conversationId = customEvent.detail?.conversationId;
 
@@ -206,15 +273,12 @@ export default function NotificationCenter({
       );
     };
 
-    window.addEventListener(
-      "chat:conversation_opened",
-      handleConversationOpened,
-    );
+    window.addEventListener("chat:conversation_read", handleConversationRead);
 
     return () => {
       window.removeEventListener(
-        "chat:conversation_opened",
-        handleConversationOpened,
+        "chat:conversation_read",
+        handleConversationRead,
       );
     };
   }, [markConversationNotificationsAsRead]);
@@ -320,6 +384,10 @@ export default function NotificationCenter({
               notifications.map((item) => {
                 const meta = typeMeta[item.type] || typeMeta.system;
                 const Icon = meta.icon;
+                const resolved = resolveNotificationContent(
+                  item,
+                  meta.defaultTitle,
+                );
 
                 return (
                   <div
@@ -348,10 +416,10 @@ export default function NotificationCenter({
 
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-slate-800">
-                          {item.title || meta.defaultTitle}
+                          {resolved.title}
                         </div>
                         <div className="mt-1 line-clamp-2 text-xs text-slate-600">
-                          {item.body}
+                          {resolved.body}
                         </div>
                         <div className="mt-2 text-[11px] text-slate-400">
                           {new Date(item.createdAt).toLocaleString()}

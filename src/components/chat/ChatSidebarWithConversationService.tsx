@@ -53,7 +53,13 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     useState<ConversationView | null>(null);
   const [unreadByConversation, setUnreadByConversation] = useState<
     Record<string, number>
-  >({});
+  >(() => {
+    const globalWindow = window as Window & {
+      __unreadByConversation?: Record<string, number>;
+    };
+
+    return globalWindow.__unreadByConversation || {};
+  });
 
   const currentUserId = getCurrentUserId();
 
@@ -69,6 +75,10 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     window.addEventListener(
       "notifications:unread_by_conversation",
       handleUnreadByConversation,
+    );
+
+    window.dispatchEvent(
+      new CustomEvent("notifications:request_unread_by_conversation"),
     );
 
     return () => {
