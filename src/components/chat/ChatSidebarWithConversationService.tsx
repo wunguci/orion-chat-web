@@ -1,10 +1,16 @@
 /* eslint-disable no-useless-catch */
-import React, { useEffect, useState, useMemo } from "react";
-import { Image, Lock, Pin } from "lucide-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Image, Lock, Pin, UserPlus, Users } from "lucide-react";
 import { getCurrentUserId } from "../../utils/auth";
 import type { ConversationView } from "../../types/conversation";
 import { RevealConversationModal } from "./RevealConversationModal";
 import { conversationApi } from "../../services/conversationApi";
+import GroupAvatar from "./GroupAvatar";
+import { Modal } from "../common/Modal";
+import {
+  friendListService,
+  type FriendApiItem,
+} from "../../services/friendListService";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -36,6 +42,7 @@ interface ChatSidebarProps {
   error?: string | null;
   onNewConversation?: () => void;
   onConversationRevealed?: (conversationId: string) => void;
+  onCreateGroupConversation?: (conversation: ConversationView) => void;
 }
 
 export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
@@ -46,11 +53,25 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
   error = null,
   onNewConversation,
   onConversationRevealed,
+  onCreateGroupConversation,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [revealModalOpen, setRevealModalOpen] = useState(false);
   const [selectedHiddenConversation, setSelectedHiddenConversation] =
     useState<ConversationView | null>(null);
+  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+  const [groupNameInput, setGroupNameInput] = useState("");
+  const [groupAvatarFile, setGroupAvatarFile] = useState<File | null>(null);
+  const [groupAvatarPreviewUrl, setGroupAvatarPreviewUrl] = useState<
+    string | null
+  >(null);
+  const [selectedGroupMemberIds, setSelectedGroupMemberIds] = useState<
+    string[]
+  >([]);
+  const [groupModalError, setGroupModalError] = useState<string | null>(null);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+  const [friendOptions, setFriendOptions] = useState<FriendApiItem[]>([]);
   const [unreadByConversation, setUnreadByConversation] = useState<
     Record<string, number>
   >(() => {
@@ -62,6 +83,140 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
   });
 
   const currentUserId = getCurrentUserId();
+
+  const handleOpenCreateGroupModal = useCallback(() => {
+    setGroupModalError(null);
+    setGroupNameInput("");
+    if (groupAvatarPreviewUrl) {
+      URL.revokeObjectURL(groupAvatarPreviewUrl);
+    }
+    setGroupAvatarPreviewUrl(null);
+    setGroupAvatarFile(null);
+    setSelectedGroupMemberIds([]);
+    setIsCreateGroupModalOpen(true);
+  }, [groupAvatarPreviewUrl]);
+
+  const handleGroupAvatarChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0] || null;
+      if (!file) return;
+
+      if (groupAvatarPreviewUrl) {
+        URL.revokeObjectURL(groupAvatarPreviewUrl);
+      }
+
+      setGroupAvatarFile(file);
+      setGroupAvatarPreviewUrl(URL.createObjectURL(file));
+      setGroupModalError(null);
+    },
+    [groupAvatarPreviewUrl],
+  );
+
+  const handleToggleGroupMember = useCallback((userId: string) => {
+    setSelectedGroupMemberIds((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
+    );
+  }, []);
+
+  const handleCreateGroup = useCallback(async () => {
+    const normalizedName = groupNameInput.trim();
+    if (!normalizedName) {
+      setGroupModalError("Vui lòng nhập tên nhóm");
+      return;
+    }
+
+    if (selectedGroupMemberIds.length === 0) {
+      setGroupModalError("Vui lòng chọn ít nhất 1 thành viên");
+      return;
+    }
+
+    try {
+      setIsCreatingGroup(true);
+      setGroupModalError(null);
+
+      const createdConversation = await conversationApi.createConversation({
+        type: "GROUP",
+        groupName: normalizedName,
+        memberIds: selectedGroupMemberIds,
+        memberNicknames: selectedGroupMemberIds.map((memberId) => {
+          const friend = friendOptions.find((item) => item.id === memberId);
+          return {
+            userId: memberId,
+            nickname: friend?.fullName || "Member",
+          };
+        }),
+      });
+
+      if (groupAvatarFile && createdConversation?.conversationId) {
+        try {
+          await conversationApi.updateGroupAvatar(
+            createdConversation.conversationId,
+            groupAvatarFile,
+          );
+        } catch (avatarError) {
+          console.error("Create group avatar upload failed:", avatarError);
+        }
+      }
+
+      setIsCreateGroupModalOpen(false);
+      setGroupNameInput("");
+      if (groupAvatarPreviewUrl) {
+        URL.revokeObjectURL(groupAvatarPreviewUrl);
+      }
+      setGroupAvatarPreviewUrl(null);
+      setGroupAvatarFile(null);
+      setSelectedGroupMemberIds([]);
+      onCreateGroupConversation?.(createdConversation as ConversationView);
+    } catch (createError) {
+      setGroupModalError(
+        createError instanceof Error
+          ? createError.message
+          : "Tạo nhóm thất bại",
+      );
+    } finally {
+      setIsCreatingGroup(false);
+    }
+  }, [
+    groupNameInput,
+    selectedGroupMemberIds,
+    friendOptions,
+    groupAvatarFile,
+    groupAvatarPreviewUrl,
+    onCreateGroupConversation,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (groupAvatarPreviewUrl) {
+        URL.revokeObjectURL(groupAvatarPreviewUrl);
+      }
+    };
+  }, [groupAvatarPreviewUrl]);
+
+  useEffect(() => {
+    if (!isCreateGroupModalOpen) return;
+
+    const loadFriends = async () => {
+      if (!currentUserId) {
+        setFriendOptions([]);
+        return;
+      }
+
+      try {
+        setIsLoadingFriends(true);
+        const friends = await friendListService.getFriends(currentUserId);
+        setFriendOptions(Array.isArray(friends) ? friends : []);
+      } catch {
+        setGroupModalError("Không tải được danh sách bạn bè");
+      } finally {
+        setIsLoadingFriends(false);
+      }
+    };
+
+    void loadFriends();
+  }, [currentUserId, isCreateGroupModalOpen]);
 
   useEffect(() => {
     const handleUnreadByConversation = (event: Event) => {
@@ -280,14 +435,32 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         )}
       </div>
 
-      {/* Search box */}
-      <input
-        type="text"
-        placeholder="Search conversations..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-      />
+      {/* Search box + actions */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Search conversations..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={() => undefined}
+          title="Thêm bạn bè (sắp cập nhật)"
+          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer"
+        >
+          <UserPlus className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={handleOpenCreateGroupModal}
+          title="Tạo nhóm mới"
+          className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-100 cursor-pointer"
+        >
+          <Users className="h-4 w-4" />
+        </button>
+      </div>
 
       {/* Error message */}
       {error && (
@@ -331,7 +504,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     <div className="flex items-start gap-3">
                       {/* Avatar */}
                       <div className="relative">
-                        {getConversationAvatar(conversation) ? (
+                        {conversation.type === "GROUP" ? (
+                          <GroupAvatar
+                            size={40}
+                            name={getConversationDisplayName(conversation)}
+                            avatarUrl={getConversationAvatar(conversation)}
+                            members={conversation.participants}
+                          />
+                        ) : getConversationAvatar(conversation) ? (
                           <img
                             src={getConversationAvatar(conversation)}
                             alt={getConversationDisplayName(conversation)}
@@ -415,6 +595,145 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             : "Trò chuyện"
         }
       />
+
+      <Modal
+        isOpen={isCreateGroupModalOpen}
+        onClose={() => {
+          setIsCreateGroupModalOpen(false);
+          if (groupAvatarPreviewUrl) {
+            URL.revokeObjectURL(groupAvatarPreviewUrl);
+          }
+          setGroupAvatarPreviewUrl(null);
+          setGroupAvatarFile(null);
+        }}
+        title="Tạo nhóm mới"
+        size="sm"
+      >
+        <div className="space-y-4 p-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Ảnh nhóm
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                {groupAvatarPreviewUrl ? (
+                  <img
+                    src={groupAvatarPreviewUrl}
+                    alt="group avatar preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500">
+                    Ảnh
+                  </div>
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleGroupAvatarChange}
+                disabled={isCreatingGroup}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm file:mr-2 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">
+              Tên nhóm
+            </label>
+            <input
+              type="text"
+              value={groupNameInput}
+              onChange={(e) => setGroupNameInput(e.target.value)}
+              placeholder="Nhập tên nhóm"
+              maxLength={120}
+              disabled={isCreatingGroup}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">
+                Chọn thành viên
+              </label>
+              <span className="text-xs text-gray-500">
+                {selectedGroupMemberIds.length} đã chọn
+              </span>
+            </div>
+            <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-2">
+              {isLoadingFriends ? (
+                <p className="py-2 text-center text-sm text-gray-500">
+                  Đang tải bạn bè...
+                </p>
+              ) : friendOptions.length === 0 ? (
+                <p className="py-2 text-center text-sm text-gray-500">
+                  Chưa có bạn bè để thêm
+                </p>
+              ) : (
+                friendOptions.map((friend) => (
+                  <label
+                    key={friend.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-lg p-2 hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedGroupMemberIds.includes(friend.id)}
+                      onChange={() => handleToggleGroupMember(friend.id)}
+                      disabled={isCreatingGroup}
+                      className="h-4 w-4"
+                    />
+                    {friend.avatarUrl ? (
+                      <img
+                        src={toAbsoluteMediaUrl(friend.avatarUrl)}
+                        alt={friend.fullName}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600">
+                        {(friend.fullName || "?").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="truncate text-sm text-gray-800">
+                      {friend.fullName || friend.id}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+
+          {groupModalError && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-600">
+              {groupModalError}
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsCreateGroupModalOpen(false)}
+              disabled={isCreatingGroup}
+              className="rounded-lg border border-slate-200 px-4 py-2 text-sm"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleCreateGroup()}
+              disabled={
+                isCreatingGroup ||
+                !groupNameInput.trim() ||
+                selectedGroupMemberIds.length === 0
+              }
+              className="rounded-lg bg-green-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {isCreatingGroup ? "Đang tạo..." : "Tạo nhóm"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

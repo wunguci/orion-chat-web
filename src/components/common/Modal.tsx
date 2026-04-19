@@ -16,7 +16,14 @@ const sizeClasses = {
   xl: "max-w-6xl",
 };
 
-const Modal = ({ isOpen, onClose, title, children, size = "md", showHeader = true }: ModalProps) => {
+const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = "md",
+  showHeader = true,
+}: ModalProps) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -34,7 +41,8 @@ const Modal = ({ isOpen, onClose, title, children, size = "md", showHeader = tru
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
-        className={`bg-white rounded-xl ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto shadow-xl`}
+        className={`modal-scroll-container bg-white rounded-xl ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto shadow-xl`}
+        style={{ msOverflowStyle: "none", scrollbarWidth: "none" }}
       >
         {showHeader && (
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10 rounded-t-xl">
@@ -49,6 +57,13 @@ const Modal = ({ isOpen, onClose, title, children, size = "md", showHeader = tru
         )}
         {children}
       </div>
+      <style>{`
+        .modal-scroll-container::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+          display: none;
+        }
+      `}</style>
     </div>
   );
 };

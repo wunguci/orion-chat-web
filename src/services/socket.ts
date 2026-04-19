@@ -116,14 +116,15 @@ class SocketService {
     return this.socket;
   }
 
-  
   // get call socket instance
   getCallSocket(): Socket | null {
     return this.callSocket;
   }
 
   // wait for call socket to be connected
-  async waitForCallSocketConnection(timeoutMs: number = 6000): Promise<boolean> {
+  async waitForCallSocketConnection(
+    timeoutMs: number = 6000,
+  ): Promise<boolean> {
     if (!this.callSocket) {
       console.log("[SocketService] Call socket not initialized");
       return false;
@@ -418,6 +419,14 @@ type GroupDissolvedPayload = {
   groupId: string;
   dissolvedBy: string;
   dissolvedAt: string;
+};
+
+type GroupInfoUpdatedPayload = {
+  groupId: string;
+  groupName?: string;
+  groupAvatar?: string;
+  updatedBy: string;
+  updatedAt: string;
 };
 
 type ConversationHiddenUpdatedPayload = {
@@ -809,6 +818,16 @@ class ChatSocketService {
     this.chatSocket.off("group:dissolved");
   }
 
+  onGroupInfoUpdated(cb: (payload: GroupInfoUpdatedPayload) => void) {
+    if (!this.chatSocket) return;
+    this.chatSocket.on("group:info_updated", cb);
+  }
+
+  offGroupInfoUpdated() {
+    if (!this.chatSocket) return;
+    this.chatSocket.off("group:info_updated");
+  }
+
   onConversationHiddenUpdated(
     cb: (payload: ConversationHiddenUpdatedPayload) => void,
   ) {
@@ -1045,6 +1064,16 @@ export const onGroupDissolved = (
 
 export const offGroupDissolved = () => {
   chatSocketService.offGroupDissolved();
+};
+
+export const onGroupInfoUpdated = (
+  cb: (payload: GroupInfoUpdatedPayload) => void,
+) => {
+  chatSocketService.onGroupInfoUpdated(cb);
+};
+
+export const offGroupInfoUpdated = () => {
+  chatSocketService.offGroupInfoUpdated();
 };
 
 export const onConversationHiddenUpdated = (
