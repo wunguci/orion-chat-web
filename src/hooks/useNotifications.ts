@@ -66,6 +66,30 @@ export function useNotifications(userId?: string) {
     }
   }, []);
 
+  const removeNotification = useCallback(
+    async (id: string) => {
+      try {
+        const target = notifications.find((item) => item._id === id);
+        await notificationApi.deleteNotification(id);
+
+        setNotifications((prev) => prev.filter((item) => item._id !== id));
+        setToastItems((prev) =>
+          prev.filter((item) => item.notification._id !== id),
+        );
+
+        if (target && !target.isRead) {
+          setUnreadCount((prev) => Math.max(0, prev - 1));
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Failed to delete notification:", error);
+        return false;
+      }
+    },
+    [notifications],
+  );
+
   const markConversationNotificationsAsRead = useCallback(
     async (conversationId: string) => {
       if (!conversationId) return;
@@ -81,6 +105,16 @@ export function useNotifications(userId?: string) {
       if (pending.length === 0) return;
 
       await Promise.all(pending.map((item) => markAsRead(item._id)));
+
+      try {
+        const unread = await notificationApi.getUnreadCount();
+        setUnreadCount(unread.count || 0);
+      } catch (error) {
+        console.error(
+          "Failed to refresh unread count after conversation read:",
+          error,
+        );
+      }
     },
     [notifications, markAsRead],
   );
@@ -97,6 +131,16 @@ export function useNotifications(userId?: string) {
       userId,
       token || undefined,
     );
+
+    const handleRefreshUnread = async () => {
+      try {
+        // Luôn lấy lại tổng unread từ server để giữ state đúng sau các thao tác bất đồng bộ.
+        const unread = await notificationApi.getUnreadCount();
+        setUnreadCount(unread.count || 0);
+      } catch (error) {
+        console.error("Failed to refresh unread count:", error);
+      }
+    };
 
     const handleNew = (payload: AppNotification) => {
       // Upsert theo _id để tránh duplicate khi reconnect socket.
@@ -115,23 +159,14 @@ export function useNotifications(userId?: string) {
         return next.slice(0, 4);
       });
 
-      setUnreadCount((prev) => prev + 1);
+      void handleRefreshUnread();
     };
 
     const handleUpdated = (payload: AppNotification) => {
       setNotifications((prev) =>
         prev.map((item) => (item._id === payload._id ? payload : item)),
       );
-    };
-
-    const handleRefreshUnread = async () => {
-      try {
-        // Luôn lấy lại tổng unread từ server để giữ state đúng sau các thao tác bất đồng bộ.
-        const unread = await notificationApi.getUnreadCount();
-        setUnreadCount(unread.count || 0);
-      } catch (error) {
-        console.error("Failed to refresh unread count:", error);
-      }
+      void handleRefreshUnread();
     };
 
     socket.on("notifications:new", handleNew);
@@ -166,6 +201,33 @@ export function useNotifications(userId?: string) {
     [notifications],
   );
 
+  const unreadFriendCount = useMemo(
+    () =>
+      notifications.filter(
+        (item) => !item.isRead && item.type === "friend_request",
+      ).length,
+    [notifications],
+  );
+
+  const unreadCalendarCount = useMemo(
+    () =>
+      notifications.filter(
+        (item) =>
+          !item.isRead &&
+          (item.type === "event_invite" || item.type === "event_reminder"),
+      ).length,
+    [notifications],
+  );
+
+  const unreadTypeCounts = useMemo(
+    () => ({
+      chat: unreadMessageCount,
+      friend: unreadFriendCount,
+      calendar: unreadCalendarCount,
+    }),
+    [unreadMessageCount, unreadFriendCount, unreadCalendarCount],
+  );
+
   const unreadByConversation = useMemo(() => {
     const result: Record<string, number> = {};
 
@@ -193,10 +255,14 @@ export function useNotifications(userId?: string) {
     toastItems,
     dismissToast,
     unreadMessageCount,
+    unreadFriendCount,
+    unreadCalendarCount,
+    unreadTypeCounts,
     unreadByConversation,
     fetchNotifications,
     markAsRead,
     markAllAsRead,
+    removeNotification,
     markConversationNotificationsAsRead,
   };
 }

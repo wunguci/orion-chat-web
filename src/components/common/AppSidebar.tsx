@@ -41,6 +41,8 @@ const AppSidebar: React.FC<SidebarProps> = ({
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [unreadFriendCount, setUnreadFriendCount] = useState(0);
+  const [unreadCalendarCount, setUnreadCalendarCount] = useState(0);
   const resolvedUserId = currentUser?.userId || currentUser?.id;
 
   const API_BASE_URL =
@@ -108,6 +110,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
               navigate(ROUTES.FRIENDS);
             }}
             label="Friends"
+            badgeCount={unreadFriendCount}
           />
           <NavItem
             icon={MdNote}
@@ -126,6 +129,7 @@ const AppSidebar: React.FC<SidebarProps> = ({
               navigate(ROUTES.CALENDAR);
             }}
             label="Calendar"
+            badgeCount={unreadCalendarCount}
           />
           <NavItem
             icon={FaBrain}
@@ -145,6 +149,11 @@ const AppSidebar: React.FC<SidebarProps> = ({
             open={isNotificationOpen}
             onToggle={() => setIsNotificationOpen((prev) => !prev)}
             onUnreadMessageCountChange={setUnreadChatCount}
+            onUnreadTypeCountsChange={(counts) => {
+              setUnreadChatCount(counts.chat);
+              setUnreadFriendCount(counts.friend);
+              setUnreadCalendarCount(counts.calendar);
+            }}
           />
 
           <NavItem

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   MdCalendarToday,
   MdCall,
@@ -21,6 +21,11 @@ type NotificationCenterProps = {
   open: boolean;
   onToggle: () => void;
   onUnreadMessageCountChange?: (count: number) => void;
+  onUnreadTypeCountsChange?: (counts: {
+    chat: number;
+    friend: number;
+    calendar: number;
+  }) => void;
 };
 
 const typeMeta: Record<
@@ -64,6 +69,42 @@ const typeMeta: Record<
   },
 };
 
+const resolveNotificationContent = (
+  notification: AppNotification,
+  defaultTitle: string,
+) => {
+  if (notification.type !== "message" && notification.type !== "call") {
+    return {
+      title: notification.title || defaultTitle,
+      body: notification.body,
+    };
+  }
+
+  const metadata = (notification.metadata || {}) as {
+    senderName?: string;
+    conversationType?: string;
+    groupName?: string;
+  };
+
+  const senderName = metadata.senderName || notification.title || "Someone";
+  const isGroupMessage =
+    metadata.conversationType === "GROUP" || !!metadata.groupName;
+
+  if (isGroupMessage) {
+    const groupName = metadata.groupName || "group";
+
+    return {
+      title: `${senderName} in ${groupName} group`,
+      body: notification.body,
+    };
+  }
+
+  return {
+    title: `${senderName} sent to you`,
+    body: notification.body,
+  };
+};
+
 function NotificationToastStack({
   items,
   onDismiss,
@@ -97,6 +138,10 @@ function NotificationToastStack({
       {items.map(({ id, notification }) => {
         const meta = typeMeta[notification.type] || typeMeta.system;
         const Icon = meta.icon;
+        const resolved = resolveNotificationContent(
+          notification,
+          meta.defaultTitle,
+        );
 
         return (
           <div
@@ -123,10 +168,10 @@ function NotificationToastStack({
 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-slate-800">
-                  {notification.title || meta.defaultTitle}
+                  {resolved.title}
                 </p>
                 <p className="mt-1 line-clamp-2 text-xs text-slate-600">
-                  {notification.body}
+                  {resolved.body}
                 </p>
               </div>
 
@@ -153,20 +198,21 @@ export default function NotificationCenter({
   open,
   onToggle,
   onUnreadMessageCountChange,
+  onUnreadTypeCountsChange,
 }: NotificationCenterProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const [openedConversationId, setOpenedConversationId] = useState<
-    string | null
-  >(null);
   const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
     unreadMessageCount,
+    unreadTypeCounts,
+    unreadByConversation,
     toastItems,
     markAllAsRead,
     markAsRead,
+    removeNotification,
     markConversationNotificationsAsRead,
     dismissToast,
   } = useNotifications(userId);
@@ -177,52 +223,65 @@ export default function NotificationCenter({
   }, [onUnreadMessageCountChange, unreadMessageCount]);
 
   useEffect(() => {
-    // Lắng nghe sự kiện mở conversation để mark-read đúng theo cuộc trò chuyện.
-    const handleConversationOpened = (event: Event) => {
+    onUnreadTypeCountsChange?.(unreadTypeCounts);
+  }, [onUnreadTypeCountsChange, unreadTypeCounts]);
+
+  useEffect(() => {
+    const globalWindow = window as Window & {
+      __unreadByConversation?: Record<string, number>;
+    };
+    globalWindow.__unreadByConversation = unreadByConversation;
+
+    window.dispatchEvent(
+      new CustomEvent("notifications:unread_by_conversation", {
+        detail: { unreadByConversation },
+      }),
+    );
+  }, [unreadByConversation]);
+
+  useEffect(() => {
+    const handleRequestUnreadByConversation = () => {
+      window.dispatchEvent(
+        new CustomEvent("notifications:unread_by_conversation", {
+          detail: { unreadByConversation },
+        }),
+      );
+    };
+
+    window.addEventListener(
+      "notifications:request_unread_by_conversation",
+      handleRequestUnreadByConversation,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "notifications:request_unread_by_conversation",
+        handleRequestUnreadByConversation,
+      );
+    };
+  }, [unreadByConversation]);
+
+  useEffect(() => {
+    // Chỉ mark-read khi chat đã phát tín hiệu read thực sự.
+    const handleConversationRead = (event: Event) => {
       const customEvent = event as CustomEvent<{ conversationId?: string }>;
       const conversationId = customEvent.detail?.conversationId;
 
       if (!conversationId) return;
-      setOpenedConversationId(conversationId);
       markConversationNotificationsAsRead(conversationId).catch(
         () => undefined,
       );
     };
 
-    window.addEventListener(
-      "chat:conversation_opened",
-      handleConversationOpened,
-    );
+    window.addEventListener("chat:conversation_read", handleConversationRead);
 
     return () => {
       window.removeEventListener(
-        "chat:conversation_opened",
-        handleConversationOpened,
+        "chat:conversation_read",
+        handleConversationRead,
       );
     };
   }, [markConversationNotificationsAsRead]);
-
-  useEffect(() => {
-    if (!openedConversationId) return;
-
-    const hasUnreadForOpenedConversation = notifications.some(
-      (item) =>
-        !item.isRead &&
-        (item.type === "message" || item.type === "call") &&
-        item.metadata?.conversationId === openedConversationId,
-    );
-
-    if (!hasUnreadForOpenedConversation) return;
-
-    // Xử lý race condition: danh sách thông báo đến muộn hơn sự kiện mở chat.
-    markConversationNotificationsAsRead(openedConversationId).catch(
-      () => undefined,
-    );
-  }, [
-    openedConversationId,
-    notifications,
-    markConversationNotificationsAsRead,
-  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -325,12 +384,24 @@ export default function NotificationCenter({
               notifications.map((item) => {
                 const meta = typeMeta[item.type] || typeMeta.system;
                 const Icon = meta.icon;
+                const resolved = resolveNotificationContent(
+                  item,
+                  meta.defaultTitle,
+                );
 
                 return (
-                  <button
+                  <div
                     key={item._id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       void openNotification(item);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        void openNotification(item);
+                      }
                     }}
                     className={`w-full cursor-pointer border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${
                       item.isRead ? "bg-white" : "bg-teal-50/70"
@@ -345,17 +416,30 @@ export default function NotificationCenter({
 
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-slate-800">
-                          {item.title || meta.defaultTitle}
+                          {resolved.title}
                         </div>
                         <div className="mt-1 line-clamp-2 text-xs text-slate-600">
-                          {item.body}
+                          {resolved.body}
                         </div>
                         <div className="mt-2 text-[11px] text-slate-400">
                           {new Date(item.createdAt).toLocaleString()}
                         </div>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void removeNotification(item._id);
+                        }}
+                        className="shrink-0 cursor-pointer self-start rounded-md px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700"
+                        aria-label="Delete notification"
+                        title="Delete"
+                      >
+                        Delete
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 );
               })
             )}
