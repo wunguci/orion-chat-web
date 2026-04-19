@@ -49,6 +49,15 @@ export interface GroupInviteApiItem {
   createdAt: string;
 }
 
+export interface GroupMemberApiItem {
+  userId: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  role?: string;
+  joinedAt?: string;
+  isMe?: boolean;
+}
+
 export interface FriendProfileApiItem {
   id: string;
   fullName: string;
@@ -88,6 +97,11 @@ export const friendListService = {
 
   getIncomingGroupInvites: (userId: string) =>
     api.get<GroupInviteApiItem[]>(`/group-invites/incoming?userId=${userId}`),
+
+  getGroupMembers: (groupId: string) =>
+    api.get<{ groupId: string; items: GroupMemberApiItem[] }>(
+      `/groups/${groupId}/members`,
+    ),
 
   acceptGroupInvite: (inviteId: string, userId: string) =>
     api.patch(`/group-invites/${inviteId}/accept`, { userId }),

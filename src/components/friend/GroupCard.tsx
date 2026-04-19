@@ -1,5 +1,10 @@
 import React from "react";
+import { Phone, Video } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { CommunityGroup } from "../../types/friend";
+import { useGroupCallContext } from "../../hooks/useGroupCallContext";
+import { useAuth } from "../../hooks/useAuth";
+import { friendListService } from "../../services/friendListService";
 
 interface GroupCardProps {
   group: CommunityGroup;
@@ -7,6 +12,47 @@ interface GroupCardProps {
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({ group, onOpen }) => {
+  const navigate = useNavigate();
+  const { initiateGroupCall } = useGroupCallContext();
+  const { user } = useAuth();
+  const currentUserId = user?.id || user?.userId || "user1";
+
+  const startGroupCall = async (callType: "audio" | "video") => {
+    try {
+      const memberResponse = await friendListService.getGroupMembers(group.id);
+      const members = memberResponse.items || [];
+
+      const participantIds = members
+        .filter((member) => member.userId !== currentUserId)
+        .map((member) => member.userId);
+
+      const participantNames: Record<string, string> = {};
+      members.forEach((member) => {
+        if (member.userId !== currentUserId) {
+          participantNames[member.userId] = member.fullName;
+        }
+      });
+
+      if (participantIds.length === 0) {
+        alert("No other participants in this group");
+        return;
+      }
+
+      await initiateGroupCall(group.id, participantIds, callType, participantNames);
+      navigate("/group-call");
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      alert(`Failed to start ${callType} call: ${errorMsg}`);
+    }
+  };
+
+  const handleAudioCall = async () => {
+    await startGroupCall("audio");
+  };
+
+  const handleVideoCall = async () => {
+    await startGroupCall("video");
+  };
   return (
     <div className="p-4 rounded-2xl border border-slate-200 bg-white hover:shadow-sm transition-all">
       <div className="flex items-center gap-3">
@@ -41,12 +87,28 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, onOpen }) => {
         </p>
       )}
 
-      <button
-        onClick={() => onOpen?.(group.id)}
-        className="mt-4 w-full py-2 rounded-lg bg-green-primary text-white font-semibold hover:bg-green-secondary transition-colors cursor-pointer"
-      >
-        Open Group
-      </button>
+      <div className="mt-4 flex gap-2">
+        <button
+          onClick={() => onOpen?.(group.id)}
+          className="flex-1 py-2 rounded-lg bg-green-primary text-white font-semibold hover:bg-green-secondary transition-colors cursor-pointer"
+        >
+          Open Group
+        </button>
+        <button
+          onClick={handleAudioCall}
+          className="py-2 px-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors flex items-center justify-center gap-1"
+          title="Audio Call"
+        >
+          <Phone size={18} />
+        </button>
+        <button
+          onClick={handleVideoCall}
+          className="py-2 px-3 rounded-lg bg-purple-500 hover:bg-purple-600 text-white transition-colors flex items-center justify-center gap-1"
+          title="Video Call"
+        >
+          <Video size={18} />
+        </button>
+      </div>
     </div>
   );
 };

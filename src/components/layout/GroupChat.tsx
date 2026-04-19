@@ -30,10 +30,14 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import ToggleSwitch from "../common/ToggleSwitch";
 import Checkbox from "../common/Checkbox";
 import AddMemberModal from "./AddMemberModal";
 import AppSidebar from "../common/AppSidebar";
+import { useGroupCallContext } from "../../hooks/useGroupCallContext";
+import { useAuth } from "../../hooks/useAuth";
+import { friendListService } from "../../services/friendListService";
 
 interface Message {
   id: string;
@@ -54,6 +58,7 @@ interface Chat {
   time: string;
   unread: number;
   isOnline?: boolean;
+  members?: Array<{ id: string; name: string; avatar?: string }>;
 }
 
 const chats: Chat[] = [
@@ -66,15 +71,23 @@ const chats: Chat[] = [
     time: "9:41 AM",
     unread: 0,
     isOnline: true,
+    members: [
+      { id: "user1", name: "You" },
+      { id: "user2", name: "Olivia Isabella" },
+    ],
   },
   {
     id: "2",
     name: "Athena",
     avatar:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-    lastMessage: "That's a good idea 🔥",
+    lastMessage: "That's a good idea ",
     time: "9:41 AM",
     unread: 0,
+    members: [
+      { id: "user1", name: "You" },
+      { id: "user3", name: "Athena" },
+    ],
   },
   {
     id: "3",
@@ -84,6 +97,12 @@ const chats: Chat[] = [
     lastMessage: "Here's my latest drone shot...",
     time: "9:16 AM",
     unread: 3,
+    members: [
+      { id: "user1", name: "You" },
+      { id: "user2", name: "Olivia Isabella" },
+      { id: "user3", name: "Athena" },
+      { id: "user4", name: "John Doe" },
+    ],
   },
   {
     id: "4",
@@ -93,6 +112,10 @@ const chats: Chat[] = [
     lastMessage: "Next time it's my turn!",
     time: "Yesterday",
     unread: 0,
+    members: [
+      { id: "user1", name: "You" },
+      { id: "user5", name: "Lela Walsh" },
+    ],
   },
 ];
 
@@ -166,6 +189,10 @@ const images = [
 ];
 
 export default function GroupChat() {
+  const navigate = useNavigate();
+  const { initiateGroupCall } = useGroupCallContext();
+  const { user } = useAuth();
+  const currentUserId = user?.id || user?.userId || "user1";
   const [selectedChat, setSelectedChat] = useState<Chat>(chats[0]);
   const [messageInput, setMessageInput] = useState("");
   const [currentView, setCurrentView] = useState<
@@ -221,8 +248,45 @@ export default function GroupChat() {
     };
   }, [isSidebarOpen]);
 
-  const handleAddMembers = (selectedMembers: string[]) => {
-    console.log("Selected members:", selectedMembers);
+  const handleAddMembers = (_selectedMembers: string[]) => {};
+
+  const handleGroupCall = async () => {
+    try {
+      // Bắt đầu group call với conversation ID
+      const conversationId = selectedChat.id;
+
+      const memberResponse = await friendListService.getGroupMembers(
+        conversationId,
+      );
+      const members = memberResponse.items || [];
+      const participantIds = members
+        .filter((member) => member.userId !== currentUserId)
+        .map((member) => member.userId);
+
+      const participantNames: Record<string, string> = {};
+      members.forEach((member) => {
+        if (member.userId !== currentUserId) {
+          participantNames[member.userId] = member.fullName;
+        }
+      });
+      
+      if (participantIds.length === 0) {
+        alert("No other participants in this chat");
+        return;
+      }
+
+      await initiateGroupCall(
+        conversationId,
+        participantIds,
+        "video",
+        participantNames,
+      );
+
+      // Navigate tới group call page
+      navigate("/group-call");
+    } catch (error) {
+      alert(`Failed to start group call: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   return (
@@ -332,10 +396,15 @@ export default function GroupChat() {
                 setIsCreateGroup(false);
               }}
               className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600"
+              title="Add Member"
             >
               <UserRoundPlusIcon size={20} />
             </button>
-            <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600">
+            <button 
+              onClick={handleGroupCall}
+              className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600 hover:text-green-primary"
+              title="Start Group Video Call"
+            >
               <Video size={20} />
             </button>
             <button className="p-2 hover:bg-white rounded-lg transition-colors text-gray-600">

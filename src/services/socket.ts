@@ -53,16 +53,10 @@ class SocketService {
       this.disconnectCall();
     }
 
-    // nếu đã kết nối với cùng userId, trả về socket hiện có.
-    if (this.callSocket?.connected && this.currentUserId === userId) {
-      console.log(`[SocketService] Already connected as ${userId}`);
+    // nếu đã có socket với cùng userId, trả về socket hiện có (kể cả đang connecting)
+    if (this.callSocket && this.currentUserId === userId) {
+      console.log(`[SocketService] Reusing call socket for ${userId}`);
       return this.callSocket;
-    }
-
-    // ngắt kết nối nếu tồn tại nhưng chưa được kết nối.
-    if (this.callSocket && !this.callSocket.connected) {
-      this.callSocket.disconnect();
-      this.callSocket = null;
     }
 
     console.log(
@@ -89,10 +83,17 @@ class SocketService {
       );
     });
 
-        this.callSocket.on('connect_error', () => {
-            // console.error("[SocketService] Call socket connection error:", error);
-            this.disconnectCall();
+        this.callSocket.on('connect_error', (error: any) => {
+      console.error("[SocketService] Call socket connection error:", error?.message || error);
+      if (error) {
+        console.error("[SocketService] Connection error details:", {
+          message: error.message,
+          code: error.code,
+          type: error.type,
+          reason: error.reason,
         });
+      }
+    });
 
     return this.callSocket;
   }
@@ -105,6 +106,42 @@ class SocketService {
   // get call socket instance
   getCallSocket(): Socket | null {
     return this.callSocket;
+  }
+
+  // wait for call socket to be connected
+  async waitForCallSocketConnection(timeoutMs: number = 6000): Promise<boolean> {
+    if (!this.callSocket) {
+      console.log("[SocketService] Call socket not initialized");
+      return false;
+    }
+
+    if (this.callSocket.connected) {
+      console.log("[SocketService] Call socket already connected");
+      return true;
+    }
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.error("[SocketService] Call socket connection timeout");
+        if (this.callSocket) {
+          this.callSocket.off("connect", handleConnect);
+        }
+        resolve(false);
+      }, timeoutMs);
+
+      const handleConnect = () => {
+        clearTimeout(timeout);
+        if (this.callSocket) {
+          this.callSocket.off("connect", handleConnect);
+        }
+        console.log("[SocketService] Call socket connected (waited)");
+        resolve(true);
+      };
+
+      if (this.callSocket) {
+        this.callSocket.on("connect", handleConnect);
+      }
+    });
   }
 
   // connect presence socket (namespace /presence)
