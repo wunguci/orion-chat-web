@@ -1,16 +1,10 @@
 /* eslint-disable no-useless-catch */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Image, Lock, Pin, UserRoundPlus,UserPlus, Users } from 'lucide-react';
-import { getCurrentUserId } from "../../utils/auth";
-import type { ConversationView } from "../../types/conversation";
-import { RevealConversationModal } from "./RevealConversationModal";
-import { conversationApi } from "../../services/conversationApi";
-import GroupAvatar from "./GroupAvatar";
-import { Modal } from "../common/Modal";
-import {
-  friendListService,
-  type FriendApiItem,
-} from "../../services/friendListService";
+import React, { useEffect, useState, useMemo } from 'react';
+import { Image, Lock, Pin, UserRoundPlus } from 'lucide-react';
+import { getCurrentUserId } from '../../utils/auth';
+import type { ConversationView } from '../../types/conversation';
+import { RevealConversationModal } from './RevealConversationModal';
+import { conversationApi } from '../../services/conversationApi';
 import { groupManagementService } from '../../services/groupManagementService';
 import ChatAvatar from '../common/ChatAvatar';
 
@@ -37,196 +31,47 @@ const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
 };
 
 interface ChatSidebarProps {
-  conversations: ConversationView[];
-  selectedConversationId: string | null;
-  onSelectConversation: (conversationId: string) => void;
-  loading?: boolean;
-  error?: string | null;
-  onNewConversation?: () => void;
-  onConversationRevealed?: (conversationId: string) => void;
-  onCreateGroupConversation?: (conversation: ConversationView) => void;
+    conversations: ConversationView[];
+    selectedConversationId: string | null;
+    onSelectConversation: (conversationId: string) => void;
+    loading?: boolean;
+    error?: string | null;
+    onNewConversation?: () => void;
+    onConversationRevealed?: (conversationId: string) => void;
 }
 
 export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
-  conversations,
-  selectedConversationId,
-  onSelectConversation,
-  loading = false,
-  error = null,
-  onNewConversation,
-  onConversationRevealed,
-  onCreateGroupConversation,
+    conversations,
+    selectedConversationId,
+    onSelectConversation,
+    loading = false,
+    error = null,
+    onNewConversation,
+    onConversationRevealed,
 }) => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [revealModalOpen, setRevealModalOpen] = useState(false);
-  const [selectedHiddenConversation, setSelectedHiddenConversation] =
-    useState<ConversationView | null>(null);
-  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
-  const [groupNameInput, setGroupNameInput] = useState("");
-  const [groupAvatarFile, setGroupAvatarFile] = useState<File | null>(null);
-  const [groupAvatarPreviewUrl, setGroupAvatarPreviewUrl] = useState<
-    string | null
-  >(null);
-  const [selectedGroupMemberIds, setSelectedGroupMemberIds] = useState<
-    string[]
-  >([]);
-  const [groupModalError, setGroupModalError] = useState<string | null>(null);
-  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
-  const [friendOptions, setFriendOptions] = useState<FriendApiItem[]>([]);
-   const [showJoinGroupBox, setShowJoinGroupBox] = useState(false);
-   const [joinGroupCode, setJoinGroupCode] = useState('');
-   const [joinGroupMessage, setJoinGroupMessage] = useState('');
-   const [isJoinGroupSubmitting, setIsJoinGroupSubmitting] = useState(false);
-   const [joinGroupError, setJoinGroupError] = useState<string | null>(null);
-   const [joinGroupSuccess, setJoinGroupSuccess] = useState<string | null>(
-       null,
-   );
-  const [unreadByConversation, setUnreadByConversation] = useState<
-    Record<string, number>
-  >(() => {
-    const globalWindow = window as Window & {
-      __unreadByConversation?: Record<string, number>;
-    };
+    const [searchQuery, setSearchQuery] = useState('');
+    const [revealModalOpen, setRevealModalOpen] = useState(false);
+    const [selectedHiddenConversation, setSelectedHiddenConversation] =
+        useState<ConversationView | null>(null);
+    const [showJoinGroupBox, setShowJoinGroupBox] = useState(false);
+    const [joinGroupCode, setJoinGroupCode] = useState('');
+    const [joinGroupMessage, setJoinGroupMessage] = useState('');
+    const [isJoinGroupSubmitting, setIsJoinGroupSubmitting] = useState(false);
+    const [joinGroupError, setJoinGroupError] = useState<string | null>(null);
+    const [joinGroupSuccess, setJoinGroupSuccess] = useState<string | null>(
+        null,
+    );
+    const [unreadByConversation, setUnreadByConversation] = useState<
+        Record<string, number>
+    >(() => {
+        const globalWindow = window as Window & {
+            __unreadByConversation?: Record<string, number>;
+        };
 
         return globalWindow.__unreadByConversation || {};
     });
 
-  const currentUserId = getCurrentUserId();
-
-  const handleOpenCreateGroupModal = useCallback(() => {
-    setGroupModalError(null);
-    setGroupNameInput("");
-    if (groupAvatarPreviewUrl) {
-      URL.revokeObjectURL(groupAvatarPreviewUrl);
-    }
-    setGroupAvatarPreviewUrl(null);
-    setGroupAvatarFile(null);
-    setSelectedGroupMemberIds([]);
-    setIsCreateGroupModalOpen(true);
-  }, [groupAvatarPreviewUrl]);
-
-  const handleGroupAvatarChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0] || null;
-      if (!file) return;
-
-      if (groupAvatarPreviewUrl) {
-        URL.revokeObjectURL(groupAvatarPreviewUrl);
-      }
-
-      setGroupAvatarFile(file);
-      setGroupAvatarPreviewUrl(URL.createObjectURL(file));
-      setGroupModalError(null);
-    },
-    [groupAvatarPreviewUrl],
-  );
-
-  const handleToggleGroupMember = useCallback((userId: string) => {
-    setSelectedGroupMemberIds((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId],
-    );
-  }, []);
-
-  const handleCreateGroup = useCallback(async () => {
-    const normalizedName = groupNameInput.trim();
-    if (!normalizedName) {
-      setGroupModalError("Vui lòng nhập tên nhóm");
-      return;
-    }
-
-    if (selectedGroupMemberIds.length === 0) {
-      setGroupModalError("Vui lòng chọn ít nhất 1 thành viên");
-      return;
-    }
-
-    try {
-      setIsCreatingGroup(true);
-      setGroupModalError(null);
-
-      const createdConversation = await conversationApi.createConversation({
-        type: "GROUP",
-        groupName: normalizedName,
-        memberIds: selectedGroupMemberIds,
-        memberNicknames: selectedGroupMemberIds.map((memberId) => {
-          const friend = friendOptions.find((item) => item.id === memberId);
-          return {
-            userId: memberId,
-            nickname: friend?.fullName || "Member",
-          };
-        }),
-      });
-
-      if (groupAvatarFile && createdConversation?.conversationId) {
-        try {
-          await conversationApi.updateGroupAvatar(
-            createdConversation.conversationId,
-            groupAvatarFile,
-          );
-        } catch (avatarError) {
-          console.error("Create group avatar upload failed:", avatarError);
-        }
-      }
-
-      setIsCreateGroupModalOpen(false);
-      setGroupNameInput("");
-      if (groupAvatarPreviewUrl) {
-        URL.revokeObjectURL(groupAvatarPreviewUrl);
-      }
-      setGroupAvatarPreviewUrl(null);
-      setGroupAvatarFile(null);
-      setSelectedGroupMemberIds([]);
-      onCreateGroupConversation?.(createdConversation as ConversationView);
-    } catch (createError) {
-      setGroupModalError(
-        createError instanceof Error
-          ? createError.message
-          : "Tạo nhóm thất bại",
-      );
-    } finally {
-      setIsCreatingGroup(false);
-    }
-  }, [
-    groupNameInput,
-    selectedGroupMemberIds,
-    friendOptions,
-    groupAvatarFile,
-    groupAvatarPreviewUrl,
-    onCreateGroupConversation,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      if (groupAvatarPreviewUrl) {
-        URL.revokeObjectURL(groupAvatarPreviewUrl);
-      }
-    };
-  }, [groupAvatarPreviewUrl]);
-
-  useEffect(() => {
-    if (!isCreateGroupModalOpen) return;
-
-    const loadFriends = async () => {
-      if (!currentUserId) {
-        setFriendOptions([]);
-        return;
-      }
-
-      try {
-        setIsLoadingFriends(true);
-        const friends = await friendListService.getFriends(currentUserId);
-        setFriendOptions(Array.isArray(friends) ? friends : []);
-      } catch {
-        setGroupModalError("Không tải được danh sách bạn bè");
-      } finally {
-        setIsLoadingFriends(false);
-      }
-    };
-
-    void loadFriends();
-  }, [currentUserId, isCreateGroupModalOpen]);
+    const currentUserId = getCurrentUserId();
 
     useEffect(() => {
         const handleUnreadByConversation = (event: Event) => {

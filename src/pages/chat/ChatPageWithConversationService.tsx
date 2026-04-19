@@ -1,26 +1,28 @@
 import React, {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  useMemo,
-} from "react";
-import { useLocation } from "react-router-dom";
-import ChatSidebarWithConversationService from "../../components/chat/ChatSidebarWithConversationService";
-import ChatHeader from "../../components/chat/ChatHeader";
+    useEffect,
+    useState,
+    useRef,
+    useCallback,
+    useMemo,
+} from 'react';
+import { useLocation } from 'react-router-dom';
+import ChatSidebarWithConversationService from '../../components/chat/ChatSidebarWithConversationService';
+import ChatHeader from '../../components/chat/ChatHeader';
 import MessageList, {
-  type SocketMessage,
-} from "../../components/chat/MessageList";
-import ChatInput from "../../components/chat/ChatInput";
-import { ConversationInfoPanel } from "../../components/chat/ConversationInfoPanel";
-import { ConversationGroupInfoPanel } from "../../components/chat/ConversationGroupInfoPanel";
-import { SearchModal } from "../../components/chat/SearchModal";
-import Modal from "../../components/common/Modal";
-import { Dialog } from "../../components/common/Dialog";
+    type SocketMessage,
+} from '../../components/chat/MessageList';
+import ChatInput from '../../components/chat/ChatInput';
+import { ConversationInfoPanel } from '../../components/chat/ConversationInfoPanel';
+import { ConversationGroupInfoPanel } from '../../components/chat/ConversationGroupInfoPanel';
+import { SearchModal } from '../../components/chat/SearchModal';
+import Modal from '../../components/common/Modal';
+import { Dialog } from '../../components/common/Dialog';
 import {
     sendMessage,
     offMessageNew,
     onMessageNew,
+    onGroupInfoUpdated,
+    offGroupInfoUpdated,
     onMessageReactionUpdated,
     onMessageRecalled,
     offMessageReactionUpdated,
@@ -51,40 +53,40 @@ import type { PinnedMessageItem } from '../../types/conversation';
 import { mapChatActionError } from '../../utils/chatMessageErrors';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_SOCKET_URL ||
-  "http://localhost:3000";
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_SOCKET_URL ||
+    'http://localhost:3000';
 
 const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
-  if (!url) return undefined;
-  if (
-    url.startsWith("http://") ||
-    url.startsWith("https://") ||
-    url.startsWith("blob:") ||
-    url.startsWith("data:")
-  ) {
-    return url;
-  }
+    if (!url) return undefined;
+    if (
+        url.startsWith('http://') ||
+        url.startsWith('https://') ||
+        url.startsWith('blob:') ||
+        url.startsWith('data:')
+    ) {
+        return url;
+    }
 
-  const normalizedBase = API_BASE_URL.replace(/\/$/, "");
-  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
-  return `${normalizedBase}${normalizedPath}`;
+    const normalizedBase = API_BASE_URL.replace(/\/$/, '');
+    const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+    return `${normalizedBase}${normalizedPath}`;
 };
 
 export const ChatPage: React.FC = () => {
-  type ChatSocketMessage = SocketMessage & {
-    clientMessageId?: string;
-    conversationId?: string;
-    type?: "text" | "image" | "file" | "audio" | "video" | "call";
-    callData?: {
-      callType?: "audio" | "video";
-      callStatus?: "completed" | "missed" | "declined";
-      duration?: number;
-      isInitiator?: boolean;
-      wasRejected?: boolean;
+    type ChatSocketMessage = SocketMessage & {
+        clientMessageId?: string;
+        conversationId?: string;
+        type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
+        callData?: {
+            callType?: 'audio' | 'video';
+            callStatus?: 'completed' | 'missed' | 'declined';
+            duration?: number;
+            isInitiator?: boolean;
+            wasRejected?: boolean;
+        };
     };
-  };
 
     type IncomingSocketPayload = {
         messageId?: string;
@@ -146,88 +148,88 @@ export const ChatPage: React.FC = () => {
         data?: Partial<IncomingSocketPayload>;
     };
 
-  const normalizeReactions = useCallback(
-    (input: unknown): NonNullable<SocketMessage["reactions"]> => {
-      if (!Array.isArray(input)) return [];
+    const normalizeReactions = useCallback(
+        (input: unknown): NonNullable<SocketMessage['reactions']> => {
+            if (!Array.isArray(input)) return [];
 
-      const normalized: NonNullable<SocketMessage["reactions"]> = [];
+            const normalized: NonNullable<SocketMessage['reactions']> = [];
 
-      for (const item of input) {
-        if (!item || typeof item !== "object") continue;
+            for (const item of input) {
+                if (!item || typeof item !== 'object') continue;
 
-        const reaction = item as {
-          emoji?: string;
-          reaction?: string;
-          userId?: string;
-          user?: { _id?: string; id?: string; userId?: string };
-          users?: Array<
-            string | { _id?: string; id?: string; userId?: string }
-          >;
-          reactedBy?: Array<
-            string | { _id?: string; id?: string; userId?: string }
-          >;
-          reactedAt?: string | Date;
-        };
+                const reaction = item as {
+                    emoji?: string;
+                    reaction?: string;
+                    userId?: string;
+                    user?: { _id?: string; id?: string; userId?: string };
+                    users?: Array<
+                        string | { _id?: string; id?: string; userId?: string }
+                    >;
+                    reactedBy?: Array<
+                        string | { _id?: string; id?: string; userId?: string }
+                    >;
+                    reactedAt?: string | Date;
+                };
 
-        const emoji = reaction.emoji || reaction.reaction;
-        if (!emoji) continue;
+                const emoji = reaction.emoji || reaction.reaction;
+                if (!emoji) continue;
 
-        const reactionUsers = reaction.users || reaction.reactedBy;
-        if (Array.isArray(reactionUsers) && reactionUsers.length > 0) {
-          for (const user of reactionUsers) {
-            const userId =
-              typeof user === "string"
-                ? user
-                : user?._id || user?.id || user?.userId;
-            if (!userId) continue;
+                const reactionUsers = reaction.users || reaction.reactedBy;
+                if (Array.isArray(reactionUsers) && reactionUsers.length > 0) {
+                    for (const user of reactionUsers) {
+                        const userId =
+                            typeof user === 'string'
+                                ? user
+                                : user?._id || user?.id || user?.userId;
+                        if (!userId) continue;
 
-            normalized.push({
-              userId,
-              emoji,
-              reactedAt:
-                typeof reaction.reactedAt === "string"
-                  ? reaction.reactedAt
-                  : reaction.reactedAt?.toISOString(),
-            });
-          }
+                        normalized.push({
+                            userId,
+                            emoji,
+                            reactedAt:
+                                typeof reaction.reactedAt === 'string'
+                                    ? reaction.reactedAt
+                                    : reaction.reactedAt?.toISOString(),
+                        });
+                    }
 
-          continue;
-        }
+                    continue;
+                }
 
-        const userId =
-          reaction.userId ||
-          reaction.user?._id ||
-          reaction.user?.id ||
-          reaction.user?.userId ||
-          "";
+                const userId =
+                    reaction.userId ||
+                    reaction.user?._id ||
+                    reaction.user?.id ||
+                    reaction.user?.userId ||
+                    '';
 
-        normalized.push({
-          userId,
-          emoji,
-          reactedAt:
-            typeof reaction.reactedAt === "string"
-              ? reaction.reactedAt
-              : reaction.reactedAt?.toISOString(),
-        });
-      }
+                normalized.push({
+                    userId,
+                    emoji,
+                    reactedAt:
+                        typeof reaction.reactedAt === 'string'
+                            ? reaction.reactedAt
+                            : reaction.reactedAt?.toISOString(),
+                });
+            }
 
-      return normalized;
-    },
-    [],
-  );
+            return normalized;
+        },
+        [],
+    );
 
-  // Get user ID inside component (after auth is loaded)
-  const USER_ID = getCurrentUserId();
-  const USERNAME = getCurrentUserName();
-  const {
-    initiateCall,
-    status: callStatus,
-    startTime: callStartTime,
-    isInitiator,
-    wasAnswered,
-    wasRejected,
-  } = useCall();
-  const location = useLocation();
+    // Get user ID inside component (after auth is loaded)
+    const USER_ID = getCurrentUserId();
+    const USERNAME = getCurrentUserName();
+    const {
+        initiateCall,
+        status: callStatus,
+        startTime: callStartTime,
+        isInitiator,
+        wasAnswered,
+        wasRejected,
+    } = useCall();
+    const location = useLocation();
 
     const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>(
         [],
@@ -265,6 +267,7 @@ export const ChatPage: React.FC = () => {
     const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
     const [typingUserNames, setTypingUserNames] = useState<string[]>([]);
+    const [, setOpenGroupInfoEditTick] = useState(0);
     const [replyDraft, setReplyDraft] = useState<{
         conversationId: string;
         replyToMessageId: string;
@@ -282,163 +285,168 @@ export const ChatPage: React.FC = () => {
     const pendingMediaHydrationRef = useRef<Set<string>>(new Set());
     const lastReadMessageIdRef = useRef<string | null>(null);
 
-  // Fetch all conversations (for sidebar + forward modal)
-  const {
-    conversations,
-    loading: conversationsLoading,
-    error: conversationsError,
-    refreshConversations,
-    updateConversationLastMessage,
-    markConversationLastMessageRecalled,
-  } = useConversations();
+    // Fetch all conversations (for sidebar + forward modal)
+    const {
+        conversations,
+        loading: conversationsLoading,
+        error: conversationsError,
+        refreshConversations,
+        updateConversationLastMessage,
+        markConversationLastMessageRecalled,
+    } = useConversations();
 
-  // Fetch selected conversation detail
-  // No need to pass USER_ID - JWT token from localStorage is used
-  const { conversation: selectedConversation, fetchDetail } =
-    useConversationDetail(selectedConversationId || "");
+    // Fetch selected conversation detail
+    // No need to pass USER_ID - JWT token from localStorage is used
+    const { conversation: selectedConversation, fetchDetail } =
+        useConversationDetail(selectedConversationId || '');
 
-  // Fetch messages for selected conversation
-  // No need to pass USER_ID - JWT token from localStorage is used
-  const { messages: paginatedMessages } = useConversationMessages(
-    selectedConversationId || "",
-    30,
-  );
-
-  const {
-    emitTyping,
-    emitRead,
-    sendMessage: sendChatMessage,
-    joinStatus,
-  } = useChatRoom({
-    conversationId: selectedConversationId,
-    enabled: true,
-    onJoinError: setError,
-  });
-
-  useEffect(() => {
-    if (!selectedConversationId) return;
-
-    const handleGroupInfoUpdatedRealtime = (payload: { groupId: string }) => {
-      if (payload.groupId !== selectedConversationId) return;
-      void refreshConversations();
-      void fetchDetail();
-    };
-
-    onGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
-    return () => {
-      offGroupInfoUpdated();
-    };
-  }, [selectedConversationId, refreshConversations, fetchDetail]);
-
-  const getReceiverId = useCallback(() => {
-    if (!selectedConversation) return "";
-
-    const otherParticipant = selectedConversation.participants?.find(
-      (p) => p.userId !== USER_ID,
+    // Fetch messages for selected conversation
+    // No need to pass USER_ID - JWT token from localStorage is used
+    const { messages: paginatedMessages } = useConversationMessages(
+        selectedConversationId || '',
+        30,
     );
-    return otherParticipant?.userId ?? USER_ID;
-  }, [selectedConversation, USER_ID]);
 
-  const getMessageKey = useCallback(
-    (message: Pick<SocketMessage, "id" | "clientMessageId">) =>
-      message.clientMessageId || message.id,
-    [],
-  );
-
-  const isPersistedMessageId = useCallback(
-    (messageId?: string) => !!messageId && /^[a-f0-9]{24}$/i.test(messageId),
-    [],
-  );
-
-  const resolvePersistedMessageId = useCallback(
-    (message: SocketMessage): string | null => {
-      if (isPersistedMessageId(message.id)) {
-        return message.id;
-      }
-
-      if (isPersistedMessageId(message.clientMessageId)) {
-        return message.clientMessageId || null;
-      }
-
-      const matched = paginatedMessages.find(
-        (item) =>
-          !!message.clientMessageId &&
-          item.clientMessageId === message.clientMessageId,
-      );
-
-      if (!matched) return null;
-
-      const matchedPersistedId = [matched.messageId, matched._id].find(
-        (candidate) => isPersistedMessageId(candidate),
-      );
-
-      return matchedPersistedId || null;
-    },
-    [isPersistedMessageId, paginatedMessages],
-  );
-
-  // Theo doi message da thu hoi de dong bo realtime cho danh sach message.
-  const markMessageAsRecalled = useCallback((messageId?: string) => {
-    if (!messageId) return;
-
-    setRecalledMessageKeys((prev) => {
-      const next = new Set(prev);
-      next.add(messageId);
-      return next;
+    const {
+        emitTyping,
+        emitRead,
+        sendMessage: sendChatMessage,
+        joinStatus,
+    } = useChatRoom({
+        conversationId: selectedConversationId,
+        enabled: true,
+        onJoinError: setError,
     });
-  }, []);
 
-  // Helper function to load block status
-  const loadBlockStatus = useCallback(
-    async (convId?: string) => {
-      const conversationId = convId || selectedConversation?.conversationId;
-      if (!conversationId) {
-        setIAmBlocked(false);
-        setIAmTheBlocker(false);
-        return;
-      }
+    useEffect(() => {
+        if (!selectedConversationId) return;
 
-      try {
-        const response = await conversationApi.getBlockStatus(conversationId);
-        // Backend response:
-        // - iAmBlocked: current user bị chặn
-        // - iAmTheBlocker: current user là người chặn (có nút bỏ chặn)
-        setIAmBlocked(response?.iAmBlocked || false);
-        setIAmTheBlocker(response?.iAmTheBlocker || false);
-      } catch (error) {
-        console.error("Error loading block status:", error);
-        setIAmBlocked(false);
-        setIAmTheBlocker(false);
-      }
-    },
-    [selectedConversation?.conversationId],
-  );
+        const handleGroupInfoUpdatedRealtime = (payload: {
+            groupId: string;
+        }) => {
+            if (payload.groupId !== selectedConversationId) return;
+            void refreshConversations();
+            void fetchDetail();
+        };
 
-  // Load block status when conversation changes
-  useEffect(() => {
-    loadBlockStatus();
-  }, [loadBlockStatus]);
+        onGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
+        return () => {
+            offGroupInfoUpdated();
+        };
+    }, [selectedConversationId, refreshConversations, fetchDetail]);
 
-  // Auto-select conversation from location state (e.g., from friend chat click)
-  useEffect(() => {
-    const state = location.state as {
-      selectedConversationId?: string;
-    } | null;
-    if (state?.selectedConversationId && !selectedConversationId) {
-      setSelectedConversationId(state.selectedConversationId);
-    }
-  }, [location.state, selectedConversationId]);
+    const getReceiverId = useCallback(() => {
+        if (!selectedConversation) return '';
 
-  // Poll block status every 5 seconds to detect when other user blocks/unblocks
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      if (selectedConversation?.conversationId) {
+        const otherParticipant = selectedConversation.participants?.find(
+            (p) => p.userId !== USER_ID,
+        );
+        return otherParticipant?.userId ?? USER_ID;
+    }, [selectedConversation, USER_ID]);
+
+    const getMessageKey = useCallback(
+        (message: Pick<SocketMessage, 'id' | 'clientMessageId'>) =>
+            message.clientMessageId || message.id,
+        [],
+    );
+
+    const isPersistedMessageId = useCallback(
+        (messageId?: string) =>
+            !!messageId && /^[a-f0-9]{24}$/i.test(messageId),
+        [],
+    );
+
+    const resolvePersistedMessageId = useCallback(
+        (message: SocketMessage): string | null => {
+            if (isPersistedMessageId(message.id)) {
+                return message.id;
+            }
+
+            if (isPersistedMessageId(message.clientMessageId)) {
+                return message.clientMessageId || null;
+            }
+
+            const matched = paginatedMessages.find(
+                (item) =>
+                    !!message.clientMessageId &&
+                    item.clientMessageId === message.clientMessageId,
+            );
+
+            if (!matched) return null;
+
+            const matchedPersistedId = [matched.messageId, matched._id].find(
+                (candidate) => isPersistedMessageId(candidate),
+            );
+
+            return matchedPersistedId || null;
+        },
+        [isPersistedMessageId, paginatedMessages],
+    );
+
+    // Theo doi message da thu hoi de dong bo realtime cho danh sach message.
+    const markMessageAsRecalled = useCallback((messageId?: string) => {
+        if (!messageId) return;
+
+        setRecalledMessageKeys((prev) => {
+            const next = new Set(prev);
+            next.add(messageId);
+            return next;
+        });
+    }, []);
+
+    // Helper function to load block status
+    const loadBlockStatus = useCallback(
+        async (convId?: string) => {
+            const conversationId =
+                convId || selectedConversation?.conversationId;
+            if (!conversationId) {
+                setIAmBlocked(false);
+                setIAmTheBlocker(false);
+                return;
+            }
+
+            try {
+                const response =
+                    await conversationApi.getBlockStatus(conversationId);
+                // Backend response:
+                // - iAmBlocked: current user bị chặn
+                // - iAmTheBlocker: current user là người chặn (có nút bỏ chặn)
+                setIAmBlocked(response?.iAmBlocked || false);
+                setIAmTheBlocker(response?.iAmTheBlocker || false);
+            } catch (error) {
+                console.error('Error loading block status:', error);
+                setIAmBlocked(false);
+                setIAmTheBlocker(false);
+            }
+        },
+        [selectedConversation?.conversationId],
+    );
+
+    // Load block status when conversation changes
+    useEffect(() => {
         loadBlockStatus();
-      }
-    }, 5000); // Poll mỗi 5 giây
+    }, [loadBlockStatus]);
 
-    return () => clearInterval(intervalId);
-  }, [selectedConversation?.conversationId, loadBlockStatus]);
+    // Auto-select conversation from location state (e.g., from friend chat click)
+    useEffect(() => {
+        const state = location.state as {
+            selectedConversationId?: string;
+        } | null;
+        if (state?.selectedConversationId && !selectedConversationId) {
+            setSelectedConversationId(state.selectedConversationId);
+        }
+    }, [location.state, selectedConversationId]);
+
+    // Poll block status every 5 seconds to detect when other user blocks/unblocks
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            if (selectedConversation?.conversationId) {
+                loadBlockStatus();
+            }
+        }, 5000); // Poll mỗi 5 giây
+
+        return () => clearInterval(intervalId);
+    }, [selectedConversation?.conversationId, loadBlockStatus]);
 
     // Refresh conversations when navigating from friend page (new conversation created)
     useEffect(() => {
@@ -486,52 +494,55 @@ export const ChatPage: React.FC = () => {
         };
     }, [handleGroupConversationRemoved]);
 
-  // Handle unblock user - chỉ người chặn mới có thể mở chặn
-  const handleUnblockUser = async () => {
-    if (!selectedConversation?.conversationId) return;
+    // Handle unblock user - chỉ người chặn mới có thể mở chặn
+    const handleUnblockUser = async () => {
+        if (!selectedConversation?.conversationId) return;
 
-    // Verify current user là người chặn (iAmTheBlocker)
-    if (!iAmTheBlocker) {
-      console.error("Only the person who blocked can unblock");
-      return;
-    }
+        // Verify current user là người chặn (iAmTheBlocker)
+        if (!iAmTheBlocker) {
+            console.error('Only the person who blocked can unblock');
+            return;
+        }
 
-    try {
-      await conversationApi.unblockUser(selectedConversation.conversationId);
-      // Reload block status immediately để cả 2 bên đều biết
-      await loadBlockStatus();
-    } catch (error) {
-      console.error("Error unblocking user:", error);
-    }
-  };
+        try {
+            await conversationApi.unblockUser(
+                selectedConversation.conversationId,
+            );
+            // Reload block status immediately để cả 2 bên đều biết
+            await loadBlockStatus();
+        } catch (error) {
+            console.error('Error unblocking user:', error);
+        }
+    };
 
-  const toSocketMessage = useCallback(
-    (payload: IncomingSocketPayload): ChatSocketMessage => {
-      const messageType = payload?.messageType || payload?.type;
-      const normalizedType = String(messageType || "").toLowerCase();
-      const resolvedType: ChatSocketMessage["type"] =
-        normalizedType === "image"
-          ? "image"
-          : normalizedType === "video"
-            ? "video"
-            : normalizedType === "file"
-              ? "file"
-              : normalizedType === "audio"
-                ? "audio"
-                : normalizedType === "call"
-                  ? "call"
-                  : "text";
-      const isImageType =
-        messageType === "IMAGE" ||
-        messageType === "image" ||
-        payload?.fileType?.startsWith("image/");
-      const isVideoType =
-        messageType === "VIDEO" ||
-        messageType === "video" ||
-        payload?.fileType?.startsWith("video/");
+    const toSocketMessage = useCallback(
+        (payload: IncomingSocketPayload): ChatSocketMessage => {
+            const messageType = payload?.messageType || payload?.type;
+            const normalizedType = String(messageType || '').toLowerCase();
+            const resolvedType: ChatSocketMessage['type'] =
+                normalizedType === 'image'
+                    ? 'image'
+                    : normalizedType === 'video'
+                      ? 'video'
+                      : normalizedType === 'file'
+                        ? 'file'
+                        : normalizedType === 'audio'
+                          ? 'audio'
+                          : normalizedType === 'call'
+                            ? 'call'
+                            : 'text';
+            const isImageType =
+                messageType === 'IMAGE' ||
+                messageType === 'image' ||
+                payload?.fileType?.startsWith('image/');
+            const isVideoType =
+                messageType === 'VIDEO' ||
+                messageType === 'video' ||
+                payload?.fileType?.startsWith('video/');
 
-      // Get sender ID and use it as fallback for name
-      const senderId = payload?.senderId || payload?.senderBy || "unknown";
+            // Get sender ID and use it as fallback for name
+            const senderId =
+                payload?.senderId || payload?.senderBy || 'unknown';
 
             return {
                 id:
@@ -635,277 +646,289 @@ export const ChatPage: React.FC = () => {
         [],
     );
 
-  const hydrateMediaMessage = useCallback(
-    async (message: ChatSocketMessage) => {
-      if (!message.conversationId) return;
-      const hydrationKey = message.id || message.clientMessageId;
-      if (!hydrationKey) return;
-      if (pendingMediaHydrationRef.current.has(hydrationKey)) return;
+    const hydrateMediaMessage = useCallback(
+        async (message: ChatSocketMessage) => {
+            if (!message.conversationId) return;
+            const hydrationKey = message.id || message.clientMessageId;
+            if (!hydrationKey) return;
+            if (pendingMediaHydrationRef.current.has(hydrationKey)) return;
 
-      pendingMediaHydrationRef.current.add(hydrationKey);
+            pendingMediaHydrationRef.current.add(hydrationKey);
 
-      try {
-        const maxAttempts = 4;
-        for (let i = 0; i < maxAttempts; i += 1) {
-          const result = await conversationApi.getMessagesByConversation({
-            conversationId: message.conversationId,
-            limit: 30,
-          });
+            try {
+                const maxAttempts = 4;
+                for (let i = 0; i < maxAttempts; i += 1) {
+                    const result =
+                        await conversationApi.getMessagesByConversation({
+                            conversationId: message.conversationId,
+                            limit: 30,
+                        });
 
-          const matched = result.items.find(
-            (item) =>
-              item.messageId === message.id ||
-              item._id === message.id ||
-              (!!message.clientMessageId &&
-                item.clientMessageId === message.clientMessageId),
-          );
+                    const matched = result.items.find(
+                        (item) =>
+                            item.messageId === message.id ||
+                            item._id === message.id ||
+                            (!!message.clientMessageId &&
+                                item.clientMessageId ===
+                                    message.clientMessageId),
+                    );
 
-          if (matched?.mediaUrl) {
-            const hydrated = toSocketMessage({
-              messageId: matched.messageId,
-              _id: matched._id,
-              clientMessageId: matched.clientMessageId,
-              senderBy: matched.senderBy || matched.senderId,
-              senderName: matched.senderBy || matched.senderId,
-              content: matched.content,
-              createdAt:
-                typeof matched.createdAt === "string"
-                  ? matched.createdAt
-                  : matched.createdAt?.toISOString(),
-              conversationId: matched.conversationId,
-              messageType: matched.messageType,
-              mediaUrl: matched.mediaUrl,
-              fileName: matched.fileName,
-              fileType: matched.mimeType,
+                    if (matched?.mediaUrl) {
+                        const hydrated = toSocketMessage({
+                            messageId: matched.messageId,
+                            _id: matched._id,
+                            clientMessageId: matched.clientMessageId,
+                            senderBy: matched.senderBy || matched.senderId,
+                            senderName: matched.senderBy || matched.senderId,
+                            content: matched.content,
+                            createdAt:
+                                typeof matched.createdAt === 'string'
+                                    ? matched.createdAt
+                                    : matched.createdAt?.toISOString(),
+                            conversationId: matched.conversationId,
+                            messageType: matched.messageType,
+                            mediaUrl: matched.mediaUrl,
+                            fileName: matched.fileName,
+                            fileType: matched.mimeType,
+                        });
+
+                        setSocketMessages((prev) =>
+                            prev.map((msg) =>
+                                msg.id === message.id ||
+                                (!!message.clientMessageId &&
+                                    msg.clientMessageId ===
+                                        message.clientMessageId)
+                                    ? {
+                                          ...msg,
+                                          ...hydrated,
+                                          fileUrl:
+                                              hydrated.fileUrl || msg.fileUrl,
+                                          fileType:
+                                              hydrated.fileType || msg.fileType,
+                                      }
+                                    : msg,
+                            ),
+                        );
+                        return;
+                    }
+
+                    if (i < maxAttempts - 1) {
+                        await new Promise((resolve) =>
+                            window.setTimeout(resolve, 250),
+                        );
+                    }
+                }
+            } catch (err) {
+                console.warn('[ChatPage] hydrate media failed', err);
+            } finally {
+                pendingMediaHydrationRef.current.delete(hydrationKey);
+            }
+        },
+        [toSocketMessage],
+    );
+
+    // Initialize socket listeners once; room lifecycle is handled by useChatRoom.
+    useEffect(() => {
+        debugAuthStatus();
+        setIsConnecting(false);
+
+        const messageHandler = (payload: IncomingSocketPayload) => {
+            const rawPayload = payload?.message || payload?.data || payload;
+            const msg = toSocketMessage(rawPayload);
+
+            const hasVisibleContent =
+                msg.isRecalled ||
+                msg.content.trim().length > 0 ||
+                (msg.isFile && !!msg.fileUrl) ||
+                (msg.type === 'call' && !!msg.callData);
+
+            if (!hasVisibleContent || !msg.conversationId) {
+                console.warn(
+                    '[ChatPage] Message filtered out - no visible content or conversationId',
+                );
+                return;
+            }
+
+            setSocketMessages((prev) => {
+                const existingIndex = prev.findIndex(
+                    (p) =>
+                        (!!msg.clientMessageId &&
+                            p.clientMessageId === msg.clientMessageId) ||
+                        p.id === msg.id,
+                );
+
+                if (existingIndex >= 0) {
+                    const next = [...prev];
+                    const current = next[existingIndex];
+                    next[existingIndex] = {
+                        ...current,
+                        ...msg,
+                        isFile: msg.isFile || current.isFile,
+                        fileUrl: msg.fileUrl || current.fileUrl,
+                        fileName: msg.fileName || current.fileName,
+                        fileType: msg.fileType || current.fileType,
+                        type: msg.type || current.type,
+                    };
+                    return next;
+                }
+
+                return [...prev, msg];
             });
 
+            if (msg.isFile && !msg.fileUrl) {
+                void hydrateMediaMessage(msg);
+            }
+
+            if (msg.conversationId) {
+                const normalizedType = (
+                    msg.type || (msg.isFile ? 'file' : 'text')
+                ).toUpperCase();
+
+                updateConversationLastMessage(msg.conversationId, {
+                    messageId: msg.id,
+                    clientMessageId: msg.clientMessageId,
+                    content: msg.content,
+                    messageType: normalizedType as
+                        | 'TEXT'
+                        | 'IMAGE'
+                        | 'FILE'
+                        | 'VIDEO'
+                        | 'AUDIO',
+                    senderBy: msg.senderId,
+                    createdAt: msg.timestamp,
+                    isRecalled: !!msg.isRecalled,
+                });
+            }
+        };
+
+        const reactionHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            reactions: Array<{
+                userId: string;
+                emoji: string;
+                reactedAt: string;
+            }>;
+            actedBy: string;
+            action: 'set' | 'remove';
+            emoji?: string;
+            at: string;
+        }) => {
+            if (payload.conversationId !== selectedConversationId) return;
+
             setSocketMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === message.id ||
-                (!!message.clientMessageId &&
-                  msg.clientMessageId === message.clientMessageId)
-                  ? {
-                      ...msg,
-                      ...hydrated,
-                      fileUrl: hydrated.fileUrl || msg.fileUrl,
-                      fileType: hydrated.fileType || msg.fileType,
-                    }
-                  : msg,
-              ),
-            );
-            return;
-          }
-
-          if (i < maxAttempts - 1) {
-            await new Promise((resolve) => window.setTimeout(resolve, 250));
-          }
-        }
-      } catch (err) {
-        console.warn("[ChatPage] hydrate media failed", err);
-      } finally {
-        pendingMediaHydrationRef.current.delete(hydrationKey);
-      }
-    },
-    [toSocketMessage],
-  );
-
-  // Initialize socket listeners once; room lifecycle is handled by useChatRoom.
-  useEffect(() => {
-    debugAuthStatus();
-    setIsConnecting(false);
-
-    const messageHandler = (payload: IncomingSocketPayload) => {
-      const rawPayload = payload?.message || payload?.data || payload;
-      const msg = toSocketMessage(rawPayload);
-
-      const hasVisibleContent =
-        msg.isRecalled ||
-        msg.content.trim().length > 0 ||
-        (msg.isFile && !!msg.fileUrl) ||
-        (msg.type === "call" && !!msg.callData);
-
-      if (!hasVisibleContent || !msg.conversationId) {
-        console.warn(
-          "[ChatPage] Message filtered out - no visible content or conversationId",
-        );
-        return;
-      }
-
-      setSocketMessages((prev) => {
-        const existingIndex = prev.findIndex(
-          (p) =>
-            (!!msg.clientMessageId &&
-              p.clientMessageId === msg.clientMessageId) ||
-            p.id === msg.id,
-        );
-
-        if (existingIndex >= 0) {
-          const next = [...prev];
-          const current = next[existingIndex];
-          next[existingIndex] = {
-            ...current,
-            ...msg,
-            isFile: msg.isFile || current.isFile,
-            fileUrl: msg.fileUrl || current.fileUrl,
-            fileName: msg.fileName || current.fileName,
-            fileType: msg.fileType || current.fileType,
-            type: msg.type || current.type,
-          };
-          return next;
-        }
-
-        return [...prev, msg];
-      });
-
-      if (msg.isFile && !msg.fileUrl) {
-        void hydrateMediaMessage(msg);
-      }
-
-      if (msg.conversationId) {
-        const normalizedType = (
-          msg.type || (msg.isFile ? "file" : "text")
-        ).toUpperCase();
-
-        updateConversationLastMessage(msg.conversationId, {
-          messageId: msg.id,
-          clientMessageId: msg.clientMessageId,
-          content: msg.content,
-          messageType: normalizedType as
-            | "TEXT"
-            | "IMAGE"
-            | "FILE"
-            | "VIDEO"
-            | "AUDIO",
-          senderBy: msg.senderId,
-          createdAt: msg.timestamp,
-          isRecalled: !!msg.isRecalled,
-        });
-      }
-    };
-
-    const reactionHandler = (payload: {
-      conversationId: string;
-      messageId: string;
-      reactions: Array<{
-        userId: string;
-        emoji: string;
-        reactedAt: string;
-      }>;
-      actedBy: string;
-      action: "set" | "remove";
-      emoji?: string;
-      at: string;
-    }) => {
-      if (payload.conversationId !== selectedConversationId) return;
-
-      setSocketMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === payload.messageId ||
-          msg.clientMessageId === payload.messageId
-            ? {
-                ...msg,
-                reactions: payload.reactions,
-              }
-            : msg,
-        ),
-      );
-
-      setReactionOverrides((prev) => ({
-        ...prev,
-        [payload.messageId]: payload.reactions,
-      }));
-    };
-
-    const recallHandler = (payload: {
-      conversationId: string;
-      messageId: string;
-      revokedBy: string;
-      revokedAt: string;
-      isRevoked?: boolean;
-    }) => {
-      markConversationLastMessageRecalled(
-        payload.conversationId,
-        payload.messageId,
-      );
-
-      if (payload.conversationId !== selectedConversationId) return;
-
-      markMessageAsRecalled(payload.messageId);
-
-      setSocketMessages((prev) => {
-        const updated = prev.map((msg) => {
-          if (
-            msg.id === payload.messageId ||
-            msg.clientMessageId === payload.messageId
-          ) {
-            return {
-              ...msg,
-              isRecalled: true,
-            };
-          }
-          return msg;
-        });
-
-        return updated;
-      });
-    };
-
-    const deletedHandler = (payload: {
-      conversationId: string;
-      messageId: string;
-      deletedBy: string;
-      isDeleted: boolean;
-      at: string;
-    }) => {
-      if (payload.deletedBy !== USER_ID) return;
-
-      if (payload.conversationId === selectedConversationId) {
-        setHiddenMessageKeys((prev) => {
-          const next = new Set(prev);
-          next.add(payload.messageId);
-          return next;
-        });
-      }
-
-      setSocketMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === payload.messageId ||
-          msg.clientMessageId === payload.messageId
-            ? {
-                ...msg,
-                deletedForUsers: Array.from(
-                  new Set([...(msg.deletedForUsers || []), USER_ID]),
+                prev.map((msg) =>
+                    msg.id === payload.messageId ||
+                    msg.clientMessageId === payload.messageId
+                        ? {
+                              ...msg,
+                              reactions: payload.reactions,
+                          }
+                        : msg,
                 ),
-              }
-            : msg,
-        ),
-      );
-    };
+            );
 
-    const seenHandler = (payload: {
-      conversationId: string;
-      messageId: string;
-      userId: string;
-      seenAt: string;
-    }) => {
-      if (payload.conversationId !== selectedConversationId) return;
+            setReactionOverrides((prev) => ({
+                ...prev,
+                [payload.messageId]: payload.reactions,
+            }));
+        };
 
-      setSocketMessages((prev) =>
-        prev.map((msg) => {
-          if (
-            msg.id !== payload.messageId &&
-            msg.clientMessageId !== payload.messageId
-          ) {
-            return msg;
-          }
+        const recallHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            revokedBy: string;
+            revokedAt: string;
+            isRevoked?: boolean;
+        }) => {
+            markConversationLastMessageRecalled(
+                payload.conversationId,
+                payload.messageId,
+            );
 
-          const currentSeenBy = Array.isArray(msg.seenBy) ? msg.seenBy : [];
+            if (payload.conversationId !== selectedConversationId) return;
 
-          const nextSeenBy = currentSeenBy.filter(
-            (item) => item !== payload.userId,
-          );
+            markMessageAsRecalled(payload.messageId);
 
-          nextSeenBy.push(payload.userId);
+            setSocketMessages((prev) => {
+                const updated = prev.map((msg) => {
+                    if (
+                        msg.id === payload.messageId ||
+                        msg.clientMessageId === payload.messageId
+                    ) {
+                        return {
+                            ...msg,
+                            isRecalled: true,
+                        };
+                    }
+                    return msg;
+                });
+
+                return updated;
+            });
+        };
+
+        const deletedHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            deletedBy: string;
+            isDeleted: boolean;
+            at: string;
+        }) => {
+            if (payload.deletedBy !== USER_ID) return;
+
+            if (payload.conversationId === selectedConversationId) {
+                setHiddenMessageKeys((prev) => {
+                    const next = new Set(prev);
+                    next.add(payload.messageId);
+                    return next;
+                });
+            }
+
+            setSocketMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === payload.messageId ||
+                    msg.clientMessageId === payload.messageId
+                        ? {
+                              ...msg,
+                              deletedForUsers: Array.from(
+                                  new Set([
+                                      ...(msg.deletedForUsers || []),
+                                      USER_ID,
+                                  ]),
+                              ),
+                          }
+                        : msg,
+                ),
+            );
+        };
+
+        const seenHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            userId: string;
+            seenAt: string;
+        }) => {
+            if (payload.conversationId !== selectedConversationId) return;
+
+            setSocketMessages((prev) =>
+                prev.map((msg) => {
+                    if (
+                        msg.id !== payload.messageId &&
+                        msg.clientMessageId !== payload.messageId
+                    ) {
+                        return msg;
+                    }
+
+                    const currentSeenBy = Array.isArray(msg.seenBy)
+                        ? msg.seenBy
+                        : [];
+
+                    const nextSeenBy = currentSeenBy.filter(
+                        (item) => item !== payload.userId,
+                    );
+
+                    nextSeenBy.push(payload.userId);
 
                     return {
                         ...msg,
@@ -986,22 +1009,23 @@ export const ChatPage: React.FC = () => {
                 at: string;
             };
 
-      if (typingPayload.conversationId !== selectedConversationId) return;
-      if (typingPayload.userId === USER_ID) return;
+            if (typingPayload.conversationId !== selectedConversationId) return;
+            if (typingPayload.userId === USER_ID) return;
 
-      const participantName =
-        selectedConversation?.participants?.find(
-          (participant) => participant.userId === typingPayload.userId,
-        )?.fullName || typingPayload.userId;
+            const participantName =
+                selectedConversation?.participants?.find(
+                    (participant) =>
+                        participant.userId === typingPayload.userId,
+                )?.fullName || typingPayload.userId;
 
-      setTypingUserNames((prev) => {
-        const next = prev.filter((name) => name !== participantName);
-        if (typingPayload.isTyping) {
-          next.push(participantName);
-        }
-        return next;
-      });
-    });
+            setTypingUserNames((prev) => {
+                const next = prev.filter((name) => name !== participantName);
+                if (typingPayload.isTyping) {
+                    next.push(participantName);
+                }
+                return next;
+            });
+        });
 
         return () => {
             if (messageListenerRef.current) {
@@ -1028,13 +1052,13 @@ export const ChatPage: React.FC = () => {
         selectedConversation?.participants,
     ]);
 
-  // Handle conversation selection
-  const handleSelectConversation = useCallback((conversationId: string) => {
-    setSelectedConversationId(conversationId);
-    setSocketMessages([]); // Clear socket messages on new conversation
-    setIsSearchOpen(false);
-    setIsInfoPanelOpen(true);
-  }, []);
+    // Handle conversation selection
+    const handleSelectConversation = useCallback((conversationId: string) => {
+        setSelectedConversationId(conversationId);
+        setSocketMessages([]); // Clear socket messages on new conversation
+        setIsSearchOpen(false);
+        setIsInfoPanelOpen(true);
+    }, []);
 
     useEffect(() => {
         // Reset state thu hoi theo tung conversation de tranh anh huong cheo.
@@ -1047,417 +1071,444 @@ export const ChatPage: React.FC = () => {
         void refreshPinnedMessages(selectedConversationId);
     }, [selectedConversationId, refreshPinnedMessages]);
 
-  // Enhance sender names for messages that only have phone numbers (backward compatibility)
-  // New messages from backend already include senderName
-  useEffect(() => {
-    if (socketMessages.length === 0) return;
+    // Enhance sender names for messages that only have phone numbers (backward compatibility)
+    // New messages from backend already include senderName
+    useEffect(() => {
+        if (socketMessages.length === 0) return;
 
-    // Find messages with only phone numbers as sender names (need enrichment)
-    const messagesToEnrich = socketMessages.filter(
-      (msg) =>
-        msg.senderName &&
-        /^\d{10,11}$/.test(msg.senderName) && // Looks like a phone number
-        msg.senderName === msg.senderId, // senderName is same as senderId (not enriched yet)
-    );
-
-    if (messagesToEnrich.length === 0) return;
-
-    // Collect unique sender IDs that need enrichment
-    const uniqueSenderIds = new Set(
-      messagesToEnrich.map((msg) => msg.senderId),
-    );
-
-    // Fetch user info for senders with only phone numbers
-    const enrichSenderNames = async () => {
-      for (const senderId of uniqueSenderIds) {
-        if (!senderId) continue;
-
-        try {
-          const userInfo = await getUserInfo(senderId);
-          if (userInfo?.fullName && userInfo.fullName !== senderId) {
-            // Update messages with actual sender name
-            setSocketMessages((prev) =>
-              prev.map((msg) =>
-                msg.senderId === senderId && /^\d{10,11}$/.test(msg.senderName)
-                  ? { ...msg, senderName: userInfo.fullName }
-                  : msg,
-              ),
-            );
-          }
-        } catch (err) {
-          console.warn(
-            `[ChatPage] Failed to enrich user info for ${senderId}:`,
-            err,
-          );
-        }
-      }
-    };
-
-    enrichSenderNames();
-  }, [socketMessages]);
-
-  const recallLocalMessage = useCallback(
-    (message: SocketMessage) => {
-      const messageKey = getMessageKey(message);
-
-      markMessageAsRecalled(messageKey);
-
-      // Nguoi gui thay sidebar doi ngay khi recall message cuoi cung.
-      if (selectedConversationId) {
-        markConversationLastMessageRecalled(selectedConversationId, message.id);
-        if (message.clientMessageId) {
-          markConversationLastMessageRecalled(
-            selectedConversationId,
-            message.clientMessageId,
-          );
-        }
-      }
-
-      setSocketMessages((prev) =>
-        prev.map((msg) => {
-          const sameMessage =
-            (message.clientMessageId &&
-              msg.clientMessageId === message.clientMessageId) ||
-            msg.id === message.id;
-
-          if (!sameMessage) return msg;
-
-          return {
-            ...msg,
-            content: "",
-            isFile: false,
-            fileUrl: undefined,
-            fileName: undefined,
-            fileType: undefined,
-            isRecalled: true,
-          };
-        }),
-      );
-    },
-    [
-      getMessageKey,
-      markConversationLastMessageRecalled,
-      markMessageAsRecalled,
-      selectedConversationId,
-    ],
-  );
-
-  const executeRecallMessage = useCallback(
-    async (message: SocketMessage) => {
-      if (joinStatus === "error") {
-        setError(
-          "Bạn không có quyền thu hồi tin nhắn trong cuộc trò chuyện này.",
+        // Find messages with only phone numbers as sender names (need enrichment)
+        const messagesToEnrich = socketMessages.filter(
+            (msg) =>
+                msg.senderName &&
+                /^\d{10,11}$/.test(msg.senderName) && // Looks like a phone number
+                msg.senderName === msg.senderId, // senderName is same as senderId (not enriched yet)
         );
-        return;
-      }
 
-      if (!selectedConversationId || message.senderId !== USER_ID) return;
+        if (messagesToEnrich.length === 0) return;
 
-      console.log("[ChatPage] Recall request message:", message);
-
-      if (message.id.startsWith("msg_")) {
-        setError("Không thể thu hồi: tin nhắn chưa gửi xong.");
-        return;
-      }
-
-      if (!isPersistedMessageId(message.id)) {
-        setError("Không thể thu hồi: tin nhắn chưa có ID máy chủ hợp lệ.");
-        return;
-      }
-
-      try {
-        console.log("[ChatPage] Recall API payload:", {
-          conversationId: selectedConversationId,
-          messageId: message.id,
-          clientMessageId: message.clientMessageId,
-        });
-        await conversationApi.recallMessage(selectedConversationId, message.id);
-        recallLocalMessage(message);
-      } catch (err) {
-        console.error("Error recalling message:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to recall message",
+        // Collect unique sender IDs that need enrichment
+        const uniqueSenderIds = new Set(
+            messagesToEnrich.map((msg) => msg.senderId),
         );
-      }
-    },
-    [
-      joinStatus,
-      selectedConversationId,
-      recallLocalMessage,
-      USER_ID,
-      isPersistedMessageId,
-    ],
-  );
 
-  const executeDeleteMessage = useCallback(
-    async (message: SocketMessage) => {
-      if (joinStatus === "error") {
-        setError("Bạn không có quyền xóa tin nhắn trong cuộc trò chuyện này.");
-        return;
-      }
+        // Fetch user info for senders with only phone numbers
+        const enrichSenderNames = async () => {
+            for (const senderId of uniqueSenderIds) {
+                if (!senderId) continue;
 
-      const messageKey = getMessageKey(message);
-      setHiddenMessageKeys((prev) => {
-        const next = new Set(prev);
-        next.add(messageKey);
-        return next;
-      });
-
-      if (!selectedConversationId || !isPersistedMessageId(message.id)) {
-        return;
-      }
-
-      try {
-        await conversationApi.deleteMessageForMe(
-          selectedConversationId,
-          message.id,
-        );
-      } catch (err) {
-        setHiddenMessageKeys((prev) => {
-          const next = new Set(prev);
-          next.delete(messageKey);
-          return next;
-        });
-        console.error("Error deleting message for me:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to delete message for me",
-        );
-      }
-    },
-    [isPersistedMessageId, joinStatus, getMessageKey, selectedConversationId],
-  );
-
-  const handleRequestRecallMessage = useCallback((message: SocketMessage) => {
-    setPendingRecallMessage(message);
-    setIsRecallConfirmOpen(true);
-  }, []);
-
-  const handleRequestDeleteMessage = useCallback((message: SocketMessage) => {
-    setPendingDeleteMessage(message);
-    setIsDeleteConfirmOpen(true);
-  }, []);
-
-  const handleConfirmRecallMessage = useCallback(async () => {
-    if (!pendingRecallMessage) return;
-    await executeRecallMessage(pendingRecallMessage);
-    setPendingRecallMessage(null);
-    setIsRecallConfirmOpen(false);
-  }, [pendingRecallMessage, executeRecallMessage]);
-
-  const handleConfirmDeleteMessage = useCallback(async () => {
-    if (!pendingDeleteMessage) return;
-    await executeDeleteMessage(pendingDeleteMessage);
-    setPendingDeleteMessage(null);
-    setIsDeleteConfirmOpen(false);
-  }, [pendingDeleteMessage, executeDeleteMessage]);
-
-  // Log exactly one call-history message when a call transitions to a terminal state.
-  useEffect(() => {
-    const prevStatus = prevCallStatusRef.current;
-
-    // Lưu vai trò người gọi vào ref vì CallContext có thể reset rất nhanh trước khi effect chạy.
-    if (
-      isInitiator &&
-      (callStatus === "calling" ||
-        callStatus === "ringing" ||
-        callStatus === "connected")
-    ) {
-      wasInitiatorRef.current = true;
-    }
-
-    // Chỉ người gọi ghi lịch sử; người nhận chỉ hiển thị lại cùng một bản ghi đó.
-    if (!wasInitiatorRef.current) {
-      prevCallStatusRef.current = callStatus;
-      return;
-    }
-
-    const hadActiveCall =
-      prevStatus === "calling" ||
-      prevStatus === "ringing" ||
-      prevStatus === "connected";
-    const callJustEnded =
-      hadActiveCall &&
-      (callStatus === "idle" ||
-        callStatus === "failed" ||
-        callStatus === "rejected" ||
-        callStatus === "ended");
-
-    if (callJustEnded) {
-      if (
-        selectedConversationId &&
-        selectedConversation &&
-        selectedConversation.type === "PRIVATE" &&
-        USERNAME &&
-        USER_ID
-      ) {
-        const logCallToChat = async () => {
-          try {
-            const otherParticipant = selectedConversation?.participants?.find(
-              (p) => p.userId !== USER_ID,
-            );
-
-            if (!otherParticipant) {
-              return;
+                try {
+                    const userInfo = await getUserInfo(senderId);
+                    if (userInfo?.fullName && userInfo.fullName !== senderId) {
+                        // Update messages with actual sender name
+                        setSocketMessages((prev) =>
+                            prev.map((msg) =>
+                                msg.senderId === senderId &&
+                                /^\d{10,11}$/.test(msg.senderName)
+                                    ? { ...msg, senderName: userInfo.fullName }
+                                    : msg,
+                            ),
+                        );
+                    }
+                } catch (err) {
+                    console.warn(
+                        `[ChatPage] Failed to enrich user info for ${senderId}:`,
+                        err,
+                    );
+                }
             }
-
-            const clientMessageId = `call_${Date.now()}_${Math.random()
-              .toString(36)
-              .slice(2, 8)}`;
-            const now = new Date().toISOString();
-
-            const duration = callStartTime
-              ? Math.floor((Date.now() - callStartTime) / 1000)
-              : 0;
-
-            // Chuẩn hóa trạng thái theo góc nhìn người gọi, rồi dùng chung cho cả hai phía.
-            let callHistoryStatus: "completed" | "missed" | "declined" =
-              "completed";
-
-            if (wasRejected) {
-              // Ưu tiên cờ từ chối tường minh để tránh race condition khi state reset nhanh.
-              callHistoryStatus = "declined";
-            } else if (prevStatus === "connected") {
-              // Người nhận đã bắt máy và cuộc gọi kết thúc bình thường.
-              callHistoryStatus = "completed";
-            } else if (callStatus === "rejected" || callStatus === "failed") {
-              // Người nhận từ chối hoặc tín hiệu lỗi trong lúc chờ bắt máy.
-              callHistoryStatus = "declined";
-            } else if (
-              (prevStatus === "calling" || prevStatus === "ringing") &&
-              (callStatus === "idle" || callStatus === "ended")
-            ) {
-              // Người gọi tự hủy trước khi người nhận bắt máy.
-              callHistoryStatus = "missed";
-            }
-
-            const callMessage: ChatSocketMessage = {
-              id: clientMessageId,
-              clientMessageId,
-              senderId: USER_ID,
-              senderName: USERNAME,
-              content: "",
-              timestamp: now,
-              conversationId: selectedConversationId,
-              type: "call",
-              callData: {
-                callType: "audio",
-                callStatus: callHistoryStatus,
-                duration: duration,
-                isInitiator: true,
-                wasRejected: callHistoryStatus === "declined",
-              },
-            };
-
-            setSocketMessages((prev) => [...prev, callMessage]);
-
-            sendMessage({
-              requestId: `req_${Date.now()}`,
-              clientMessageId,
-              receiverId: otherParticipant.userId,
-              type: "call",
-              content: "",
-              conversationId: selectedConversationId,
-              callData: callMessage.callData,
-            });
-          } catch (err) {
-            console.error("Error logging call to chat:", err);
-          }
         };
 
-        logCallToChat();
-      }
+        enrichSenderNames();
+    }, [socketMessages]);
 
-      // Reset after writing one history message for this call lifecycle.
-      wasInitiatorRef.current = false;
-    }
+    const recallLocalMessage = useCallback(
+        (message: SocketMessage) => {
+            const messageKey = getMessageKey(message);
 
-    prevCallStatusRef.current = callStatus;
-  }, [
-    callStatus,
-    selectedConversationId,
-    callStartTime,
-    selectedConversation,
-    USERNAME,
-    USER_ID,
-    isInitiator,
-    wasAnswered,
-    wasRejected,
-  ]);
+            markMessageAsRecalled(messageKey);
 
-  const handleReactMessage = useCallback(
-    async (message: SocketMessage, emoji: string) => {
-      if (joinStatus === "error") {
-        setError("Bạn không có quyền thao tác trong cuộc trò chuyện này.");
-        return;
-      }
+            // Nguoi gui thay sidebar doi ngay khi recall message cuoi cung.
+            if (selectedConversationId) {
+                markConversationLastMessageRecalled(
+                    selectedConversationId,
+                    message.id,
+                );
+                if (message.clientMessageId) {
+                    markConversationLastMessageRecalled(
+                        selectedConversationId,
+                        message.clientMessageId,
+                    );
+                }
+            }
 
-      if (!selectedConversationId) return;
+            setSocketMessages((prev) =>
+                prev.map((msg) => {
+                    const sameMessage =
+                        (message.clientMessageId &&
+                            msg.clientMessageId === message.clientMessageId) ||
+                        msg.id === message.id;
 
-      const persistedMessageId = resolvePersistedMessageId(message);
-      if (!persistedMessageId) {
-        setError(
-          "Không thể bày tỏ cảm xúc: tin nhắn chưa có ID máy chủ hợp lệ.",
-        );
-        return;
-      }
+                    if (!sameMessage) return msg;
 
-      const messageKey = getMessageKey(message);
-
-      const previousReactions =
-        reactionOverrides[messageKey] || message.reactions || [];
-
-      const existingMyReaction = previousReactions.find(
-        (r) => r.userId === USER_ID,
-      );
-
-      const isRemoving = existingMyReaction?.emoji === emoji;
-
-      const nextReactions = previousReactions.filter(
-        (r) => r.userId !== USER_ID,
-      );
-
-      if (!isRemoving) {
-        nextReactions.push({
-          userId: USER_ID,
-          emoji,
-          reactedAt: new Date().toISOString(),
-        });
-      }
-
-      setReactionOverrides((prev) => ({
-        ...prev,
-        [messageKey]: nextReactions,
-      }));
-
-      try {
-        let response;
-
-        if (isRemoving) {
-          response = await conversationApi.removeReaction(
+                    return {
+                        ...msg,
+                        content: '',
+                        isFile: false,
+                        fileUrl: undefined,
+                        fileName: undefined,
+                        fileType: undefined,
+                        isRecalled: true,
+                    };
+                }),
+            );
+        },
+        [
+            getMessageKey,
+            markConversationLastMessageRecalled,
+            markMessageAsRecalled,
             selectedConversationId,
-            persistedMessageId,
-          );
-        } else {
-          response = await conversationApi.reactToMessage(
+        ],
+    );
+
+    const executeRecallMessage = useCallback(
+        async (message: SocketMessage) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền thu hồi tin nhắn trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
+            if (!selectedConversationId || message.senderId !== USER_ID) return;
+
+            console.log('[ChatPage] Recall request message:', message);
+
+            if (message.id.startsWith('msg_')) {
+                setError('Không thể thu hồi: tin nhắn chưa gửi xong.');
+                return;
+            }
+
+            if (!isPersistedMessageId(message.id)) {
+                setError(
+                    'Không thể thu hồi: tin nhắn chưa có ID máy chủ hợp lệ.',
+                );
+                return;
+            }
+
+            try {
+                console.log('[ChatPage] Recall API payload:', {
+                    conversationId: selectedConversationId,
+                    messageId: message.id,
+                    clientMessageId: message.clientMessageId,
+                });
+                await conversationApi.recallMessage(
+                    selectedConversationId,
+                    message.id,
+                );
+                recallLocalMessage(message);
+            } catch (err) {
+                console.error('Error recalling message:', err);
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to recall message',
+                );
+            }
+        },
+        [
+            joinStatus,
             selectedConversationId,
-            persistedMessageId,
-            emoji,
-          );
+            recallLocalMessage,
+            USER_ID,
+            isPersistedMessageId,
+        ],
+    );
+
+    const executeDeleteMessage = useCallback(
+        async (message: SocketMessage) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền xóa tin nhắn trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
+            const messageKey = getMessageKey(message);
+            setHiddenMessageKeys((prev) => {
+                const next = new Set(prev);
+                next.add(messageKey);
+                return next;
+            });
+
+            if (!selectedConversationId || !isPersistedMessageId(message.id)) {
+                return;
+            }
+
+            try {
+                await conversationApi.deleteMessageForMe(
+                    selectedConversationId,
+                    message.id,
+                );
+            } catch (err) {
+                setHiddenMessageKeys((prev) => {
+                    const next = new Set(prev);
+                    next.delete(messageKey);
+                    return next;
+                });
+                console.error('Error deleting message for me:', err);
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : 'Failed to delete message for me',
+                );
+            }
+        },
+        [
+            isPersistedMessageId,
+            joinStatus,
+            getMessageKey,
+            selectedConversationId,
+        ],
+    );
+
+    const handleRequestRecallMessage = useCallback((message: SocketMessage) => {
+        setPendingRecallMessage(message);
+        setIsRecallConfirmOpen(true);
+    }, []);
+
+    const handleRequestDeleteMessage = useCallback((message: SocketMessage) => {
+        setPendingDeleteMessage(message);
+        setIsDeleteConfirmOpen(true);
+    }, []);
+
+    const handleConfirmRecallMessage = useCallback(async () => {
+        if (!pendingRecallMessage) return;
+        await executeRecallMessage(pendingRecallMessage);
+        setPendingRecallMessage(null);
+        setIsRecallConfirmOpen(false);
+    }, [pendingRecallMessage, executeRecallMessage]);
+
+    const handleConfirmDeleteMessage = useCallback(async () => {
+        if (!pendingDeleteMessage) return;
+        await executeDeleteMessage(pendingDeleteMessage);
+        setPendingDeleteMessage(null);
+        setIsDeleteConfirmOpen(false);
+    }, [pendingDeleteMessage, executeDeleteMessage]);
+
+    // Log exactly one call-history message when a call transitions to a terminal state.
+    useEffect(() => {
+        const prevStatus = prevCallStatusRef.current;
+
+        // Lưu vai trò người gọi vào ref vì CallContext có thể reset rất nhanh trước khi effect chạy.
+        if (
+            isInitiator &&
+            (callStatus === 'calling' ||
+                callStatus === 'ringing' ||
+                callStatus === 'connected')
+        ) {
+            wasInitiatorRef.current = true;
         }
 
-        const serverReactions = response?.reactions ?? nextReactions;
+        // Chỉ người gọi ghi lịch sử; người nhận chỉ hiển thị lại cùng một bản ghi đó.
+        if (!wasInitiatorRef.current) {
+            prevCallStatusRef.current = callStatus;
+            return;
+        }
 
-        setReactionOverrides((prev) => ({
-          ...prev,
-          [messageKey]: serverReactions,
-        }));
-      } catch (err) {
-        setReactionOverrides((prev) => ({
-          ...prev,
-          [messageKey]: previousReactions,
-        }));
+        const hadActiveCall =
+            prevStatus === 'calling' ||
+            prevStatus === 'ringing' ||
+            prevStatus === 'connected';
+        const callJustEnded =
+            hadActiveCall &&
+            (callStatus === 'idle' ||
+                callStatus === 'failed' ||
+                callStatus === 'rejected' ||
+                callStatus === 'ended');
+
+        if (callJustEnded) {
+            if (
+                selectedConversationId &&
+                selectedConversation &&
+                selectedConversation.type === 'PRIVATE' &&
+                USERNAME &&
+                USER_ID
+            ) {
+                const logCallToChat = async () => {
+                    try {
+                        const otherParticipant =
+                            selectedConversation?.participants?.find(
+                                (p) => p.userId !== USER_ID,
+                            );
+
+                        if (!otherParticipant) {
+                            return;
+                        }
+
+                        const clientMessageId = `call_${Date.now()}_${Math.random()
+                            .toString(36)
+                            .slice(2, 8)}`;
+                        const now = new Date().toISOString();
+
+                        const duration = callStartTime
+                            ? Math.floor((Date.now() - callStartTime) / 1000)
+                            : 0;
+
+                        // Chuẩn hóa trạng thái theo góc nhìn người gọi, rồi dùng chung cho cả hai phía.
+                        let callHistoryStatus:
+                            | 'completed'
+                            | 'missed'
+                            | 'declined' = 'completed';
+
+                        if (wasRejected) {
+                            // Ưu tiên cờ từ chối tường minh để tránh race condition khi state reset nhanh.
+                            callHistoryStatus = 'declined';
+                        } else if (prevStatus === 'connected') {
+                            // Người nhận đã bắt máy và cuộc gọi kết thúc bình thường.
+                            callHistoryStatus = 'completed';
+                        } else if (
+                            callStatus === 'rejected' ||
+                            callStatus === 'failed'
+                        ) {
+                            // Người nhận từ chối hoặc tín hiệu lỗi trong lúc chờ bắt máy.
+                            callHistoryStatus = 'declined';
+                        } else if (
+                            (prevStatus === 'calling' ||
+                                prevStatus === 'ringing') &&
+                            (callStatus === 'idle' || callStatus === 'ended')
+                        ) {
+                            // Người gọi tự hủy trước khi người nhận bắt máy.
+                            callHistoryStatus = 'missed';
+                        }
+
+                        const callMessage: ChatSocketMessage = {
+                            id: clientMessageId,
+                            clientMessageId,
+                            senderId: USER_ID,
+                            senderName: USERNAME,
+                            content: '',
+                            timestamp: now,
+                            conversationId: selectedConversationId,
+                            type: 'call',
+                            callData: {
+                                callType: 'audio',
+                                callStatus: callHistoryStatus,
+                                duration: duration,
+                                isInitiator: true,
+                                wasRejected: callHistoryStatus === 'declined',
+                            },
+                        };
+
+                        setSocketMessages((prev) => [...prev, callMessage]);
+
+                        sendMessage({
+                            requestId: `req_${Date.now()}`,
+                            clientMessageId,
+                            receiverId: otherParticipant.userId,
+                            type: 'call',
+                            content: '',
+                            conversationId: selectedConversationId,
+                            callData: callMessage.callData,
+                        });
+                    } catch (err) {
+                        console.error('Error logging call to chat:', err);
+                    }
+                };
+
+                logCallToChat();
+            }
+
+            // Reset after writing one history message for this call lifecycle.
+            wasInitiatorRef.current = false;
+        }
+
+        prevCallStatusRef.current = callStatus;
+    }, [
+        callStatus,
+        selectedConversationId,
+        callStartTime,
+        selectedConversation,
+        USERNAME,
+        USER_ID,
+        isInitiator,
+        wasAnswered,
+        wasRejected,
+    ]);
+
+    const handleReactMessage = useCallback(
+        async (message: SocketMessage, emoji: string) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền thao tác trong cuộc trò chuyện này.',
+                );
+                return;
+            }
+
+            if (!selectedConversationId) return;
+
+            const persistedMessageId = resolvePersistedMessageId(message);
+            if (!persistedMessageId) {
+                setError(
+                    'Không thể bày tỏ cảm xúc: tin nhắn chưa có ID máy chủ hợp lệ.',
+                );
+                return;
+            }
+
+            const messageKey = getMessageKey(message);
+
+            const previousReactions =
+                reactionOverrides[messageKey] || message.reactions || [];
+
+            const existingMyReaction = previousReactions.find(
+                (r) => r.userId === USER_ID,
+            );
+
+            const isRemoving = existingMyReaction?.emoji === emoji;
+
+            const nextReactions = previousReactions.filter(
+                (r) => r.userId !== USER_ID,
+            );
+
+            if (!isRemoving) {
+                nextReactions.push({
+                    userId: USER_ID,
+                    emoji,
+                    reactedAt: new Date().toISOString(),
+                });
+            }
+
+            setReactionOverrides((prev) => ({
+                ...prev,
+                [messageKey]: nextReactions,
+            }));
+
+            try {
+                let response;
+
+                if (isRemoving) {
+                    response = await conversationApi.removeReaction(
+                        selectedConversationId,
+                        persistedMessageId,
+                    );
+                } else {
+                    response = await conversationApi.reactToMessage(
+                        selectedConversationId,
+                        persistedMessageId,
+                        emoji,
+                    );
+                }
+
+                const serverReactions = response?.reactions ?? nextReactions;
+
+                setReactionOverrides((prev) => ({
+                    ...prev,
+                    [messageKey]: serverReactions,
+                }));
+            } catch (err) {
+                setReactionOverrides((prev) => ({
+                    ...prev,
+                    [messageKey]: previousReactions,
+                }));
 
                 console.error('Error reacting:', err);
             }
@@ -1571,53 +1622,55 @@ export const ChatPage: React.FC = () => {
         ],
     );
 
-  const handleOpenForwardModal = useCallback((message: SocketMessage) => {
-    setForwardingMessage(message);
-    setForwardTargetConversationId("");
-    setIsForwardModalOpen(true);
-  }, []);
+    const handleOpenForwardModal = useCallback((message: SocketMessage) => {
+        setForwardingMessage(message);
+        setForwardTargetConversationId('');
+        setIsForwardModalOpen(true);
+    }, []);
 
-  const handleForwardMessage = useCallback(async () => {
-    if (joinStatus === "error") {
-      setError("Bạn không có quyền thao tác trong cuộc trò chuyện này.");
-      return;
-    }
+    const handleForwardMessage = useCallback(async () => {
+        if (joinStatus === 'error') {
+            setError('Bạn không có quyền thao tác trong cuộc trò chuyện này.');
+            return;
+        }
 
-    if (!forwardingMessage || !forwardTargetConversationId) return;
+        if (!forwardingMessage || !forwardTargetConversationId) return;
 
-    if (forwardingMessage.fileUrl?.startsWith("blob:")) {
-      setError("Không thể chuyển tiếp tệp khi chưa upload xong.");
-      return;
-    }
+        if (forwardingMessage.fileUrl?.startsWith('blob:')) {
+            setError('Không thể chuyển tiếp tệp khi chưa upload xong.');
+            return;
+        }
 
-    try {
-      setIsForwarding(true);
-      const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        try {
+            setIsForwarding(true);
+            const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-      if (forwardingMessage.id.startsWith("msg_")) {
-        setError("Không thể chuyển tiếp tin nhắn chưa gửi xong.");
-        return;
-      }
+            if (forwardingMessage.id.startsWith('msg_')) {
+                setError('Không thể chuyển tiếp tin nhắn chưa gửi xong.');
+                return;
+            }
 
-      // Note: userId should be included in request headers via API interceptor
-      await conversationApi.forwardMessage(
-        forwardingMessage.id,
-        forwardTargetConversationId,
-        clientMessageId,
-      );
+            // Note: userId should be included in request headers via API interceptor
+            await conversationApi.forwardMessage(
+                forwardingMessage.id,
+                forwardTargetConversationId,
+                clientMessageId,
+            );
 
-      setIsForwardModalOpen(false);
-      setForwardingMessage(null);
-      setForwardTargetConversationId("");
-    } catch (err) {
-      console.error("Error forwarding message:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to forward message",
-      );
-    } finally {
-      setIsForwarding(false);
-    }
-  }, [forwardingMessage, forwardTargetConversationId, joinStatus]);
+            setIsForwardModalOpen(false);
+            setForwardingMessage(null);
+            setForwardTargetConversationId('');
+        } catch (err) {
+            console.error('Error forwarding message:', err);
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to forward message',
+            );
+        } finally {
+            setIsForwarding(false);
+        }
+    }, [forwardingMessage, forwardTargetConversationId, joinStatus]);
 
     // Handle sending message
     const handleSend = useCallback(
@@ -1632,12 +1685,13 @@ export const ChatPage: React.FC = () => {
                 return;
             }
 
-      if (!text.trim() || !selectedConversationId) return;
+            if (!text.trim() || !selectedConversationId) return;
 
-      try {
-        const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const now = new Date().toISOString();
-        const isGroupConversation = selectedConversation?.type === "GROUP";
+            try {
+                const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const now = new Date().toISOString();
+                const isGroupConversation =
+                    selectedConversation?.type === 'GROUP';
 
                 setSocketMessages((prev) => [
                     ...prev,
@@ -1734,82 +1788,91 @@ export const ChatPage: React.FC = () => {
         ],
     );
 
-  // Handle sending file
-  const handleSendFile = useCallback(
-    async (file: File) => {
-      if (joinStatus === "error") {
-        setError("Bạn không có quyền gửi tệp trong cuộc trò chuyện này.");
-        return;
-      }
+    // Handle sending file
+    const handleSendFile = useCallback(
+        async (file: File) => {
+            if (joinStatus === 'error') {
+                setError(
+                    'Bạn không có quyền gửi tệp trong cuộc trò chuyện này.',
+                );
+                return;
+            }
 
-      if (!selectedConversationId) return;
+            if (!selectedConversationId) return;
 
-      try {
-        const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const now = new Date().toISOString();
-        const isGroupConversation = selectedConversation?.type === "GROUP";
+            try {
+                const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const now = new Date().toISOString();
+                const isGroupConversation =
+                    selectedConversation?.type === 'GROUP';
 
-        // Determine file type
-        const fileType = file.type;
-        const isImage = fileType.startsWith("image/");
-        const isVideo = fileType.startsWith("video/");
-        const messageType = isImage ? "image" : isVideo ? "video" : "file";
+                // Determine file type
+                const fileType = file.type;
+                const isImage = fileType.startsWith('image/');
+                const isVideo = fileType.startsWith('video/');
+                const messageType = isImage
+                    ? 'image'
+                    : isVideo
+                      ? 'video'
+                      : 'file';
 
-        // Create local preview URL for immediate display
-        const tempFileUrl = URL.createObjectURL(file);
+                // Create local preview URL for immediate display
+                const tempFileUrl = URL.createObjectURL(file);
 
-        // Add temporary message with local preview
-        setSocketMessages((prev) => [
-          ...prev,
-          {
-            id: clientMessageId,
-            clientMessageId,
-            senderId: USER_ID,
-            senderName: USERNAME,
-            content: file.name,
-            timestamp: now,
-            conversationId: selectedConversationId,
-            type: messageType,
-            isFile: true,
-            fileName: file.name,
-            fileUrl: tempFileUrl, // Use blob URL for immediate display
-            fileType: fileType,
-            uploadStatus: "uploading",
-          },
-        ]);
+                // Add temporary message with local preview
+                setSocketMessages((prev) => [
+                    ...prev,
+                    {
+                        id: clientMessageId,
+                        clientMessageId,
+                        senderId: USER_ID,
+                        senderName: USERNAME,
+                        content: file.name,
+                        timestamp: now,
+                        conversationId: selectedConversationId,
+                        type: messageType,
+                        isFile: true,
+                        fileName: file.name,
+                        fileUrl: tempFileUrl, // Use blob URL for immediate display
+                        fileType: fileType,
+                        uploadStatus: 'uploading',
+                    },
+                ]);
 
-        // Upload file first because backend requires mediaUrl for media messages
-        let serverFileUrl = "";
-        let uploadedFileType = fileType;
+                // Upload file first because backend requires mediaUrl for media messages
+                let serverFileUrl = '';
+                let uploadedFileType = fileType;
 
-        try {
-          const uploadResponse = await conversationApi.uploadFile(
-            file,
-            selectedConversationId,
-          );
-          serverFileUrl = uploadResponse.mediaUrl;
-          uploadedFileType = uploadResponse.mimeType || fileType;
+                try {
+                    const uploadResponse = await conversationApi.uploadFile(
+                        file,
+                        selectedConversationId,
+                    );
+                    serverFileUrl = uploadResponse.mediaUrl;
+                    uploadedFileType = uploadResponse.mimeType || fileType;
 
-          // Update the message with server URL after successful upload
-          setSocketMessages((prev) =>
-            prev.map((msg) =>
-              msg.clientMessageId === clientMessageId
-                ? {
-                    ...msg,
-                    fileUrl: serverFileUrl,
-                    fileType: uploadedFileType,
-                    uploadStatus: "sent",
-                  }
-                : msg,
-            ),
-          );
-        } catch (uploadErr) {
-          URL.revokeObjectURL(tempFileUrl);
-          setSocketMessages((prev) =>
-            prev.filter((msg) => msg.clientMessageId !== clientMessageId),
-          );
-          throw uploadErr;
-        }
+                    // Update the message with server URL after successful upload
+                    setSocketMessages((prev) =>
+                        prev.map((msg) =>
+                            msg.clientMessageId === clientMessageId
+                                ? {
+                                      ...msg,
+                                      fileUrl: serverFileUrl,
+                                      fileType: uploadedFileType,
+                                      uploadStatus: 'sent',
+                                  }
+                                : msg,
+                        ),
+                    );
+                } catch (uploadErr) {
+                    URL.revokeObjectURL(tempFileUrl);
+                    setSocketMessages((prev) =>
+                        prev.filter(
+                            (msg) => msg.clientMessageId !== clientMessageId,
+                        ),
+                    );
+                    throw uploadErr;
+                }
 
                 // Send message via socket with file URL
                 const ack = await sendChatMessage({
@@ -1866,161 +1929,164 @@ export const ChatPage: React.FC = () => {
         ],
     );
 
-  // Kết hợp các thông báo phân trang và thông báo socket
-  const otherParticipant = selectedConversation?.participants?.find(
-    (p) => p.userId !== USER_ID,
-  );
+    // Kết hợp các thông báo phân trang và thông báo socket
+    const otherParticipant = selectedConversation?.participants?.find(
+        (p) => p.userId !== USER_ID,
+    );
 
-  const isPrivateConversation = selectedConversation?.type === "PRIVATE";
-  const disableCallButtons =
-    !isPrivateConversation || iAmBlocked || iAmTheBlocker;
+    const isPrivateConversation = selectedConversation?.type === 'PRIVATE';
+    const disableCallButtons =
+        !isPrivateConversation || iAmBlocked || iAmTheBlocker;
 
-  const handleStartCall = useCallback(
-    async (callType: "audio" | "video") => {
-      if (!selectedConversation || !otherParticipant) return;
-      if (selectedConversation.type !== "PRIVATE") return;
+    const handleStartCall = useCallback(
+        async (callType: 'audio' | 'video') => {
+            if (!selectedConversation || !otherParticipant) return;
+            if (selectedConversation.type !== 'PRIVATE') return;
 
-      if (callStatus !== "idle") {
-        setError("You are currently on another call.");
-        return;
-      }
+            if (callStatus !== 'idle') {
+                setError('You are currently on another call.');
+                return;
+            }
 
-      const currentUser = getUser();
+            const currentUser = getUser();
 
-      await initiateCall(
-        selectedConversation.conversationId,
-        otherParticipant.userId,
-        callType,
-        {
-          name: otherParticipant.fullName || "Unknown",
-          avatar: otherParticipant.avatarUrl || undefined,
+            await initiateCall(
+                selectedConversation.conversationId,
+                otherParticipant.userId,
+                callType,
+                {
+                    name: otherParticipant.fullName || 'Unknown',
+                    avatar: otherParticipant.avatarUrl || undefined,
+                },
+                {
+                    name: currentUser?.fullName || USERNAME,
+                    avatar: currentUser?.avatarUrl || undefined,
+                },
+            );
         },
-        {
-          name: currentUser?.fullName || USERNAME,
-          avatar: currentUser?.avatarUrl || undefined,
+        [
+            selectedConversation,
+            otherParticipant,
+            callStatus,
+            initiateCall,
+            USERNAME,
+        ],
+    );
+
+    const handleCallBackMessage = useCallback(
+        async (message: SocketMessage) => {
+            if (!selectedConversation || !otherParticipant) return;
+            if (selectedConversation.type !== 'PRIVATE') return;
+
+            if (callStatus !== 'idle') {
+                setError('You are currently on another call.');
+                return;
+            }
+
+            const callbackType = message.callData?.callType || 'audio';
+            const currentUser = getUser();
+
+            await initiateCall(
+                selectedConversation.conversationId,
+                otherParticipant.userId,
+                callbackType,
+                {
+                    name: otherParticipant.fullName || 'Unknown',
+                    avatar: otherParticipant.avatarUrl || undefined,
+                },
+                {
+                    name: currentUser?.fullName || USERNAME,
+                    avatar: currentUser?.avatarUrl || undefined,
+                },
+            );
         },
-      );
-    },
-    [
-      selectedConversation,
-      otherParticipant,
-      callStatus,
-      initiateCall,
-      USERNAME,
-    ],
-  );
+        [
+            selectedConversation,
+            otherParticipant,
+            callStatus,
+            initiateCall,
+            USERNAME,
+        ],
+    );
 
-  const handleCallBackMessage = useCallback(
-    async (message: SocketMessage) => {
-      if (!selectedConversation || !otherParticipant) return;
-      if (selectedConversation.type !== "PRIVATE") return;
+    const getSenderName = useCallback(
+        (senderId?: string) => {
+            if (!senderId) return 'Unknown';
+            if (senderId === USER_ID) return USERNAME;
 
-      if (callStatus !== "idle") {
-        setError("You are currently on another call.");
-        return;
-      }
-
-      const callbackType = message.callData?.callType || "audio";
-      const currentUser = getUser();
-
-      await initiateCall(
-        selectedConversation.conversationId,
-        otherParticipant.userId,
-        callbackType,
-        {
-          name: otherParticipant.fullName || "Unknown",
-          avatar: otherParticipant.avatarUrl || undefined,
+            return (
+                selectedConversation?.participants?.find(
+                    (p) => p.userId === senderId,
+                )?.fullName || 'Unknown'
+            );
         },
-        {
-          name: currentUser?.fullName || USERNAME,
-          avatar: currentUser?.avatarUrl || undefined,
+        [selectedConversation, USER_ID, USERNAME],
+    );
+
+    const resolveSenderName = useCallback(
+        (senderName?: string, senderId?: string) => {
+            const trimmedSenderName = senderName?.trim();
+
+            if (!trimmedSenderName) {
+                return getSenderName(senderId);
+            }
+
+            if (!senderId) {
+                return trimmedSenderName;
+            }
+
+            const normalizedSenderId = senderId.trim();
+            const looksLikeRawSenderId =
+                trimmedSenderName === normalizedSenderId ||
+                /^\d{10,11}$/.test(trimmedSenderName) ||
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+                    trimmedSenderName,
+                );
+
+            return looksLikeRawSenderId
+                ? getSenderName(senderId)
+                : trimmedSenderName;
         },
-      );
-    },
-    [
-      selectedConversation,
-      otherParticipant,
-      callStatus,
-      initiateCall,
-      USERNAME,
-    ],
-  );
+        [getSenderName],
+    );
 
-  const getSenderName = useCallback(
-    (senderId?: string) => {
-      if (!senderId) return "Unknown";
-      if (senderId === USER_ID) return USERNAME;
-
-      return (
-        selectedConversation?.participants?.find((p) => p.userId === senderId)
-          ?.fullName || "Unknown"
-      );
-    },
-    [selectedConversation, USER_ID, USERNAME],
-  );
-
-  const resolveSenderName = useCallback(
-    (senderName?: string, senderId?: string) => {
-      const trimmedSenderName = senderName?.trim();
-
-      if (!trimmedSenderName) {
-        return getSenderName(senderId);
-      }
-
-      if (!senderId) {
-        return trimmedSenderName;
-      }
-
-      const normalizedSenderId = senderId.trim();
-      const looksLikeRawSenderId =
-        trimmedSenderName === normalizedSenderId ||
-        /^\d{10,11}$/.test(trimmedSenderName) ||
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          trimmedSenderName,
-        );
-
-      return looksLikeRawSenderId ? getSenderName(senderId) : trimmedSenderName;
-    },
-    [getSenderName],
-  );
-
-  const paginatedAsSocketMessages: SocketMessage[] = paginatedMessages.map(
-    (m, idx) => {
-      const senderRef =
-        m.senderBy ||
-        m.senderId ||
-        (m as { revokedBy?: string }).revokedBy ||
-        "unknown";
-      const persistedMessageId = [
-        m.messageId,
-        m._id,
-        (m as { id?: string }).id,
-      ].find((candidate) => isPersistedMessageId(candidate));
-      const attachment = (
-        m as {
-          attachments?: Array<{
-            mediaUrl?: string;
-            fileName?: string;
-            mimeType?: string;
-          }>;
-        }
-      ).attachments?.[0];
-      const mediaUrl =
-        m.mediaUrl ||
-        (m as { fileUrl?: string }).fileUrl ||
-        attachment?.mediaUrl;
-      const mimeType = m.mimeType || attachment?.mimeType;
-      const messageType =
-        m.messageType ||
-        (mimeType?.startsWith("image/")
-          ? "image"
-          : mimeType?.startsWith("video/")
-            ? "video"
-            : mimeType?.startsWith("audio/")
-              ? "audio"
-              : mediaUrl
-                ? "file"
-                : "text");
+    const paginatedAsSocketMessages: SocketMessage[] = paginatedMessages.map(
+        (m, idx) => {
+            const senderRef =
+                m.senderBy ||
+                m.senderId ||
+                (m as { revokedBy?: string }).revokedBy ||
+                'unknown';
+            const persistedMessageId = [
+                m.messageId,
+                m._id,
+                (m as { id?: string }).id,
+            ].find((candidate) => isPersistedMessageId(candidate));
+            const attachment = (
+                m as {
+                    attachments?: Array<{
+                        mediaUrl?: string;
+                        fileName?: string;
+                        mimeType?: string;
+                    }>;
+                }
+            ).attachments?.[0];
+            const mediaUrl =
+                m.mediaUrl ||
+                (m as { fileUrl?: string }).fileUrl ||
+                attachment?.mediaUrl;
+            const mimeType = m.mimeType || attachment?.mimeType;
+            const messageType =
+                m.messageType ||
+                (mimeType?.startsWith('image/')
+                    ? 'image'
+                    : mimeType?.startsWith('video/')
+                      ? 'video'
+                      : mimeType?.startsWith('audio/')
+                        ? 'audio'
+                        : mediaUrl
+                          ? 'file'
+                          : 'text');
 
             return {
                 id:
@@ -2092,38 +2158,39 @@ export const ChatPage: React.FC = () => {
         },
     );
 
-  const mergedMessages: SocketMessage[] = [
-    ...paginatedAsSocketMessages,
-    ...socketMessages.filter(
-      (sm) => sm.conversationId === selectedConversationId,
-    ),
-  ];
+    const mergedMessages: SocketMessage[] = [
+        ...paginatedAsSocketMessages,
+        ...socketMessages.filter(
+            (sm) => sm.conversationId === selectedConversationId,
+        ),
+    ];
 
-  const messageMap = new Map<string, SocketMessage>();
-  for (const message of mergedMessages) {
-    const hasVisibleContent =
-      message.isRecalled ||
-      message.content.trim().length > 0 ||
-      (message.isFile && !!message.fileUrl) ||
-      (message.type === "call" && !!(message as ChatSocketMessage).callData); // ✅ Include call messages
-    if (!hasVisibleContent) continue;
+    const messageMap = new Map<string, SocketMessage>();
+    for (const message of mergedMessages) {
+        const hasVisibleContent =
+            message.isRecalled ||
+            message.content.trim().length > 0 ||
+            (message.isFile && !!message.fileUrl) ||
+            (message.type === 'call' &&
+                !!(message as ChatSocketMessage).callData); // ✅ Include call messages
+        if (!hasVisibleContent) continue;
 
-    const key =
-      (message as ChatSocketMessage).clientMessageId ||
-      message.id ||
-      `${message.senderId}_${message.timestamp}_${message.content}_${message.fileUrl || ""}`;
+        const key =
+            (message as ChatSocketMessage).clientMessageId ||
+            message.id ||
+            `${message.senderId}_${message.timestamp}_${message.content}_${message.fileUrl || ''}`;
 
-    messageMap.set(key, message);
-  }
+        messageMap.set(key, message);
+    }
 
-  const displayMessages: SocketMessage[] = Array.from(messageMap.values())
-    .filter((msg) => !hiddenMessageKeys.has(getMessageKey(msg)))
-    .sort((a, b) => {
-      const timeA = new Date(a.timestamp).getTime();
-      const timeB = new Date(b.timestamp).getTime();
+    const displayMessages: SocketMessage[] = Array.from(messageMap.values())
+        .filter((msg) => !hiddenMessageKeys.has(getMessageKey(msg)))
+        .sort((a, b) => {
+            const timeA = new Date(a.timestamp).getTime();
+            const timeB = new Date(b.timestamp).getTime();
 
-      const safeA = Number.isNaN(timeA) ? 0 : timeA;
-      const safeB = Number.isNaN(timeB) ? 0 : timeB;
+            const safeA = Number.isNaN(timeA) ? 0 : timeA;
+            const safeB = Number.isNaN(timeB) ? 0 : timeB;
 
             return safeA - safeB;
         })
@@ -2157,50 +2224,51 @@ export const ChatPage: React.FC = () => {
         return pinnedMessagesByConversation[selectedConversationId] || [];
     }, [pinnedMessagesByConversation, selectedConversationId]);
 
-  const latestUnreadMessageId = useMemo(() => {
-    const latestIncoming = [...displayMessages]
-      .reverse()
-      .find(
-        (msg) =>
-          msg.conversationId === selectedConversationId &&
-          msg.senderId !== USER_ID &&
-          !msg.isRecalled &&
-          !msg.isDeleted,
-      );
+    const latestUnreadMessageId = useMemo(() => {
+        const latestIncoming = [...displayMessages]
+            .reverse()
+            .find(
+                (msg) =>
+                    msg.conversationId === selectedConversationId &&
+                    msg.senderId !== USER_ID &&
+                    !msg.isRecalled &&
+                    !msg.isDeleted,
+            );
 
-    return latestIncoming?.id || latestIncoming?.clientMessageId || null;
-  }, [displayMessages, selectedConversationId, USER_ID]);
+        return latestIncoming?.id || latestIncoming?.clientMessageId || null;
+    }, [displayMessages, selectedConversationId, USER_ID]);
 
-  useEffect(() => {
-    if (!selectedConversationId || !latestUnreadMessageId) return;
-    if (lastReadMessageIdRef.current === latestUnreadMessageId) return;
+    useEffect(() => {
+        if (!selectedConversationId || !latestUnreadMessageId) return;
+        if (lastReadMessageIdRef.current === latestUnreadMessageId) return;
 
-    lastReadMessageIdRef.current = latestUnreadMessageId;
-    void emitRead(latestUnreadMessageId);
+        lastReadMessageIdRef.current = latestUnreadMessageId;
+        void emitRead(latestUnreadMessageId);
 
-    window.dispatchEvent(
-      new CustomEvent("chat:conversation_read", {
-        detail: {
-          conversationId: selectedConversationId,
-          messageId: latestUnreadMessageId,
-        },
-      }),
-    );
-  }, [emitRead, latestUnreadMessageId, selectedConversationId]);
+        window.dispatchEvent(
+            new CustomEvent('chat:conversation_read', {
+                detail: {
+                    conversationId: selectedConversationId,
+                    messageId: latestUnreadMessageId,
+                },
+            }),
+        );
+    }, [emitRead, latestUnreadMessageId, selectedConversationId]);
 
-  const forwardableConversations = conversations.filter(
-    (conversation) => conversation.conversationId !== selectedConversationId,
-  );
-
-  const getConversationDisplayName = (conversationId: string) => {
-    const conversation = conversations.find(
-      (item) => item.conversationId === conversationId,
+    const forwardableConversations = conversations.filter(
+        (conversation) =>
+            conversation.conversationId !== selectedConversationId,
     );
 
-    if (!conversation) return "Unknown conversation";
-    if (conversation.type === "GROUP") {
-      return conversation.groupInfo?.groupName || "Group chat";
-    }
+    const getConversationDisplayName = (conversationId: string) => {
+        const conversation = conversations.find(
+            (item) => item.conversationId === conversationId,
+        );
+
+        if (!conversation) return 'Unknown conversation';
+        if (conversation.type === 'GROUP') {
+            return conversation.groupInfo?.groupName || 'Group chat';
+        }
 
         return (
             conversation.participants.find((p) => p.userId !== USER_ID)
@@ -2222,112 +2290,119 @@ export const ChatPage: React.FC = () => {
         }
     }, []);
 
-  return (
-    <div className="flex h-screen gap-4 bg-gray-50 p-4">
-      {/* Sidebar */}
-      <ChatSidebarWithConversationService
-        conversations={conversations}
-        selectedConversationId={selectedConversationId}
-        onSelectConversation={handleSelectConversation}
-        loading={conversationsLoading}
-        error={conversationsError}
-        onCreateGroupConversation={(conversation) => {
-          void refreshConversations();
-          if (conversation?.conversationId) {
-            setSelectedConversationId(conversation.conversationId);
-          }
-        }}
-      />
-
-      {/* Main chat area */}
-      <div className="flex flex-1 flex-col rounded-lg bg-white shadow-sm">
-        {isConnecting && (
-          <div className="border-b border-gray-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-            Connecting to chat...
-          </div>
-        )}
-
-        {error && (
-          <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
-            {error}
-            <button
-              onClick={() => setError(null)}
-              className="ml-2 text-red-600 hover:text-red-700"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {selectedConversation ? (
-          <>
-            {/* Header */}
-            <ChatHeader
-              name={
-                selectedConversation.groupInfo?.groupName ||
-                otherParticipant?.fullName ||
-                "Conversation"
-              }
-              avatarUrl={
-                selectedConversation.type === "GROUP"
-                  ? toAbsoluteMediaUrl(
-                      selectedConversation.groupInfo?.groupAvatar,
-                    ) || undefined
-                  : toAbsoluteMediaUrl(otherParticipant?.avatarUrl) || undefined
-              }
-              subtitle={
-                typingUserNames.length > 0
-                  ? `${typingUserNames.join(", ")} đang nhập...`
-                  : selectedConversation.type === "GROUP"
-                    ? "Group conversation"
-                    : "Online"
-              }
-              isGroupChat={selectedConversation.type === "GROUP"}
-              groupMembers={
-                selectedConversation.type === "GROUP"
-                  ? selectedConversation.participants
-                  : undefined
-              }
-              isBlocked={iAmBlocked || iAmTheBlocker}
-              disableCallButtons={disableCallButtons}
-              onAudioCall={() => {
-                void handleStartCall("audio");
-              }}
-              onVideoCall={() => {
-                void handleStartCall("video");
-              }}
-              onSearchClick={() => setIsSearchOpen(true)}
-              onPanelToggle={() => {
-                setIsSearchOpen(false);
-                setIsInfoPanelOpen((prev) => !prev);
-              }}
-              onIdentityClick={
-                selectedConversation.type === "GROUP"
-                  ? () => {
-                      setIsSearchOpen(false);
-                      setIsInfoPanelOpen(true);
+    return (
+        <div className="flex h-screen gap-4 bg-gray-50 p-4">
+            {/* Sidebar */}
+            <ChatSidebarWithConversationService
+                conversations={conversations}
+                selectedConversationId={selectedConversationId}
+                onSelectConversation={handleSelectConversation}
+                loading={conversationsLoading}
+                error={conversationsError}
+                onCreateGroupConversation={(conversation) => {
+                    void refreshConversations();
+                    if (conversation?.conversationId) {
+                        setSelectedConversationId(conversation.conversationId);
                     }
-                  : undefined
-              }
-              onAvatarClick={
-                selectedConversation.type === "GROUP"
-                  ? () => {
-                      setIsSearchOpen(false);
-                      setIsInfoPanelOpen(true);
-                      setOpenGroupInfoEditTick((prev) => prev + 1);
-                    }
-                  : undefined
-              }
-              onEditGroupClick={
-                selectedConversation.type === "GROUP"
-                  ? () => {
-                      setIsSearchOpen(false);
-                      setIsInfoPanelOpen(true);
-                      setOpenGroupInfoEditTick((prev) => prev + 1);
-                    }
-                  : undefined
-              }
+                }}
             />
+
+            {/* Main chat area */}
+            <div className="flex flex-1 flex-col rounded-lg bg-white shadow-sm">
+                {isConnecting && (
+                    <div className="border-b border-gray-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+                        Connecting to chat...
+                    </div>
+                )}
+
+                {error && (
+                    <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+                        {error}
+                        <button
+                            onClick={() => setError(null)}
+                            className="ml-2 text-red-600 hover:text-red-700"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )}
+
+                {selectedConversation ? (
+                    <>
+                        {/* Header */}
+                        <ChatHeader
+                            name={
+                                selectedConversation.groupInfo?.groupName ||
+                                otherParticipant?.fullName ||
+                                'Conversation'
+                            }
+                            avatarUrl={
+                                selectedConversation.type === 'GROUP'
+                                    ? toAbsoluteMediaUrl(
+                                          selectedConversation.groupInfo
+                                              ?.groupAvatar,
+                                      ) || undefined
+                                    : toAbsoluteMediaUrl(
+                                          otherParticipant?.avatarUrl,
+                                      ) || undefined
+                            }
+                            subtitle={
+                                typingUserNames.length > 0
+                                    ? `${typingUserNames.join(', ')} đang nhập...`
+                                    : selectedConversation.type === 'GROUP'
+                                      ? 'Group conversation'
+                                      : 'Online'
+                            }
+                            isGroupChat={selectedConversation.type === 'GROUP'}
+                            groupMembers={
+                                selectedConversation.type === 'GROUP'
+                                    ? selectedConversation.participants
+                                    : undefined
+                            }
+                            isBlocked={iAmBlocked || iAmTheBlocker}
+                            disableCallButtons={disableCallButtons}
+                            onAudioCall={() => {
+                                void handleStartCall('audio');
+                            }}
+                            onVideoCall={() => {
+                                void handleStartCall('video');
+                            }}
+                            onSearchClick={() => setIsSearchOpen(true)}
+                            onPanelToggle={() => {
+                                setIsSearchOpen(false);
+                                setIsInfoPanelOpen((prev) => !prev);
+                            }}
+                            onIdentityClick={
+                                selectedConversation.type === 'GROUP'
+                                    ? () => {
+                                          setIsSearchOpen(false);
+                                          setIsInfoPanelOpen(true);
+                                      }
+                                    : undefined
+                            }
+                            onAvatarClick={
+                                selectedConversation.type === 'GROUP'
+                                    ? () => {
+                                          setIsSearchOpen(false);
+                                          setIsInfoPanelOpen(true);
+                                          setOpenGroupInfoEditTick(
+                                              (prev) => prev + 1,
+                                          );
+                                      }
+                                    : undefined
+                            }
+                            onEditGroupClick={
+                                selectedConversation.type === 'GROUP'
+                                    ? () => {
+                                          setIsSearchOpen(false);
+                                          setIsInfoPanelOpen(true);
+                                          setOpenGroupInfoEditTick(
+                                              (prev) => prev + 1,
+                                          );
+                                      }
+                                    : undefined
+                            }
+                        />
 
                         {/* Messages */}
                         {currentPinnedMessages.length > 0 && (
@@ -2454,101 +2529,105 @@ export const ChatPage: React.FC = () => {
                 )
             ) : null}
 
-      <Modal
-        isOpen={isForwardModalOpen}
-        onClose={() => {
-          setIsForwardModalOpen(false);
-          setForwardingMessage(null);
-          setForwardTargetConversationId("");
-        }}
-        title="Chuyển tiếp tin nhắn"
-        size="sm"
-      >
-        <div className="p-4 space-y-4">
-          {forwardingMessage && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-              {forwardingMessage.isFile
-                ? `File: ${forwardingMessage.fileName || "Đính kèm"}`
-                : forwardingMessage.content}
-            </div>
-          )}
+            <Modal
+                isOpen={isForwardModalOpen}
+                onClose={() => {
+                    setIsForwardModalOpen(false);
+                    setForwardingMessage(null);
+                    setForwardTargetConversationId('');
+                }}
+                title="Chuyển tiếp tin nhắn"
+                size="sm"
+            >
+                <div className="p-4 space-y-4">
+                    {forwardingMessage && (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                            {forwardingMessage.isFile
+                                ? `File: ${forwardingMessage.fileName || 'Đính kèm'}`
+                                : forwardingMessage.content}
+                        </div>
+                    )}
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Chọn cuộc trò chuyện riêng
-            </label>
-            <select
-              value={forwardTargetConversationId}
-              onChange={(e) => setForwardTargetConversationId(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-            >
-              <option value="">-- Chọn cuộc trò chuyện --</option>
-              {forwardableConversations.map((conversation) => (
-                <option
-                  key={conversation.conversationId}
-                  value={conversation.conversationId}
-                >
-                  {getConversationDisplayName(conversation.conversationId)}
-                </option>
-              ))}
-            </select>
-          </div>
+                    <div>
+                        <label className="mb-2 block text-sm font-medium text-slate-700">
+                            Chọn cuộc trò chuyện riêng
+                        </label>
+                        <select
+                            value={forwardTargetConversationId}
+                            onChange={(e) =>
+                                setForwardTargetConversationId(e.target.value)
+                            }
+                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                        >
+                            <option value="">-- Chọn cuộc trò chuyện --</option>
+                            {forwardableConversations.map((conversation) => (
+                                <option
+                                    key={conversation.conversationId}
+                                    value={conversation.conversationId}
+                                >
+                                    {getConversationDisplayName(
+                                        conversation.conversationId,
+                                    )}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setIsForwardModalOpen(false);
-                setForwardingMessage(null);
-                setForwardTargetConversationId("");
-              }}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              onClick={handleForwardMessage}
-              disabled={
-                !forwardTargetConversationId ||
-                isForwarding ||
-                forwardableConversations.length === 0
-              }
-              className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isForwarding ? "Đang chuyển..." : "Chuyển tiếp"}
-            </button>
-          </div>
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsForwardModalOpen(false);
+                                setForwardingMessage(null);
+                                setForwardTargetConversationId('');
+                            }}
+                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleForwardMessage}
+                            disabled={
+                                !forwardTargetConversationId ||
+                                isForwarding ||
+                                forwardableConversations.length === 0
+                            }
+                            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+                        >
+                            {isForwarding ? 'Đang chuyển...' : 'Chuyển tiếp'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Dialog
+                isOpen={isRecallConfirmOpen}
+                onClose={() => {
+                    setIsRecallConfirmOpen(false);
+                    setPendingRecallMessage(null);
+                }}
+                onConfirm={handleConfirmRecallMessage}
+                title="Thu hồi tin nhắn?"
+                message="Tin nhắn sẽ hiển thị là đã thu hồi với cả hai bên."
+                confirmText="Thu hồi"
+                cancelText="Hủy"
+                type="warning"
+            />
+
+            <Dialog
+                isOpen={isDeleteConfirmOpen}
+                onClose={() => {
+                    setIsDeleteConfirmOpen(false);
+                    setPendingDeleteMessage(null);
+                }}
+                onConfirm={handleConfirmDeleteMessage}
+                title="Xóa tin nhắn ở phía bạn?"
+                message="Tin nhắn sẽ chỉ bị ẩn ở thiết bị của bạn."
+                confirmText="Xóa"
+                cancelText="Hủy"
+                type="danger"
+            />
         </div>
-      </Modal>
-
-      <Dialog
-        isOpen={isRecallConfirmOpen}
-        onClose={() => {
-          setIsRecallConfirmOpen(false);
-          setPendingRecallMessage(null);
-        }}
-        onConfirm={handleConfirmRecallMessage}
-        title="Thu hồi tin nhắn?"
-        message="Tin nhắn sẽ hiển thị là đã thu hồi với cả hai bên."
-        confirmText="Thu hồi"
-        cancelText="Hủy"
-        type="warning"
-      />
-
-      <Dialog
-        isOpen={isDeleteConfirmOpen}
-        onClose={() => {
-          setIsDeleteConfirmOpen(false);
-          setPendingDeleteMessage(null);
-        }}
-        onConfirm={handleConfirmDeleteMessage}
-        title="Xóa tin nhắn ở phía bạn?"
-        message="Tin nhắn sẽ chỉ bị ẩn ở thiết bị của bạn."
-        confirmText="Xóa"
-        cancelText="Hủy"
-        type="danger"
-      />
-    </div>
-  );
+    );
 };

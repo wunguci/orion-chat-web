@@ -93,17 +93,17 @@ interface ConversationGroupInfoPanelProps {
     onConversationRemoved?: (conversationId: string) => void;
 }
 
-type ExpandableSection = "images" | "files" | "links";
+type ExpandableSection = 'images' | 'files' | 'links';
 
 type LinkMessage = SocketMessage & { url: string };
 
 type GroupMemberItem = {
-  userId: string;
-  fullName: string | null;
-  avatarUrl: string | null;
-  role: "admin" | "co-admin" | "member";
-  joinedAt: string;
-  isMe: boolean;
+    userId: string;
+    fullName: string | null;
+    avatarUrl: string | null;
+    role: 'admin' | 'co-admin' | 'member';
+    joinedAt: string;
+    isMe: boolean;
 };
 
 const isJoinedImmediately = (result?: JoinGroupResult): boolean => {
@@ -111,7 +111,7 @@ const isJoinedImmediately = (result?: JoinGroupResult): boolean => {
 };
 
 export const ConversationGroupInfoPanel: React.FC<
-  ConversationGroupInfoPanelProps
+    ConversationGroupInfoPanelProps
 > = ({
     isSidebarOpen = true,
     selectedConversation,
@@ -227,344 +227,365 @@ export const ConversationGroupInfoPanel: React.FC<
     const isGroupFull =
         (groupDetail?.memberCount || 0) >= (groupDetail?.memberLimit || 10);
 
-  const currentMemberIds = useMemo(
-    () =>
-      new Set(
-        (selectedConversation?.participants || []).map(
-          (participant) => participant.userId,
-        ),
-      ),
-    [selectedConversation?.participants],
-  );
-
-  const availableFriendOptions = useMemo(() => {
-    return friendOptions.filter((friend) => !currentMemberIds.has(friend.id));
-  }, [friendOptions, currentMemberIds]);
-
-  const filteredFriendOptions = useMemo(() => {
-    const keyword = friendSearch.trim().toLowerCase();
-    if (!keyword) return availableFriendOptions;
-
-    return availableFriendOptions.filter((friend) =>
-      (friend.fullName || "").toLowerCase().includes(keyword),
-    );
-  }, [availableFriendOptions, friendSearch]);
-
-  const toggleSection = (section: ExpandableSection) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
-
-  const { imageMessages, fileMessages, linkMessages } = useMemo(() => {
-    const images = displayMessages.filter(
-      (msg) =>
-        msg.isFile &&
-        msg.fileUrl &&
-        (msg.fileType?.startsWith("image/") === true ||
-          msg.fileCategory === "image" ||
-          msg.type === "image") &&
-        !msg.isRecalled &&
-        !recalledMessageIds.has(msg.id),
+    const currentMemberIds = useMemo(
+        () =>
+            new Set(
+                (selectedConversation?.participants || []).map(
+                    (participant) => participant.userId,
+                ),
+            ),
+        [selectedConversation?.participants],
     );
 
-    const files = displayMessages.filter(
-      (msg) =>
-        msg.isFile &&
-        msg.fileUrl &&
-        !(msg.fileType?.startsWith("image/") === true) &&
-        msg.fileCategory !== "image" &&
-        msg.type !== "image" &&
-        !msg.isRecalled &&
-        !recalledMessageIds.has(msg.id),
-    );
+    const availableFriendOptions = useMemo(() => {
+        return friendOptions.filter(
+            (friend) => !currentMemberIds.has(friend.id),
+        );
+    }, [friendOptions, currentMemberIds]);
 
-    const links = displayMessages
-      .filter(
-        (msg) =>
-          !msg.isFile &&
-          msg.content &&
-          /https?:\/\/|www\./i.test(msg.content) &&
-          !msg.isRecalled &&
-          !recalledMessageIds.has(msg.id),
-      )
-      .map((msg) => ({
-        ...msg,
-        url: msg.content.match(/https?:\/\/\S+|www\.\S+/i)?.[0] || msg.content,
-      }));
+    const filteredFriendOptions = useMemo(() => {
+        const keyword = friendSearch.trim().toLowerCase();
+        if (!keyword) return availableFriendOptions;
 
-    return {
-      imageMessages: images.filter((msg) => !deletedMessageIds.has(msg.id)),
-      fileMessages: files.filter((msg) => !deletedMessageIds.has(msg.id)),
-      linkMessages: (links as LinkMessage[]).filter(
-        (msg) => !deletedMessageIds.has(msg.id),
-      ),
+        return availableFriendOptions.filter((friend) =>
+            (friend.fullName || '').toLowerCase().includes(keyword),
+        );
+    }, [availableFriendOptions, friendSearch]);
+
+    const toggleSection = (section: ExpandableSection) => {
+        setExpandedSections((prev) => ({
+            ...prev,
+            [section]: !prev[section],
+        }));
     };
-  }, [displayMessages, deletedMessageIds, recalledMessageIds]);
 
-  const getContextMessage = () =>
-    getSectionMessages(contextMenuState.section).find(
-      (item) => item.id === contextMenuState.messageId,
-    );
+    const { imageMessages, fileMessages, linkMessages } = useMemo(() => {
+        const images = displayMessages.filter(
+            (msg) =>
+                msg.isFile &&
+                msg.fileUrl &&
+                (msg.fileType?.startsWith('image/') === true ||
+                    msg.fileCategory === 'image' ||
+                    msg.type === 'image') &&
+                !msg.isRecalled &&
+                !recalledMessageIds.has(msg.id),
+        );
 
-  const getSectionMessages = (section?: ExpandableSection) => {
-    if (section === "images") return imageMessages;
-    if (section === "files") return fileMessages;
-    if (section === "links") return linkMessages;
-    return [];
-  };
+        const files = displayMessages.filter(
+            (msg) =>
+                msg.isFile &&
+                msg.fileUrl &&
+                !(msg.fileType?.startsWith('image/') === true) &&
+                msg.fileCategory !== 'image' &&
+                msg.type !== 'image' &&
+                !msg.isRecalled &&
+                !recalledMessageIds.has(msg.id),
+        );
 
-  const handleContextMenu = (
-    e: React.MouseEvent,
-    messageId: string,
-    section: ExpandableSection,
-  ) => {
-    e.preventDefault();
-    e.stopPropagation();
+        const links = displayMessages
+            .filter(
+                (msg) =>
+                    !msg.isFile &&
+                    msg.content &&
+                    /https?:\/\/|www\./i.test(msg.content) &&
+                    !msg.isRecalled &&
+                    !recalledMessageIds.has(msg.id),
+            )
+            .map((msg) => ({
+                ...msg,
+                url:
+                    msg.content.match(/https?:\/\/\S+|www\.\S+/i)?.[0] ||
+                    msg.content,
+            }));
 
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setContextMenuState({
-      isOpen: true,
-      position: {
-        x: rect.right - 224,
-        y: rect.bottom + 8,
-      },
-      messageId,
-      section,
-    });
-  };
+        return {
+            imageMessages: images.filter(
+                (msg) => !deletedMessageIds.has(msg.id),
+            ),
+            fileMessages: files.filter((msg) => !deletedMessageIds.has(msg.id)),
+            linkMessages: (links as LinkMessage[]).filter(
+                (msg) => !deletedMessageIds.has(msg.id),
+            ),
+        };
+    }, [displayMessages, deletedMessageIds, recalledMessageIds]);
 
-  const handleMediaAction = (action: "open" | "forward" | "jump") => {
-    const message = getContextMessage();
+    const getContextMessage = () =>
+        getSectionMessages(contextMenuState.section).find(
+            (item) => item.id === contextMenuState.messageId,
+        );
 
-    if (!message) {
-      setMediaActionError("Không tìm thấy tin nhắn");
-      return;
-    }
+    const getSectionMessages = (section?: ExpandableSection) => {
+        if (section === 'images') return imageMessages;
+        if (section === 'files') return fileMessages;
+        if (section === 'links') return linkMessages;
+        return [];
+    };
 
-    switch (action) {
-      case "open": {
-        if (contextMenuState.section === "links") {
-          const link = (message as LinkMessage).url;
-          const normalizedLink = /^https?:\/\//i.test(link)
-            ? link
-            : `https://${link}`;
-          window.open(normalizedLink, "_blank");
-          break;
-        }
-        if (!message.fileUrl) {
-          setMediaActionError("Không thể mở tài liệu");
-          return;
-        }
-        window.open(message.fileUrl, "_blank");
-        break;
-      }
-      case "forward": {
-        onForwardMessage?.(message);
-        break;
-      }
-      case "jump": {
-        onJumpToMessage?.(message.id);
-        break;
-      }
-      default:
-        break;
-    }
+    const handleContextMenu = (
+        e: React.MouseEvent,
+        messageId: string,
+        section: ExpandableSection,
+    ) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-    setContextMenuState((prev) => ({ ...prev, isOpen: false }));
-  };
-
-  const handleDeleteForMe = async () => {
-    const conversationId = selectedConversation?.conversationId;
-    const message = getContextMessage();
-
-    if (!conversationId || !message?.id) {
-      setMediaActionError("Thiếu thông tin để xóa tin nhắn");
-      return;
-    }
-
-    try {
-      await conversationApi.deleteMessageForMe(conversationId, message.id);
-      setDeletedMessageIds((prev) => {
-        const next = new Set(prev);
-        next.add(message.id);
-        return next;
-      });
-      onDeleteMessageSuccess?.(message);
-      setContextMenuState((prev) => ({ ...prev, isOpen: false }));
-      setMediaActionError(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Xóa tin nhắn thất bại";
-      setMediaActionError(errorMessage);
-    }
-  };
-
-  const handleRecallMessage = async () => {
-    const message = getContextMessage();
-
-    if (!conversationId || !message?.id) {
-      setMediaActionError("Thiếu thông tin để thu hồi tin nhắn");
-      return;
-    }
-
-    const senderId = message.senderId || "";
-    const timestamp = message.timestamp || "";
-    const createdAt = timestamp ? new Date(timestamp).getTime() : NaN;
-    const within24Hours =
-      Number.isFinite(createdAt) &&
-      Date.now() - createdAt <= 24 * 60 * 60 * 1000;
-
-    if (!within24Hours) {
-      setMediaActionError("Tin nhắn đã quá 24h, không thể thu hồi/xóa");
-      return;
-    }
-
-    try {
-      if (senderId === currentUserId) {
-        await conversationApi.recallMessageById(message.id);
-        setRecalledMessageIds((prev) => {
-          const next = new Set(prev);
-          next.add(message.id);
-          return next;
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        setContextMenuState({
+            isOpen: true,
+            position: {
+                x: rect.right - 224,
+                y: rect.bottom + 8,
+            },
+            messageId,
+            section,
         });
-      } else {
+    };
+
+    const handleMediaAction = (action: 'open' | 'forward' | 'jump') => {
+        const message = getContextMessage();
+
+        if (!message) {
+            setMediaActionError('Không tìm thấy tin nhắn');
+            return;
+        }
+
+        switch (action) {
+            case 'open': {
+                if (contextMenuState.section === 'links') {
+                    const link = (message as LinkMessage).url;
+                    const normalizedLink = /^https?:\/\//i.test(link)
+                        ? link
+                        : `https://${link}`;
+                    window.open(normalizedLink, '_blank');
+                    break;
+                }
+                if (!message.fileUrl) {
+                    setMediaActionError('Không thể mở tài liệu');
+                    return;
+                }
+                window.open(message.fileUrl, '_blank');
+                break;
+            }
+            case 'forward': {
+                onForwardMessage?.(message);
+                break;
+            }
+            case 'jump': {
+                onJumpToMessage?.(message.id);
+                break;
+            }
+            default:
+                break;
+        }
+
+        setContextMenuState((prev) => ({ ...prev, isOpen: false }));
+    };
+
+    const handleDeleteForMe = async () => {
+        const conversationId = selectedConversation?.conversationId;
+        const message = getContextMessage();
+
+        if (!conversationId || !message?.id) {
+            setMediaActionError('Thiếu thông tin để xóa tin nhắn');
+            return;
+        }
+
+        try {
+            await conversationApi.deleteMessageForMe(
+                conversationId,
+                message.id,
+            );
+            setDeletedMessageIds((prev) => {
+                const next = new Set(prev);
+                next.add(message.id);
+                return next;
+            });
+            onDeleteMessageSuccess?.(message);
+            setContextMenuState((prev) => ({ ...prev, isOpen: false }));
+            setMediaActionError(null);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Xóa tin nhắn thất bại';
+            setMediaActionError(errorMessage);
+        }
+    };
+
+    const handleRecallMessage = async () => {
+        const message = getContextMessage();
+
+        if (!conversationId || !message?.id) {
+            setMediaActionError('Thiếu thông tin để thu hồi tin nhắn');
+            return;
+        }
+
+        const senderId = message.senderId || '';
+        const timestamp = message.timestamp || '';
+        const createdAt = timestamp ? new Date(timestamp).getTime() : NaN;
+        const within24Hours =
+            Number.isFinite(createdAt) &&
+            Date.now() - createdAt <= 24 * 60 * 60 * 1000;
+
+        if (!within24Hours) {
+            setMediaActionError('Tin nhắn đã quá 24h, không thể thu hồi/xóa');
+            return;
+        }
+
+        try {
+            if (senderId === currentUserId) {
+                await conversationApi.recallMessageById(message.id);
+                setRecalledMessageIds((prev) => {
+                    const next = new Set(prev);
+                    next.add(message.id);
+                    return next;
+                });
+            } else {
+                if (!isAdmin) {
+                    setMediaActionError(
+                        'Chỉ admin mới có thể xóa tin nhắn người khác',
+                    );
+                    return;
+                }
+
+                await conversationApi.adminDeleteMessage(message.id);
+                setDeletedMessageIds((prev) => {
+                    const next = new Set(prev);
+                    next.add(message.id);
+                    return next;
+                });
+            }
+
+            onRecallMessageSuccess?.(message);
+            setContextMenuState((prev) => ({ ...prev, isOpen: false }));
+            setMediaActionError(null);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Thu hồi tin nhắn thất bại';
+            setMediaActionError(errorMessage);
+        }
+    };
+
+    const getDurationLabel = (duration: number) => {
+        if (duration === 0) return 'Không bao giờ';
+        if (duration === 3600) return 'Sau 1 giờ';
+        if (duration === 86400) return 'Sau 24 giờ';
+        return `${duration}s`;
+    };
+
+    const handleAutoDeleteChange = async (duration: number) => {
+        if (!conversationId) return;
         if (!isAdmin) {
-          setMediaActionError("Chỉ admin mới có thể xóa tin nhắn người khác");
-          return;
+            const error = 'Chỉ admin mới được chỉnh tin nhắn tự xóa';
+            setMediaActionError(error);
+            throw new Error(error);
         }
 
-        await conversationApi.adminDeleteMessage(message.id);
-        setDeletedMessageIds((prev) => {
-          const next = new Set(prev);
-          next.add(message.id);
-          return next;
-        });
-      }
+        try {
+            await conversationApi.updateGroupAutoDelete(
+                conversationId,
+                duration,
+            );
+            setAutoDeleteDuration(duration);
+            setMediaActionError(null);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Cập nhật tin nhắn tự xóa thất bại';
+            setMediaActionError(errorMessage);
+            throw new Error(errorMessage);
+        }
+    };
 
-      onRecallMessageSuccess?.(message);
-      setContextMenuState((prev) => ({ ...prev, isOpen: false }));
-      setMediaActionError(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Thu hồi tin nhắn thất bại";
-      setMediaActionError(errorMessage);
-    }
-  };
+    const handleOpenAutoDeleteModal = () => {
+        if (!isAdmin) {
+            setMediaActionError('Chỉ admin mới được chỉnh tin nhắn tự xóa');
+            return;
+        }
+        setIsAutoDeleteModalOpen(true);
+    };
 
-  const getDurationLabel = (duration: number) => {
-    if (duration === 0) return "Không bao giờ";
-    if (duration === 3600) return "Sau 1 giờ";
-    if (duration === 86400) return "Sau 24 giờ";
-    return `${duration}s`;
-  };
+    const handleHideConversation = async (password: string) => {
+        if (!conversationId) return;
+        if (!password.trim()) {
+            throw new Error('Vui lòng nhập mật khẩu hợp lệ');
+        }
 
-  const handleAutoDeleteChange = async (duration: number) => {
-    if (!conversationId) return;
-    if (!isAdmin) {
-      const error = "Chỉ admin mới được chỉnh tin nhắn tự xóa";
-      setMediaActionError(error);
-      throw new Error(error);
-    }
+        try {
+            await conversationApi.hideConversation(conversationId, password);
+            localStorage.setItem(`hidden_conv_${conversationId}`, password);
+            setIsConversationHidden(true);
+            setMediaActionError(null);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Cập nhật trạng thái ẩn trò chuyện thất bại';
+            setMediaActionError(errorMessage);
+            throw new Error(errorMessage);
+        }
+    };
 
-    try {
-      await conversationApi.updateGroupAutoDelete(conversationId, duration);
-      setAutoDeleteDuration(duration);
-      setMediaActionError(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Cập nhật tin nhắn tự xóa thất bại";
-      setMediaActionError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
+    const handleUnhideConversation = async () => {
+        if (!conversationId) return;
 
-  const handleOpenAutoDeleteModal = () => {
-    if (!isAdmin) {
-      setMediaActionError("Chỉ admin mới được chỉnh tin nhắn tự xóa");
-      return;
-    }
-    setIsAutoDeleteModalOpen(true);
-  };
+        try {
+            const savedPassword =
+                localStorage.getItem(`hidden_conv_${conversationId}`) || '';
+            await conversationApi.unhideConversation(
+                conversationId,
+                savedPassword,
+            );
+            setIsConversationHidden(false);
+            setMediaActionError(null);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Cập nhật trạng thái ẩn trò chuyện thất bại';
+            setMediaActionError(errorMessage);
+        }
+    };
 
-  const handleHideConversation = async (password: string) => {
-    if (!conversationId) return;
-    if (!password.trim()) {
-      throw new Error("Vui lòng nhập mật khẩu hợp lệ");
-    }
+    const handleOpenHideConversationModal = () => {
+        if (isConversationHidden) {
+            void handleUnhideConversation();
+            return;
+        }
 
-    try {
-      await conversationApi.hideConversation(conversationId, password);
-      localStorage.setItem(`hidden_conv_${conversationId}`, password);
-      setIsConversationHidden(true);
-      setMediaActionError(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Cập nhật trạng thái ẩn trò chuyện thất bại";
-      setMediaActionError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
+        setIsHideConversationModalOpen(true);
+    };
 
-  const handleUnhideConversation = async () => {
-    if (!conversationId) return;
+    const handleFriendToggle = (friendId: string) => {
+        setSelectedFriendIds((prev) =>
+            prev.includes(friendId)
+                ? prev.filter((id) => id !== friendId)
+                : [...prev, friendId],
+        );
+    };
 
-    try {
-      const savedPassword =
-        localStorage.getItem(`hidden_conv_${conversationId}`) || "";
-      await conversationApi.unhideConversation(conversationId, savedPassword);
-      setIsConversationHidden(false);
-      setMediaActionError(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Cập nhật trạng thái ẩn trò chuyện thất bại";
-      setMediaActionError(errorMessage);
-    }
-  };
+    const resetAddMemberModalState = () => {
+        setFriendSearch('');
+        setSelectedFriendIds([]);
+        setAddMemberError(null);
+    };
 
-  const handleOpenHideConversationModal = () => {
-    if (isConversationHidden) {
-      void handleUnhideConversation();
-      return;
-    }
+    const handleOpenAddMemberModal = () => {
+        setIsAddMemberModalOpen(true);
+        setAddMemberError(null);
+    };
 
-    setIsHideConversationModalOpen(true);
-  };
+    const handleCloseAddMemberModal = () => {
+        if (isAddingMembers) return;
+        setIsAddMemberModalOpen(false);
+        resetAddMemberModalState();
+    };
 
-  const handleFriendToggle = (friendId: string) => {
-    setSelectedFriendIds((prev) =>
-      prev.includes(friendId)
-        ? prev.filter((id) => id !== friendId)
-        : [...prev, friendId],
-    );
-  };
-
-  const resetAddMemberModalState = () => {
-    setFriendSearch("");
-    setSelectedFriendIds([]);
-    setAddMemberError(null);
-  };
-
-  const handleOpenAddMemberModal = () => {
-    setIsAddMemberModalOpen(true);
-    setAddMemberError(null);
-  };
-
-  const handleCloseAddMemberModal = () => {
-    if (isAddingMembers) return;
-    setIsAddMemberModalOpen(false);
-    resetAddMemberModalState();
-  };
-
-  const handleConfirmAddMembers = async () => {
-    if (!conversationId) return;
+    const handleConfirmAddMembers = async () => {
+        if (!conversationId) return;
 
         if (selectedFriendIds.length === 0) {
             setAddMemberError('Vui lòng chọn ít nhất một thành viên');
@@ -584,19 +605,19 @@ export const ConversationGroupInfoPanel: React.FC<
             return;
         }
 
-    try {
-      setIsAddingMembers(true);
-      setAddMemberError(null);
+        try {
+            setIsAddingMembers(true);
+            setAddMemberError(null);
 
-      const selectedFriends = availableFriendOptions.filter((friend) =>
-        selectedFriendIds.includes(friend.id),
-      );
+            const selectedFriends = availableFriendOptions.filter((friend) =>
+                selectedFriendIds.includes(friend.id),
+            );
 
-      const memberIds = selectedFriends.map((friend) => friend.id);
-      const memberNicknames = selectedFriends.map((friend) => ({
-        userId: friend.id,
-        nickname: friend.fullName || "Member",
-      }));
+            const memberIds = selectedFriends.map((friend) => friend.id);
+            const memberNicknames = selectedFriends.map((friend) => ({
+                userId: friend.id,
+                nickname: friend.fullName || 'Member',
+            }));
 
             await conversationApi.addGroupMembers(
                 conversationId,
@@ -626,23 +647,23 @@ export const ConversationGroupInfoPanel: React.FC<
         }
     };
 
-  const handleClearHistory = async () => {
-    if (!conversationId) return;
+    const handleClearHistory = async () => {
+        if (!conversationId) return;
 
-    try {
-      await conversationApi.clearConversationHistory(conversationId);
-      setDeletedMessageIds(new Set(displayMessages.map((msg) => msg.id)));
-      onClearHistorySuccess?.(displayMessages);
-      setMediaActionError(null);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Xóa lịch sử trò chuyện thất bại";
-      setMediaActionError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
+        try {
+            await conversationApi.clearConversationHistory(conversationId);
+            setDeletedMessageIds(new Set(displayMessages.map((msg) => msg.id)));
+            onClearHistorySuccess?.(displayMessages);
+            setMediaActionError(null);
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : 'Xóa lịch sử trò chuyện thất bại';
+            setMediaActionError(errorMessage);
+            throw new Error(errorMessage);
+        }
+    };
 
     const handleOpenClearHistoryModal = () => {
         setIsClearHistoryModalOpen(true);
@@ -731,23 +752,23 @@ export const ConversationGroupInfoPanel: React.FC<
         }
     };
 
-  const handleLeaveGroup = async (newAdminUserId?: string) => {
-    void newAdminUserId;
-    if (!conversationId || isLeavingGroup) return;
+    const handleLeaveGroup = async (newAdminUserId?: string) => {
+        void newAdminUserId;
+        if (!conversationId || isLeavingGroup) return;
 
-    try {
-      setIsLeavingGroup(true);
-      await conversationApi.leaveConversation(conversationId);
-      setIsTransferAdminModalOpen(false);
-      window.location.href = "/chat";
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Rời nhóm thất bại";
-      setMediaActionError(errorMessage);
-    } finally {
-      setIsLeavingGroup(false);
-    }
-  };
+        try {
+            setIsLeavingGroup(true);
+            await conversationApi.leaveConversation(conversationId);
+            setIsTransferAdminModalOpen(false);
+            window.location.href = '/chat';
+        } catch (error) {
+            const errorMessage =
+                error instanceof Error ? error.message : 'Rời nhóm thất bại';
+            setMediaActionError(errorMessage);
+        } finally {
+            setIsLeavingGroup(false);
+        }
+    };
 
     const refreshGroupMembers = useCallback(async () => {
         if (!conversationId || !isCurrentUserMember) return;
@@ -819,31 +840,31 @@ export const ConversationGroupInfoPanel: React.FC<
         void refreshGroupDetail();
     }, [refreshGroupDetail]);
 
-  useEffect(() => {
-    if (!conversationId) return;
+    useEffect(() => {
+        if (!conversationId) return;
 
-    const handleAutoDeleteRealtime = (payload: {
-      groupId: string;
-      autoDeleteDuration: number;
-    }) => {
-      if (payload.groupId !== conversationId) return;
-      setAutoDeleteDuration(payload.autoDeleteDuration);
-    };
+        const handleAutoDeleteRealtime = (payload: {
+            groupId: string;
+            autoDeleteDuration: number;
+        }) => {
+            if (payload.groupId !== conversationId) return;
+            setAutoDeleteDuration(payload.autoDeleteDuration);
+        };
 
-    const handleHiddenRealtime = (payload: {
-      conversationId: string;
-      hidden: boolean;
-    }) => {
-      if (payload.conversationId !== conversationId) return;
-      setIsConversationHidden(payload.hidden);
-    };
+        const handleHiddenRealtime = (payload: {
+            conversationId: string;
+            hidden: boolean;
+        }) => {
+            if (payload.conversationId !== conversationId) return;
+            setIsConversationHidden(payload.hidden);
+        };
 
-    const handleHistoryClearedRealtime = (payload: {
-      conversationId: string;
-    }) => {
-      if (payload.conversationId !== conversationId) return;
-      setDeletedMessageIds(new Set(displayMessages.map((msg) => msg.id)));
-    };
+        const handleHistoryClearedRealtime = (payload: {
+            conversationId: string;
+        }) => {
+            if (payload.conversationId !== conversationId) return;
+            setDeletedMessageIds(new Set(displayMessages.map((msg) => msg.id)));
+        };
 
         const handleGroupDissolvedRealtime = (payload: { groupId: string }) => {
             if (payload.groupId !== conversationId) return;
@@ -1045,32 +1066,33 @@ export const ConversationGroupInfoPanel: React.FC<
         }
     }, [conversationId, isCurrentUserMemberFromConversation]);
 
-  useEffect(() => {
-    const loadFriends = async () => {
-      if (!isAddMemberModalOpen || !currentUserId) return;
+    useEffect(() => {
+        const loadFriends = async () => {
+            if (!isAddMemberModalOpen || !currentUserId) return;
 
-      try {
-        setIsLoadingFriends(true);
-        setAddMemberError(null);
+            try {
+                setIsLoadingFriends(true);
+                setAddMemberError(null);
 
-        const friends = await friendListService.getFriends(currentUserId);
-        const sortedFriends = [...friends].sort((a, b) =>
-          (a.fullName || "").localeCompare(b.fullName || "", "vi", {
-            sensitivity: "base",
-          }),
-        );
+                const friends =
+                    await friendListService.getFriends(currentUserId);
+                const sortedFriends = [...friends].sort((a, b) =>
+                    (a.fullName || '').localeCompare(b.fullName || '', 'vi', {
+                        sensitivity: 'base',
+                    }),
+                );
 
-        setFriendOptions(sortedFriends);
-      } catch (error) {
-        setAddMemberError(
-          error instanceof Error
-            ? error.message
-            : "Không thể tải danh sách bạn bè",
-        );
-      } finally {
-        setIsLoadingFriends(false);
-      }
-    };
+                setFriendOptions(sortedFriends);
+            } catch (error) {
+                setAddMemberError(
+                    error instanceof Error
+                        ? error.message
+                        : 'Không thể tải danh sách bạn bè',
+                );
+            } finally {
+                setIsLoadingFriends(false);
+            }
+        };
 
         void loadFriends();
     }, [isAddMemberModalOpen, currentUserId]);
@@ -1193,7 +1215,7 @@ export const ConversationGroupInfoPanel: React.FC<
         refreshPendingJoinRequestsCount,
     ]);
 
-  if (!isSidebarOpen) return null;
+    if (!isSidebarOpen) return null;
 
     const groupName =
         selectedConversation?.groupInfo?.groupName || 'Thông tin nhóm';
@@ -1213,44 +1235,45 @@ export const ConversationGroupInfoPanel: React.FC<
             ? 'Yêu cầu tham gia nhóm'
             : 'Tham gia nhóm ngay';
 
-  if (showMediaStorage) {
-    return (
-      <MediaStoragePanel
-        displayMessages={displayMessages.filter(
-          (msg) =>
-            !deletedMessageIds.has(msg.id) && !recalledMessageIds.has(msg.id),
-        )}
-        participants={selectedConversation?.participants || []}
-        conversationId={selectedConversation?.conversationId}
-        onBack={() => setShowMediaStorage(false)}
-        onMediaAction={(action, message) => {
-          switch (action) {
-            case "forward":
-              onForwardMessage?.(message);
-              break;
-            case "jump":
-              onJumpToMessage?.(message.id);
-              break;
-            default:
-              break;
-          }
-        }}
-      />
-    );
-  }
+    if (showMediaStorage) {
+        return (
+            <MediaStoragePanel
+                displayMessages={displayMessages.filter(
+                    (msg) =>
+                        !deletedMessageIds.has(msg.id) &&
+                        !recalledMessageIds.has(msg.id),
+                )}
+                participants={selectedConversation?.participants || []}
+                conversationId={selectedConversation?.conversationId}
+                onBack={() => setShowMediaStorage(false)}
+                onMediaAction={(action, message) => {
+                    switch (action) {
+                        case 'forward':
+                            onForwardMessage?.(message);
+                            break;
+                        case 'jump':
+                            onJumpToMessage?.(message.id);
+                            break;
+                        default:
+                            break;
+                    }
+                }}
+            />
+        );
+    }
 
-  return (
-    <div className="group-chat-panel-clickable w-90 border-l border-slate-200 bg-white flex flex-col overflow-y-auto rounded-2xl shadow-2xs">
-      {isTransferAdminModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-xl p-5 flex flex-col gap-4">
-            <h3 className="text-lg font-semibold text-gray-primary">
-              Chuyển quyền quản trị
-            </h3>
-            <p className="text-sm text-gray-500">
-              Bạn là quản trị viên. Vui lòng chọn quản trị viên mới trước khi
-              rời nhóm.
-            </p>
+    return (
+        <div className="group-chat-panel-clickable w-90 border-l border-slate-200 bg-white flex flex-col overflow-y-auto rounded-2xl shadow-2xs">
+            {isTransferAdminModalOpen && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+                    <div className="w-full max-w-md bg-white rounded-xl p-5 flex flex-col gap-4">
+                        <h3 className="text-lg font-semibold text-gray-primary">
+                            Chuyển quyền quản trị
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                            Bạn là quản trị viên. Vui lòng chọn quản trị viên
+                            mới trước khi rời nhóm.
+                        </p>
 
                         <div className="max-h-56 overflow-y-auto flex flex-col gap-2">
                             {groupMembers.map((member) => (
@@ -1282,31 +1305,35 @@ export const ConversationGroupInfoPanel: React.FC<
                             ))}
                         </div>
 
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => setIsTransferAdminModalOpen(false)}
-                className="px-4 py-2 rounded-lg border border-slate-200"
-              >
-                Hủy
-              </button>
-              <button
-                disabled={!selectedNewAdminId || isLeavingGroup}
-                onClick={() => handleLeaveGroup(selectedNewAdminId)}
-                className="px-4 py-2 rounded-lg bg-green-primary text-white disabled:opacity-50"
-              >
-                Chuyển quyền và rời nhóm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                        <div className="flex items-center justify-end gap-2">
+                            <button
+                                onClick={() =>
+                                    setIsTransferAdminModalOpen(false)
+                                }
+                                className="px-4 py-2 rounded-lg border border-slate-200"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                disabled={!selectedNewAdminId || isLeavingGroup}
+                                onClick={() =>
+                                    handleLeaveGroup(selectedNewAdminId)
+                                }
+                                className="px-4 py-2 rounded-lg bg-green-primary text-white disabled:opacity-50"
+                            >
+                                Chuyển quyền và rời nhóm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-      {!isGroupManagement ? (
-        <>
-          <div className="p-6 border-b border-slate-200 flex flex-col gap-3">
-            <span className="text-lg font-semibold text-gray-primary">
-              Thông tin nhóm
-            </span>
+            {!isGroupManagement ? (
+                <>
+                    <div className="p-6 border-b border-slate-200 flex flex-col gap-3">
+                        <span className="text-lg font-semibold text-gray-primary">
+                            Thông tin nhóm
+                        </span>
 
                         <div className="flex flex-col gap-3 items-center">
                             <ChatAvatar
@@ -1381,169 +1408,195 @@ export const ConversationGroupInfoPanel: React.FC<
                         )}
                     </div>
 
-          <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-primary">
-                Images/Video
-              </span>
-              <button
-                onClick={() => toggleSection("images")}
-                className="p-1 hover:bg-slate-100 rounded transition-colors"
-              >
-                <ChevronRight
-                  size={20}
-                  className={`text-gray-primary transition-transform ${expandedSections.images ? "rotate-90" : ""}`}
-                />
-              </button>
-            </div>
+                    <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
+                        <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-primary">
+                                Images/Video
+                            </span>
+                            <button
+                                onClick={() => toggleSection('images')}
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                            >
+                                <ChevronRight
+                                    size={20}
+                                    className={`text-gray-primary transition-transform ${expandedSections.images ? 'rotate-90' : ''}`}
+                                />
+                            </button>
+                        </div>
 
-            {expandedSections.images && (
-              <>
-                <div className="grid grid-cols-4 gap-2">
-                  {imageMessages.slice(0, 8).map((img) => (
-                    <div
-                      key={img.id}
-                      className="relative group h-16 rounded-lg overflow-hidden"
-                    >
-                      <img
-                        src={img.fileUrl || "/placeholder.svg"}
-                        alt={img.fileName || "chat"}
-                        className="w-full h-16 object-cover hover:opacity-80 transition-opacity cursor-pointer"
-                      />
-                      <button
-                        onClick={(e) => handleContextMenu(e, img.id, "images")}
-                        className="absolute top-1 right-1 p-1 rounded bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreVertical size={14} />
-                      </button>
+                        {expandedSections.images && (
+                            <>
+                                <div className="grid grid-cols-4 gap-2">
+                                    {imageMessages.slice(0, 8).map((img) => (
+                                        <div
+                                            key={img.id}
+                                            className="relative group h-16 rounded-lg overflow-hidden"
+                                        >
+                                            <img
+                                                src={
+                                                    img.fileUrl ||
+                                                    '/placeholder.svg'
+                                                }
+                                                alt={img.fileName || 'chat'}
+                                                className="w-full h-16 object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                                            />
+                                            <button
+                                                onClick={(e) =>
+                                                    handleContextMenu(
+                                                        e,
+                                                        img.id,
+                                                        'images',
+                                                    )
+                                                }
+                                                className="absolute top-1 right-1 p-1 rounded bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <MoreVertical size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {imageMessages.length === 0 && (
+                                        <div className="col-span-4 text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
+                                            Chưa có ảnh/video
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setShowMediaStorage(true)}
+                                    className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
+                                >
+                                    Xem tất cả
+                                </button>
+                            </>
+                        )}
                     </div>
-                  ))}
-                  {imageMessages.length === 0 && (
-                    <div className="col-span-4 text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
-                      Chưa có ảnh/video
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowMediaStorage(true)}
-                  className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
-                >
-                  Xem tất cả
-                </button>
-              </>
-            )}
-          </div>
 
-          <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-primary">
-                File/Folder
-              </span>
-              <button
-                onClick={() => toggleSection("files")}
-                className="p-1 hover:bg-slate-100 rounded transition-colors"
-              >
-                <ChevronRight
-                  size={20}
-                  className={`text-gray-primary transition-transform ${expandedSections.files ? "rotate-90" : ""}`}
-                />
-              </button>
-            </div>
+                    <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
+                        <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-primary">
+                                File/Folder
+                            </span>
+                            <button
+                                onClick={() => toggleSection('files')}
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                            >
+                                <ChevronRight
+                                    size={20}
+                                    className={`text-gray-primary transition-transform ${expandedSections.files ? 'rotate-90' : ''}`}
+                                />
+                            </button>
+                        </div>
 
-            {expandedSections.files && (
-              <>
-                <div className="space-y-2">
-                  {fileMessages.slice(0, 3).map((file) => (
-                    <div
-                      key={file.id}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
-                    >
-                      <span className="text-xs text-gray-700 truncate flex-1">
-                        {file.fileName || "Tệp đính kèm"}
-                      </span>
-                      <button
-                        onClick={(e) => handleContextMenu(e, file.id, "files")}
-                        className="p-1 hover:bg-slate-200 rounded"
-                      >
-                        <MoreVertical size={14} />
-                      </button>
+                        {expandedSections.files && (
+                            <>
+                                <div className="space-y-2">
+                                    {fileMessages.slice(0, 3).map((file) => (
+                                        <div
+                                            key={file.id}
+                                            className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
+                                        >
+                                            <span className="text-xs text-gray-700 truncate flex-1">
+                                                {file.fileName ||
+                                                    'Tệp đính kèm'}
+                                            </span>
+                                            <button
+                                                onClick={(e) =>
+                                                    handleContextMenu(
+                                                        e,
+                                                        file.id,
+                                                        'files',
+                                                    )
+                                                }
+                                                className="p-1 hover:bg-slate-200 rounded"
+                                            >
+                                                <MoreVertical size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {fileMessages.length === 0 && (
+                                        <div className="text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
+                                            Chưa có file
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setShowMediaStorage(true)}
+                                    className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
+                                >
+                                    Xem tất cả
+                                </button>
+                            </>
+                        )}
                     </div>
-                  ))}
-                  {fileMessages.length === 0 && (
-                    <div className="text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
-                      Chưa có file
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowMediaStorage(true)}
-                  className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
-                >
-                  Xem tất cả
-                </button>
-              </>
-            )}
-          </div>
 
-          <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-gray-primary">Link</span>
-              <button
-                onClick={() => toggleSection("links")}
-                className="p-1 hover:bg-slate-100 rounded transition-colors"
-              >
-                <ChevronRight
-                  size={20}
-                  className={`text-gray-primary transition-transform ${expandedSections.links ? "rotate-90" : ""}`}
-                />
-              </button>
-            </div>
+                    <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
+                        <div className="flex items-center justify-between">
+                            <span className="font-semibold text-gray-primary">
+                                Link
+                            </span>
+                            <button
+                                onClick={() => toggleSection('links')}
+                                className="p-1 hover:bg-slate-100 rounded transition-colors"
+                            >
+                                <ChevronRight
+                                    size={20}
+                                    className={`text-gray-primary transition-transform ${expandedSections.links ? 'rotate-90' : ''}`}
+                                />
+                            </button>
+                        </div>
 
-            {expandedSections.links && (
-              <>
-                <div className="space-y-2">
-                  {linkMessages.slice(0, 3).map((linkItem) => (
-                    <div
-                      key={linkItem.id}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
-                    >
-                      <a
-                        href={
-                          /^https?:\/\//i.test(linkItem.url)
-                            ? linkItem.url
-                            : `https://${linkItem.url}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 truncate flex-1"
-                      >
-                        {linkItem.url}
-                      </a>
-                      <button
-                        onClick={(e) =>
-                          handleContextMenu(e, linkItem.id, "links")
-                        }
-                        className="p-1 hover:bg-slate-200 rounded"
-                      >
-                        <MoreVertical size={14} />
-                      </button>
+                        {expandedSections.links && (
+                            <>
+                                <div className="space-y-2">
+                                    {linkMessages
+                                        .slice(0, 3)
+                                        .map((linkItem) => (
+                                            <div
+                                                key={linkItem.id}
+                                                className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200"
+                                            >
+                                                <a
+                                                    href={
+                                                        /^https?:\/\//i.test(
+                                                            linkItem.url,
+                                                        )
+                                                            ? linkItem.url
+                                                            : `https://${linkItem.url}`
+                                                    }
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-xs text-blue-600 truncate flex-1"
+                                                >
+                                                    {linkItem.url}
+                                                </a>
+                                                <button
+                                                    onClick={(e) =>
+                                                        handleContextMenu(
+                                                            e,
+                                                            linkItem.id,
+                                                            'links',
+                                                        )
+                                                    }
+                                                    className="p-1 hover:bg-slate-200 rounded"
+                                                >
+                                                    <MoreVertical size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    {linkMessages.length === 0 && (
+                                        <div className="text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
+                                            Chưa có link
+                                        </div>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setShowMediaStorage(true)}
+                                    className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
+                                >
+                                    Xem tất cả
+                                </button>
+                            </>
+                        )}
                     </div>
-                  ))}
-                  {linkMessages.length === 0 && (
-                    <div className="text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
-                      Chưa có link
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowMediaStorage(true)}
-                  className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
-                >
-                  Xem tất cả
-                </button>
-              </>
-            )}
-          </div>
 
                     <div className="flex flex-col gap-2">
                         <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
@@ -1625,43 +1678,53 @@ export const ConversationGroupInfoPanel: React.FC<
                             </button>
                         </div>
 
-            <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
-              <span className="font-semibold">Bảng tin nhóm</span>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
-                <AlarmClockCheck size={20} />
-                <span className="text-[15px]">Danh sách nhắc hẹn</span>
-              </button>
-              <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
-                <NotebookText size={20} />
-                <span className="text-[15px]">Ghi chú, ghim, bình chọn</span>
-              </button>
-            </div>
+                        <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
+                            <span className="font-semibold">Bảng tin nhóm</span>
+                            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                                <AlarmClockCheck size={20} />
+                                <span className="text-[15px]">
+                                    Danh sách nhắc hẹn
+                                </span>
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                                <NotebookText size={20} />
+                                <span className="text-[15px]">
+                                    Ghi chú, ghim, bình chọn
+                                </span>
+                            </button>
+                        </div>
 
-            <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
-              <span className="font-semibold">Thiết lập bảo mật</span>
-              <button
-                onClick={handleOpenAutoDeleteModal}
-                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary"
-              >
-                <Clock7 size={20} />
-                <div className="flex flex-col items-start">
-                  <span className="text-[15px]">Tin nhắn tự xóa</span>
-                  <span className="text-[12px] text-gray-secondary">
-                    {getDurationLabel(autoDeleteDuration)}
-                  </span>
-                </div>
-                <ChevronRight size={16} className="ml-auto" />
-              </button>
-              <button
-                onClick={handleOpenHideConversationModal}
-                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary"
-              >
-                <EyeOff size={20} />
-                <span className="text-[15px]">
-                  {isConversationHidden ? "Bỏ ẩn trò chuyện" : "Ẩn trò chuyện"}
-                </span>
-              </button>
-            </div>
+                        <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
+                            <span className="font-semibold">
+                                Thiết lập bảo mật
+                            </span>
+                            <button
+                                onClick={handleOpenAutoDeleteModal}
+                                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary"
+                            >
+                                <Clock7 size={20} />
+                                <div className="flex flex-col items-start">
+                                    <span className="text-[15px]">
+                                        Tin nhắn tự xóa
+                                    </span>
+                                    <span className="text-[12px] text-gray-secondary">
+                                        {getDurationLabel(autoDeleteDuration)}
+                                    </span>
+                                </div>
+                                <ChevronRight size={16} className="ml-auto" />
+                            </button>
+                            <button
+                                onClick={handleOpenHideConversationModal}
+                                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary"
+                            >
+                                <EyeOff size={20} />
+                                <span className="text-[15px]">
+                                    {isConversationHidden
+                                        ? 'Bỏ ẩn trò chuyện'
+                                        : 'Ẩn trò chuyện'}
+                                </span>
+                            </button>
+                        </div>
 
                         <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                             <MessageSquareWarning size={20} />
@@ -1702,86 +1765,94 @@ export const ConversationGroupInfoPanel: React.FC<
                         </span>
                     </div>
 
-          <div className="p-4 border-b border-slate-200 flex flex-col gap-4">
-            <span className="font-semibold text-gray-primary">
-              Cho phép các thành viên trong nhóm:
-            </span>
+                    <div className="p-4 border-b border-slate-200 flex flex-col gap-4">
+                        <span className="font-semibold text-gray-primary">
+                            Cho phép các thành viên trong nhóm:
+                        </span>
 
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-primary">
-                  Thay đổi tên & ảnh đại diện của nhóm
-                </span>
-                <Checkbox
-                  checked={groupPermissions.changeNameAvatar}
-                  onChange={() =>
-                    setGroupPermissions({
-                      ...groupPermissions,
-                      changeNameAvatar: !groupPermissions.changeNameAvatar,
-                    })
-                  }
-                />
-              </div>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-primary">
+                                    Thay đổi tên & ảnh đại diện của nhóm
+                                </span>
+                                <Checkbox
+                                    checked={groupPermissions.changeNameAvatar}
+                                    onChange={() =>
+                                        setGroupPermissions({
+                                            ...groupPermissions,
+                                            changeNameAvatar:
+                                                !groupPermissions.changeNameAvatar,
+                                        })
+                                    }
+                                />
+                            </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-primary">
-                  Ghim tin nhắn, ghi chú, bình chọn lên đầu hội thoại
-                </span>
-                <Checkbox
-                  checked={groupPermissions.pinMessages}
-                  onChange={() =>
-                    setGroupPermissions({
-                      ...groupPermissions,
-                      pinMessages: !groupPermissions.pinMessages,
-                    })
-                  }
-                />
-              </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-primary">
+                                    Ghim tin nhắn, ghi chú, bình chọn lên đầu
+                                    hội thoại
+                                </span>
+                                <Checkbox
+                                    checked={groupPermissions.pinMessages}
+                                    onChange={() =>
+                                        setGroupPermissions({
+                                            ...groupPermissions,
+                                            pinMessages:
+                                                !groupPermissions.pinMessages,
+                                        })
+                                    }
+                                />
+                            </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-primary">
-                  Tạo mới ghi chú, nhắc hẹn
-                </span>
-                <Checkbox
-                  checked={groupPermissions.createNotes}
-                  onChange={() =>
-                    setGroupPermissions({
-                      ...groupPermissions,
-                      createNotes: !groupPermissions.createNotes,
-                    })
-                  }
-                />
-              </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-primary">
+                                    Tạo mới ghi chú, nhắc hẹn
+                                </span>
+                                <Checkbox
+                                    checked={groupPermissions.createNotes}
+                                    onChange={() =>
+                                        setGroupPermissions({
+                                            ...groupPermissions,
+                                            createNotes:
+                                                !groupPermissions.createNotes,
+                                        })
+                                    }
+                                />
+                            </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-primary">
-                  Tạo mới bình chọn
-                </span>
-                <Checkbox
-                  checked={groupPermissions.createPolls}
-                  onChange={() =>
-                    setGroupPermissions({
-                      ...groupPermissions,
-                      createPolls: !groupPermissions.createPolls,
-                    })
-                  }
-                />
-              </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-primary">
+                                    Tạo mới bình chọn
+                                </span>
+                                <Checkbox
+                                    checked={groupPermissions.createPolls}
+                                    onChange={() =>
+                                        setGroupPermissions({
+                                            ...groupPermissions,
+                                            createPolls:
+                                                !groupPermissions.createPolls,
+                                        })
+                                    }
+                                />
+                            </div>
 
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-primary">Gửi tin nhắn</span>
-                <Checkbox
-                  checked={groupPermissions.sendMessages}
-                  onChange={() =>
-                    setGroupPermissions({
-                      ...groupPermissions,
-                      sendMessages: !groupPermissions.sendMessages,
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-gray-primary">
+                                    Gửi tin nhắn
+                                </span>
+                                <Checkbox
+                                    checked={groupPermissions.sendMessages}
+                                    onChange={() =>
+                                        setGroupPermissions({
+                                            ...groupPermissions,
+                                            sendMessages:
+                                                !groupPermissions.sendMessages,
+                                        })
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="p-4 border-b border-slate-200 flex flex-col gap-4">
                         <div className="flex items-center justify-between">
@@ -1812,95 +1883,117 @@ export const ConversationGroupInfoPanel: React.FC<
                             </p>
                         )}
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-primary">
-                  Đánh dấu tin nhắn từ trưởng/phó nhóm
-                </span>
-                <HelpCircle size={16} className="text-gray-400" />
-              </div>
-              <div className="scale-75 origin-right">
-                <ToggleSwitch
-                  checked={groupSettings.markLeaderMessages}
-                  onChange={() =>
-                    setGroupSettings({
-                      ...groupSettings,
-                      markLeaderMessages: !groupSettings.markLeaderMessages,
-                    })
-                  }
-                />
-              </div>
-            </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-primary">
+                                    Đánh dấu tin nhắn từ trưởng/phó nhóm
+                                </span>
+                                <HelpCircle
+                                    size={16}
+                                    className="text-gray-400"
+                                />
+                            </div>
+                            <div className="scale-75 origin-right">
+                                <ToggleSwitch
+                                    checked={groupSettings.markLeaderMessages}
+                                    onChange={() =>
+                                        setGroupSettings({
+                                            ...groupSettings,
+                                            markLeaderMessages:
+                                                !groupSettings.markLeaderMessages,
+                                        })
+                                    }
+                                />
+                            </div>
+                        </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-primary">
-                  Cho phép thành viên mới đọc tin nhắn gần nhất
-                </span>
-                <HelpCircle size={16} className="text-gray-400" />
-              </div>
-              <div className="scale-75 origin-right">
-                <ToggleSwitch
-                  checked={groupSettings.allowReadRecentMessages}
-                  onChange={() =>
-                    setGroupSettings({
-                      ...groupSettings,
-                      allowReadRecentMessages:
-                        !groupSettings.allowReadRecentMessages,
-                    })
-                  }
-                />
-              </div>
-            </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-primary">
+                                    Cho phép thành viên mới đọc tin nhắn gần
+                                    nhất
+                                </span>
+                                <HelpCircle
+                                    size={16}
+                                    className="text-gray-400"
+                                />
+                            </div>
+                            <div className="scale-75 origin-right">
+                                <ToggleSwitch
+                                    checked={
+                                        groupSettings.allowReadRecentMessages
+                                    }
+                                    onChange={() =>
+                                        setGroupSettings({
+                                            ...groupSettings,
+                                            allowReadRecentMessages:
+                                                !groupSettings.allowReadRecentMessages,
+                                        })
+                                    }
+                                />
+                            </div>
+                        </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-primary">
-                  Cho phép dùng link tham gia nhóm
-                </span>
-                <HelpCircle size={16} className="text-gray-400" />
-              </div>
-              <div className="scale-75 origin-right">
-                <ToggleSwitch
-                  checked={groupSettings.allowJoinLink}
-                  onChange={() =>
-                    setGroupSettings({
-                      ...groupSettings,
-                      allowJoinLink: !groupSettings.allowJoinLink,
-                    })
-                  }
-                />
-              </div>
-            </div>
-          </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-primary">
+                                    Cho phép dùng link tham gia nhóm
+                                </span>
+                                <HelpCircle
+                                    size={16}
+                                    className="text-gray-400"
+                                />
+                            </div>
+                            <div className="scale-75 origin-right">
+                                <ToggleSwitch
+                                    checked={groupSettings.allowJoinLink}
+                                    onChange={() =>
+                                        setGroupSettings({
+                                            ...groupSettings,
+                                            allowJoinLink:
+                                                !groupSettings.allowJoinLink,
+                                        })
+                                    }
+                                />
+                            </div>
+                        </div>
+                    </div>
 
-          <div className="p-4 border-b border-slate-200">
-            <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
-              <span className="flex-1 text-sm text-blue-600">
-                zalo.me/g/zwnrhx701
-              </span>
-              <button className="p-1 hover:bg-slate-100 rounded transition-colors">
-                <Copy size={18} className="text-gray-primary" />
-              </button>
-              <button className="p-1 hover:bg-slate-100 rounded transition-colors">
-                <Share size={18} className="text-gray-primary" />
-              </button>
-              <button className="p-1 hover:bg-slate-100 rounded transition-colors">
-                <RefreshCw size={18} className="text-gray-primary" />
-              </button>
-            </div>
-          </div>
+                    <div className="p-4 border-b border-slate-200">
+                        <div className="flex items-center gap-3 p-3 bg-white rounded-lg">
+                            <span className="flex-1 text-sm text-blue-600">
+                                zalo.me/g/zwnrhx701
+                            </span>
+                            <button className="p-1 hover:bg-slate-100 rounded transition-colors">
+                                <Copy size={18} className="text-gray-primary" />
+                            </button>
+                            <button className="p-1 hover:bg-slate-100 rounded transition-colors">
+                                <Share
+                                    size={18}
+                                    className="text-gray-primary"
+                                />
+                            </button>
+                            <button className="p-1 hover:bg-slate-100 rounded transition-colors">
+                                <RefreshCw
+                                    size={18}
+                                    className="text-gray-primary"
+                                />
+                            </button>
+                        </div>
+                    </div>
 
-          <div className="p-4 border-b border-slate-200 flex flex-col gap-2">
-            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
-              <Users size={20} />
-              <span className="text-[15px]">Chặn khỏi nhóm</span>
-            </button>
-            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
-              <KeyRound size={20} />
-              <span className="text-[15px]">Trưởng & phó nhóm</span>
-            </button>
-          </div>
+                    <div className="p-4 border-b border-slate-200 flex flex-col gap-2">
+                        <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                            <Users size={20} />
+                            <span className="text-[15px]">Chặn khỏi nhóm</span>
+                        </button>
+                        <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                            <KeyRound size={20} />
+                            <span className="text-[15px]">
+                                Trưởng & phó nhóm
+                            </span>
+                        </button>
+                    </div>
 
                     <div className="p-4 mt-auto mb-2">
                         <div
@@ -1929,46 +2022,46 @@ export const ConversationGroupInfoPanel: React.FC<
                 </div>
             )}
 
-      {mediaActionError && (
-        <div className="fixed bottom-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50 animate-slideUp">
-          <p className="text-sm font-medium">{mediaActionError}</p>
-          <button
-            onClick={() => setMediaActionError(null)}
-            className="mt-2 text-xs text-red-100 hover:text-white"
-          >
-            Đóng
-          </button>
-        </div>
-      )}
+            {mediaActionError && (
+                <div className="fixed bottom-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50 animate-slideUp">
+                    <p className="text-sm font-medium">{mediaActionError}</p>
+                    <button
+                        onClick={() => setMediaActionError(null)}
+                        className="mt-2 text-xs text-red-100 hover:text-white"
+                    >
+                        Đóng
+                    </button>
+                </div>
+            )}
 
-      <MediaContextMenu
-        isOpen={contextMenuState.isOpen}
-        position={contextMenuState.position}
-        onOpen={() => handleMediaAction("open")}
-        onForward={() => handleMediaAction("forward")}
-        onJumpToMessage={() => handleMediaAction("jump")}
-        onDeleteForMe={handleDeleteForMe}
-        onRecall={handleRecallMessage}
-        onClose={() =>
-          setContextMenuState((prev) => ({
-            ...prev,
-            isOpen: false,
-          }))
-        }
-      />
+            <MediaContextMenu
+                isOpen={contextMenuState.isOpen}
+                position={contextMenuState.position}
+                onOpen={() => handleMediaAction('open')}
+                onForward={() => handleMediaAction('forward')}
+                onJumpToMessage={() => handleMediaAction('jump')}
+                onDeleteForMe={handleDeleteForMe}
+                onRecall={handleRecallMessage}
+                onClose={() =>
+                    setContextMenuState((prev) => ({
+                        ...prev,
+                        isOpen: false,
+                    }))
+                }
+            />
 
-      <AutoDeleteModal
-        isOpen={isAutoDeleteModalOpen}
-        onClose={() => setIsAutoDeleteModalOpen(false)}
-        currentDuration={autoDeleteDuration}
-        onConfirm={handleAutoDeleteChange}
-      />
+            <AutoDeleteModal
+                isOpen={isAutoDeleteModalOpen}
+                onClose={() => setIsAutoDeleteModalOpen(false)}
+                currentDuration={autoDeleteDuration}
+                onConfirm={handleAutoDeleteChange}
+            />
 
-      <ClearHistoryModal
-        isOpen={isClearHistoryModalOpen}
-        onClose={() => setIsClearHistoryModalOpen(false)}
-        onConfirm={handleClearHistory}
-      />
+            <ClearHistoryModal
+                isOpen={isClearHistoryModalOpen}
+                onClose={() => setIsClearHistoryModalOpen(false)}
+                onConfirm={handleClearHistory}
+            />
 
             <HideConversationModal
                 isOpen={isHideConversationModalOpen}
@@ -2147,21 +2240,23 @@ export const ConversationGroupInfoPanel: React.FC<
                 }}
             />
 
-      <Modal
-        isOpen={isAddMemberModalOpen}
-        onClose={handleCloseAddMemberModal}
-        title="Thêm thành viên"
-        size="sm"
-      >
-        <div className="p-4 space-y-3">
-          <input
-            type="text"
-            value={friendSearch}
-            onChange={(event) => setFriendSearch(event.target.value)}
-            placeholder="Tìm theo tên bạn bè"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-green-primary focus:outline-none"
-            disabled={isAddingMembers}
-          />
+            <Modal
+                isOpen={isAddMemberModalOpen}
+                onClose={handleCloseAddMemberModal}
+                title="Thêm thành viên"
+                size="sm"
+            >
+                <div className="p-4 space-y-3">
+                    <input
+                        type="text"
+                        value={friendSearch}
+                        onChange={(event) =>
+                            setFriendSearch(event.target.value)
+                        }
+                        placeholder="Tìm theo tên bạn bè"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-green-primary focus:outline-none"
+                        disabled={isAddingMembers}
+                    />
 
                     <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
                         {isLoadingFriends ? (
@@ -2205,143 +2300,35 @@ export const ConversationGroupInfoPanel: React.FC<
                         )}
                     </div>
 
-          {addMemberError && (
-            <p className="text-sm text-red-500">{addMemberError}</p>
-          )}
+                    {addMemberError && (
+                        <p className="text-sm text-red-500">{addMemberError}</p>
+                    )}
 
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <button
-              onClick={handleCloseAddMemberModal}
-              disabled={isAddingMembers}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm"
-            >
-              Hủy
-            </button>
-            <button
-              onClick={handleConfirmAddMembers}
-              disabled={isAddingMembers || selectedFriendIds.length === 0}
-              className="rounded-lg bg-green-primary px-4 py-2 text-sm text-white disabled:opacity-50"
-            >
-              {isAddingMembers ? "Đang thêm..." : "Thêm thành viên"}
-            </button>
-          </div>
-        </div>
-      </Modal>
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                            onClick={handleCloseAddMemberModal}
+                            disabled={isAddingMembers}
+                            className="rounded-lg border border-slate-200 px-4 py-2 text-sm"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            onClick={handleConfirmAddMembers}
+                            disabled={
+                                isAddingMembers ||
+                                selectedFriendIds.length === 0
+                            }
+                            className="rounded-lg bg-green-primary px-4 py-2 text-sm text-white disabled:opacity-50"
+                        >
+                            {isAddingMembers
+                                ? 'Đang thêm...'
+                                : 'Thêm thành viên'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
 
-      <Modal
-        isOpen={isEditAvatarModalOpen}
-        onClose={() => setIsEditAvatarModalOpen(false)}
-        title="Thông tin nhóm"
-        size="sm"
-      >
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-center">
-            <GroupAvatar
-              name={groupName}
-              avatarUrl={groupAvatar}
-              size={88}
-              members={selectedConversation?.participants}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm text-gray-600">Tên nhóm</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={groupNameInput}
-                onChange={(event) => setGroupNameInput(event.target.value)}
-                maxLength={120}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-green-primary focus:outline-none"
-                disabled={isUpdatingGroupName}
-              />
-              <button
-                onClick={() => void handleUpdateGroupName()}
-                disabled={isUpdatingGroupName}
-                className="cursor-pointer rounded-lg bg-green-primary px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isUpdatingGroupName ? "..." : "Lưu"}
-              </button>
-            </div>
-          </div>
-
-          <label className="block text-sm text-gray-600">Tải ảnh từ máy</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(event) => void handleFileUploadForAvatar(event)}
-            disabled={isUpdatingGroupAvatar}
-            className="cursor-pointer w-full rounded-lg border border-slate-200 px-3 py-2 text-sm disabled:cursor-not-allowed"
-          />
-
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600">Hoặc chọn ảnh mẫu</p>
-            <div className="grid grid-cols-3 gap-2">
-              {PRESET_GROUP_AVATAR_URLS.map((presetUrl) => (
-                <button
-                  key={presetUrl}
-                  type="button"
-                  className="cursor-pointer rounded-xl border border-slate-200 p-1 hover:border-green-primary disabled:cursor-not-allowed"
-                  onClick={() => void handlePresetAvatarSelect(presetUrl)}
-                  disabled={isUpdatingGroupAvatar}
-                >
-                  <img
-                    src={presetUrl}
-                    alt="preset group avatar"
-                    className="h-16 w-full rounded-lg object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2 border-t border-slate-200 pt-3">
-            <p className="text-sm font-semibold text-gray-primary">
-              Thành viên ({selectedConversation?.participants?.length || 0})
-            </p>
-            <div className="flex items-center">
-              <div className="flex items-center">
-                {modalMembers.map((member, index) => (
-                  <img
-                    key={member.userId}
-                    src={
-                      toAbsoluteMediaUrl(member.avatarUrl) || "/placeholder.svg"
-                    }
-                    alt={member.fullName || "member"}
-                    className="h-10 w-10 cursor-pointer rounded-full border-2 border-slate-700 object-cover"
-                    style={{ marginLeft: index === 0 ? 0 : -10 }}
-                  />
-                ))}
-                {(selectedConversation?.participants?.length || 0) >
-                  modalMembers.length && (
-                  <div
-                    className="-ml-2.5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-700 bg-slate-600 text-xs font-semibold text-white"
-                    title="Xem thêm thành viên"
-                  >
-                    ...
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {groupInfoError && (
-            <p className="text-sm text-red-500">{groupInfoError}</p>
-          )}
-
-          <div className="flex items-center justify-end">
-            <button
-              onClick={() => setIsEditAvatarModalOpen(false)}
-              className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:cursor-not-allowed"
-              disabled={isUpdatingGroupAvatar}
-            >
-              Đóng
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <style>{`
+            <style>{`
                 @keyframes slideUp {
                     from {
                         opacity: 0;
@@ -2373,6 +2360,6 @@ export const ConversationGroupInfoPanel: React.FC<
                     cursor: not-allowed;
                 }
             `}</style>
-    </div>
-  );
+        </div>
+    );
 };
