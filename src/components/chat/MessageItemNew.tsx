@@ -2,6 +2,14 @@ import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { VideoMessage } from './VideoMessage';
+import {
+    FaFileArchive,
+    FaFileExcel,
+    FaFilePdf,
+    FaFilePowerpoint,
+    FaFileWord,
+} from 'react-icons/fa';
+import { FiFile, FiFileText, FiImage, FiMusic, FiVideo } from 'react-icons/fi';
 
 /**
  * Message interface matching MongoDB schema
@@ -31,6 +39,17 @@ export interface Message {
     mediaUrl?: string;
     fileName?: string;
     fileSize?: number;
+    fileIcon?:
+        | 'image'
+        | 'video'
+        | 'audio'
+        | 'file'
+        | 'file-pdf'
+        | 'file-word'
+        | 'file-excel'
+        | 'file-powerpoint'
+        | 'file-archive'
+        | 'file-text';
 }
 
 interface MessageItemNewProps {
@@ -141,6 +160,31 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
         message.isDeleted || message.deletedForUsers?.includes(currentUserId);
 
     // Message content rendering
+    const renderFileIcon = (icon?: Message['fileIcon']) => {
+        switch (icon) {
+            case 'image':
+                return <FiImage className="w-4 h-4 text-emerald-600" />;
+            case 'video':
+                return <FiVideo className="w-4 h-4 text-blue-600" />;
+            case 'audio':
+                return <FiMusic className="w-4 h-4 text-indigo-600" />;
+            case 'file-pdf':
+                return <FaFilePdf className="w-4 h-4 text-red-600" />;
+            case 'file-word':
+                return <FaFileWord className="w-4 h-4 text-blue-700" />;
+            case 'file-excel':
+                return <FaFileExcel className="w-4 h-4 text-green-700" />;
+            case 'file-powerpoint':
+                return <FaFilePowerpoint className="w-4 h-4 text-orange-600" />;
+            case 'file-archive':
+                return <FaFileArchive className="w-4 h-4 text-amber-700" />;
+            case 'file-text':
+                return <FiFileText className="w-4 h-4 text-slate-600" />;
+            default:
+                return <FiFile className="w-4 h-4 text-slate-500" />;
+        }
+    };
+
     const renderMessageContent = () => {
         if (isMessageDeleted) {
             return <p className="italic text-gray-400">Tin nhắn đã bị xóa</p>;
@@ -165,7 +209,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-500 hover:text-blue-600 hover:underline"
                 >
-                    <span>📎</span>
+                    <span>{renderFileIcon(message.fileIcon)}</span>
                     <span className="text-sm">
                         {message.fileName || 'File'}
                     </span>

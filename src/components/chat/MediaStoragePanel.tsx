@@ -6,6 +6,14 @@ import {
     X,
     Calendar,
 } from 'lucide-react';
+import {
+    FaFileArchive,
+    FaFileExcel,
+    FaFilePdf,
+    FaFilePowerpoint,
+    FaFileWord,
+} from 'react-icons/fa';
+import { FiFile, FiFileText, FiImage, FiMusic, FiVideo } from 'react-icons/fi';
 import { MediaContextMenu } from './MediaContextMenu';
 import { conversationApi } from '../../services/conversationApi';
 import type { SocketMessage } from './MessageList';
@@ -40,6 +48,31 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
     onMediaAction,
     conversationId,
 }) => {
+    const renderFileIcon = (icon?: SocketMessage['fileIcon']) => {
+        switch (icon) {
+            case 'image':
+                return <FiImage className="w-5 h-5 text-emerald-600" />;
+            case 'video':
+                return <FiVideo className="w-5 h-5 text-blue-600" />;
+            case 'audio':
+                return <FiMusic className="w-5 h-5 text-indigo-600" />;
+            case 'file-pdf':
+                return <FaFilePdf className="w-5 h-5 text-red-600" />;
+            case 'file-word':
+                return <FaFileWord className="w-5 h-5 text-blue-700" />;
+            case 'file-excel':
+                return <FaFileExcel className="w-5 h-5 text-green-700" />;
+            case 'file-powerpoint':
+                return <FaFilePowerpoint className="w-5 h-5 text-orange-600" />;
+            case 'file-archive':
+                return <FaFileArchive className="w-5 h-5 text-amber-700" />;
+            case 'file-text':
+                return <FiFileText className="w-5 h-5 text-slate-600" />;
+            default:
+                return <FiFile className="w-5 h-5 text-slate-600" />;
+        }
+    };
+
     const [activeTab, setActiveTab] = useState<MediaTab>('photos');
     const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
     const [senderDropdownOpen, setSenderDropdownOpen] = useState(false);
@@ -114,7 +147,9 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
             (msg) =>
                 msg.isFile &&
                 msg.fileUrl &&
-                msg.fileType?.startsWith('image/') === true &&
+                (msg.fileType?.startsWith('image/') === true ||
+                    msg.fileCategory === 'image' ||
+                    msg.type === 'image') &&
                 !msg.isRecalled,
         );
 
@@ -135,7 +170,9 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
             (msg) =>
                 msg.isFile &&
                 msg.fileUrl &&
-                !msg.fileType?.startsWith('image/') &&
+                !(msg.fileType?.startsWith('image/') === true) &&
+                msg.fileCategory !== 'image' &&
+                msg.type !== 'image' &&
                 !msg.isRecalled,
         );
 
@@ -653,20 +690,7 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
                                     >
                                         {/* File Icon */}
                                         <div className="shrink-0">
-                                            <svg
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className="text-gray-600"
-                                            >
-                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                                <polyline points="14 2 14 8 20 8" />
-                                            </svg>
+                                            {renderFileIcon(file.fileIcon)}
                                         </div>
 
                                         {/* File Info */}

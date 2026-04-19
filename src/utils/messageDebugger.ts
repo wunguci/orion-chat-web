@@ -8,7 +8,7 @@ import { getCurrentUserId } from './auth';
 
 export interface MessageDebugInfo {
     currentUserId: string;
-    currentUserIdFromToken: string;
+    currentUserIdFromToken: string | null;
     messageId: string;
     senderBy: string;
     isCurrentUserMessage: boolean;
