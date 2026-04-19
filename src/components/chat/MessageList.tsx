@@ -28,7 +28,28 @@ const EMOJI_LIST = [
     // '👏', // Clap
 ];
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_SOCKET_URL ||
+  "http://localhost:3000";
+
+const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+
+  const normalizedBase = API_BASE_URL.replace(/\/$/, "");
+  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
 
 type MessageReaction = {
     userId: string;
@@ -318,11 +339,6 @@ export const MessageList: React.FC<{
                     </div>
                 ) : (
                     socketMessages.map((msg) => {
-                        /**
-                         * ✅ Clear logic: check if message is from current user
-                         * - Verify currentUserId is not empty/falsy
-                         * - Check senderId from message
-                         */
                         const isMe =
                             !!currentUserId && msg.senderId === currentUserId;
 
@@ -352,9 +368,8 @@ export const MessageList: React.FC<{
                                 msg.fileCategory === 'audio' ||
                                 msg.type === 'audio');
 
-                        // Get sender avatar
                         const senderAvatar =
-                            msg.senderAvatar ||
+                            toAbsoluteMediaUrl(msg.senderAvatar) ||
                             `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderId}`;
 
                         return (
@@ -365,7 +380,6 @@ export const MessageList: React.FC<{
                                     isMe ? 'flex-row-reverse' : 'flex-row'
                                 }`}
                             >
-                                {/* Avatar - Only show for other messages */}
                                 {!isMe ? (
                                     <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden shadow-sm">
                                         <img
@@ -378,20 +392,17 @@ export const MessageList: React.FC<{
                                     <div className="shrink-0 w-8" />
                                 )}
 
-                                {/* Message bubble container */}
                                 <div
                                     className={`flex flex-col gap-1 max-w-[70%] ${
                                         isMe ? 'items-end' : 'items-start'
                                     } relative group`}
                                 >
-                                    {/* Sender name - Only show for other messages */}
                                     {!isMe && msg.senderName && (
                                         <p className="text-xs font-semibold text-slate-600 px-3">
                                             {msg.senderName}
                                         </p>
                                     )}
 
-                                    {/* ✅ CALL: Render call history card */}
                                     {!msg.isRecalled &&
                                     msg.type === 'call' &&
                                     msg.callData ? (
@@ -416,17 +427,10 @@ export const MessageList: React.FC<{
                                     ) : !msg.isRecalled &&
                                       msg.isFile &&
                                       msg.fileUrl &&
-                                      (msg.fileType?.startsWith('image/') ||
-                                          msg.fileCategory === 'image' ||
-                                          msg.type === 'image' ||
-                                          /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                                              msg.fileName || '',
-                                          )) ? (
+                                      hasImage ? (
                                         <img
                                             src={
-                                                msg.fileUrl.startsWith(
-                                                    'http',
-                                                ) ||
+                                                msg.fileUrl.startsWith('http') ||
                                                 msg.fileUrl.startsWith('blob:')
                                                     ? msg.fileUrl
                                                     : `${SERVER_URL}${msg.fileUrl}`
@@ -443,9 +447,7 @@ export const MessageList: React.FC<{
                                       isVideoFile ? (
                                         <video
                                             src={
-                                                msg.fileUrl.startsWith(
-                                                    'http',
-                                                ) ||
+                                                msg.fileUrl.startsWith('http') ||
                                                 msg.fileUrl.startsWith('blob:')
                                                     ? msg.fileUrl
                                                     : `${SERVER_URL}${msg.fileUrl}`
@@ -466,9 +468,7 @@ export const MessageList: React.FC<{
                                         >
                                             <audio
                                                 src={
-                                                    msg.fileUrl.startsWith(
-                                                        'http',
-                                                    ) ||
+                                                    msg.fileUrl.startsWith('http') ||
                                                     msg.fileUrl.startsWith(
                                                         'blob:',
                                                     )
@@ -520,7 +520,6 @@ export const MessageList: React.FC<{
                                                 </div>
                                             )}
 
-                                            {/* ✅ TEXT/FILE/RECALLED: Render with bubble background */}
                                             <div
                                                 className={`px-4 py-2 rounded-2xl text-sm ${
                                                     msg.isRecalled
@@ -573,7 +572,6 @@ export const MessageList: React.FC<{
                                                     </p>
                                                 )}
 
-                                                {/* Timestamp */}
                                                 <p
                                                     className={`text-[11px] mt-1 ${
                                                         isMe
@@ -630,7 +628,6 @@ export const MessageList: React.FC<{
                                         </>
                                     )}
 
-                                    {/* Reactions display */}
                                     {!msg.isRecalled &&
                                         reactionStats.size > 0 && (
                                             <div
@@ -673,7 +670,6 @@ export const MessageList: React.FC<{
                                             </div>
                                         )}
 
-                                    {/* Emoji reaction picker - On hover */}
                                     {!msg.isRecalled && (
                                         <div
                                             className={`absolute -bottom-3 ${
@@ -688,7 +684,6 @@ export const MessageList: React.FC<{
                                                     😊
                                                 </button>
 
-                                                {/* Emoji picker panel */}
                                                 <div
                                                     className={`absolute bottom-9 ${
                                                         isMe
@@ -700,7 +695,7 @@ export const MessageList: React.FC<{
                                                         {EMOJI_LIST.map((e) => (
                                                             <button
                                                                 key={e}
-                                                                className="text-lg hover:scale-125 transition-transform  hover:bg-slate-100 rounded"
+                                                                className="text-lg hover:scale-125 transition-transform hover:bg-slate-100 rounded"
                                                                 onClick={() =>
                                                                     onReactMessage?.(
                                                                         msg,
@@ -718,7 +713,6 @@ export const MessageList: React.FC<{
                                         </div>
                                     )}
 
-                                    {/* Action menu button - On hover */}
                                     {!msg.isRecalled && (
                                         <div
                                             className={`absolute top-0 ${
@@ -740,7 +734,6 @@ export const MessageList: React.FC<{
                                                 ⋮
                                             </button>
 
-                                            {/* Action menu dropdown */}
                                             {openActionMenuKey ===
                                                 messageKey && (
                                                 <div
@@ -750,7 +743,6 @@ export const MessageList: React.FC<{
                                                             : 'right-0'
                                                     } z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-40`}
                                                 >
-                                                    {/* Recall button - Only for own messages */}
                                                     {isMe && (
                                                         <button
                                                             onClick={() => {
@@ -771,7 +763,6 @@ export const MessageList: React.FC<{
                                                         </button>
                                                     )}
 
-                                                    {/* Delete button */}
                                                     <button
                                                         onClick={() => {
                                                             onDeleteMessage?.(
@@ -790,7 +781,6 @@ export const MessageList: React.FC<{
                                                         Xóa
                                                     </button>
 
-                                                    {/* Forward button */}
                                                     <button
                                                         onClick={() => {
                                                             onForwardMessage?.(
