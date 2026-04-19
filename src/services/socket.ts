@@ -394,6 +394,20 @@ type ChatMessageRecalledPayload = {
   isDeleted: boolean;
 };
 
+type ChatMessagePinnedPayload = {
+    conversationId: string;
+    messageId: string;
+    pinnedBy: string;
+    pinnedAt: string;
+};
+
+type ChatMessageUnpinnedPayload = {
+    conversationId: string;
+    messageId: string;
+    unpinnedBy: string;
+    unpinnedAt: string;
+};
+
 type GroupAutoDeleteUpdatedPayload = {
   groupId: string;
   autoDeleteDuration: number;
@@ -406,6 +420,35 @@ type GroupMemberLeftPayload = {
   userId: string;
   leftAt: string;
   groupDeleted: boolean;
+};
+
+type GroupJoinApprovalSettingUpdatedPayload = {
+    groupId: string;
+    joinRequireApproval: boolean;
+    updatedBy: string;
+    updatedAt: string;
+};
+
+type GroupJoinRequestCreatedPayload = {
+    groupId: string;
+    requestId: string;
+    requesterId: string;
+    createdAt: string;
+};
+
+type GroupJoinRequestUpdatedPayload = {
+    groupId: string;
+    requestId: string;
+    status: 'approved' | 'rejected';
+    actedBy: string;
+    actedAt: string;
+    requesterId: string;
+};
+
+type GroupMemberJoinedPayload = {
+    groupId: string;
+    userId: string;
+    joinedAt: string;
 };
 
 type GroupAdminTransferredPayload = {
@@ -751,10 +794,30 @@ class ChatSocketService {
     this.chatSocket.on("chat:message_recalled", cb);
   }
 
-  offMessageRecalled() {
-    if (!this.chatSocket) return;
-    this.chatSocket.off("chat:message_recalled");
-  }
+    offMessageRecalled() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_recalled');
+    }
+
+    onMessagePinned(cb: (payload: ChatMessagePinnedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_pinned', cb);
+    }
+
+    offMessagePinned() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_pinned');
+    }
+
+    onMessageUnpinned(cb: (payload: ChatMessageUnpinnedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_unpinned', cb);
+    }
+
+    offMessageUnpinned() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_unpinned');
+    }
 
   onMessageDeleted(cb: (payload: ChatMessageDeletedPayload) => void) {
     if (!this.chatSocket) return;
@@ -793,10 +856,56 @@ class ChatSocketService {
     this.chatSocket.on("group:member_left", cb);
   }
 
-  offGroupMemberLeft() {
-    if (!this.chatSocket) return;
-    this.chatSocket.off("group:member_left");
-  }
+    offGroupMemberLeft() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:member_left');
+    }
+
+    onGroupJoinApprovalSettingUpdated(
+        cb: (payload: GroupJoinApprovalSettingUpdatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:join_approval_setting_updated', cb);
+    }
+
+    offGroupJoinApprovalSettingUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:join_approval_setting_updated');
+    }
+
+    onGroupJoinRequestCreated(
+        cb: (payload: GroupJoinRequestCreatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:join_request_created', cb);
+    }
+
+    offGroupJoinRequestCreated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:join_request_created');
+    }
+
+    onGroupJoinRequestUpdated(
+        cb: (payload: GroupJoinRequestUpdatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:join_request_updated', cb);
+    }
+
+    offGroupJoinRequestUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:join_request_updated');
+    }
+
+    onGroupMemberJoined(cb: (payload: GroupMemberJoinedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:member_joined', cb);
+    }
+
+    offGroupMemberJoined() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:member_joined');
+    }
 
   onGroupAdminTransferred(cb: (payload: GroupAdminTransferredPayload) => void) {
     if (!this.chatSocket) return;
@@ -1006,6 +1115,26 @@ export const offMessageRecalled = () => {
   chatSocketService.offMessageRecalled();
 };
 
+export const onMessagePinned = (
+    cb: (payload: ChatMessagePinnedPayload) => void,
+) => {
+    chatSocketService.onMessagePinned(cb);
+};
+
+export const offMessagePinned = () => {
+    chatSocketService.offMessagePinned();
+};
+
+export const onMessageUnpinned = (
+    cb: (payload: ChatMessageUnpinnedPayload) => void,
+) => {
+    chatSocketService.onMessageUnpinned(cb);
+};
+
+export const offMessageUnpinned = () => {
+    chatSocketService.offMessageUnpinned();
+};
+
 export const onMessageDeleted = (
   cb: (payload: ChatMessageDeletedPayload) => void,
 ) => {
@@ -1044,6 +1173,46 @@ export const onGroupMemberLeft = (
 
 export const offGroupMemberLeft = () => {
   chatSocketService.offGroupMemberLeft();
+};
+
+export const onGroupJoinApprovalSettingUpdated = (
+    cb: (payload: GroupJoinApprovalSettingUpdatedPayload) => void,
+) => {
+    chatSocketService.onGroupJoinApprovalSettingUpdated(cb);
+};
+
+export const offGroupJoinApprovalSettingUpdated = () => {
+    chatSocketService.offGroupJoinApprovalSettingUpdated();
+};
+
+export const onGroupJoinRequestCreated = (
+    cb: (payload: GroupJoinRequestCreatedPayload) => void,
+) => {
+    chatSocketService.onGroupJoinRequestCreated(cb);
+};
+
+export const offGroupJoinRequestCreated = () => {
+    chatSocketService.offGroupJoinRequestCreated();
+};
+
+export const onGroupJoinRequestUpdated = (
+    cb: (payload: GroupJoinRequestUpdatedPayload) => void,
+) => {
+    chatSocketService.onGroupJoinRequestUpdated(cb);
+};
+
+export const offGroupJoinRequestUpdated = () => {
+    chatSocketService.offGroupJoinRequestUpdated();
+};
+
+export const onGroupMemberJoined = (
+    cb: (payload: GroupMemberJoinedPayload) => void,
+) => {
+    chatSocketService.onGroupMemberJoined(cb);
+};
+
+export const offGroupMemberJoined = () => {
+    chatSocketService.offGroupMemberJoined();
 };
 
 export const onGroupAdminTransferred = (
