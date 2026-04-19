@@ -440,7 +440,8 @@ export const ConversationGroupInfoPanel: React.FC<
         }
 
         try {
-            await conversationApi.setConversationHidden(conversationId, true);
+            await conversationApi.hideConversation(conversationId, password);
+            localStorage.setItem(`hidden_conv_${conversationId}`, password);
             setIsConversationHidden(true);
             setMediaActionError(null);
         } catch (error) {
@@ -457,7 +458,12 @@ export const ConversationGroupInfoPanel: React.FC<
         if (!conversationId) return;
 
         try {
-            await conversationApi.setConversationHidden(conversationId, false);
+            const savedPassword =
+                localStorage.getItem(`hidden_conv_${conversationId}`) || '';
+            await conversationApi.unhideConversation(
+                conversationId,
+                savedPassword,
+            );
             setIsConversationHidden(false);
             setMediaActionError(null);
         } catch (error) {
@@ -568,11 +574,12 @@ export const ConversationGroupInfoPanel: React.FC<
     };
 
     const handleLeaveGroup = async (newAdminUserId?: string) => {
+        void newAdminUserId;
         if (!conversationId || isLeavingGroup) return;
 
         try {
             setIsLeavingGroup(true);
-            await conversationApi.leaveGroup(conversationId, newAdminUserId);
+            await conversationApi.leaveConversation(conversationId);
             setIsTransferAdminModalOpen(false);
             window.location.href = '/chat';
         } catch (error) {
