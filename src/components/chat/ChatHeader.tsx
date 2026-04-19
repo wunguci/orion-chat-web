@@ -1,5 +1,6 @@
 import React from 'react';
 import { CiCircleList, CiPhone, CiSearch, CiVideoOn } from 'react-icons/ci';
+import ChatAvatar from '../common/ChatAvatar';
 
 type ChatHeaderProps = {
     name?: string;
@@ -30,13 +31,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between text-gray-primary">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full border border-gray-border flex items-center justify-center">
-                    <img
-                        src={
-                            avatarUrl ||
-                            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRqHljHwC3uFTM4IyU1hLVqc5KJgrzOFpMvA&s'
-                        }
-                        alt="avatar"
-                        className="w-full h-full object-cover rounded-full"
+                    <ChatAvatar
+                        name={name}
+                        avatarUrl={avatarUrl}
+                        sizeClassName="w-full h-full"
                     />
                 </div>
                 <div>

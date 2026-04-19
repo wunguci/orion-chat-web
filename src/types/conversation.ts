@@ -19,7 +19,8 @@ export type MessageStatus =
     | 'SEEN'
     | 'FAILED'
     | 'UPLOADING';
-export type ParticipantRole =  'admin' | 'member';
+export type ParticipantRole = 'admin' | 'co-admin' | 'member';
+export type ConversationStatus = 'active' | 'dissolved' | 'left_or_removed';
 
 export interface SeenByItem {
     userId: string;
@@ -48,6 +49,14 @@ export interface MessageDetail {
     revokedBy?: string;
     revokedAt?: Date | string;
     replyToMessageId?: string | null;
+    replyToMessagePreview?: {
+        messageId?: string;
+        content?: string;
+        senderName?: string;
+        snippet?: string;
+        createdAt?: Date | string;
+    } | null;
+    pinnedAt?: Date | string | null;
     seenBy?: SeenByItem[];
     createdAt?: Date | string;
     updatedAt?: Date | string;
@@ -82,6 +91,20 @@ export interface MessageDetail {
     };
 }
 
+export interface PinnedMessageItem {
+    messageId: string;
+    conversationId?: string;
+    content?: string;
+    senderId?: string;
+    senderName?: string;
+    snippet?: string;
+    createdAt?: Date | string;
+    pinnedAt?: Date | string;
+    messageType?: MessageType;
+    replyToMessageId?: string | null;
+    replyToMessagePreview?: MessageDetail['replyToMessagePreview'];
+}
+
 export interface LastMessage {
     messageId?: string;
     _id?: string;
@@ -113,6 +136,7 @@ export interface ParticipantInfo {
 export interface ConversationView {
     conversationId: string;
     type: ConversationType;
+    conversationStatus?: ConversationStatus;
     autoDeleteDuration?: number;
     createdAt: Date | string;
     myRole: ParticipantRole;

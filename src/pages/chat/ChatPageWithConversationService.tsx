@@ -25,6 +25,10 @@ import {
     onMessageRecalled,
     offMessageReactionUpdated,
     offMessageRecalled,
+    onMessagePinned,
+    offMessagePinned,
+    onMessageUnpinned,
+    offMessageUnpinned,
     onTyping,
     offTyping,
     onMessageDeleted,
@@ -43,6 +47,8 @@ import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 import { debugAuthStatus, getUser } from '../../utils/token';
 import { getUserInfo } from '../../services/userService';
 import { useCall } from '../../hooks/useCall';
+import type { PinnedMessageItem } from '../../types/conversation';
+import { mapChatActionError } from '../../utils/chatMessageErrors';
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -113,6 +119,16 @@ export const ChatPage: React.FC = () => {
         fileType?: string;
         isDeleted?: boolean;
         isRecalled?: boolean;
+        isPinned?: boolean;
+        pinnedAt?: string;
+        replyToMessageId?: string;
+        replyToMessagePreview?: {
+            messageId?: string;
+            content?: string;
+            senderName?: string;
+            snippet?: string;
+            createdAt?: string;
+        } | null;
         reactions?: Array<{
             userId?: string;
             emoji?: string;
@@ -249,8 +265,19 @@ export const ChatPage: React.FC = () => {
     const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
     const [typingUserNames, setTypingUserNames] = useState<string[]>([]);
+    const [replyDraft, setReplyDraft] = useState<{
+        conversationId: string;
+        replyToMessageId: string;
+        senderName?: string;
+        snippet?: string;
+    } | null>(null);
+    const [pinOverrides, setPinOverrides] = useState<
+        Record<string, { isPinned: boolean; pinnedAt?: string }>
+    >({});
+    const [pinnedMessagesByConversation, setPinnedMessagesByConversation] =
+        useState<Record<string, PinnedMessageItem[]>>({});
     const messageListenerRef = useRef<
-        ((msg: ChatSocketMessage) => void) | null
+        ((payload: IncomingSocketPayload) => void) | null
     >(null);
     const pendingMediaHydrationRef = useRef<Set<string>>(new Set());
     const lastReadMessageIdRef = useRef<string | null>(null);
@@ -413,6 +440,41 @@ export const ChatPage: React.FC = () => {
         }
     }, [location.state?.selectedConversationId, refreshConversations]);
 
+    const handleGroupConversationRemoved = useCallback(
+        async (conversationId: string) => {
+            setSelectedConversationId((prev) =>
+                prev === conversationId ? null : prev,
+            );
+            await refreshConversations();
+        },
+        [refreshConversations],
+    );
+
+    useEffect(() => {
+        const handleForbiddenConversation = (event: Event) => {
+            const customEvent = event as CustomEvent<{
+                conversationId?: string;
+            }>;
+            const forbiddenConversationId = customEvent.detail?.conversationId;
+
+            if (!forbiddenConversationId) return;
+
+            void handleGroupConversationRemoved(forbiddenConversationId);
+        };
+
+        window.addEventListener(
+            'chat:conversation_forbidden',
+            handleForbiddenConversation,
+        );
+
+        return () => {
+            window.removeEventListener(
+                'chat:conversation_forbidden',
+                handleForbiddenConversation,
+            );
+        };
+    }, [handleGroupConversationRemoved]);
+
     // Handle unblock user - chỉ người chặn mới có thể mở chặn
     const handleUnblockUser = async () => {
         if (!selectedConversation?.conversationId) return;
@@ -507,6 +569,10 @@ export const ChatPage: React.FC = () => {
                           ? 'video/*'
                           : undefined),
                 isRecalled: payload?.isRecalled || payload?.isDeleted,
+                isPinned: payload?.isPinned,
+                pinnedAt: payload?.pinnedAt,
+                replyToMessageId: payload?.replyToMessageId,
+                replyToMessagePreview: payload?.replyToMessagePreview,
                 reactions: normalizeReactions(payload?.reactions),
                 conversationId: payload?.conversationId,
                 type: resolvedType,
@@ -514,6 +580,51 @@ export const ChatPage: React.FC = () => {
             };
         },
         [normalizeReactions],
+    );
+
+    const applyPinStateToMessage = useCallback(
+        (messageId: string, isPinned: boolean, pinnedAt?: string) => {
+            setPinOverrides((prev) => ({
+                ...prev,
+                [messageId]: {
+                    isPinned,
+                    pinnedAt,
+                },
+            }));
+        },
+        [],
+    );
+
+    const refreshPinnedMessages = useCallback(
+        async (conversationId: string) => {
+            if (!conversationId) return;
+
+            try {
+                const response =
+                    await conversationApi.getPinnedMessages(conversationId);
+
+                setPinnedMessagesByConversation((prev) => ({
+                    ...prev,
+                    [conversationId]: (response.items || [])
+                        .slice(0, 3)
+                        .sort((a, b) => {
+                            const aTime = new Date(
+                                String(a.pinnedAt || a.createdAt || 0),
+                            ).getTime();
+                            const bTime = new Date(
+                                String(b.pinnedAt || b.createdAt || 0),
+                            ).getTime();
+                            return bTime - aTime;
+                        }),
+                }));
+            } catch {
+                setPinnedMessagesByConversation((prev) => ({
+                    ...prev,
+                    [conversationId]: prev[conversationId] || [],
+                }));
+            }
+        },
+        [],
     );
 
     const hydrateMediaMessage = useCallback(
@@ -812,12 +923,63 @@ export const ChatPage: React.FC = () => {
             );
         };
 
+        const pinnedHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+            pinnedAt: string;
+        }) => {
+            applyPinStateToMessage(payload.messageId, true, payload.pinnedAt);
+
+            setSocketMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === payload.messageId ||
+                    msg.clientMessageId === payload.messageId
+                        ? {
+                              ...msg,
+                              isPinned: true,
+                              pinnedAt: payload.pinnedAt,
+                          }
+                        : msg,
+                ),
+            );
+
+            if (payload.conversationId === selectedConversationId) {
+                void refreshPinnedMessages(payload.conversationId);
+            }
+        };
+
+        const unpinnedHandler = (payload: {
+            conversationId: string;
+            messageId: string;
+        }) => {
+            applyPinStateToMessage(payload.messageId, false);
+
+            setSocketMessages((prev) =>
+                prev.map((msg) =>
+                    msg.id === payload.messageId ||
+                    msg.clientMessageId === payload.messageId
+                        ? {
+                              ...msg,
+                              isPinned: false,
+                              pinnedAt: undefined,
+                          }
+                        : msg,
+                ),
+            );
+
+            if (payload.conversationId === selectedConversationId) {
+                void refreshPinnedMessages(payload.conversationId);
+            }
+        };
+
         messageListenerRef.current = messageHandler;
         onMessageNew((payload) =>
             messageHandler(payload as IncomingSocketPayload),
         );
         onMessageReactionUpdated(reactionHandler);
         onMessageRecalled(recallHandler);
+        onMessagePinned(pinnedHandler);
+        onMessageUnpinned(unpinnedHandler);
         onMessageDeleted(deletedHandler);
         onMessageSeen(seenHandler);
         onTyping((payload) => {
@@ -852,6 +1014,8 @@ export const ChatPage: React.FC = () => {
             }
             offMessageReactionUpdated();
             offMessageRecalled();
+            offMessagePinned();
+            offMessageUnpinned();
             offMessageDeleted();
             offMessageSeen();
             offTyping();
@@ -859,6 +1023,8 @@ export const ChatPage: React.FC = () => {
     }, [
         toSocketMessage,
         hydrateMediaMessage,
+        applyPinStateToMessage,
+        refreshPinnedMessages,
         selectedConversationId,
         markMessageAsRecalled,
         markConversationLastMessageRecalled,
@@ -878,7 +1044,13 @@ export const ChatPage: React.FC = () => {
     useEffect(() => {
         // Reset state thu hoi theo tung conversation de tranh anh huong cheo.
         setRecalledMessageKeys(new Set());
+        setReplyDraft(null);
     }, [selectedConversationId]);
+
+    useEffect(() => {
+        if (!selectedConversationId) return;
+        void refreshPinnedMessages(selectedConversationId);
+    }, [selectedConversationId, refreshPinnedMessages]);
 
     // Enhance sender names for messages that only have phone numbers (backward compatibility)
     // New messages from backend already include senderName
@@ -1332,6 +1504,105 @@ export const ChatPage: React.FC = () => {
         ],
     );
 
+    const handleReplyMessage = useCallback(
+        (message: SocketMessage) => {
+            if (!selectedConversationId) return;
+
+            setReplyDraft({
+                conversationId: selectedConversationId,
+                replyToMessageId: message.id,
+                senderName: message.senderName,
+                snippet:
+                    message.content ||
+                    message.fileName ||
+                    'Tin nhắn gốc không còn khả dụng',
+            });
+        },
+        [selectedConversationId],
+    );
+
+    const handleTogglePinMessage = useCallback(
+        async (message: SocketMessage, shouldPin: boolean) => {
+            if (!selectedConversationId) return;
+
+            const messageId = resolvePersistedMessageId(message);
+            if (!messageId) {
+                setError('Không thể ghim: tin nhắn chưa có ID máy chủ hợp lệ');
+                return;
+            }
+
+            applyPinStateToMessage(
+                messageId,
+                shouldPin,
+                shouldPin ? new Date().toISOString() : undefined,
+            );
+
+            setPinnedMessagesByConversation((prev) => {
+                const current = prev[selectedConversationId] || [];
+
+                if (shouldPin) {
+                    const optimisticItem: PinnedMessageItem = {
+                        messageId,
+                        conversationId: selectedConversationId,
+                        senderId: message.senderId,
+                        senderName: message.senderName,
+                        content: message.content,
+                        snippet: message.content || message.fileName,
+                        createdAt: message.timestamp,
+                        pinnedAt: new Date().toISOString(),
+                    };
+
+                    return {
+                        ...prev,
+                        [selectedConversationId]: [
+                            optimisticItem,
+                            ...current.filter(
+                                (item) => item.messageId !== messageId,
+                            ),
+                        ].slice(0, 3),
+                    };
+                }
+
+                return {
+                    ...prev,
+                    [selectedConversationId]: current.filter(
+                        (item) => item.messageId !== messageId,
+                    ),
+                };
+            });
+
+            try {
+                if (shouldPin) {
+                    await conversationApi.pinMessage(
+                        selectedConversationId,
+                        messageId,
+                    );
+                } else {
+                    await conversationApi.unpinMessage(
+                        selectedConversationId,
+                        messageId,
+                    );
+                }
+
+                await refreshPinnedMessages(selectedConversationId);
+            } catch (err) {
+                applyPinStateToMessage(
+                    messageId,
+                    !shouldPin,
+                    !shouldPin ? new Date().toISOString() : undefined,
+                );
+                await refreshPinnedMessages(selectedConversationId);
+                setError(mapChatActionError(err, shouldPin ? 'pin' : 'unpin'));
+            }
+        },
+        [
+            selectedConversationId,
+            resolvePersistedMessageId,
+            applyPinStateToMessage,
+            refreshPinnedMessages,
+        ],
+    );
+
     const handleOpenForwardModal = useCallback((message: SocketMessage) => {
         setForwardingMessage(message);
         setForwardTargetConversationId('');
@@ -1384,7 +1655,10 @@ export const ChatPage: React.FC = () => {
 
     // Handle sending message
     const handleSend = useCallback(
-        async (text: string) => {
+        async (
+            text: string,
+            options?: { replyToMessageId?: string | null },
+        ) => {
             if (joinStatus === 'error') {
                 setError(
                     'Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này.',
@@ -1411,13 +1685,42 @@ export const ChatPage: React.FC = () => {
                         timestamp: now,
                         conversationId: selectedConversationId,
                         type: 'text',
+                        replyToMessageId:
+                            options?.replyToMessageId || undefined,
+                        replyToMessagePreview: replyDraft
+                            ? {
+                                  messageId: replyDraft.replyToMessageId,
+                                  senderName: replyDraft.senderName,
+                                  snippet: replyDraft.snippet,
+                                  content: replyDraft.snippet,
+                                  createdAt: now,
+                              }
+                            : null,
                         uploadStatus: 'sent',
                     },
                 ]);
 
-                const receiverId = isGroupConversation
-                    ? undefined
-                    : getReceiverId();
+                await conversationApi.sendMessage(
+                    selectedConversationId,
+                    text,
+                    {
+                        clientMessageId,
+                        messageType: 'TEXT',
+                        replyToMessageId:
+                            options?.replyToMessageId || undefined,
+                    },
+                );
+
+                if (isGroupConversation) {
+                    setReplyDraft(null);
+                    return;
+                }
+
+                const receiverId = getReceiverId();
+                if (!receiverId) {
+                    setReplyDraft(null);
+                    return;
+                }
 
                 const ack = await sendChatMessage({
                     requestId: `req_${Date.now()}`,
@@ -1426,18 +1729,17 @@ export const ChatPage: React.FC = () => {
                     type: 'text',
                     content: text,
                     conversationId: selectedConversationId,
+                    replyToMessageId: options?.replyToMessageId || undefined,
                 });
 
                 if (ack?.ok === false) {
                     throw new Error(ack.error.message);
                 }
+
+                setReplyDraft(null);
             } catch (err) {
                 console.error('Error sending message:', err);
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : 'Failed to send message',
-                );
+                setError(mapChatActionError(err, 'send'));
 
                 setSocketMessages((prev) =>
                     prev.map((msg) =>
@@ -1460,6 +1762,7 @@ export const ChatPage: React.FC = () => {
             selectedConversation,
             selectedConversationId,
             getReceiverId,
+            replyDraft,
             sendChatMessage,
             USER_ID,
             USERNAME,
@@ -1565,11 +1868,14 @@ export const ChatPage: React.FC = () => {
                     fileName: file.name,
                     fileSize: file.size,
                     conversationId: selectedConversationId,
+                    replyToMessageId: replyDraft?.replyToMessageId,
                 });
 
                 if (ack?.ok === false) {
                     throw new Error(ack.error.message);
                 }
+
+                setReplyDraft(null);
             } catch (err) {
                 console.error('Error sending file:', err);
                 setError(
@@ -1597,6 +1903,7 @@ export const ChatPage: React.FC = () => {
             selectedConversation,
             selectedConversationId,
             getReceiverId,
+            replyDraft,
             sendChatMessage,
             USER_ID,
             USERNAME,
@@ -1806,6 +2113,13 @@ export const ChatPage: React.FC = () => {
                 isRecalled:
                     m.isRevoked === true ||
                     (m as { recalled?: boolean }).recalled === true,
+                isPinned: m.isPinned,
+                pinnedAt:
+                    typeof m.pinnedAt === 'string'
+                        ? m.pinnedAt
+                        : m.pinnedAt?.toISOString(),
+                replyToMessageId: m.replyToMessageId || undefined,
+                replyToMessagePreview: m.replyToMessagePreview || null,
                 reactions: normalizeReactions(m.reactions),
                 type:
                     messageType === 'CALL' || messageType === 'call'
@@ -1861,18 +2175,35 @@ export const ChatPage: React.FC = () => {
 
             return safeA - safeB;
         })
-        .map((msg) => ({
-            ...msg,
-            isRecalled:
-                msg.isRecalled || recalledMessageKeys.has(getMessageKey(msg)),
-            reactions: reactionOverrides[getMessageKey(msg)] || msg.reactions,
-            senderId: msg.senderId || USER_ID,
-            senderName: resolveSenderName(msg.senderName, msg.senderId),
-        }));
+        .map((msg) => {
+            const pinOverride =
+                pinOverrides[msg.id] ||
+                (msg.clientMessageId
+                    ? pinOverrides[msg.clientMessageId]
+                    : undefined);
+
+            return {
+                ...msg,
+                isRecalled:
+                    msg.isRecalled ||
+                    recalledMessageKeys.has(getMessageKey(msg)),
+                reactions:
+                    reactionOverrides[getMessageKey(msg)] || msg.reactions,
+                isPinned: pinOverride ? pinOverride.isPinned : msg.isPinned,
+                pinnedAt: pinOverride?.pinnedAt || msg.pinnedAt,
+                senderId: msg.senderId || USER_ID,
+                senderName: resolveSenderName(msg.senderName, msg.senderId),
+            };
+        });
 
     useEffect(() => {
         console.log('[ChatPage] displayMessages:', displayMessages);
     }, [displayMessages]);
+
+    const currentPinnedMessages = useMemo(() => {
+        if (!selectedConversationId) return [];
+        return pinnedMessagesByConversation[selectedConversationId] || [];
+    }, [pinnedMessagesByConversation, selectedConversationId]);
 
     const latestUnreadMessageId = useMemo(() => {
         const latestIncoming = [...displayMessages]
@@ -1925,6 +2256,20 @@ export const ChatPage: React.FC = () => {
                 ?.fullName || 'Unknown user'
         );
     };
+
+    const jumpToMessage = useCallback((messageId: string) => {
+        const messageElement = document.getElementById(`message-${messageId}`);
+        if (messageElement) {
+            messageElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            });
+            messageElement.classList.add('bg-yellow-100');
+            setTimeout(() => {
+                messageElement.classList.remove('bg-yellow-100');
+            }, 2000);
+        }
+    }, []);
 
     return (
         <div className="flex h-screen gap-4 bg-gray-50 p-4">
@@ -1999,6 +2344,45 @@ export const ChatPage: React.FC = () => {
                         />
 
                         {/* Messages */}
+                        {currentPinnedMessages.length > 0 && (
+                            <div className="border-b border-slate-200 bg-amber-50/70 px-4 py-2">
+                                <div className="mb-1 text-xs font-semibold text-amber-700">
+                                    Pinned messages
+                                </div>
+                                <div className="space-y-1">
+                                    {currentPinnedMessages
+                                        .slice(0, 3)
+                                        .map((item) => (
+                                            <button
+                                                key={item.messageId}
+                                                type="button"
+                                                onClick={() =>
+                                                    jumpToMessage(
+                                                        item.messageId,
+                                                    )
+                                                }
+                                                className="flex w-full items-center justify-between rounded-md bg-white/80 px-2 py-1 text-left hover:bg-white"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-xs font-medium text-slate-700">
+                                                        {item.senderName ||
+                                                            'Thành viên'}
+                                                    </p>
+                                                    <p className="truncate text-xs text-slate-500">
+                                                        {item.snippet ||
+                                                            item.content ||
+                                                            'Tin nhắn đã ghim'}
+                                                    </p>
+                                                </div>
+                                                <span className="ml-3 shrink-0 text-[11px] text-amber-600">
+                                                    Đi tới
+                                                </span>
+                                            </button>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
                         <MessageList
                             socketMessages={displayMessages}
                             currentUserId={USER_ID}
@@ -2008,6 +2392,8 @@ export const ChatPage: React.FC = () => {
                             onDeleteMessage={handleRequestDeleteMessage}
                             onForwardMessage={handleOpenForwardModal}
                             onReactMessage={handleReactMessage}
+                            onReplyMessage={handleReplyMessage}
+                            onTogglePinMessage={handleTogglePinMessage}
                         />
 
                         {/* Input */}
@@ -2018,6 +2404,14 @@ export const ChatPage: React.FC = () => {
                             isBlocked={iAmBlocked || iAmTheBlocker}
                             canUnblock={iAmTheBlocker}
                             onUnblock={handleUnblockUser}
+                            replyDraft={
+                                replyDraft &&
+                                replyDraft.conversationId ===
+                                    selectedConversationId
+                                    ? replyDraft
+                                    : null
+                            }
+                            onCancelReply={() => setReplyDraft(null)}
                         />
                     </>
                 ) : (
@@ -2040,23 +2434,7 @@ export const ChatPage: React.FC = () => {
                     onClose={() => setIsSearchOpen(false)}
                     messages={displayMessages}
                     currentUserId={USER_ID}
-                    onSelectMessage={(messageId: string) => {
-                        const messageElement = document.getElementById(
-                            `message-${messageId}`,
-                        );
-                        if (messageElement) {
-                            messageElement.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center',
-                            });
-                            messageElement.classList.add('bg-yellow-100');
-                            setTimeout(() => {
-                                messageElement.classList.remove(
-                                    'bg-yellow-100',
-                                );
-                            }, 2000);
-                        }
-                    }}
+                    onSelectMessage={jumpToMessage}
                 />
             ) : selectedConversation && isInfoPanelOpen ? (
                 selectedConversation.type === 'GROUP' ? (
@@ -2064,23 +2442,8 @@ export const ChatPage: React.FC = () => {
                         isSidebarOpen={true}
                         selectedConversation={selectedConversation}
                         displayMessages={displayMessages}
-                        onJumpToMessage={(messageId: string) => {
-                            const messageElement = document.getElementById(
-                                `message-${messageId}`,
-                            );
-                            if (messageElement) {
-                                messageElement.scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'center',
-                                });
-                                messageElement.classList.add('bg-yellow-100');
-                                setTimeout(() => {
-                                    messageElement.classList.remove(
-                                        'bg-yellow-100',
-                                    );
-                                }, 2000);
-                            }
-                        }}
+                        onConversationRemoved={handleGroupConversationRemoved}
+                        onJumpToMessage={jumpToMessage}
                         onForwardMessage={handleOpenForwardModal}
                     />
                 ) : (
@@ -2090,25 +2453,7 @@ export const ChatPage: React.FC = () => {
                         displayMessages={displayMessages}
                         currentUserId={USER_ID}
                         onBlockStatusChange={loadBlockStatus}
-                        onJumpToMessage={(messageId: string) => {
-                            // Try to scroll to message element in the DOM
-                            const messageElement = document.getElementById(
-                                `message-${messageId}`,
-                            );
-                            if (messageElement) {
-                                messageElement.scrollIntoView({
-                                    behavior: 'smooth',
-                                    block: 'center',
-                                });
-                                // Highlight the message briefly
-                                messageElement.classList.add('bg-yellow-100');
-                                setTimeout(() => {
-                                    messageElement.classList.remove(
-                                        'bg-yellow-100',
-                                    );
-                                }, 2000);
-                            }
-                        }}
+                        onJumpToMessage={jumpToMessage}
                         onForwardMessage={handleOpenForwardModal}
                         onPinStatusChange={refreshConversations}
                         onConversationCreated={async (conversation) => {

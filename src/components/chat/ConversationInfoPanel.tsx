@@ -49,6 +49,7 @@ import {
 } from '../../services/friendListService';
 import type { ConversationView } from '../../types/conversation';
 import type { SocketMessage } from './MessageList';
+import ChatAvatar from '../common/ChatAvatar';
 
 type MediaTab = 'Images' | 'Files' | 'Links';
 
@@ -128,7 +129,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     const conversationAvatar =
         selectedConversation?.groupInfo?.groupAvatar ||
         otherParticipant?.avatarUrl ||
-        'https://api.dicebear.com/7.x/avataaars/svg?seed=' + currentUserId;
+        undefined;
 
     const { imageMessages, fileMessages, linkMessages } = useMemo(() => {
         const images = displayMessages.filter(
@@ -730,10 +731,11 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 </span>
 
                                 <div className="flex flex-col gap-3 items-center">
-                                    <img
-                                        src={conversationAvatar}
-                                        alt={conversationName}
-                                        className="w-16 h-16 rounded-full object-cover"
+                                    <ChatAvatar
+                                        name={conversationName}
+                                        avatarUrl={conversationAvatar}
+                                        sizeClassName="w-16 h-16"
+                                        textClassName="text-2xl"
                                     />
                                     <span className="font-semibold text-gray-primary">
                                         {conversationName}

@@ -1,6 +1,21 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { isAxiosError } from 'axios';
 import type { ConversationView, MessageDetail } from '../types/conversation';
 import { conversationApi } from '../services/conversationApi';
+
+const isConversationActive = (conversation: ConversationView) =>
+    !conversation.conversationStatus ||
+    conversation.conversationStatus === 'active';
+
+const emitForbiddenConversationEvent = (conversationId: string) => {
+    if (!conversationId) return;
+
+    window.dispatchEvent(
+        new CustomEvent('chat:conversation_forbidden', {
+            detail: { conversationId },
+        }),
+    );
+};
 
 interface UseConversationsResult {
     conversations: ConversationView[];
@@ -49,7 +64,7 @@ export const useConversations = (): UseConversationsResult => {
             setLoading(true);
             setError(null);
             const data = await conversationApi.findAll();
-            setConversations(data);
+            setConversations(data.filter(isConversationActive));
         } catch (err) {
             setError(
                 err instanceof Error
@@ -170,8 +185,20 @@ export const useConversationDetail = (
             setError(null);
             // ✅ conversationApi.findDetailById() uses JWT token from localStorage
             const data = await conversationApi.findDetailById(conversationId);
+
+            if (!isConversationActive(data)) {
+                setConversation(null);
+                emitForbiddenConversationEvent(conversationId);
+                setError('Conversation is no longer available');
+                return;
+            }
+
             setConversation(data);
         } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 403) {
+                setConversation(null);
+                emitForbiddenConversationEvent(conversationId);
+            }
             setError(
                 err instanceof Error
                     ? err.message
@@ -233,6 +260,13 @@ export const useConversationMessages = (
             cursorRef.current = result.nextCursor ?? undefined;
             setHasMore(!!result.nextCursor);
         } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 403) {
+                setMessages([]);
+                setNextCursor(null);
+                setHasMore(false);
+                cursorRef.current = undefined;
+                emitForbiddenConversationEvent(conversationId);
+            }
             setError(
                 err instanceof Error ? err.message : 'Failed to load messages',
             );
@@ -260,6 +294,11 @@ export const useConversationMessages = (
             cursorRef.current = result.nextCursor ?? undefined;
             setHasMore(!!result.nextCursor);
         } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 403) {
+                setHasMore(false);
+                cursorRef.current = undefined;
+                emitForbiddenConversationEvent(conversationId);
+            }
             setError(
                 err instanceof Error
                     ? err.message

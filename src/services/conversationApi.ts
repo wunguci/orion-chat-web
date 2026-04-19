@@ -4,6 +4,7 @@ import type {
     ConversationView,
     ConversationMessagesResult,
     PaginatedMessagesParams,
+    PinnedMessageItem,
 } from '../types/conversation';
 import {
     buildClientMediaMetadata,
@@ -308,6 +309,7 @@ class ConversationApiService {
         content: string,
         options?: {
             messageType?: string;
+            clientMessageId?: string;
             replyToMessageId?: string;
             mediaUrl?: string;
             fileName?: string;
@@ -346,6 +348,37 @@ class ConversationApiService {
         );
 
         return response.data;
+    }
+
+    async pinMessage(conversationId: string, messageId: string) {
+        assertPersistedMessageId(messageId, 'pin');
+        const response = await this.api.post(
+            `/${conversationId}/messages/${messageId}/pin`,
+        );
+
+        return response.data;
+    }
+
+    async unpinMessage(conversationId: string, messageId: string) {
+        assertPersistedMessageId(messageId, 'unpin');
+        const response = await this.api.delete(
+            `/${conversationId}/messages/${messageId}/pin`,
+        );
+
+        return response.data;
+    }
+
+    async getPinnedMessages(conversationId: string): Promise<{
+        items: PinnedMessageItem[];
+    }> {
+        const response = await this.api.get<{
+            items?: PinnedMessageItem[];
+            data?: PinnedMessageItem[];
+        }>(`/${conversationId}/pinned-messages`);
+
+        return {
+            items: response.data.items || response.data.data || [],
+        };
     }
 
     // =========================

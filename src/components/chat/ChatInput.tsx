@@ -61,13 +61,22 @@ const MENU_ITEMS: {
 ];
 
 export const ChatInput: React.FC<{
-    onSend?: (text: string) => void;
+    onSend?: (
+        text: string,
+        options?: { replyToMessageId?: string | null },
+    ) => void;
     onSendFile?: (file: File) => Promise<void>;
     onSendFiles?: (files: File[]) => Promise<void>;
     onTypingChange?: (isTyping: boolean) => void;
     isBlocked?: boolean;
     canUnblock?: boolean;
     onUnblock?: () => void;
+    replyDraft?: {
+        replyToMessageId: string;
+        senderName?: string;
+        snippet?: string;
+    } | null;
+    onCancelReply?: () => void;
 }> = ({
     onSend,
     onSendFile,
@@ -76,6 +85,8 @@ export const ChatInput: React.FC<{
     isBlocked,
     canUnblock,
     onUnblock,
+    replyDraft,
+    onCancelReply,
 }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [emojiOpen, setEmojiOpen] = useState(false);
@@ -181,7 +192,9 @@ export const ChatInput: React.FC<{
         const messageText = text.trim();
 
         if (messageText) {
-            onSend?.(messageText);
+            onSend?.(messageText, {
+                replyToMessageId: replyDraft?.replyToMessageId || null,
+            });
         }
 
         if (files.length > 0) {
@@ -354,6 +367,31 @@ export const ChatInput: React.FC<{
                     {validationError && (
                         <div className="mb-3 px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                             {validationError}
+                        </div>
+                    )}
+
+                    {replyDraft && (
+                        <div className="mb-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 shadow-xs">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-sky-800">
+                                        Trả lời{' '}
+                                        {replyDraft.senderName || 'tin nhắn'}
+                                    </p>
+                                    <p className="truncate text-xs text-slate-700">
+                                        {replyDraft.snippet ||
+                                            'Tin nhắn gốc không còn khả dụng'}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={onCancelReply}
+                                    className="shrink-0 text-sky-500 hover:text-sky-700"
+                                    title="Hủy trả lời"
+                                >
+                                    <FiX className="h-4 w-4" />
+                                </button>
+                            </div>
                         </div>
                     )}
 

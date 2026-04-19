@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Settings,
     Bell,
@@ -23,6 +23,7 @@ import {
     Trash2,
     MoreVertical,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import Checkbox from '../common/Checkbox';
 import ToggleSwitch from '../common/ToggleSwitch';
 import { Modal } from '../common/Modal';
@@ -33,26 +34,51 @@ import { MediaContextMenu } from './MediaContextMenu';
 import { AutoDeleteModal } from './AutoDeleteModal';
 import { ClearHistoryModal } from './ClearHistoryModal';
 import { HideConversationModal } from './HideConversationModal';
+import { ViewParticipantsModal } from './ViewParticipantsModal';
+import { JoinRequestDialog } from './JoinRequestDialog';
+import { PromoteToAdminDialog } from './PromoteToAdminDialog';
+import { RemoveMemberDialog } from './RemoveMemberDialog';
+import { LeaveGroupDialog } from './LeaveGroupDialog';
+import { DisbandGroupDialog } from './DisbandGroupDialog';
+import { PendingJoinRequestsList } from './PendingJoinRequestsList';
 import { conversationApi } from '../../services/conversationApi';
+import {
+    groupManagementService,
+    type GroupDetailSummary,
+    type JoinGroupResult,
+} from '../../services/groupManagementService';
 import {
     friendListService,
     type FriendApiItem,
 } from '../../services/friendListService';
 import { getCurrentUserId } from '../../utils/auth';
+import { getToken } from '../../utils/token';
+import type { AppNotification } from '../../types/notification';
 import {
+    socketService,
     offConversationHiddenUpdated,
     offConversationHistoryCleared,
     offGroupAdminTransferred,
     offGroupAutoDeleteUpdated,
     offGroupDissolved,
+    offGroupJoinApprovalSettingUpdated,
+    offGroupJoinRequestCreated,
+    offGroupJoinRequestUpdated,
+    offGroupMemberJoined,
     offGroupMemberLeft,
     onConversationHiddenUpdated,
     onConversationHistoryCleared,
     onGroupAdminTransferred,
     onGroupAutoDeleteUpdated,
     onGroupDissolved,
+    onGroupJoinApprovalSettingUpdated,
+    onGroupJoinRequestCreated,
+    onGroupJoinRequestUpdated,
+    onGroupMemberJoined,
     onGroupMemberLeft,
 } from '../../services/socket';
+import ChatAvatar from '../common/ChatAvatar';
+import { mapGroupManagementError } from '../../utils/groupManagementErrors';
 
 interface ConversationGroupInfoPanelProps {
     isSidebarOpen?: boolean;
@@ -64,6 +90,7 @@ interface ConversationGroupInfoPanelProps {
     onRecallMessageSuccess?: (message: SocketMessage) => void;
     onClearHistorySuccess?: (messages: SocketMessage[]) => void;
     onAddMember?: () => void;
+    onConversationRemoved?: (conversationId: string) => void;
 }
 
 type ExpandableSection = 'images' | 'files' | 'links';
@@ -79,6 +106,10 @@ type GroupMemberItem = {
     isMe: boolean;
 };
 
+const isJoinedImmediately = (result?: JoinGroupResult): boolean => {
+    return result?.status === 'joined';
+};
+
 export const ConversationGroupInfoPanel: React.FC<
     ConversationGroupInfoPanelProps
 > = ({
@@ -91,6 +122,7 @@ export const ConversationGroupInfoPanel: React.FC<
     onRecallMessageSuccess,
     onClearHistorySuccess,
     onAddMember,
+    onConversationRemoved,
 }) => {
     const [isGroupManagement, setIsGroupManagement] = useState(false);
     const [showMediaStorage, setShowMediaStorage] = useState(false);
@@ -141,16 +173,59 @@ export const ConversationGroupInfoPanel: React.FC<
     const [isHideConversationModalOpen, setIsHideConversationModalOpen] =
         useState(false);
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+    const [isViewParticipantsModalOpen, setIsViewParticipantsModalOpen] =
+        useState(false);
+    const [isJoinRequestDialogOpen, setIsJoinRequestDialogOpen] =
+        useState(false);
+    const [isQrModalOpen, setIsQrModalOpen] = useState(false);
+    const [pendingJoinRequestCount, setPendingJoinRequestCount] = useState(0);
+    const [isPendingJoinRequestsOpen, setIsPendingJoinRequestsOpen] =
+        useState(false);
+    const [isPromoteDialogOpen, setIsPromoteDialogOpen] = useState(false);
+    const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+    const [isLeaveGroupDialogOpen, setIsLeaveGroupDialogOpen] = useState(false);
+    const [isDisbandGroupDialogOpen, setIsDisbandGroupDialogOpen] =
+        useState(false);
+    const [selectedMemberId, setSelectedMemberId] = useState('');
+    const [selectedMemberName, setSelectedMemberName] = useState<string | null>(
+        null,
+    );
     const [friendSearch, setFriendSearch] = useState('');
     const [friendOptions, setFriendOptions] = useState<FriendApiItem[]>([]);
     const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
     const [isLoadingFriends, setIsLoadingFriends] = useState(false);
     const [isAddingMembers, setIsAddingMembers] = useState(false);
     const [addMemberError, setAddMemberError] = useState<string | null>(null);
+    const [hasJustJoinedGroup, setHasJustJoinedGroup] = useState(false);
+    const [isUpdatingJoinApproval, setIsUpdatingJoinApproval] = useState(false);
+    const [groupDetail, setGroupDetail] = useState<GroupDetailSummary | null>(
+        null,
+    );
 
     const currentUserId = getCurrentUserId();
     const conversationId = selectedConversation?.conversationId || '';
     const isAdmin = selectedConversation?.myRole === 'admin';
+    const effectiveMyRole = groupDetail?.myRole || selectedConversation?.myRole;
+    const canReviewJoinRequests =
+        effectiveMyRole === 'admin' ||
+        effectiveMyRole === 'co-admin' ||
+        effectiveMyRole === 'leader' ||
+        effectiveMyRole === 'deputy';
+    const isCurrentUserMemberFromConversation = useMemo(
+        () =>
+            (selectedConversation?.participants || []).some(
+                (participant) => participant.userId === currentUserId,
+            ),
+        [currentUserId, selectedConversation?.participants],
+    );
+    const isCurrentUserMember =
+        groupDetail?.isMember ||
+        isCurrentUserMemberFromConversation ||
+        hasJustJoinedGroup;
+    const hasPendingJoinRequest =
+        groupDetail?.myJoinRequestStatus === 'pending';
+    const isGroupFull =
+        (groupDetail?.memberCount || 0) >= (groupDetail?.memberLimit || 10);
 
     const currentMemberIds = useMemo(
         () =>
@@ -517,6 +592,19 @@ export const ConversationGroupInfoPanel: React.FC<
             return;
         }
 
+        const memberLimit = groupDetail?.memberLimit || 10;
+        const currentCount =
+            groupDetail?.memberCount ||
+            groupMembers.length ||
+            selectedConversation?.participants?.length ||
+            0;
+        if (currentCount + selectedFriendIds.length > memberLimit) {
+            setAddMemberError(
+                `Nhóm chỉ cho phép tối đa ${memberLimit} thành viên`,
+            );
+            return;
+        }
+
         try {
             setIsAddingMembers(true);
             setAddMemberError(null);
@@ -537,15 +625,23 @@ export const ConversationGroupInfoPanel: React.FC<
                 memberNicknames,
             );
 
+            setGroupDetail((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          memberCount: Math.min(
+                              prev.memberCount + memberIds.length,
+                              prev.memberLimit,
+                          ),
+                      }
+                    : prev,
+            );
+
             setIsAddMemberModalOpen(false);
             resetAddMemberModalState();
             onAddMember?.();
         } catch (error) {
-            setAddMemberError(
-                error instanceof Error
-                    ? error.message
-                    : 'Không thể thêm thành viên vào nhóm',
-            );
+            setAddMemberError(mapGroupManagementError(error, 'add_member'));
         } finally {
             setIsAddingMembers(false);
         }
@@ -573,6 +669,89 @@ export const ConversationGroupInfoPanel: React.FC<
         setIsClearHistoryModalOpen(true);
     };
 
+    const handlePromoteMember = (userId: string, fullName: string | null) => {
+        setSelectedMemberId(userId);
+        setSelectedMemberName(fullName);
+        setIsPromoteDialogOpen(true);
+    };
+
+    const handleRemoveMember = (userId: string, fullName: string | null) => {
+        setSelectedMemberId(userId);
+        setSelectedMemberName(fullName);
+        setIsRemoveDialogOpen(true);
+    };
+
+    const handleOpenLeaveGroupDialog = () => {
+        void refreshGroupMembers();
+        setIsLeaveGroupDialogOpen(true);
+    };
+
+    const handleOpenDisbandGroupDialog = () => {
+        setIsDisbandGroupDialogOpen(true);
+    };
+
+    const handleToggleApproveNewMembers = async () => {
+        if (!canReviewJoinRequests) {
+            setMediaActionError(
+                'Chỉ trưởng nhóm hoặc phó nhóm mới được bật/tắt duyệt thành viên mới',
+            );
+            return;
+        }
+
+        if (!conversationId || isUpdatingJoinApproval) return;
+
+        const nextValue = !groupSettings.approveNewMembers;
+        setIsUpdatingJoinApproval(true);
+
+        setGroupSettings((prev) => ({
+            ...prev,
+            approveNewMembers: nextValue,
+        }));
+
+        try {
+            await groupManagementService.updateJoinApprovalSetting(
+                conversationId,
+                nextValue,
+            );
+            setGroupDetail((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          joinRequireApproval: nextValue,
+                      }
+                    : prev,
+            );
+        } catch (error) {
+            setGroupSettings((prev) => ({
+                ...prev,
+                approveNewMembers: !nextValue,
+            }));
+            setMediaActionError(
+                mapGroupManagementError(error, 'toggle_join_approval'),
+            );
+        } finally {
+            setIsUpdatingJoinApproval(false);
+        }
+    };
+
+    const handleOpenQrModal = () => {
+        setIsQrModalOpen(true);
+    };
+
+    const handleCopyConversationId = async () => {
+        if (!conversationId) {
+            setMediaActionError('Không tìm thấy ID nhóm');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(conversationId);
+            setMediaActionError('Đã sao chép ID nhóm');
+        } catch {
+            setMediaActionError('Không thể sao chép ID nhóm');
+        }
+    };
+
     const handleLeaveGroup = async (newAdminUserId?: string) => {
         void newAdminUserId;
         if (!conversationId || isLeavingGroup) return;
@@ -591,60 +770,61 @@ export const ConversationGroupInfoPanel: React.FC<
         }
     };
 
-    const openLeaveFlow = async () => {
-        if (!conversationId) return;
-
-        if (!isAdmin) {
-            await handleLeaveGroup();
-            return;
-        }
+    const refreshGroupMembers = useCallback(async () => {
+        if (!conversationId || !isCurrentUserMember) return;
 
         try {
             const members =
                 await conversationApi.getGroupMembers(conversationId);
-            const candidates = members.items.filter((item) => !item.isMe);
-
-            if (candidates.length === 0) {
-                await handleLeaveGroup();
-                return;
-            }
-
-            setGroupMembers(candidates);
-            setSelectedNewAdminId(candidates[0].userId);
-            setIsTransferAdminModalOpen(true);
+            const membersWithMe = members.items.map((item) => ({
+                ...item,
+                isMe: item.userId === currentUserId,
+            }));
+            setGroupMembers(membersWithMe);
         } catch (error) {
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Không tải được danh sách thành viên';
-            setMediaActionError(errorMessage);
+            console.error('Failed to load group members:', error);
         }
-    };
+    }, [conversationId, currentUserId, isCurrentUserMember]);
 
-    const handleDissolveGroup = async () => {
+    const refreshGroupDetail = useCallback(async () => {
         if (!conversationId) return;
-        if (!isAdmin) {
-            setMediaActionError('Chỉ admin mới có thể giải tán nhóm');
+
+        try {
+            const detail =
+                await groupManagementService.getGroupDetail(conversationId);
+            setGroupDetail(detail);
+            setGroupSettings((prev) => ({
+                ...prev,
+                approveNewMembers: detail.joinRequireApproval,
+            }));
+            setIsGroupDissolved(detail.status === 'dissolved');
+        } catch {
+            // Keep current local state when detail endpoint is temporarily unavailable.
+        }
+    }, [conversationId]);
+
+    const refreshPendingJoinRequestsCount = useCallback(async () => {
+        if (
+            !conversationId ||
+            !canReviewJoinRequests ||
+            !groupSettings.approveNewMembers
+        ) {
+            setPendingJoinRequestCount(0);
             return;
         }
 
-        const accepted = window.confirm(
-            'Bạn có chắc muốn giải tán nhóm? Hành động này không thể hoàn tác.',
-        );
-        if (!accepted) return;
-
         try {
-            await conversationApi.dissolveGroup(conversationId);
-            setIsGroupDissolved(true);
-            setMediaActionError(null);
-        } catch (error) {
-            const errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Giải tán nhóm thất bại';
-            setMediaActionError(errorMessage);
+            const items =
+                await groupManagementService.getJoinRequests(conversationId);
+            setPendingJoinRequestCount(items.length);
+        } catch {
+            setPendingJoinRequestCount(0);
         }
-    };
+    }, [
+        canReviewJoinRequests,
+        conversationId,
+        groupSettings.approveNewMembers,
+    ]);
 
     useEffect(() => {
         setAutoDeleteDuration(
@@ -655,6 +835,10 @@ export const ConversationGroupInfoPanel: React.FC<
         selectedConversation?.autoDeleteDuration,
         selectedConversation?.myIsHidden,
     ]);
+
+    useEffect(() => {
+        void refreshGroupDetail();
+    }, [refreshGroupDetail]);
 
     useEffect(() => {
         if (!conversationId) return;
@@ -685,6 +869,7 @@ export const ConversationGroupInfoPanel: React.FC<
         const handleGroupDissolvedRealtime = (payload: { groupId: string }) => {
             if (payload.groupId !== conversationId) return;
             setIsGroupDissolved(true);
+            onConversationRemoved?.(payload.groupId);
         };
 
         const handleMemberLeftRealtime = (payload: {
@@ -693,8 +878,21 @@ export const ConversationGroupInfoPanel: React.FC<
         }) => {
             if (payload.groupId !== conversationId) return;
             if (payload.userId === currentUserId) {
-                window.location.href = '/chat';
+                onConversationRemoved?.(payload.groupId);
+                return;
             }
+
+            setGroupMembers((prev) =>
+                prev.filter((member) => member.userId !== payload.userId),
+            );
+            setGroupDetail((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          memberCount: Math.max(prev.memberCount - 1, 0),
+                      }
+                    : prev,
+            );
         };
 
         const handleAdminTransferredRealtime = (payload: {
@@ -708,12 +906,127 @@ export const ConversationGroupInfoPanel: React.FC<
             }
         };
 
+        const handleJoinApprovalSettingUpdatedRealtime = (payload: {
+            groupId: string;
+            joinRequireApproval: boolean;
+        }) => {
+            if (payload.groupId !== conversationId) return;
+
+            setGroupSettings((prev) => ({
+                ...prev,
+                approveNewMembers: payload.joinRequireApproval,
+            }));
+            setGroupDetail((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          joinRequireApproval: payload.joinRequireApproval,
+                      }
+                    : prev,
+            );
+            if (!payload.joinRequireApproval) {
+                setPendingJoinRequestCount(0);
+            }
+        };
+
+        const handleJoinRequestCreatedRealtime = (payload: {
+            groupId: string;
+        }) => {
+            if (payload.groupId !== conversationId) return;
+            if (canReviewJoinRequests && groupSettings.approveNewMembers) {
+                setPendingJoinRequestCount((prev) => prev + 1);
+            }
+        };
+
+        const handleJoinRequestUpdatedRealtime = (payload: {
+            groupId: string;
+            requesterId: string;
+            status: 'approved' | 'rejected';
+        }) => {
+            if (payload.groupId !== conversationId) return;
+
+            setPendingJoinRequestCount((prev) => Math.max(prev - 1, 0));
+
+            if (payload.requesterId === currentUserId) {
+                if (payload.status === 'approved') {
+                    setHasJustJoinedGroup(true);
+                    setMediaActionError(
+                        'Yêu cầu tham gia nhóm đã được chấp nhận',
+                    );
+                    setGroupDetail((prev) =>
+                        prev
+                            ? {
+                                  ...prev,
+                                  isMember: true,
+                                  myJoinRequestStatus: 'approved',
+                              }
+                            : prev,
+                    );
+                    void refreshGroupMembers();
+                }
+
+                if (payload.status === 'rejected') {
+                    setMediaActionError('Yêu cầu tham gia nhóm đã bị từ chối');
+                    setGroupDetail((prev) =>
+                        prev
+                            ? {
+                                  ...prev,
+                                  myJoinRequestStatus: 'rejected',
+                              }
+                            : prev,
+                    );
+                }
+            }
+        };
+
+        const handleMemberJoinedRealtime = (payload: {
+            groupId: string;
+            userId: string;
+        }) => {
+            if (payload.groupId !== conversationId) return;
+
+            setGroupDetail((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          memberCount: Math.min(
+                              prev.memberCount + 1,
+                              prev.memberLimit,
+                          ),
+                      }
+                    : prev,
+            );
+
+            if (payload.userId === currentUserId) {
+                setHasJustJoinedGroup(true);
+                setGroupDetail((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              isMember: true,
+                              myJoinRequestStatus: 'approved',
+                          }
+                        : prev,
+                );
+            }
+
+            if (isCurrentUserMember) {
+                void refreshGroupMembers();
+            }
+        };
+
         onGroupAutoDeleteUpdated(handleAutoDeleteRealtime);
         onConversationHiddenUpdated(handleHiddenRealtime);
         onConversationHistoryCleared(handleHistoryClearedRealtime);
         onGroupDissolved(handleGroupDissolvedRealtime);
         onGroupMemberLeft(handleMemberLeftRealtime);
         onGroupAdminTransferred(handleAdminTransferredRealtime);
+        onGroupJoinApprovalSettingUpdated(
+            handleJoinApprovalSettingUpdatedRealtime,
+        );
+        onGroupJoinRequestCreated(handleJoinRequestCreatedRealtime);
+        onGroupJoinRequestUpdated(handleJoinRequestUpdatedRealtime);
+        onGroupMemberJoined(handleMemberJoinedRealtime);
 
         return () => {
             offGroupAutoDeleteUpdated();
@@ -722,8 +1035,36 @@ export const ConversationGroupInfoPanel: React.FC<
             offGroupDissolved();
             offGroupMemberLeft();
             offGroupAdminTransferred();
+            offGroupJoinApprovalSettingUpdated();
+            offGroupJoinRequestCreated();
+            offGroupJoinRequestUpdated();
+            offGroupMemberJoined();
         };
-    }, [conversationId, currentUserId, displayMessages]);
+    }, [
+        canReviewJoinRequests,
+        conversationId,
+        currentUserId,
+        displayMessages,
+        groupSettings.approveNewMembers,
+        isCurrentUserMember,
+        onConversationRemoved,
+        refreshGroupMembers,
+    ]);
+
+    useEffect(() => {
+        void refreshPendingJoinRequestsCount();
+    }, [refreshPendingJoinRequestsCount]);
+
+    useEffect(() => {
+        if (!conversationId || !isCurrentUserMember) return;
+        void refreshGroupMembers();
+    }, [conversationId, isCurrentUserMember, refreshGroupMembers]);
+
+    useEffect(() => {
+        if (isCurrentUserMemberFromConversation) {
+            setHasJustJoinedGroup(false);
+        }
+    }, [conversationId, isCurrentUserMemberFromConversation]);
 
     useEffect(() => {
         const loadFriends = async () => {
@@ -756,13 +1097,143 @@ export const ConversationGroupInfoPanel: React.FC<
         void loadFriends();
     }, [isAddMemberModalOpen, currentUserId]);
 
+    useEffect(() => {
+        if (!isViewParticipantsModalOpen) return;
+        void refreshGroupMembers();
+    }, [isViewParticipantsModalOpen, refreshGroupMembers]);
+
+    useEffect(() => {
+        if (!conversationId || !currentUserId) return;
+
+        const token = getToken();
+        const notificationSocket =
+            socketService.getNotificationSocket() ||
+            socketService.connectNotification(
+                currentUserId,
+                token || undefined,
+            );
+
+        const isRelatedGroupNotification = (payload: AppNotification) => {
+            const metadata = payload.metadata || {};
+            const metadataConversationId =
+                typeof metadata.conversationId === 'string'
+                    ? metadata.conversationId
+                    : '';
+            const metadataGroupId =
+                typeof metadata.groupId === 'string' ? metadata.groupId : '';
+
+            if (
+                metadataConversationId === conversationId ||
+                metadataGroupId === conversationId
+            ) {
+                return true;
+            }
+
+            return (
+                typeof payload.link === 'string' &&
+                payload.link.includes(conversationId)
+            );
+        };
+
+        const handleNotificationNew = (payload: AppNotification) => {
+            if (!isRelatedGroupNotification(payload)) return;
+
+            const type = payload.type as string;
+            if (
+                [
+                    'group_join_approved',
+                    'group_promoted',
+                    'group_removed',
+                    'group_dissolved',
+                ].includes(type)
+            ) {
+                void refreshGroupMembers();
+            }
+
+            if (
+                [
+                    'group_join_approved',
+                    'group_join_rejected',
+                    'group_promoted',
+                    'group_removed',
+                    'group_dissolved',
+                ].includes(type)
+            ) {
+                void refreshPendingJoinRequestsCount();
+            }
+
+            if (type === 'group_join_approved') {
+                setGroupDetail((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              myJoinRequestStatus: 'approved',
+                              isMember: true,
+                          }
+                        : prev,
+                );
+                setMediaActionError('Yêu cầu tham gia nhóm đã được chấp nhận');
+            }
+
+            if (type === 'group_join_rejected') {
+                setGroupDetail((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              myJoinRequestStatus: 'rejected',
+                          }
+                        : prev,
+                );
+                setMediaActionError('Yêu cầu tham gia nhóm đã bị từ chối');
+            }
+        };
+
+        const handleNotificationUpdated = (payload: AppNotification) => {
+            if (!isRelatedGroupNotification(payload)) return;
+            void refreshPendingJoinRequestsCount();
+            void refreshGroupMembers();
+        };
+
+        notificationSocket.on('notifications:new', handleNotificationNew);
+        notificationSocket.on(
+            'notifications:updated',
+            handleNotificationUpdated,
+        );
+
+        return () => {
+            notificationSocket.off('notifications:new', handleNotificationNew);
+            notificationSocket.off(
+                'notifications:updated',
+                handleNotificationUpdated,
+            );
+        };
+    }, [
+        conversationId,
+        currentUserId,
+        refreshGroupMembers,
+        refreshGroupDetail,
+        refreshPendingJoinRequestsCount,
+    ]);
+
     if (!isSidebarOpen) return null;
 
     const groupName =
         selectedConversation?.groupInfo?.groupName || 'Thông tin nhóm';
     const groupAvatar =
-        selectedConversation?.groupInfo?.groupAvatar || '/placeholder.svg';
-    const memberCount = selectedConversation?.participants?.length || 0;
+        selectedConversation?.groupInfo?.groupAvatar || undefined;
+    const memberCount =
+        groupDetail?.memberCount ||
+        (groupMembers.length > 0
+            ? groupMembers.length
+            : selectedConversation?.participants?.length || 0);
+    const memberLimit = groupDetail?.memberLimit || 10;
+    const joinButtonLabel = hasPendingJoinRequest
+        ? 'Đang chờ duyệt yêu cầu'
+        : isGroupFull
+          ? 'Nhóm đã đủ 10 thành viên'
+          : groupSettings.approveNewMembers
+            ? 'Yêu cầu tham gia nhóm'
+            : 'Tham gia nhóm ngay';
 
     if (showMediaStorage) {
         return (
@@ -820,13 +1291,12 @@ export const ConversationGroupInfoPanel: React.FC<
                                             setSelectedNewAdminId(member.userId)
                                         }
                                     />
-                                    <img
-                                        src={
-                                            member.avatarUrl ||
-                                            '/placeholder.svg'
+                                    <ChatAvatar
+                                        name={member.fullName || member.userId}
+                                        avatarUrl={
+                                            member.avatarUrl || undefined
                                         }
-                                        alt={member.fullName || 'member'}
-                                        className="w-9 h-9 rounded-full object-cover"
+                                        sizeClassName="w-10 h-10"
                                     />
                                     <span className="text-sm text-gray-primary">
                                         {member.fullName || member.userId}
@@ -866,10 +1336,11 @@ export const ConversationGroupInfoPanel: React.FC<
                         </span>
 
                         <div className="flex flex-col gap-3 items-center">
-                            <img
-                                src={groupAvatar}
-                                alt={groupName}
-                                className="w-16 h-16 rounded-full object-cover"
+                            <ChatAvatar
+                                name={groupName}
+                                avatarUrl={groupAvatar}
+                                sizeClassName="w-16 h-16"
+                                textClassName="text-2xl"
                             />
                             <span className="font-semibold text-gray-primary">
                                 {groupName}
@@ -878,42 +1349,63 @@ export const ConversationGroupInfoPanel: React.FC<
                     </div>
 
                     <div className="p-4 flex gap-3 justify-center border-b border-slate-200">
-                        <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1">
-                            <Bell size={20} className="text-green-primary" />
-                            <span className="text-xs text-gray-primary">
-                                Tắt thông báo
-                            </span>
-                        </button>
-                        <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1">
-                            <Pin size={20} className="text-green-primary" />
-                            <span className="text-xs text-gray-primary">
-                                Ghi hội thoại
-                            </span>
-                        </button>
-                        <button
-                            onClick={handleOpenAddMemberModal}
-                            className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1"
-                        >
-                            <UserRoundPlus
-                                size={20}
-                                className="text-green-primary"
-                            />
-                            <span className="text-xs text-gray-primary">
-                                Thêm thành viên
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setIsGroupManagement(true)}
-                            className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1"
-                        >
-                            <Settings
-                                size={20}
-                                className="text-green-primary"
-                            />
-                            <span className="text-xs text-gray-primary">
-                                Quản lý nhóm
-                            </span>
-                        </button>
+                        {isCurrentUserMember ? (
+                            <>
+                                <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1">
+                                    <Bell
+                                        size={20}
+                                        className="text-green-primary"
+                                    />
+                                    <span className="text-xs text-gray-primary">
+                                        Tắt thông báo
+                                    </span>
+                                </button>
+                                <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1">
+                                    <Pin
+                                        size={20}
+                                        className="text-green-primary"
+                                    />
+                                    <span className="text-xs text-gray-primary">
+                                        Ghi hội thoại
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={handleOpenAddMemberModal}
+                                    className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1"
+                                >
+                                    <UserRoundPlus
+                                        size={20}
+                                        className="text-green-primary"
+                                    />
+                                    <span className="text-xs text-gray-primary">
+                                        Thêm thành viên
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={() => setIsGroupManagement(true)}
+                                    className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1"
+                                >
+                                    <Settings
+                                        size={20}
+                                        className="text-green-primary"
+                                    />
+                                    <span className="text-xs text-gray-primary">
+                                        Quản lý nhóm
+                                    </span>
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                onClick={() => setIsJoinRequestDialogOpen(true)}
+                                disabled={hasPendingJoinRequest || isGroupFull}
+                                className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-green-primary text-white disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <Users size={18} />
+                                <span className="text-sm font-semibold">
+                                    {joinButtonLabel}
+                                </span>
+                            </button>
+                        )}
                     </div>
 
                     <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
@@ -1109,20 +1601,74 @@ export const ConversationGroupInfoPanel: React.FC<
                     <div className="flex flex-col gap-2">
                         <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
                             <span className="font-semibold">Thành viên</span>
-                            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                            <div className="mt-1 mb-1 flex items-center justify-between rounded-lg bg-white px-2 py-2 border border-slate-200">
+                                <div className="flex flex-col">
+                                    <span className="text-[14px] text-gray-primary">
+                                        Duyệt thành viên mới
+                                    </span>
+                                    <span className="text-[11px] text-gray-secondary">
+                                        Chỉ trưởng/phó nhóm có quyền bật tắt
+                                    </span>
+                                </div>
+                                <ToggleSwitch
+                                    checked={groupSettings.approveNewMembers}
+                                    onChange={handleToggleApproveNewMembers}
+                                    disabled={
+                                        !canReviewJoinRequests ||
+                                        isUpdatingJoinApproval
+                                    }
+                                />
+                            </div>
+                            <button
+                                onClick={() => {
+                                    if (!isCurrentUserMember) return;
+                                    setIsViewParticipantsModalOpen(true);
+                                }}
+                                className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-gray-primary ${
+                                    isCurrentUserMember
+                                        ? 'hover:bg-slate-100'
+                                        : 'cursor-not-allowed opacity-70'
+                                }`}
+                            >
                                 <UserRound size={20} />
                                 <span className="text-[15px]">
-                                    {memberCount} thành viên
+                                    {memberCount}/{memberLimit} thành viên
                                 </span>
                             </button>
-                            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                            {canReviewJoinRequests &&
+                                isCurrentUserMember &&
+                                groupSettings.approveNewMembers && (
+                                    <button
+                                        onClick={() =>
+                                            setIsPendingJoinRequestsOpen(true)
+                                        }
+                                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary"
+                                    >
+                                        <Users size={20} />
+                                        <span className="text-[15px]">
+                                            Yêu cầu tham gia
+                                        </span>
+                                        {pendingJoinRequestCount > 0 && (
+                                            <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[11px] text-white">
+                                                {pendingJoinRequestCount}
+                                            </span>
+                                        )}
+                                    </button>
+                                )}
+                            <button
+                                onClick={handleOpenQrModal}
+                                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary"
+                            >
                                 <Link size={20} />
                                 <div className="flex flex-col items-start">
                                     <span className="text-[15px]">
                                         Link tham gia nhóm
                                     </span>
                                     <span className="text-[12px] text-blue-dark text-left">
-                                        orionchat.com/groupchat-test
+                                        {conversationId}
+                                    </span>
+                                    <span className="text-[11px] text-green-primary text-left underline">
+                                        Phát sinh mã QR
                                     </span>
                                 </div>
                                 <div className="ml-auto flex items-center gap-3">
@@ -1194,7 +1740,7 @@ export const ConversationGroupInfoPanel: React.FC<
                             </span>
                         </button>
                         <button
-                            onClick={openLeaveFlow}
+                            onClick={handleOpenLeaveGroupDialog}
                             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors text-red-500"
                         >
                             <LogOut size={20} />
@@ -1322,16 +1868,20 @@ export const ConversationGroupInfoPanel: React.FC<
                             <div className="scale-75 origin-right">
                                 <ToggleSwitch
                                     checked={groupSettings.approveNewMembers}
-                                    onChange={() =>
-                                        setGroupSettings({
-                                            ...groupSettings,
-                                            approveNewMembers:
-                                                !groupSettings.approveNewMembers,
-                                        })
+                                    onChange={handleToggleApproveNewMembers}
+                                    disabled={
+                                        !canReviewJoinRequests ||
+                                        isUpdatingJoinApproval
                                     }
                                 />
                             </div>
                         </div>
+                        {!canReviewJoinRequests && (
+                            <p className="text-xs text-gray-500 -mt-2">
+                                Chỉ trưởng nhóm hoặc phó nhóm có quyền chỉnh chế
+                                độ này.
+                            </p>
+                        )}
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
@@ -1447,7 +1997,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
                     <div className="p-4 mt-auto mb-2">
                         <div
-                            onClick={handleDissolveGroup}
+                            onClick={handleOpenDisbandGroupDialog}
                             className={`flex items-center justify-center p-2 rounded-md ${
                                 isAdmin
                                     ? 'bg-[#FDECEC] cursor-pointer'
@@ -1520,6 +2070,177 @@ export const ConversationGroupInfoPanel: React.FC<
             />
 
             <Modal
+                isOpen={isQrModalOpen}
+                onClose={() => setIsQrModalOpen(false)}
+                title="Mã QR tham gia nhóm"
+                size="sm"
+            >
+                <div className="p-4 space-y-4">
+                    <div className="flex flex-col items-center gap-3 rounded-lg border border-slate-200 p-4">
+                        <QRCodeSVG
+                            value={conversationId || 'group-conversation-id'}
+                            size={180}
+                            bgColor="#ffffff"
+                            fgColor="#111827"
+                            level="M"
+                            includeMargin
+                        />
+                        <p className="text-xs text-gray-500 text-center">
+                            Quét mã QR để lấy ID nhóm và gửi yêu cầu tham gia.
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-primary">
+                            ID nhóm hiện tại
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                value={conversationId}
+                                readOnly
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-gray-700 bg-slate-50"
+                            />
+                            <button
+                                type="button"
+                                onClick={handleCopyConversationId}
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
+
+            <JoinRequestDialog
+                isOpen={isJoinRequestDialogOpen}
+                groupName={groupName}
+                groupId={conversationId}
+                canSubmit={!isGroupFull}
+                blockedMessage={
+                    isGroupFull ? 'Nhóm đã đủ 10 thành viên' : undefined
+                }
+                onClose={() => setIsJoinRequestDialogOpen(false)}
+                onSuccess={(result) => {
+                    if (isJoinedImmediately(result as JoinGroupResult)) {
+                        setHasJustJoinedGroup(true);
+                        setGroupDetail((prev) =>
+                            prev
+                                ? {
+                                      ...prev,
+                                      isMember: true,
+                                      myJoinRequestStatus: 'approved',
+                                  }
+                                : prev,
+                        );
+                        setMediaActionError(
+                            'Đã tham gia nhóm thành công (không cần duyệt)',
+                        );
+                        void refreshGroupMembers();
+                        void refreshGroupDetail();
+                        return;
+                    }
+
+                    setGroupDetail((prev) =>
+                        prev
+                            ? {
+                                  ...prev,
+                                  myJoinRequestStatus: 'pending',
+                              }
+                            : prev,
+                    );
+                    setMediaActionError('Đã gửi yêu cầu tham gia nhóm');
+                }}
+            />
+
+            <ViewParticipantsModal
+                isOpen={isViewParticipantsModalOpen}
+                participants={groupMembers}
+                currentUserRole={
+                    selectedConversation?.myRole as
+                        | 'admin'
+                        | 'co-admin'
+                        | 'member'
+                }
+                onClose={() => setIsViewParticipantsModalOpen(false)}
+                onPromote={handlePromoteMember}
+                onRemove={handleRemoveMember}
+            />
+
+            <PromoteToAdminDialog
+                isOpen={isPromoteDialogOpen}
+                memberName={selectedMemberName || ''}
+                memberId={selectedMemberId}
+                groupId={conversationId}
+                onClose={() => setIsPromoteDialogOpen(false)}
+                onSuccess={() => {
+                    setIsPromoteDialogOpen(false);
+                    setIsViewParticipantsModalOpen(false);
+                    setMediaActionError('Đã gán quyền phó nhóm thành công');
+                }}
+            />
+
+            <RemoveMemberDialog
+                isOpen={isRemoveDialogOpen}
+                memberName={selectedMemberName || ''}
+                memberId={selectedMemberId}
+                groupId={conversationId}
+                onClose={() => setIsRemoveDialogOpen(false)}
+                onSuccess={() => {
+                    setIsRemoveDialogOpen(false);
+                    setIsViewParticipantsModalOpen(false);
+                    setMediaActionError('Xóa thành viên thành công');
+                }}
+            />
+
+            <LeaveGroupDialog
+                isOpen={isLeaveGroupDialogOpen}
+                groupName={selectedConversation?.groupInfo?.groupName || 'Nhóm'}
+                groupId={conversationId}
+                isOwner={selectedConversation?.myRole === 'admin'}
+                hasOtherAdmin={groupMembers.some(
+                    (m) => m.role === 'admin' && !m.isMe,
+                )}
+                onClose={() => setIsLeaveGroupDialogOpen(false)}
+                onSuccess={() => {
+                    setIsLeaveGroupDialogOpen(false);
+                    onConversationRemoved?.(conversationId);
+                }}
+            />
+
+            <DisbandGroupDialog
+                isOpen={isDisbandGroupDialogOpen}
+                groupName={selectedConversation?.groupInfo?.groupName || 'Nhóm'}
+                groupId={conversationId}
+                memberCount={groupMembers.length}
+                onClose={() => setIsDisbandGroupDialogOpen(false)}
+                onSuccess={() => {
+                    setIsDisbandGroupDialogOpen(false);
+                    onConversationRemoved?.(conversationId);
+                }}
+            />
+
+            <PendingJoinRequestsList
+                isOpen={isPendingJoinRequestsOpen}
+                groupId={conversationId}
+                groupName={selectedConversation?.groupInfo?.groupName || 'Nhóm'}
+                onClose={() => setIsPendingJoinRequestsOpen(false)}
+                refreshSignal={pendingJoinRequestCount}
+                onCountChange={setPendingJoinRequestCount}
+                onRequestApproved={() => {
+                    setMediaActionError('Chấp nhận yêu cầu thành công');
+                    void refreshGroupMembers();
+                    void refreshGroupDetail();
+                    void refreshPendingJoinRequestsCount();
+                }}
+                onRequestRejected={() => {
+                    setMediaActionError('Từ chối yêu cầu thành công');
+                    void refreshGroupDetail();
+                    void refreshPendingJoinRequestsCount();
+                }}
+            />
+
+            <Modal
                 isOpen={isAddMemberModalOpen}
                 onClose={handleCloseAddMemberModal}
                 title="Thêm thành viên"
@@ -1563,13 +2284,13 @@ export const ConversationGroupInfoPanel: React.FC<
                                         disabled={isAddingMembers}
                                         className="h-4 w-4 accent-green-primary"
                                     />
-                                    <img
-                                        src={
-                                            friend.avatarUrl ||
-                                            '/placeholder.svg'
+                                    <ChatAvatar
+                                        name={friend.fullName || friend.id}
+                                        avatarUrl={
+                                            friend.avatarUrl || undefined
                                         }
-                                        alt={friend.fullName || 'friend'}
-                                        className="h-8 w-8 rounded-full object-cover"
+                                        sizeClassName="h-8 w-8"
+                                        textClassName="text-sm"
                                     />
                                     <span className="text-sm text-gray-primary">
                                         {friend.fullName || friend.id}
