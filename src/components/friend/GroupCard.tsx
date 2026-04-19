@@ -96,14 +96,14 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, onOpen }) => {
         </button>
         <button
           onClick={handleAudioCall}
-          className="py-2 px-3 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors flex items-center justify-center gap-1"
+          className="py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
           title="Audio Call"
         >
           <Phone size={18} />
         </button>
         <button
           onClick={handleVideoCall}
-          className="py-2 px-3 rounded-lg bg-purple-500 hover:bg-purple-600 text-white transition-colors flex items-center justify-center gap-1"
+          className="py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1"
           title="Video Call"
         >
           <Video size={18} />
