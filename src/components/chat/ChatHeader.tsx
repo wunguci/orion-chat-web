@@ -1,14 +1,17 @@
 import React from 'react';
 import { CiCircleList, CiPhone, CiSearch, CiVideoOn } from 'react-icons/ci';
+import { FaUsers } from 'react-icons/fa';
 
 type ChatHeaderProps = {
     name?: string;
     avatarUrl?: string;
     subtitle?: string;
     isBlocked?: boolean;
+    isGroupChat?: boolean;
     disableCallButtons?: boolean;
     onAudioCall?: () => void;
     onVideoCall?: () => void;
+    onGroupCall?: () => void;
     onSearchClick?: () => void;
     onPanelToggle?: () => void;
 };
@@ -18,9 +21,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     avatarUrl,
     subtitle = 'Online',
     isBlocked = false,
+    isGroupChat = false,
     disableCallButtons = false,
     onAudioCall,
     onVideoCall,
+    onGroupCall,
     onSearchClick,
     onPanelToggle,
 }) => {
@@ -47,23 +52,45 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 </div>
             </div>
             <div className="flex items-center gap-3 text-slate-300">
-                {/* Audio call button - disabled if blocked */}
-                <button
-                    className={`p-1 rounded transition-colors ${
-                        isBlocked
-                            ? 'opacity-50 cursor-not-allowed bg-slate-100'
-                            : 'hover:bg-slate-200 text-gray-primary'
-                    }`}
-                    disabled={isCallDisabled}
-                    onClick={onAudioCall}
-                    title={
-                        isCallDisabled
-                            ? 'Unable to call because you are blocked.'
-                            : 'Call'
-                    }
-                >
-                    <CiPhone className="w-5 h-5" />
-                </button>
+                {/* Group call button - for group chats */}
+                {isGroupChat ? (
+                    <button
+                        className={`p-1 rounded transition-colors ${
+                            isCallDisabled
+                                ? 'opacity-50 cursor-not-allowed bg-slate-100'
+                                : 'hover:bg-slate-200 text-gray-primary'
+                        }`}
+                        disabled={isCallDisabled}
+                        onClick={onGroupCall}
+                        title={
+                            isCallDisabled
+                                ? 'Unable to call because you are blocked.'
+                                : 'Group Video Call'
+                        }
+                    >
+                        <FaUsers className="w-4 h-4" />
+                    </button>
+                ) : (
+                    <>
+                        {/* Audio call button - disabled if blocked */}
+                        <button
+                            className={`p-1 rounded transition-colors ${
+                                isBlocked
+                                    ? 'opacity-50 cursor-not-allowed bg-slate-100'
+                                    : 'hover:bg-slate-200 text-gray-primary'
+                            }`}
+                            disabled={isCallDisabled}
+                            onClick={onAudioCall}
+                            title={
+                                isCallDisabled
+                                    ? 'Unable to call because you are blocked.'
+                                    : 'Call'
+                            }
+                        >
+                            <CiPhone className="w-5 h-5" />
+                        </button>
+                    </>
+                )}
                 <button
                     onClick={onSearchClick}
                     className="p-1 hover:bg-slate-200 rounded text-gray-primary"
@@ -79,11 +106,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                             : 'hover:bg-slate-200 text-gray-primary'
                     }`}
                     disabled={isCallDisabled}
-                    onClick={onVideoCall}
+                    onClick={isGroupChat ? onGroupCall : onVideoCall}
                     title={
                         isCallDisabled
                             ? 'Unable to video call because you are blocked.'
-                            : 'Video Call'
+                            : isGroupChat ? 'Group Video Call' : 'Video Call'
                     }
                 >
                     <CiVideoOn className="w-5 h-5" />

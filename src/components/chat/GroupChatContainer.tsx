@@ -15,6 +15,7 @@ type GroupChatContainerProps = {
     disableCallButtons?: boolean;
     onAudioCall?: () => void;
     onVideoCall?: () => void;
+    onGroupCall?: () => void;
     onSearchClick?: () => void;
     onPanelToggle?: () => void;
     onSend?: (text: string) => void;
@@ -33,6 +34,7 @@ export const GroupChatContainer: React.FC<GroupChatContainerProps> = ({
     disableCallButtons,
     onAudioCall,
     onVideoCall,
+    onGroupCall,
     onSearchClick,
     onPanelToggle,
     onSend,
@@ -46,9 +48,11 @@ export const GroupChatContainer: React.FC<GroupChatContainerProps> = ({
                 avatarUrl={avatarUrl}
                 subtitle={subtitle}
                 isBlocked={isBlocked}
+                isGroupChat={true}
                 disableCallButtons={disableCallButtons}
                 onAudioCall={onAudioCall}
                 onVideoCall={onVideoCall}
+                onGroupCall={onGroupCall}
                 onSearchClick={onSearchClick}
                 onPanelToggle={onPanelToggle}
             />
