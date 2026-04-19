@@ -20,6 +20,7 @@ class SocketService {
   private presenceSocket: Socket | null = null;
   private notificationSocket: Socket | null = null;
   private currentUserId: string | null = null; // Track userId hiện tại
+  private presenceHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   // connect main socket
   connect(userId: string, token?: string) {
@@ -159,26 +160,50 @@ class SocketService {
 
   // connect presence socket (namespace /presence)
   connectPresence(userId: string, token?: string) {
-    if (this.presenceSocket?.connected) {
+    if (this.presenceSocket && this.presenceSocket.connected) {
       return this.presenceSocket;
+    }
+
+    if (this.presenceSocket) {
+      this.presenceSocket.disconnect();
+      this.presenceSocket = null;
     }
 
     this.presenceSocket = io(PRESENCE_NAMESPACE_URL, {
       query: { userId, platform: "web" },
       auth: { token },
       transports: ["websocket"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     this.presenceSocket.on("connect", () => {
       console.log(
         `[SocketService] Presence socket connected: ${this.presenceSocket?.id} (userId: ${userId}, platform: web)`,
       );
+
+      // Prime online list right after connect/reconnect.
+      this.presenceSocket?.emit("presence:get-online");
+
+      if (this.presenceHeartbeatTimer) {
+        clearInterval(this.presenceHeartbeatTimer);
+      }
+
+      this.presenceHeartbeatTimer = setInterval(() => {
+        this.presenceSocket?.emit("presence:heartbeat", { userId });
+      }, 15000);
     });
 
     this.presenceSocket.on("disconnect", (reason) => {
       console.log(
         `[SocketService] Presence socket disconnected. Reason: ${reason}`,
       );
+
+      if (this.presenceHeartbeatTimer) {
+        clearInterval(this.presenceHeartbeatTimer);
+        this.presenceHeartbeatTimer = null;
+      }
     });
 
     this.presenceSocket.on("connect_error", (error) => {
@@ -245,6 +270,11 @@ class SocketService {
     this.presenceSocket = null;
     this.notificationSocket = null;
     this.currentUserId = null;
+
+    if (this.presenceHeartbeatTimer) {
+      clearInterval(this.presenceHeartbeatTimer);
+      this.presenceHeartbeatTimer = null;
+    }
   }
 
   // disconnect only call socket
@@ -259,6 +289,11 @@ class SocketService {
     console.log("[SocketService] Disconnecting presence socket");
     this.presenceSocket?.disconnect();
     this.presenceSocket = null;
+
+    if (this.presenceHeartbeatTimer) {
+      clearInterval(this.presenceHeartbeatTimer);
+      this.presenceHeartbeatTimer = null;
+    }
   }
 
   disconnectNotification() {

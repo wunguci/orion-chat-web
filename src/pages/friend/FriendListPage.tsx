@@ -395,7 +395,12 @@ const FriendListPage = () => {
     presenceSocket.on("presence:online-list", onOnlineList);
     presenceSocket.emit("presence:get-online");
 
+    const refreshTimer = setInterval(() => {
+      presenceSocket.emit("presence:get-online");
+    }, 20000);
+
     return () => {
+      clearInterval(refreshTimer);
       presenceSocket.off("presence:user-online", onOnline);
       presenceSocket.off("presence:user-offline", onOffline);
       presenceSocket.off("presence:online-list", onOnlineList);
