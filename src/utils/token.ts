@@ -4,8 +4,7 @@ const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
 
 /**
- * Save any object to localStorage as user data
- * This is flexible - saves everything from server response
+ * lưu dữ liệu người dùng vào localStorage
  */
 export function saveUserData(data: Record<string, unknown>): void {
     try {
@@ -22,7 +21,7 @@ export function saveUserData(data: Record<string, unknown>): void {
             }),
         );
     } catch (error) {
-        console.error('❌ [saveUserData] Error:', error);
+        console.error('[saveUserData] Error:', error);
     }
 }
 
@@ -57,7 +56,7 @@ export function getToken(): string | null {
 }
 
 /**
- * Remove JWT token from localStorage
+ * xóa token khỏi localStorage
  */
 export function removeToken(): void {
     try {
@@ -68,19 +67,19 @@ export function removeToken(): void {
 }
 
 /**
- * Store user data in localStorage
+ * Lưu dữ liệu người dùng vào localStorage
  */
 export function setUser(user: User): void {
     try {
         const jsonStr = JSON.stringify(user);
         localStorage.setItem(USER_KEY, jsonStr);
     } catch (error) {
-        console.error('❌ Error storing user data:', error);
+        console.error('Error storing user data:', error);
     }
 }
 
 /**
- * Retrieve user data from localStorage
+ * nhận dữ liệu người dùng từ localStorage
  */
 export function getUser(): User | null {
     try {
@@ -98,23 +97,22 @@ export function getUser(): User | null {
 }
 
 /**
- * Debug: Check authentication status
+ * kiểm tra trạng thái xác thực
  */
 export function debugAuthStatus(): void {
-    const token = getToken();
-    const user = getUser();
-
-    console.log(
-        `[Auth Debug] Token: ${token ? `${token.substring(0, 20)}...` : 'NOT FOUND'}`,
-    );
-    console.log(`[Auth Debug] User:`, user);
-    console.log(
-        `[Auth Debug] Auth Status: ${token && user ? 'AUTHENTICATED' : 'NOT AUTHENTICATED'}`,
-    );
+    // const token = getToken();
+    // const user = getUser();
+    // console.log(
+    //     `[Auth Debug] Token: ${token ? `${token.substring(0, 20)}...` : 'NOT FOUND'}`,
+    // );
+    // console.log(`[Auth Debug] User:`, user);
+    // console.log(
+    //     `[Auth Debug] Auth Status: ${token && user ? 'AUTHENTICATED' : 'NOT AUTHENTICATED'}`,
+    // );
 }
 
 /**
- * Remove user data from localStorage
+ * xóa dữ liệu người dùng khỏi localStorage
  */
 export function removeUser(): void {
     try {
@@ -125,8 +123,8 @@ export function removeUser(): void {
 }
 
 /**
- * Check if token exists and is not expired
- * JWT format: header.payload.signature
+ * nếu token không tồn tại hoặc đã hết hạn
+ * trả về false
  */
 export function isTokenValid(): boolean {
     const token = getToken();
@@ -161,8 +159,8 @@ export function logout(): void {
 }
 
 /**
- * Get authorization header with JWT token
- * Used for API requests that require authentication
+ * xác thực header của yêu cầu API
+ * dùng cho các yêu cầu API cần xác thực
  */
 export function getAuthHeader(): Record<string, string> {
     const token = getToken();

@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
@@ -227,9 +228,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
         }
 
         return (
-            <p className="wrap-break-word whitespace-pre-wrap">
-                {message.content}
-            </p>
+            <p className="break-word whitespace-pre-wrap">{message.content}</p>
         );
     };
 

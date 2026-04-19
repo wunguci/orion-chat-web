@@ -1,9 +1,10 @@
+/*eslint-disable*/
 // Call
 import { io, Socket } from "socket.io-client";
 
 const RAW_SOCKET_URL =
-  (import.meta.env["VITE_SOCKET_URL"] as string | undefined) ||
-  "http://localhost:3000"; /* Đảm bảo không có dấu gạch chéo ở cuối */
+    (import.meta.env['VITE_SOCKET_URL'] as string | undefined) ||
+    'http://localhost:3000';
 
 const normalizeSocketBaseUrl = (url: string) =>
   url.replace(/\/$/, "").replace(/\/call$/, "");
@@ -77,53 +78,63 @@ class SocketService {
       transports: ["websocket"],
     });
 
-    this.callSocket.on("connect", () => {
-      console.log(
-        `[SocketService] Call socket connected: ${this.callSocket?.id} (userId: ${userId})`,
-      );
-    });
+        this.callSocket.on('connect', () => {
+            console.log(
+                `[SocketService] Call socket connected: ${this.callSocket?.id} (userId: ${userId})`,
+            );
+        });
 
-    this.callSocket.on("disconnect", (reason) => {
-      console.log(
-        `[SocketService] Call socket disconnected. Reason: ${reason}`,
-      );
-    });
+        this.callSocket.on('disconnect', (reason) => {
+            console.log(
+                `[SocketService] Call socket disconnected. Reason: ${reason}`,
+            );
+        });
 
-        this.callSocket.on('connect_error', () => {
+        this.callSocket.on('connect_error', (error) => {
             // console.error("[SocketService] Call socket connection error:", error);
             this.disconnectCall();
         });
 
-    return this.callSocket;
-  }
-
-  // get main socket instance
-  getSocket(): Socket | null {
-    return this.socket;
-  }
-
-  // get call socket instance
-  getCallSocket(): Socket | null {
-    return this.callSocket;
-  }
-
-  // connect presence socket (namespace /presence)
-  connectPresence(userId: string, token?: string) {
-    if (this.presenceSocket?.connected) {
-      return this.presenceSocket;
+        return this.callSocket;
     }
 
-    this.presenceSocket = io(PRESENCE_NAMESPACE_URL, {
-      query: { userId },
-      auth: { token },
-      transports: ["websocket"],
-    });
+    // get main socket instance
+    getSocket(): Socket | null {
+        return this.socket;
+    }
 
-    this.presenceSocket.on("connect", () => {
-      console.log(
-        `[SocketService] Presence socket connected: ${this.presenceSocket?.id} (userId: ${userId})`,
-      );
-    });
+    // get call socket instance
+    getCallSocket(): Socket | null {
+        return this.callSocket;
+    }
+
+    // connect presence socket (namespace /presence)
+    connectPresence(userId: string, token?: string) {
+        if (this.presenceSocket?.connected) {
+            return this.presenceSocket;
+        }
+
+        this.presenceSocket = io(PRESENCE_NAMESPACE_URL, {
+            query: { userId, platform: 'web' },
+            auth: { token },
+            transports: ['websocket'],
+        });
+
+        this.presenceSocket.on('connect', () => {
+            console.log(
+                `[SocketService] Presence socket connected: ${this.presenceSocket?.id} (userId: ${userId}, platform: web)`,
+            );
+        });
+
+        this.presenceSocket.on('disconnect', (reason) => {
+            console.log(
+                `[SocketService] Presence socket disconnected. Reason: ${reason}`,
+            );
+        });
+
+        this.presenceSocket.on('connect_error', (error) => {
+            // console.error("[SocketService] Presence socket connection error:", error);
+        });
 
     this.presenceSocket.on("disconnect", (reason) => {
       console.log(
@@ -187,13 +198,13 @@ class SocketService {
     this.currentUserId = null;
   }
 
-  // disconnect only call socket
-  disconnectCall() {
-    console.log("[SocketService] Disconnecting call socket");
-    this.callSocket?.disconnect();
-    this.callSocket = null;
-    this.currentUserId = null;
-  }
+    // disconnect only call socket
+    disconnectCall() {
+        console.log('[SocketService] Disconnecting call socket');
+        this.callSocket?.disconnect();
+        this.callSocket = null;
+        this.currentUserId = null;
+    }
 
   disconnectPresence() {
     console.log("[SocketService] Disconnecting presence socket");
@@ -211,9 +222,7 @@ class SocketService {
 export const socketService = new SocketService();
 export default socketService;
 
-// =============================
 // Chat Socket Service (JWT-based)
-// =============================
 
 const CHAT_NAMESPACE_URL = `${SOCKET_BASE_URL}/chat`;
 
@@ -334,7 +343,7 @@ class ChatSocketService {
 
     this.chatSocket = io(CHAT_NAMESPACE_URL, {
       transports: ["websocket"],
-      auth: { token }, // ✅ Sử dụng JWT token
+      auth: { token }, // Sử dụng JWT token
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -345,13 +354,13 @@ class ChatSocketService {
 
         this.chatSocket.on('connect', () => {
             console.log(
-                `[ChatSocketService] ✅ Connected: ${this.chatSocket?.id}`,
+                `[ChatSocketService] Connected: ${this.chatSocket?.id}`,
             );
             this.resubscribeJoinedRooms();
         });
 
     this.chatSocket.on("disconnect", (reason) => {
-      console.warn(`[ChatSocketService] ⚠️ Disconnected: ${reason}`);
+      console.warn(`[ChatSocketService] Disconnected: ${reason}`);
 
       // Log disconnect reasons
       if (reason === "io server disconnect") {
@@ -367,12 +376,12 @@ class ChatSocketService {
             'connect_error',
             (err: { message?: string; data?: { message?: string } }) => {
                 console.error(
-                    '[ChatSocketService] ❌ Connection error:',
+                    '[ChatSocketService] Connection error:',
                     err?.message || err,
                 );
                 console.error('[ChatSocketService] Error data:', err?.data);
 
-                // ✅ Handle 401 - redirect to login
+                // Handle 401 - redirect to login
                 if (
                     err?.message?.includes('Authentication') ||
                     err?.data?.message?.includes('Authentication')
@@ -389,7 +398,7 @@ class ChatSocketService {
         );
 
         this.chatSocket.on('error', (error: unknown) => {
-            console.error('[ChatSocketService] ❌ Socket error:', error);
+            console.error('[ChatSocketService] Socket error:', error);
         });
 
     return this.chatSocket;
@@ -497,14 +506,14 @@ class ChatSocketService {
     async sendMessage(data: ChatSendMessagePayload) {
         if (!this.chatSocket) {
             console.error(
-                '[ChatSocketService] ❌ Socket not initialized! Call connect() first.',
+                '[ChatSocketService] Socket not initialized! Call connect() first.',
             );
             throw new Error('Socket not initialized');
         }
 
     if (!this.chatSocket.connected) {
       console.error(
-        `[ChatSocketService] ⚠️ Socket not connected. Status: connected=${this.chatSocket.connected}`,
+        `[ChatSocketService] Socket not connected. Status: connected=${this.chatSocket.connected}`,
       );
       console.error(
         "[ChatSocketService] Try reconnecting or check socket connection status",
@@ -519,7 +528,7 @@ class ChatSocketService {
         }
 
         console.log(
-            `[ChatSocketService] 📤 Sending message: clientId=${data.clientMessageId}, conversationId=${data.conversationId}`,
+            `[ChatSocketService] Sending message: clientId=${data.clientMessageId}, to=${data.receiverId}, conversationId=${data.conversationId}`,
         );
         console.log('[ChatSocketService] Message content:', data.content);
 
@@ -530,7 +539,7 @@ class ChatSocketService {
         }>('chat:send_message', data);
 
         console.log(
-            '[ChatSocketService] ✅ Message emitted successfully via socket',
+            '[ChatSocketService] Message emitted successfully via socket',
         );
         return response;
     }

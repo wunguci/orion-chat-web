@@ -1,5 +1,6 @@
-import axios from "axios";
-import { getToken } from "../utils/token";
+/*eslint-disable*/
+import axios from 'axios';
+import { getToken } from '../utils/token';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||

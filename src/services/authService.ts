@@ -190,22 +190,21 @@ export async function login(
   phoneNumber: string,
   password: string,
 ): Promise<LoginResponse> {
-  try {
-    const deviceMetadata = buildDeviceMetadata();
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Platform": "web",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        phoneNumber,
-        password,
-        platform: "web",
-        ...deviceMetadata,
-      }),
-    });
+    try {
+        const deviceMetadata = buildDeviceMetadata();
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Platform': 'web',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                phoneNumber,
+                password,
+                ...deviceMetadata,
+            }),
+        });
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -237,17 +236,21 @@ export async function login(
 
 // Logout user
 export async function logout(token: string): Promise<{ message: string }> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Platform": "web",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include",
-      body: JSON.stringify({ platform: "web" }),
-    });
+    try {
+        // Try the new logout-with-token endpoint first (doesn't require Authorization header)
+        // This handles the case where token was invalidated by session conflict
+        const response = await fetch(`${API_BASE_URL}/auth/logout-with-token`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Platform': 'web',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                token,
+                platform: 'web',
+            }),
+        });
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;

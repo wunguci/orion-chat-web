@@ -1,15 +1,13 @@
-/**
- * Get current user ID from localStorage auth_user
- * Tries multiple field names: id, userId, phone, phoneNumber, sub
- */
+// lấy ID người dùng hiện tại
+
 export const getCurrentUserId = (): string => {
     try {
         const authUser = localStorage.getItem('auth_user');
-      
+
         if (authUser) {
             const parsed = JSON.parse(authUser);
 
-            // Try multiple field names (backend may use different names)
+            // Try multiple field names
             const userId =
                 parsed?.id ||
                 parsed?.userId ||
@@ -25,7 +23,7 @@ export const getCurrentUserId = (): string => {
     }
     // Fallback
     console.warn(
-        '⚠️ getCurrentUserId() returning empty string - auth_user not set!',
+        'getCurrentUserId() returning empty string - auth_user not set!',
     );
     return '';
 };

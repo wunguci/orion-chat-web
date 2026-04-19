@@ -1,15 +1,10 @@
 import { useEffect } from 'react';
-import { getToken, isTokenValid } from '../utils/token';
+import { getToken, isTokenValid, logout } from '../utils/token';
 import { handleSessionExpired } from '../utils/sessionValidator';
+import { api } from '../services/api';
 
-/**
- * Hook to monitor token expiry locally
- * Checks JWT exp claim every minute (not calling backend)
- * Only redirects to login when token actually expires
- */
 export function useTokenExpiry() {
     useEffect(() => {
-        // Function to check if token is still valid (local check only)
         const checkTokenExpiry = () => {
             const token = getToken();
 
@@ -18,15 +13,12 @@ export function useTokenExpiry() {
                 return;
             }
 
-            // Check if token is still valid by examining JWT exp claim
+            // kiểm tra tính hợp lệ của token
             if (!isTokenValid()) {
-                console.warn(
-                    '[useTokenExpiry] ⏰ Token expired, logging out...',
-                );
-                // Token has expired - redirect to login
+                // Token hết hạn - đăng xuất
                 handleSessionExpired();
             } else {
-                // Token still valid, extract exp time for logging
+                // token vẫn hợp lệ
                 try {
                     const parts = token.split('.');
                     const payload = JSON.parse(atob(parts[1]));
@@ -41,7 +33,7 @@ export function useTokenExpiry() {
 
                     if (timeUntilExpiry) {
                         console.log(
-                            `[useTokenExpiry] ✅ Token valid, expires in ~${timeUntilExpiry} minutes`,
+                            `[useTokenExpiry] Token valid, expires in ~${timeUntilExpiry} minutes`,
                         );
                     }
                 } catch (error) {
@@ -53,14 +45,67 @@ export function useTokenExpiry() {
             }
         };
 
-        // Check immediately on mount
-        checkTokenExpiry();
+        // xác minh tính hợp lệ của phiên
+        const verifySessionValidity = async () => {
+            try {
+                const token = getToken();
+                if (!token) return;
 
-        // Set up interval to check every 60 seconds (not 30)
-        // This is lighter than calling backend every 30 seconds
-        const interval = setInterval(checkTokenExpiry, 60 * 1000);
+                // Gọi verify-token để kiểm tra session
+                await api.get('/auth/verify-token');
+                console.log('[useTokenExpiry] Session verified with backend');
+            } catch (error) {
+                if (error instanceof Error) {
+                    const errorMsg = error.message.toLowerCase();
+
+                    // kiểm tra nếu là lỗi xung đột phiên
+                    if (
+                        errorMsg.includes('đã đăng nhập ở nơi khác') ||
+                        errorMsg.includes('hoặc bạn đã đăng nhập') ||
+                        errorMsg.includes('web khác') ||
+                        errorMsg.includes('mobile khác') ||
+                        errorMsg.includes('xung đột')
+                    ) {
+                        // Show alert to user
+                        alert(
+                            'Phát hiện tài khoản của bạn vừa đăng nhập ở nơi khác.\n\n' +
+                                'Phiên hiện tại sẽ kết thúc. Vui lòng đăng nhập lại.',
+                        );
+                        // Logout immediately
+                        logout();
+                        window.location.href =
+                            '/auth/login?session_expired=true';
+                    } else if (
+                        errorMsg.includes('token has expired') ||
+                        errorMsg.includes('token expired') ||
+                        errorMsg.includes('invalid')
+                    ) {
+                        console.warn(
+                            '[useTokenExpiry] Token expired on backend',
+                        );
+                        handleSessionExpired();
+                    }
+                }
+            }
+        };
+
+        // kiểm tra hết hạn token
+        checkTokenExpiry();
+        verifySessionValidity();
+
+        // kiểm tra hết hạn token cục bộ
+        const localCheckInterval = setInterval(checkTokenExpiry, 15 * 1000);
+
+        // xác minh session với backend mỗi 2 giây (phát hiện session mismatch nhanh)
+        const sessionCheckInterval = setInterval(
+            verifySessionValidity,
+            2 * 1000,
+        );
 
         // Cleanup
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(localCheckInterval);
+            clearInterval(sessionCheckInterval);
+        };
     }, []);
 }
