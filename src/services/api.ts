@@ -14,6 +14,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'X-Platform': 'web',
+        'ngrok-skip-browser-warning': 'true',
     };
 
     // Add authorization header if token exists
