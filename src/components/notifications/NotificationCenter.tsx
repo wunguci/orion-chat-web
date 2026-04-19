@@ -99,10 +99,18 @@ function NotificationToastStack({
         const Icon = meta.icon;
 
         return (
-          <button
+          <div
             key={id}
+            role="button"
+            tabIndex={0}
             onClick={() => {
               void onOpenNotification(notification);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                void onOpenNotification(notification);
+              }
             }}
             className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-lg transition-colors hover:bg-slate-50"
           >
@@ -133,7 +141,7 @@ function NotificationToastStack({
                 Dismiss
               </button>
             </div>
-          </button>
+          </div>
         );
       })}
     </div>
