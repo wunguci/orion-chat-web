@@ -1,199 +1,230 @@
-import React, { useState } from 'react';
-import { useNotificationSettings } from '../../hooks/useSettings';
+import React from "react";
+import { clsx } from "clsx";
+import Button from "../common/Button";
+import { Bell, Play } from "lucide-react";
+import ToggleSwitch from "../common/ToggleSwitch";
 
-export const NotificationSettings: React.FC = () => {
-  const { settings, loading, error, updateSettings, toggleMute } =
-    useNotificationSettings();
-  const [saving, setSaving] = useState(false);
-
-  const handleToggle = async (field: string, value: boolean) => {
-    setSaving(true);
-    try {
-      await updateSettings({ [field]: value } as any);
-    } catch (err) {
-      console.error(`Failed to update ${field}:`, err);
-    } finally {
-      setSaving(false);
-    }
+interface NotificationSettingsProps {
+  formData: {
+    muteAll: boolean;
+    messageNotifications: boolean;
+    friendRequestNotifications: boolean;
+    groupNotifications: boolean;
+    tagNotifications: boolean;
+    callNotifications: boolean;
+    notificationSound: string;
   };
+  handleInputChange: (field: string, value: unknown) => void;
+  toggleOption: (field: string) => void;
+  handleDiscardSettings: () => void;
+  handleSaveSettings: () => void;
+  saveError: string | null;
+  saveSuccess: string | null;
+  isSaving: boolean;
+  hasSettingsChanges: boolean;
+}
 
-  const handleToggleMute = async () => {
-    setSaving(true);
-    try {
-      await toggleMute();
-    } catch (err) {
-      console.error('Failed to toggle mute:', err);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
-
+export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
+  formData,
+  handleInputChange,
+  toggleOption,
+  handleDiscardSettings,
+  handleSaveSettings,
+  saveError,
+  saveSuccess,
+  isSaving,
+  hasSettingsChanges,
+}: NotificationSettingsProps) => {
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Notification Settings</h3>
+    <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-5">
+        <span className="text-[28px] font-bold text-gray-primary">
+          Notifications
+        </span>
 
-      {/* Mute All Toggle */}
-      <div className="flex items-center justify-between p-4 bg-gray-100 rounded">
-        <div>
-          <label className="font-medium">Mute All Notifications</label>
-          <p className="text-sm text-gray-600">
-            Turn off all notifications temporarily
-          </p>
+        {/* Mute all notifications */}
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-green-border-light">
+          <div>
+            <p className="font-bold text-gray-primary text-lg">
+              Mute all notifications
+            </p>
+            <p className="text-sm text-gray-primary">
+              Temporarily silence all notifications
+            </p>
+          </div>
+          <ToggleSwitch
+            checked={formData.muteAll}
+            onChange={() => toggleOption("muteAll")}
+          />
         </div>
-        <button
-          onClick={handleToggleMute}
-          disabled={saving}
-          className={`px-4 py-2 rounded ${
-            settings?.muteAll
-              ? 'bg-red-500 text-white'
-              : 'bg-gray-300 text-gray-800'
-          }`}
-        >
-          {settings?.muteAll ? 'ON' : 'OFF'}
-        </button>
-      </div>
-
-      {/* Group Notifications */}
-      <div className="flex items-center justify-between p-4 border rounded">
-        <div>
-          <label className="font-medium">Group Notifications</label>
-          <p className="text-sm text-gray-600">
-            Receive notifications from groups
-          </p>
-        </div>
-        <input
-          type="checkbox"
-          checked={settings?.groupNotifications || false}
-          onChange={(e) => handleToggle('groupNotifications', e.target.checked)}
-          disabled={saving || settings?.muteAll}
-          className="w-6 h-6"
-        />
-      </div>
-
-      {/* Tag Notifications */}
-      <div className="flex items-center justify-between p-4 border rounded">
-        <div>
-          <label className="font-medium">Tag Notifications</label>
-          <p className="text-sm text-gray-600">Notify when someone tags you</p>
-        </div>
-        <input
-          type="checkbox"
-          checked={settings?.tagNotifications || false}
-          onChange={(e) => handleToggle('tagNotifications', e.target.checked)}
-          disabled={saving || settings?.muteAll}
-          className="w-6 h-6"
-        />
       </div>
 
       {/* Message Notifications */}
-      <div className="flex items-center justify-between p-4 border rounded">
-        <div>
-          <label className="font-medium">Message Notifications</label>
-          <p className="text-sm text-gray-600">Notify when you receive messages</p>
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Message Notifications
+        </span>
+        <div className="flex flex-col gap-2 rounded-2xl overflow-hidden border border-green-border-light">
+          {[
+            {
+              label: "Message Notifications",
+              description: "Receive notifications for new messages",
+              field: "messageNotifications",
+              icon: Bell,
+            },
+            {
+              label: "Friend Request Notifications",
+              description: "Receive notifications for friend requests",
+              field: "friendRequestNotifications",
+              icon: Bell,
+            },
+          ].map(({ label, description, field, icon: Icon }, index) => (
+            <div
+              key={field}
+              className={clsx(
+                "flex items-center justify-between px-4 py-3 bg-green-bg-light",
+                index === 0 && "rounded-t-lg",
+                index === 1 && "rounded-b-lg",
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Icon size={24} className="text-green-primary" />
+                <div>
+                  <p className="font-semibold text-gray-primary">{label}</p>
+                  <p className="text-sm text-gray-primary">{description}</p>
+                </div>
+              </div>
+              <ToggleSwitch
+                checked={formData[field as keyof typeof formData] as boolean}
+                onChange={() => toggleOption(field)}
+              />
+            </div>
+          ))}
         </div>
-        <input
-          type="checkbox"
-          checked={settings?.messageNotifications || false}
-          onChange={(e) =>
-            handleToggle('messageNotifications', e.target.checked)
-          }
-          disabled={saving || settings?.muteAll}
-          className="w-6 h-6"
-        />
       </div>
 
-      {/* Friend Request Notifications */}
-      <div className="flex items-center justify-between p-4 border rounded">
-        <div>
-          <label className="font-medium">Friend Request Notifications</label>
-          <p className="text-sm text-gray-600">
-            Notify when you receive friend requests
-          </p>
+      {/* Group Notifications */}
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Group Notifications
+        </span>
+        <div className="flex flex-col gap-2 rounded-2xl overflow-hidden border border-green-border-light">
+          {[
+            {
+              label: "Group Notifications",
+              description: "Receive notifications for group chats",
+              field: "groupNotifications",
+            },
+            {
+              label: "Tag Notifications",
+              description: "Only notify me if someone tags me",
+              field: "tagNotifications",
+            },
+          ].map(({ label, description, field }, index) => (
+            <div
+              key={field}
+              className={clsx(
+                "flex items-center justify-between px-4 py-3 bg-green-bg-light",
+                index === 0 && "rounded-t-lg",
+                index === 1 && "rounded-b-lg",
+              )}
+            >
+              <div>
+                <p className="font-semibold text-gray-primary">{label}</p>
+                <p className="text-sm text-gray-primary">{description}</p>
+              </div>
+              <ToggleSwitch
+                checked={formData[field as keyof typeof formData] as boolean}
+                onChange={() => toggleOption(field)}
+              />
+            </div>
+          ))}
         </div>
-        <input
-          type="checkbox"
-          checked={settings?.friendRequestNotifications || false}
-          onChange={(e) =>
-            handleToggle('friendRequestNotifications', e.target.checked)
-          }
-          disabled={saving || settings?.muteAll}
-          className="w-6 h-6"
-        />
       </div>
 
       {/* Call Notifications */}
-      <div className="flex items-center justify-between p-4 border rounded">
-        <div>
-          <label className="font-medium">Call Notifications</label>
-          <p className="text-sm text-gray-600">Notify when someone calls you</p>
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">Call</span>
+        <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
+          <div className="flex items-center gap-3">
+            <Bell size={24} className="text-green-primary" />
+            <div>
+              <p className="font-semibold text-gray-primary">
+                Call Notifications
+              </p>
+              <p className="text-sm text-gray-primary">
+                Receive notifications for incoming calls
+              </p>
+            </div>
+          </div>
+          <ToggleSwitch
+            checked={formData.callNotifications}
+            onChange={() => toggleOption("callNotifications")}
+          />
         </div>
-        <input
-          type="checkbox"
-          checked={settings?.callNotifications || false}
-          onChange={(e) => handleToggle('callNotifications', e.target.checked)}
-          disabled={saving || settings?.muteAll}
-          className="w-6 h-6"
-        />
       </div>
 
       {/* Notification Sound */}
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Notification Sound
-        </label>
-        <select
-          value={settings?.notificationSound || 'all'}
-          onChange={(e) =>
-            updateSettings({ notificationSound: e.target.value })
-          }
-          disabled={saving}
-          className="w-full px-3 py-2 border rounded"
-        >
-          <option value="all">All</option>
-          <option value="vibrate">Vibrate Only</option>
-          <option value="silent">Silent</option>
-        </select>
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Sound Settings
+        </span>
+        <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
+          <div className="flex items-center gap-3">
+            <Play size={24} className="text-green-primary" />
+            <div>
+              <p className="font-semibold text-gray-primary">
+                Notification Sound
+              </p>
+              <p className="text-sm text-gray-primary">
+                Choose the sound for notifications
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <select
+              value={formData.notificationSound}
+              onChange={(e) =>
+                handleInputChange("notificationSound", e.target.value)
+              }
+              className="px-4 py-2 border border-gray-200 rounded-lg text-gray-primary focus:outline-none"
+            >
+              <option>Crystal Clear</option>
+              <option>Bell</option>
+              <option>Chime</option>
+              <option>Ding</option>
+            </select>
+            <button className="p-2 bg-green-primary text-white rounded-full hover:bg-green-primary/90">
+              <Play size={20} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Do Not Disturb */}
-      <div className="p-4 border rounded">
-        <h4 className="font-medium mb-4">Do Not Disturb</h4>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm mb-1">Start Time</label>
-            <input
-              type="number"
-              min="0"
-              max="1440"
-              placeholder="Minutes since midnight"
-              defaultValue={settings?.doNotDisturbStart || 0}
-              onBlur={(e) =>
-                updateSettings({
-                  doNotDisturbStart: Number(e.target.value),
-                })
-              }
-              className="w-full px-3 py-2 border rounded"
-              disabled={saving}
-            />
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+        {saveError && (
+          <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            {saveError}
           </div>
-          <div>
-            <label className="block text-sm mb-1">End Time</label>
-            <input
-              type="number"
-              min="0"
-              max="1440"
-              placeholder="Minutes since midnight"
-              defaultValue={settings?.doNotDisturbEnd || 0}
-              onBlur={(e) =>
-                updateSettings({ doNotDisturbEnd: Number(e.target.value) })
-              }
-              className="w-full px-3 py-2 border rounded"
-              disabled={saving}
-            />
+        )}
+        {saveSuccess && (
+          <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+            {saveSuccess}
           </div>
+        )}
+        <div className="flex justify-end gap-3">
+          <Button
+            label="Discard Changes"
+            onClick={handleDiscardSettings}
+            type="cancel"
+            disabled={isSaving}
+          />
+          <Button
+            label={isSaving ? "Saving..." : "Save Changes"}
+            onClick={handleSaveSettings}
+            disabled={isSaving || !hasSettingsChanges}
+          />
         </div>
       </div>
     </div>
