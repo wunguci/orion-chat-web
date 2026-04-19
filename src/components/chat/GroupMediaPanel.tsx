@@ -5,9 +5,11 @@ import {
 } from '../../services/conversationApi';
 import { MediaStoragePanel } from './MediaStoragePanel';
 import type { SocketMessage } from './MessageList';
+import type { ParticipantInfo } from '../../types/conversation';
 
 type GroupMediaPanelProps = {
     conversationId: string;
+    participants?: ParticipantInfo[];
     onBack: () => void;
     onMediaAction?: (
         action: 'open' | 'forward' | 'jump' | 'deleteForMe' | 'recall',
@@ -55,6 +57,7 @@ function mapMediaItemToSocketMessage(
 
 export const GroupMediaPanel: React.FC<GroupMediaPanelProps> = ({
     conversationId,
+    participants = [],
     onBack,
     onMediaAction,
 }) => {
@@ -125,6 +128,7 @@ export const GroupMediaPanel: React.FC<GroupMediaPanelProps> = ({
     return (
         <MediaStoragePanel
             displayMessages={displayMessages}
+            participants={participants}
             onBack={onBack}
             onMediaAction={onMediaAction}
             conversationId={conversationId}

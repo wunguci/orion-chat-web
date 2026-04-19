@@ -17,9 +17,11 @@ import { FiFile, FiFileText, FiImage, FiMusic, FiVideo } from 'react-icons/fi';
 import { MediaContextMenu } from './MediaContextMenu';
 import { conversationApi } from '../../services/conversationApi';
 import type { SocketMessage } from './MessageList';
+import type { ParticipantInfo } from '../../types/conversation';
 
 interface MediaStoragePanelProps {
     displayMessages: SocketMessage[];
+    participants?: ParticipantInfo[];
     onBack: () => void;
     onMediaAction?: (
         action: 'open' | 'forward' | 'jump' | 'deleteForMe' | 'recall',
@@ -44,10 +46,25 @@ interface LinkMessage extends SocketMessage {
 
 export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
     displayMessages,
+    participants = [],
     onBack,
     onMediaAction,
     conversationId,
 }) => {
+    const isImageMessage = (msg: SocketMessage) =>
+        msg.isFile &&
+        !!msg.fileUrl &&
+        (msg.fileType?.startsWith('image/') === true ||
+            msg.fileCategory === 'image' ||
+            msg.type === 'image');
+
+    const isVideoMessage = (msg: SocketMessage) =>
+        msg.isFile &&
+        !!msg.fileUrl &&
+        (msg.fileType?.startsWith('video/') === true ||
+            msg.fileCategory === 'video' ||
+            msg.type === 'video');
+
     const renderFileIcon = (icon?: SocketMessage['fileIcon']) => {
         switch (icon) {
             case 'image':
@@ -91,19 +108,34 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
         timeFilter: '7days',
     });
 
-    // Get unique senders
+    // Build sender options from full participant list first, then add any sender from messages.
     const uniqueSenders = useMemo(() => {
         const senders = new Map<string, { id: string; name: string }>();
+
+        participants.forEach((participant) => {
+            if (!participant.userId) return;
+            senders.set(participant.userId, {
+                id: participant.userId,
+                name:
+                    participant.nickname ||
+                    participant.fullName ||
+                    participant.userId,
+            });
+        });
+
         displayMessages.forEach((msg) => {
             if (!senders.has(msg.senderId)) {
                 senders.set(msg.senderId, {
                     id: msg.senderId,
-                    name: msg.senderName,
+                    name: msg.senderName || msg.senderId,
                 });
             }
         });
-        return Array.from(senders.values());
-    }, [displayMessages]);
+
+        return Array.from(senders.values()).sort((a, b) =>
+            a.name.localeCompare(b.name, 'vi', { sensitivity: 'base' }),
+        );
+    }, [displayMessages, participants]);
 
     // Filter messages by time
     const filterByTime = useCallback(
@@ -145,12 +177,7 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
     const filteredImages = useMemo(() => {
         let images = displayMessages.filter(
             (msg) =>
-                msg.isFile &&
-                msg.fileUrl &&
-                (msg.fileType?.startsWith('image/') === true ||
-                    msg.fileCategory === 'image' ||
-                    msg.type === 'image') &&
-                !msg.isRecalled,
+                (isImageMessage(msg) || isVideoMessage(msg)) && !msg.isRecalled,
         );
 
         if (filters.sender !== 'all') {
@@ -170,9 +197,8 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
             (msg) =>
                 msg.isFile &&
                 msg.fileUrl &&
-                !(msg.fileType?.startsWith('image/') === true) &&
-                msg.fileCategory !== 'image' &&
-                msg.type !== 'image' &&
+                !isImageMessage(msg) &&
+                !isVideoMessage(msg) &&
                 !msg.isRecalled,
         );
 
@@ -641,11 +667,21 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
                                                 key={img.id}
                                                 className="relative group overflow-hidden rounded-lg aspect-square cursor-pointer"
                                             >
-                                                <img
-                                                    src={img.fileUrl}
-                                                    alt={img.fileName}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                                                />
+                                                {isVideoMessage(img) ? (
+                                                    <video
+                                                        src={img.fileUrl}
+                                                        muted
+                                                        loop
+                                                        playsInline
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                    />
+                                                ) : (
+                                                    <img
+                                                        src={img.fileUrl}
+                                                        alt={img.fileName}
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                    />
+                                                )}
                                                 {/* Overlay on hover */}
                                                 <div className="absolute inset-0  bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
                                                     <button
@@ -672,7 +708,9 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
                         ) : (
                             <div className="flex items-center justify-center h-64 text-gray-500">
                                 <div className="text-center">
-                                    <p className="text-sm">No images found</p>
+                                    <p className="text-sm">
+                                        No photos/videos found
+                                    </p>
                                 </div>
                             </div>
                         )}
