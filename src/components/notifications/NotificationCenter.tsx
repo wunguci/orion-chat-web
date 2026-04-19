@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   MdCalendarToday,
   MdCall,
@@ -21,6 +21,11 @@ type NotificationCenterProps = {
   open: boolean;
   onToggle: () => void;
   onUnreadMessageCountChange?: (count: number) => void;
+  onUnreadTypeCountsChange?: (counts: {
+    chat: number;
+    friend: number;
+    calendar: number;
+  }) => void;
 };
 
 const typeMeta: Record<
@@ -153,20 +158,21 @@ export default function NotificationCenter({
   open,
   onToggle,
   onUnreadMessageCountChange,
+  onUnreadTypeCountsChange,
 }: NotificationCenterProps) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const [openedConversationId, setOpenedConversationId] = useState<
-    string | null
-  >(null);
   const navigate = useNavigate();
   const {
     notifications,
     unreadCount,
     unreadMessageCount,
+    unreadTypeCounts,
+    unreadByConversation,
     toastItems,
     markAllAsRead,
     markAsRead,
+    removeNotification,
     markConversationNotificationsAsRead,
     dismissToast,
   } = useNotifications(userId);
@@ -177,13 +183,24 @@ export default function NotificationCenter({
   }, [onUnreadMessageCountChange, unreadMessageCount]);
 
   useEffect(() => {
+    onUnreadTypeCountsChange?.(unreadTypeCounts);
+  }, [onUnreadTypeCountsChange, unreadTypeCounts]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("notifications:unread_by_conversation", {
+        detail: { unreadByConversation },
+      }),
+    );
+  }, [unreadByConversation]);
+
+  useEffect(() => {
     // Lắng nghe sự kiện mở conversation để mark-read đúng theo cuộc trò chuyện.
     const handleConversationOpened = (event: Event) => {
       const customEvent = event as CustomEvent<{ conversationId?: string }>;
       const conversationId = customEvent.detail?.conversationId;
 
       if (!conversationId) return;
-      setOpenedConversationId(conversationId);
       markConversationNotificationsAsRead(conversationId).catch(
         () => undefined,
       );
@@ -201,28 +218,6 @@ export default function NotificationCenter({
       );
     };
   }, [markConversationNotificationsAsRead]);
-
-  useEffect(() => {
-    if (!openedConversationId) return;
-
-    const hasUnreadForOpenedConversation = notifications.some(
-      (item) =>
-        !item.isRead &&
-        (item.type === "message" || item.type === "call") &&
-        item.metadata?.conversationId === openedConversationId,
-    );
-
-    if (!hasUnreadForOpenedConversation) return;
-
-    // Xử lý race condition: danh sách thông báo đến muộn hơn sự kiện mở chat.
-    markConversationNotificationsAsRead(openedConversationId).catch(
-      () => undefined,
-    );
-  }, [
-    openedConversationId,
-    notifications,
-    markConversationNotificationsAsRead,
-  ]);
 
   useEffect(() => {
     if (!open) return;
@@ -327,10 +322,18 @@ export default function NotificationCenter({
                 const Icon = meta.icon;
 
                 return (
-                  <button
+                  <div
                     key={item._id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => {
                       void openNotification(item);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        void openNotification(item);
+                      }
                     }}
                     className={`w-full cursor-pointer border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${
                       item.isRead ? "bg-white" : "bg-teal-50/70"
@@ -354,8 +357,21 @@ export default function NotificationCenter({
                           {new Date(item.createdAt).toLocaleString()}
                         </div>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void removeNotification(item._id);
+                        }}
+                        className="shrink-0 cursor-pointer self-start rounded-md px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-50 hover:text-rose-700"
+                        aria-label="Delete notification"
+                        title="Delete"
+                      >
+                        Delete
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 );
               })
             )}

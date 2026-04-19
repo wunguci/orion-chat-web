@@ -21,6 +21,27 @@ const EMOJI_LIST = [
 ];
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_SOCKET_URL ||
+  "http://localhost:3000";
+
+const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+
+  const normalizedBase = API_BASE_URL.replace(/\/$/, "");
+  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
 
 type MessageReaction = {
   userId: string;
@@ -173,7 +194,7 @@ export const MessageList: React.FC<{
       date: new Date(m.timestamp).toLocaleDateString("vi-VN"),
       senderName: m.senderName,
       senderAvatar:
-        m.senderAvatar ||
+        toAbsoluteMediaUrl(m.senderAvatar) ||
         "https://api.dicebear.com/7.x/avataaars/svg?seed=" + m.senderId,
     }));
 
@@ -221,7 +242,7 @@ export const MessageList: React.FC<{
 
             // Get sender avatar
             const senderAvatar =
-              msg.senderAvatar ||
+              toAbsoluteMediaUrl(msg.senderAvatar) ||
               `https://api.dicebear.com/7.x/avataaars/svg?seed=${msg.senderId}`;
 
             return (

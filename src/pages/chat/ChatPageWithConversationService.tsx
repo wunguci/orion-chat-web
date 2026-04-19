@@ -32,6 +32,28 @@ import { debugAuthStatus, getUser } from "../../utils/token";
 import { getUserInfo } from "../../services/userService";
 import { useCall } from "../../hooks/useCall";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  import.meta.env.VITE_SOCKET_URL ||
+  "http://localhost:3000";
+
+const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
+  if (!url) return undefined;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("blob:") ||
+    url.startsWith("data:")
+  ) {
+    return url;
+  }
+
+  const normalizedBase = API_BASE_URL.replace(/\/$/, "");
+  const normalizedPath = url.startsWith("/") ? url : `/${url}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
 export const ChatPage: React.FC = () => {
   type ChatSocketMessage = SocketMessage & {
     clientMessageId?: string;
@@ -305,7 +327,7 @@ export const ChatPage: React.FC = () => {
         senderId: senderId,
         // Dùng senderName nếu có, nếu không thì dùng senderId (phone/userId) làm fallback
         senderName: payload?.senderName || senderId,
-        senderAvatar: payload?.senderAvatar,
+        senderAvatar: toAbsoluteMediaUrl(payload?.senderAvatar),
         content: payload?.content || "",
         timestamp:
           payload?.timestamp || payload?.createdAt || new Date().toISOString(),
@@ -1174,6 +1196,11 @@ export const ChatPage: React.FC = () => {
         clientMessageId: m.clientMessageId,
         senderId: senderRef,
         senderName: getSenderName(senderRef),
+        senderAvatar: toAbsoluteMediaUrl(
+          selectedConversation?.participants?.find(
+            (p) => p.userId === senderRef,
+          )?.avatarUrl,
+        ),
         content: m.content || "",
         timestamp:
           typeof m.createdAt === "string"
@@ -1325,8 +1352,10 @@ export const ChatPage: React.FC = () => {
               }
               avatarUrl={
                 selectedConversation.type === "GROUP"
-                  ? selectedConversation.groupInfo?.groupAvatar || undefined
-                  : otherParticipant?.avatarUrl || undefined
+                  ? toAbsoluteMediaUrl(
+                      selectedConversation.groupInfo?.groupAvatar,
+                    ) || undefined
+                  : toAbsoluteMediaUrl(otherParticipant?.avatarUrl) || undefined
               }
               subtitle={
                 selectedConversation.type === "GROUP"
