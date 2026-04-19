@@ -18,6 +18,7 @@ import {
   statusToBE,
   priorityToBE,
 } from "../features/work-hub/work-hub.mappers";
+import { getUser } from "../utils/token";
 
 function calculateSubtaskProgress(subtasks: SubTask[]): number {
   if (subtasks.length === 0) return 100;
@@ -100,6 +101,14 @@ export function useTask(boardId: string) {
       | "order"
     >,
   ) => {
+    const authUser = getUser();
+    const createdById =
+      task.createdBy.id || authUser?.userId || authUser?.id || undefined;
+
+    if (!createdById) {
+      throw new Error("Cannot determine task creator");
+    }
+
     const data = await workHubApi.createTask(boardId, {
       title: task.title,
       description: task.description,
@@ -108,7 +117,7 @@ export function useTask(boardId: string) {
       startDate: task.startDate,
       dueDate: task.deadline,
       columnId: task.columnId || undefined,
-      createdById: task.createdBy.id,
+      createdById,
       assigneeIds: task.assignees.map((a) => a.id),
       labelIds: task.labels.map((l) => l.id),
     });
@@ -328,31 +337,59 @@ export function useTask(boardId: string) {
     }
   };
 
-  const transferTask = (transfer: TaskTransfer) => {
-    setTasks(
-      tasks.map((t) => {
-        if (t.id !== transfer.taskId) return t;
+  const transferTask = async (transfer: TaskTransfer) => {
+    const currentTask = tasks.find((task) => task.id === transfer.taskId);
+    if (!currentTask) return;
 
-        const newActivity: ActivityEntry = {
-          id: `ah-${Date.now()}`,
-          type: "transferred",
-          user: transfer.fromUser,
-          description: `transferred this task to ${transfer.toUser.name}. Reason: "${transfer.reason}"`,
-          timestamp: transfer.timestamp,
-        };
+    const newAssignees = currentTask.assignees
+      .filter((assignee) => assignee.id !== transfer.fromUser.id)
+      .concat(transfer.toUser);
 
-        const newAssignees = t.assignees
-          .filter((a) => a.id !== transfer.fromUser.id)
-          .concat(transfer.toUser);
-
-        return {
-          ...t,
-          assignees: newAssignees,
-          activityHistory: [...t.activityHistory, newActivity],
-          updatedAt: new Date().toISOString(),
-        };
-      }),
+    const newAssigneeIds = Array.from(
+      new Set(
+        newAssignees
+          .map((assignee) => assignee.id)
+          .filter((assigneeId): assigneeId is string => !!assigneeId),
+      ),
     );
+
+    const newActivity: ActivityEntry = {
+      id: `ah-${Date.now()}`,
+      type: "transferred",
+      user: transfer.fromUser,
+      description: `transferred this task to ${transfer.toUser.name}. Reason: "${transfer.reason}"`,
+      timestamp: transfer.timestamp,
+    };
+
+    try {
+      const updatedTask = await workHubApi.updateTask(transfer.taskId, {
+        assigneeIds: newAssigneeIds,
+      });
+      const mapped = mapTask(updatedTask);
+
+      setTasks((prev) =>
+        prev.map((task) =>
+          task.id === transfer.taskId
+            ? {
+                ...mapped,
+                activityHistory: [...task.activityHistory, newActivity],
+              }
+            : task,
+        ),
+      );
+    } catch {
+      setTasks((prev) =>
+        prev.map((task) => {
+          if (task.id !== transfer.taskId) return task;
+          return {
+            ...task,
+            assignees: newAssignees,
+            activityHistory: [...task.activityHistory, newActivity],
+            updatedAt: new Date().toISOString(),
+          };
+        }),
+      );
+    }
   };
 
   const markComplete = (

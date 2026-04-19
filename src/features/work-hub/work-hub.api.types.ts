@@ -122,6 +122,28 @@ export interface AddMemberRequest {
   role: string;
 }
 
+export interface InviteMemberByMethodRequest {
+  method: "userId" | "phone" | "name";
+  value: string;
+  role?: string;
+}
+
+export interface InviteCandidateResponse extends UserResponse {}
+
+export interface WorkspaceInviteLinkResponse {
+  workspaceId: string;
+  workspaceName: string;
+  role: string;
+  token: string;
+  inviteUrl: string;
+  qrData: string;
+  expiresAt: string;
+}
+
+export interface JoinByLinkRequest {
+  token: string;
+}
+
 export interface UpdateMemberRoleRequest {
   role: string;
 }
@@ -150,7 +172,7 @@ export interface CreateTaskRequest {
   startDate?: string;
   dueDate?: string;
   columnId?: string;
-  createdById: string;
+  createdById?: string;
   assigneeIds?: string[];
   labelIds?: string[];
 }
@@ -596,4 +618,38 @@ export interface ReportDataResponse {
     assignees: UserResponse[];
     daysOverdue: number;
   }[];
+}
+
+export interface WorkspaceDashboardStatsResponse {
+  summary: {
+    totalTasks: number;
+    completedTasks: number;
+    inProgressTasks: number;
+    reviewTasks: number;
+    todoTasks: number;
+    overdueTasks: number;
+    completionRate: number;
+    totalBoards: number;
+    totalMembers: number;
+  };
+  boardStats: Array<{
+    boardId: string;
+    boardName: string;
+    totalTasks: number;
+    completedTasks: number;
+    inProgressTasks: number;
+    overdueTasks: number;
+  }>;
+  recentActivities: Array<{
+    activityId: string;
+    action: string;
+    description: string;
+    timestamp: string;
+    task?: { taskId?: string; title?: string };
+    user: UserResponse;
+  }>;
+  trendLast7Days: Array<{
+    date: string;
+    completed: number;
+  }>;
 }

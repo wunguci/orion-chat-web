@@ -41,6 +41,7 @@ import AutomationsPage from '../pages/work-hub/automations/AutomationsPage';
 import ReportsExportPage from '../pages/work-hub/reports/ReportsExportPage';
 import LabelsManagementPage from '../pages/work-hub/labels/LabelsManagementPage';
 import ActivityFeedPage from '../pages/work-hub/activity/ActivityFeedPage';
+import JoinWorkspaceByLinkPage from '../pages/work-hub/join/JoinWorkspaceByLinkPage';
 import SettingsPage from '../components/settings/SettingsPage';
 
 export const router = createBrowserRouter([
@@ -134,6 +135,10 @@ export const router = createBrowserRouter([
             {
                 path: '/work-hub/create',
                 element: <CreateWorkHub />,
+            },
+            {
+                path: '/work-hub/join',
+                element: <JoinWorkspaceByLinkPage />,
             },
             {
                 path: '/test-video-call',

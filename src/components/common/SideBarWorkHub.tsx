@@ -1,10 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { Workspace } from "../../types/work-hub.types";
 import type { WorkspaceResponse } from "../../features/work-hub/work-hub.api.types";
 import { workHubApi } from "../../features/work-hub/work-hub.api";
 import { mapWorkspace } from "../../features/work-hub/work-hub.mappers";
 import { getUser } from "../../utils/token";
+import {
+  WORKHUB_WORKSPACE_UPDATED_EVENT,
+  dispatchWorkhubWorkspaceUpdated,
+} from "../../utils/workhubEvents";
 import BoardFormDialog from "../work-hub/workspace/BoardFormDialog";
 
 interface SideBarWorkHubProps {
@@ -20,20 +24,50 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
   const [allWorkspaces, setAllWorkspaces] = useState<WorkspaceResponse[]>([]);
   const switcherRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const loadWorkspace = useCallback(async () => {
     if (!workspaceId) return;
-    workHubApi
-      .getWorkspace(workspaceId)
-      .then((data) => setWorkspace(mapWorkspace(data)))
-      .catch(() => setWorkspace(null));
+    try {
+      const data = await workHubApi.getWorkspace(workspaceId);
+      setWorkspace(mapWorkspace(data));
+    } catch {
+      setWorkspace(null);
+    }
   }, [workspaceId]);
+
+  useEffect(() => {
+    void loadWorkspace();
+  }, [loadWorkspace]);
+
+  useEffect(() => {
+    const handleWorkspaceUpdated = (event: Event) => {
+      const customEvent = event as CustomEvent<{ workspaceId?: string }>;
+      const updatedWorkspaceId = customEvent.detail?.workspaceId;
+
+      if (!updatedWorkspaceId || updatedWorkspaceId === workspaceId) {
+        void loadWorkspace();
+      }
+    };
+
+    window.addEventListener(
+      WORKHUB_WORKSPACE_UPDATED_EVENT,
+      handleWorkspaceUpdated,
+    );
+
+    return () => {
+      window.removeEventListener(
+        WORKHUB_WORKSPACE_UPDATED_EVENT,
+        handleWorkspaceUpdated,
+      );
+    };
+  }, [workspaceId, loadWorkspace]);
 
   useEffect(() => {
     if (!showWorkspaceSwitcher) return;
     const user = getUser();
-    if (!user?.id) return;
+    const userId = user?.userId || user?.id;
+    if (!userId) return;
     workHubApi
-      .getWorkspaces(user.id)
+      .getWorkspaces(userId)
       .then((data) => setAllWorkspaces(data))
       .catch(() => setAllWorkspaces([]));
   }, [showWorkspaceSwitcher]);
@@ -155,7 +189,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
   }[] = [];
   const totalDmUnread = 0;
   const authUser = getUser();
-  const currentUserId = authUser?.id || "";
+  const currentUserId = authUser?.userId || authUser?.id || "";
 
   const isActive = (path: string) => {
     if (path === `/work-hub/${workspaceId}`) {
@@ -181,8 +215,8 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
         backgroundColor: data.color,
         icon: data.icon,
       });
-      const wsData = await workHubApi.getWorkspace(workspaceId);
-      setWorkspace(mapWorkspace(wsData));
+      await loadWorkspace();
+      dispatchWorkhubWorkspaceUpdated(workspaceId);
       setShowCreateBoard(false);
     } catch (err) {
       console.error("Failed to create board:", err);

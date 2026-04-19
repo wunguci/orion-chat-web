@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import type {
   Workspace,
   WorkspaceRole,
   WorkspaceMember,
 } from "../../../types/work-hub.types";
+import type { WorkspaceInviteLinkResponse } from "../../../features/work-hub/work-hub.api.types";
 import { workHubApi } from "../../../features/work-hub/work-hub.api";
 import {
   mapWorkspace,
@@ -18,23 +19,28 @@ const MembersPage = () => {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inviteLinkData, setInviteLinkData] =
+    useState<WorkspaceInviteLinkResponse | null>(null);
 
   const [showInvite, setShowInvite] = useState(false);
+
+  const reloadWorkspace = useCallback(async () => {
+    if (!workspaceId) return;
+
+    const data = await workHubApi.getWorkspace(workspaceId);
+    const mapped = mapWorkspace(data);
+    setWorkspace(mapped);
+    setMembers(mapped.members);
+  }, [workspaceId]);
 
   // Fetch workspace data từ API
   useEffect(() => {
     if (!workspaceId) return;
     setLoading(true);
-    workHubApi
-      .getWorkspace(workspaceId)
-      .then((data) => {
-        const mapped = mapWorkspace(data);
-        setWorkspace(mapped);
-        setMembers(mapped.members);
-      })
+    reloadWorkspace()
       .catch(() => setWorkspace(null))
       .finally(() => setLoading(false));
-  }, [workspaceId]);
+  }, [workspaceId, reloadWorkspace]);
 
   const handleRemoveMember = async (userId: string) => {
     if (
@@ -64,8 +70,37 @@ const MembersPage = () => {
     }
   };
 
-  const handleInvite = (data: { type: string; value: string }) => {
-    console.log("Invite:", data);
+  const handleInvite = async (data: {
+    type: "phone" | "name";
+    value: string;
+  }) => {
+    if (!workspaceId) return;
+    try {
+      await workHubApi.inviteMemberByMethod(workspaceId, {
+        method: data.type,
+        value: data.value,
+        role: "MEMBER",
+      });
+      await reloadWorkspace();
+      alert("Invite sent successfully");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to invite";
+      alert(message);
+      throw err;
+    }
+  };
+
+  const handleGenerateLink = async () => {
+    if (!workspaceId) return;
+    try {
+      const data = await workHubApi.getInviteLink(workspaceId, "MEMBER");
+      setInviteLinkData(data);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to generate invite link";
+      alert(message);
+      throw err;
+    }
   };
 
   return (
@@ -129,8 +164,13 @@ const MembersPage = () => {
 
       <InviteMemberDialog
         isOpen={showInvite}
-        onClose={() => setShowInvite(false)}
+        onClose={() => {
+          setShowInvite(false);
+          setInviteLinkData(null);
+        }}
         onInvite={handleInvite}
+        onGenerateLink={handleGenerateLink}
+        inviteLinkData={inviteLinkData}
       />
     </div>
   );
