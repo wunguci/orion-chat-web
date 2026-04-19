@@ -16,6 +16,19 @@ const API_BASE_URL =
     import.meta.env.VITE_SOCKET_URL ||
     'http://localhost:3000';
 
+const MONGO_OBJECT_ID_REGEX = /^[a-f0-9]{24}$/i;
+
+const isPersistedMessageId = (messageId: string) =>
+    MONGO_OBJECT_ID_REGEX.test(messageId);
+
+const assertPersistedMessageId = (messageId: string, action: string) => {
+    if (!isPersistedMessageId(messageId)) {
+        throw new Error(
+            `Cannot ${action} message before it has a valid server id.`,
+        );
+    }
+};
+
 export type ConversationMediaItem = {
     _id?: string;
     messageId?: string;
@@ -260,6 +273,7 @@ class ConversationApiService {
     }
 
     async deleteMessage(conversationId: string, messageId: string) {
+        assertPersistedMessageId(messageId, 'delete');
         const response = await this.api.delete(
             `/${conversationId}/messages/${messageId}`,
         );
@@ -268,6 +282,7 @@ class ConversationApiService {
     }
 
     async toggleMessagePin(conversationId: string, messageId: string) {
+        assertPersistedMessageId(messageId, 'pin');
         const response = await this.api.patch(
             `/${conversationId}/messages/${messageId}/pin`,
         );
@@ -280,6 +295,7 @@ class ConversationApiService {
     // =========================
 
     async recallMessage(conversationId: string, messageId: string) {
+        assertPersistedMessageId(messageId, 'recall');
         const response = await this.api.post(
             `/${conversationId}/messages/${messageId}/recall`,
         );
@@ -291,6 +307,7 @@ class ConversationApiService {
         messageId: string,
         emoji: string,
     ) {
+        assertPersistedMessageId(messageId, 'react to');
         const response = await this.api.post(
             `/${conversationId}/messages/${messageId}/reactions`,
             { emoji },
@@ -299,6 +316,7 @@ class ConversationApiService {
     }
 
     async removeReaction(conversationId: string, messageId: string) {
+        assertPersistedMessageId(messageId, 'remove reaction from');
         const response = await this.api.delete(
             `/${conversationId}/messages/${messageId}/reactions`,
         );
@@ -306,6 +324,7 @@ class ConversationApiService {
     }
 
     async deleteMessageForMe(conversationId: string, messageId: string) {
+        assertPersistedMessageId(messageId, 'delete for self');
         const response = await this.api.delete(
             `/${conversationId}/messages/${messageId}`,
         );

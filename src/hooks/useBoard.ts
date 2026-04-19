@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { Board, BoardColumn, TaskStatus } from "../types/work-hub.types";
 import { workHubApi } from "../features/work-hub/work-hub.api";
 import { mapBoard } from "../features/work-hub/work-hub.mappers";
+import { dispatchWorkhubWorkspaceUpdated } from "../utils/workhubEvents";
 
 export function useBoard(workspaceId: string) {
   const [boards, setBoards] = useState<Board[]>([]);
@@ -46,6 +47,7 @@ export function useBoard(workspaceId: string) {
     });
     const mapped = mapBoard(data, workspaceId);
     setBoards((prev) => [...prev, mapped]);
+    dispatchWorkhubWorkspaceUpdated(workspaceId);
     return mapped;
   };
 
@@ -61,6 +63,7 @@ export function useBoard(workspaceId: string) {
     setBoards((prev) =>
       prev.map((b) => (b.id === boardId ? { ...b, ...updates } : b)),
     );
+    dispatchWorkhubWorkspaceUpdated(workspaceId);
   };
 
   const deleteBoard = async (boardId: string) => {
@@ -69,6 +72,7 @@ export function useBoard(workspaceId: string) {
     if (activeBoardId === boardId && boards.length > 1) {
       setActiveBoardId(boards.find((b) => b.id !== boardId)?.id || "");
     }
+    dispatchWorkhubWorkspaceUpdated(workspaceId);
   };
 
   // Column operations - giữ local state (column API riêng nếu cần)

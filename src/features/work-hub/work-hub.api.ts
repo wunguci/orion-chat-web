@@ -9,6 +9,10 @@ import type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   AddMemberRequest,
+  InviteMemberByMethodRequest,
+  InviteCandidateResponse,
+  WorkspaceInviteLinkResponse,
+  JoinByLinkRequest,
   UpdateMemberRoleRequest,
   CreateBoardRequest,
   UpdateBoardRequest,
@@ -56,6 +60,7 @@ import type {
   UpdateWorkspaceFileRequest,
   WorkloadMemberResponse,
   ReportDataResponse,
+  WorkspaceDashboardStatsResponse,
 } from "./work-hub.api.types";
 
 export const workHubApi = {
@@ -93,6 +98,13 @@ export const workHubApi = {
   deleteWorkspace: (id: string) => api.delete(`/workspaces/${id}`),
 
   /**
+   * GET /workspaces/:id/dashboard-stats
+   * Lấy thống kê dashboard từ database
+   */
+  getDashboardStats: (id: string) =>
+    api.get<WorkspaceDashboardStatsResponse>(`/workspaces/${id}/dashboard-stats`),
+
+  /**
    * GET /workspaces/:workspaceId/members
    * Lấy danh sách thành viên workspace
    */
@@ -106,6 +118,49 @@ export const workHubApi = {
   addMember: (workspaceId: string, data: AddMemberRequest) =>
     api.post<WorkspaceMemberResponse>(
       `/workspaces/${workspaceId}/members`,
+      data,
+    ),
+
+  /**
+   * POST /workspaces/:workspaceId/members/invite
+   * Mời thành viên theo userId/phone/name
+   */
+  inviteMemberByMethod: (
+    workspaceId: string,
+    data: InviteMemberByMethodRequest,
+  ) =>
+    api.post<WorkspaceMemberResponse>(
+      `/workspaces/${workspaceId}/members/invite`,
+      data,
+    ),
+
+  /**
+   * GET /workspaces/:workspaceId/members/search?q=...
+   * Tìm user theo tên/sđt để mời vào workspace
+   */
+  searchMemberCandidates: (workspaceId: string, query: string) =>
+    api.get<InviteCandidateResponse[]>(
+      `/workspaces/${workspaceId}/members/search?q=${encodeURIComponent(query)}`,
+    ),
+
+  /**
+   * GET /workspaces/:workspaceId/members/invite-link
+   * Tạo invite link + dữ liệu QR
+   */
+  getInviteLink: (workspaceId: string, role?: string) =>
+    api.get<WorkspaceInviteLinkResponse>(
+      `/workspaces/${workspaceId}/members/invite-link${
+        role ? `?role=${encodeURIComponent(role)}` : ""
+      }`,
+    ),
+
+  /**
+   * POST /workspaces/:workspaceId/members/join-by-link
+   * Tham gia workspace thông qua token từ invite link
+   */
+  joinByInviteLink: (workspaceId: string, data: JoinByLinkRequest) =>
+    api.post<WorkspaceMemberResponse>(
+      `/workspaces/${workspaceId}/members/join-by-link`,
       data,
     ),
 

@@ -8,6 +8,7 @@ import { getUser, isTokenValid } from "../../../utils/token";
 type WorkspaceType = "business" | "education" | "community" | "personal";
 type TemplateType = "marketing" | "development" | "design" | "sales" | null;
 type Permission = "view" | "edit" | "admin";
+type InviteMethod = "phone" | "name";
 
 interface WorkspaceTypeOption {
   id: WorkspaceType;
@@ -34,7 +35,8 @@ type MemberPermission = "default" | "view" | "edit" | "admin";
 
 interface InvitedMember {
   id: string;
-  email: string;
+  value: string;
+  method: InviteMethod;
   role: string;
   initials: string;
   avatarColor: string;
@@ -57,6 +59,7 @@ interface Step2Data {
 interface Step3Data {
   members: InvitedMember[];
   defaultPermission: Permission;
+  includeInviteLink: boolean;
 }
 
 interface FormData {
@@ -214,16 +217,17 @@ const INITIAL_FORM_DATA: FormData = {
   step3: {
     members: INITIAL_MEMBERS,
     defaultPermission: "edit",
+    includeInviteLink: false,
   },
   agreedToTerms: false,
 };
 
 // ==================== HELPERS ====================
 
-function getInitials(email: string): string {
-  const parts = email.split("@")[0].split(/[._-]/);
+function getInitials(value: string): string {
+  const parts = value.split("@")[0].split(/[._-\s]/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return email.substring(0, 2).toUpperCase();
+  return value.substring(0, 2).toUpperCase();
 }
 
 function getRandomAvatarColor(): string {
@@ -388,7 +392,10 @@ const CreateWorkHub = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
-  const [inviteEmail, setInviteEmail] = useState<string>("");
+  const [inviteInput, setInviteInput] = useState<string>("");
+  const [inviteMethod, setInviteMethod] = useState<
+    "phone" | "name" | "link"
+  >("phone");
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -429,20 +436,30 @@ const CreateWorkHub = () => {
     setFormData((prev) => ({ ...prev, step3: { ...prev.step3, ...patch } }));
 
   const addMember = () => {
-    const email = inviteEmail.trim();
-    if (!email) return;
-    const already = formData.step3.members.some((m) => m.email === email);
+    if (inviteMethod === "link") return;
+
+    const value = inviteInput.trim();
+    if (!value) return;
+
+    const already = formData.step3.members.some(
+      (member) =>
+        member.method === inviteMethod &&
+        member.value.toLowerCase() === value.toLowerCase(),
+    );
     if (already) return;
+
     const newMember: InvitedMember = {
       id: Date.now().toString(),
-      email,
+      value,
+      method: inviteMethod,
       role: "Member",
-      initials: getInitials(email),
+      initials: getInitials(value),
       avatarColor: getRandomAvatarColor(),
       permission: "default",
     };
+
     updateStep3({ members: [...formData.step3.members, newMember] });
-    setInviteEmail("");
+    setInviteInput("");
   };
 
   const removeMember = (id: string) =>
@@ -454,6 +471,10 @@ const CreateWorkHub = () => {
         m.id === id ? { ...m, permission } : m,
       ),
     });
+
+  const mapPermissionToRole = (permission: Permission | MemberPermission) => {
+    return permission === "admin" ? "ADMIN" : "MEMBER";
+  };
 
   const handleCreate = async () => {
     if (!formData.agreedToTerms) return;
@@ -473,6 +494,36 @@ const CreateWorkHub = () => {
         color: formData.step2.color,
         ownerId: user.userId?.toString() || "",
       });
+
+      const inviteRequests = formData.step3.members.map((member) => {
+        const permission =
+          member.permission === "default"
+            ? formData.step3.defaultPermission
+            : member.permission;
+
+        return workHubApi.inviteMemberByMethod(response.workspaceId, {
+          method: member.method,
+          value: member.value,
+          role: mapPermissionToRole(permission),
+        });
+      });
+
+      if (inviteRequests.length > 0) {
+        await Promise.allSettled(inviteRequests);
+      }
+
+      if (formData.step3.includeInviteLink) {
+        try {
+          const inviteLink = await workHubApi.getInviteLink(
+            response.workspaceId,
+            mapPermissionToRole(formData.step3.defaultPermission),
+          );
+          sessionStorage.setItem("workhub_last_invite_link", inviteLink.inviteUrl);
+        } catch {
+          // Ignore invite-link generation errors during initial workspace creation.
+        }
+      }
+
       navigate(`/work-hub/${response.workspaceId}`);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to create workspace");
@@ -880,24 +931,75 @@ const CreateWorkHub = () => {
 
             <div className="mb-8">
               <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Invite by Email
+                Invite Your Team
               </label>
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="email"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addMember()}
-                  placeholder="Enter email address"
-                  className="flex-1 px-4 py-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-xl text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-wh-green-primary focus:ring-1 focus:ring-wh-green-primary transition-all"
-                />
-                <button
-                  onClick={addMember}
-                  className="flex items-center gap-2 px-6 py-3 text-sm font-medium bg-wh-green-primary hover:bg-wh-green-primary-hover text-white rounded-xl transition-all whitespace-nowrap"
-                >
-                  <i className="fas fa-plus"></i> Add
-                </button>
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-lg mb-4">
+                {[
+                  { id: "phone", label: "By Phone", icon: "fa-phone" },
+                  { id: "name", label: "By Name", icon: "fa-user" },
+                  { id: "link", label: "By Link", icon: "fa-link" },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setInviteMethod(tab.id as "phone" | "name" | "link");
+                      setInviteInput("");
+                    }}
+                    className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      inviteMethod === tab.id
+                        ? "bg-wh-green-primary text-white"
+                        : "text-gray-600 hover:text-gray-800"
+                    }`}
+                  >
+                    <i className={`fas ${tab.icon} text-xs`}></i>
+                    {tab.label}
+                  </button>
+                ))}
               </div>
+
+              {inviteMethod === "link" ? (
+                <div className="rounded-xl border border-wh-green-border-light bg-wh-green-bg-light p-4 mb-4">
+                  <div className="text-sm font-medium text-gray-700 mb-1">
+                    Generate Team Invite Link
+                  </div>
+                  <p className="text-xs text-gray-500 mb-3">
+                    Invite link and QR will be generated automatically right
+                    after workspace creation.
+                  </p>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.step3.includeInviteLink}
+                      onChange={(e) =>
+                        updateStep3({ includeInviteLink: e.target.checked })
+                      }
+                      className="accent-[#0d9488]"
+                    />
+                    Prepare invite link for this workspace
+                  </label>
+                </div>
+              ) : (
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type={inviteMethod === "phone" ? "tel" : "text"}
+                    value={inviteInput}
+                    onChange={(e) => setInviteInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addMember()}
+                    placeholder={
+                      inviteMethod === "phone"
+                        ? "Enter phone number"
+                        : "Enter full name"
+                    }
+                    className="flex-1 px-4 py-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-xl text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:border-wh-green-primary focus:ring-1 focus:ring-wh-green-primary transition-all"
+                  />
+                  <button
+                    onClick={addMember}
+                    className="flex items-center gap-2 px-6 py-3 text-sm font-medium bg-wh-green-primary hover:bg-wh-green-primary-hover text-white rounded-xl transition-all whitespace-nowrap"
+                  >
+                    <i className="fas fa-plus"></i> Add
+                  </button>
+                </div>
+              )}
 
               <div className="flex flex-col gap-2.5">
                 {formData.step3.members.map((member) => (
@@ -914,9 +1016,10 @@ const CreateWorkHub = () => {
                       </div>
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-medium text-gray-800 truncate">
-                          {member.email}
+                          {member.value}
                         </span>
                         <span className="text-xs text-gray-400">
+                          {member.method === "phone" ? "Phone" : "Name"} •{" "}
                           {member.role}
                         </span>
                       </div>

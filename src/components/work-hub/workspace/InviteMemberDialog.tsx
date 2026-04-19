@@ -1,15 +1,33 @@
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import Modal from "../../common/Modal";
+
+type InviteType = "phone" | "name";
+
+interface InviteLinkData {
+  inviteUrl: string;
+  qrData: string;
+  expiresAt: string;
+}
 
 interface InviteMemberDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (data: { type: string; value: string }) => void;
+  onInvite: (data: { type: InviteType; value: string }) => Promise<void>;
+  onGenerateLink: () => Promise<void>;
+  inviteLinkData: InviteLinkData | null;
 }
 
-const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogProps) => {
+const InviteMemberDialog = ({
+  isOpen,
+  onClose,
+  onInvite,
+  onGenerateLink,
+  inviteLinkData,
+}: InviteMemberDialogProps) => {
   const [activeTab, setActiveTab] = useState<"phone" | "name" | "link">("phone");
   const [inputValue, setInputValue] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const tabs = [
     { id: "phone" as const, label: "By Phone", icon: "fa-phone" },
@@ -17,11 +35,28 @@ const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogPro
     { id: "link" as const, label: "By Link", icon: "fa-link" },
   ];
 
-  const handleInvite = () => {
+  const handleInvite = async () => {
     if (!inputValue.trim()) return;
-    onInvite({ type: activeTab, value: inputValue.trim() });
-    setInputValue("");
-    onClose();
+
+    if (activeTab === "link") return;
+
+    try {
+      setBusy(true);
+      await onInvite({ type: activeTab, value: inputValue.trim() });
+      setInputValue("");
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGenerateLink = async () => {
+    try {
+      setBusy(true);
+      await onGenerateLink();
+    } finally {
+      setBusy(false);
+    }
   };
 
   const placeholders = {
@@ -54,20 +89,51 @@ const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogPro
         {/* Input */}
         {activeTab === "link" ? (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 p-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg">
-              <i className="fas fa-link text-wh-green-text-muted"></i>
-              <span className="text-sm text-gray-600 flex-1 truncate">
-                https://orion.chat/invite/ws1-abc123
-              </span>
-              <button
-                onClick={() => navigator.clipboard?.writeText("https://orion.chat/invite/ws1-abc123")}
-                className="text-xs text-wh-green-primary hover:text-wh-green-primary-hover font-medium"
-              >
-                <i className="fas fa-copy mr-1"></i>Copy
-              </button>
+            <div className="rounded-xl border border-wh-green-border-light bg-wh-green-bg-light p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-medium text-gray-700">Invite Link</div>
+                <button
+                  onClick={handleGenerateLink}
+                  disabled={busy}
+                  className="text-xs px-2.5 py-1.5 rounded-md bg-wh-green-primary text-white hover:bg-wh-green-primary-hover disabled:opacity-60"
+                >
+                  {busy ? "Generating..." : "Generate"}
+                </button>
+              </div>
+
+              {inviteLinkData ? (
+                <>
+                  <div className="flex items-center gap-2 p-2.5 bg-white border border-wh-green-border-light rounded-lg">
+                    <i className="fas fa-link text-wh-green-text-muted"></i>
+                    <span className="text-sm text-gray-600 flex-1 truncate">
+                      {inviteLinkData.inviteUrl}
+                    </span>
+                    <button
+                      onClick={() =>
+                        navigator.clipboard?.writeText(inviteLinkData.inviteUrl)
+                      }
+                      className="text-xs text-wh-green-primary hover:text-wh-green-primary-hover font-medium"
+                    >
+                      <i className="fas fa-copy mr-1"></i>Copy
+                    </button>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-center rounded-lg border border-dashed border-wh-green-border-light bg-white p-4">
+                    <QRCodeSVG value={inviteLinkData.qrData} size={160} />
+                  </div>
+
+                  <p className="text-[11px] text-gray-500 mt-2">
+                    Expires: {new Date(inviteLinkData.expiresAt).toLocaleString()}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Generate a secure invite link and share this QR for quick join.
+                </p>
+              )}
             </div>
             <p className="text-xs text-gray-500">
-              Share this link with anyone you want to invite to this workspace.
+              Share this link or QR with people you want to invite to this workspace.
             </p>
           </div>
         ) : (
@@ -80,8 +146,10 @@ const InviteMemberDialog = ({ isOpen, onClose, onInvite }: InviteMemberDialogPro
               className="w-full px-4 py-3 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-sm text-gray-900 focus:outline-none focus:border-wh-green-primary focus:ring-2 focus:ring-wh-green-primary/20"
             />
             <button
-              onClick={handleInvite}
-              disabled={!inputValue.trim()}
+              onClick={() => {
+                void handleInvite();
+              }}
+              disabled={!inputValue.trim() || busy}
               className="w-full px-4 py-2.5 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               <i className="fas fa-paper-plane"></i>

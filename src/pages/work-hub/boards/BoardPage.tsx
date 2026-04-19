@@ -69,9 +69,9 @@ const BoardPage = () => {
   const authUser = getUser();
   const currentUser: User = authUser
     ? {
-        id: authUser.id ?? "",
+        id: authUser.userId ?? authUser.id ?? "",
         name: authUser.fullName,
-        email: "",
+        email: authUser.email ?? "",
         phone: authUser.phoneNumber ?? "",
         avatar: authUser.avatarUrl || "/avatar-user.png",
         status: "online" as const,
@@ -231,7 +231,7 @@ const BoardPage = () => {
   const handleTransfer = (taskId: string, toUserId: string, reason: string) => {
     const toUser = users.find((u) => u.id === toUserId);
     if (!toUser) return;
-    transferTask({
+    void transferTask({
       taskId,
       fromUser: currentUser,
       toUser,
