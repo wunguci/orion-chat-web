@@ -674,6 +674,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 selectedConversation?.conversationId ? (
                     <GroupMediaPanel
                         conversationId={selectedConversation.conversationId}
+                        participants={selectedConversation.participants || []}
                         onBack={() => setShowMediaStorage(false)}
                         onMediaAction={(action, message) => {
                             switch (action) {
@@ -695,6 +696,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 ) : (
                     <MediaStoragePanel
                         displayMessages={displayMessages}
+                        participants={selectedConversation?.participants || []}
                         onBack={() => setShowMediaStorage(false)}
                         conversationId={selectedConversation?.conversationId}
                         onMediaAction={(action, message) => {

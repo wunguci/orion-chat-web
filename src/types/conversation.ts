@@ -19,7 +19,7 @@ export type MessageStatus =
     | 'SEEN'
     | 'FAILED'
     | 'UPLOADING';
-export type ParticipantRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+export type ParticipantRole =  'admin' | 'member';
 
 export interface SeenByItem {
     userId: string;

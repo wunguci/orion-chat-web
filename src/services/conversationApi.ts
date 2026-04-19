@@ -205,6 +205,64 @@ class ConversationApiService {
         return response.data;
     }
 
+    async leaveGroup(groupId: string, newAdminUserId?: string) {
+        const response = await this.api.post(
+            `${API_BASE_URL}/groups/${groupId}/leave`,
+            {
+                newAdminUserId,
+            },
+        );
+        return response.data;
+    }
+
+    async getGroupMembers(groupId: string): Promise<{
+        items: Array<{
+            userId: string;
+            fullName: string | null;
+            avatarUrl: string | null;
+            role: 'admin' | 'co-admin' | 'member';
+            joinedAt: string;
+            isMe: boolean;
+        }>;
+    }> {
+        const response = await this.api.get(
+            `${API_BASE_URL}/groups/${groupId}/members`,
+        );
+        return response.data;
+    }
+
+    async addGroupMembers(
+        groupId: string,
+        userIds: string[],
+        memberNicknames?: Array<{ userId: string; nickname: string }>,
+    ) {
+        const response = await this.api.post(
+            `${API_BASE_URL}/groups/${groupId}/members`,
+            {
+                userIds,
+                memberNicknames,
+            },
+        );
+        return response.data;
+    }
+
+    async updateGroupAutoDelete(groupId: string, autoDeleteDuration: number) {
+        const response = await this.api.patch(
+            `${API_BASE_URL}/groups/${groupId}/settings/auto-delete`,
+            {
+                autoDeleteDuration,
+            },
+        );
+        return response.data;
+    }
+
+    async dissolveGroup(groupId: string) {
+        const response = await this.api.post(
+            `${API_BASE_URL}/groups/${groupId}/dissolve`,
+        );
+        return response.data;
+    }
+
     // =========================
     // Messages
     // =========================
@@ -298,6 +356,22 @@ class ConversationApiService {
         assertPersistedMessageId(messageId, 'recall');
         const response = await this.api.post(
             `/${conversationId}/messages/${messageId}/recall`,
+        );
+        return response.data;
+    }
+
+    async recallMessageById(messageId: string) {
+        assertPersistedMessageId(messageId, 'recall');
+        const response = await this.api.post(
+            `${API_BASE_URL}/messages/${messageId}/recall`,
+        );
+        return response.data;
+    }
+
+    async adminDeleteMessage(messageId: string) {
+        assertPersistedMessageId(messageId, 'admin delete');
+        const response = await this.api.post(
+            `${API_BASE_URL}/messages/${messageId}/admin-delete`,
         );
         return response.data;
     }

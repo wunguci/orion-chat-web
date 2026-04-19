@@ -130,6 +130,76 @@ export const ChatPage: React.FC = () => {
         data?: Partial<IncomingSocketPayload>;
     };
 
+    const normalizeReactions = useCallback(
+        (input: unknown): NonNullable<SocketMessage['reactions']> => {
+            if (!Array.isArray(input)) return [];
+
+            const normalized: NonNullable<SocketMessage['reactions']> = [];
+
+            for (const item of input) {
+                if (!item || typeof item !== 'object') continue;
+
+                const reaction = item as {
+                    emoji?: string;
+                    reaction?: string;
+                    userId?: string;
+                    user?: { _id?: string; id?: string; userId?: string };
+                    users?: Array<
+                        string | { _id?: string; id?: string; userId?: string }
+                    >;
+                    reactedBy?: Array<
+                        string | { _id?: string; id?: string; userId?: string }
+                    >;
+                    reactedAt?: string | Date;
+                };
+
+                const emoji = reaction.emoji || reaction.reaction;
+                if (!emoji) continue;
+
+                const reactionUsers = reaction.users || reaction.reactedBy;
+                if (Array.isArray(reactionUsers) && reactionUsers.length > 0) {
+                    for (const user of reactionUsers) {
+                        const userId =
+                            typeof user === 'string'
+                                ? user
+                                : user?._id || user?.id || user?.userId;
+                        if (!userId) continue;
+
+                        normalized.push({
+                            userId,
+                            emoji,
+                            reactedAt:
+                                typeof reaction.reactedAt === 'string'
+                                    ? reaction.reactedAt
+                                    : reaction.reactedAt?.toISOString(),
+                        });
+                    }
+
+                    continue;
+                }
+
+                const userId =
+                    reaction.userId ||
+                    reaction.user?._id ||
+                    reaction.user?.id ||
+                    reaction.user?.userId ||
+                    '';
+
+                normalized.push({
+                    userId,
+                    emoji,
+                    reactedAt:
+                        typeof reaction.reactedAt === 'string'
+                            ? reaction.reactedAt
+                            : reaction.reactedAt?.toISOString(),
+                });
+            }
+
+            return normalized;
+        },
+        [],
+    );
+
     // Get user ID inside component (after auth is loaded)
     const USER_ID = getCurrentUserId();
     const USERNAME = getCurrentUserName();
@@ -238,6 +308,33 @@ export const ChatPage: React.FC = () => {
         (messageId?: string) =>
             !!messageId && /^[a-f0-9]{24}$/i.test(messageId),
         [],
+    );
+
+    const resolvePersistedMessageId = useCallback(
+        (message: SocketMessage): string | null => {
+            if (isPersistedMessageId(message.id)) {
+                return message.id;
+            }
+
+            if (isPersistedMessageId(message.clientMessageId)) {
+                return message.clientMessageId || null;
+            }
+
+            const matched = paginatedMessages.find(
+                (item) =>
+                    !!message.clientMessageId &&
+                    item.clientMessageId === message.clientMessageId,
+            );
+
+            if (!matched) return null;
+
+            const matchedPersistedId = [matched.messageId, matched._id].find(
+                (candidate) => isPersistedMessageId(candidate),
+            );
+
+            return matchedPersistedId || null;
+        },
+        [isPersistedMessageId, paginatedMessages],
     );
 
     // Theo doi message da thu hoi de dong bo realtime cho danh sach message.
@@ -394,8 +491,14 @@ export const ChatPage: React.FC = () => {
                     messageType === 'file' ||
                     messageType === 'image' ||
                     messageType === 'video',
-                fileUrl: payload?.fileUrl || payload?.mediaUrl,
-                fileName: payload?.fileName,
+                fileUrl:
+                    payload?.fileUrl ||
+                    payload?.mediaUrl ||
+                    (payload as { url?: string })?.url,
+                fileName:
+                    payload?.fileName ||
+                    (payload as { originalName?: string })?.originalName ||
+                    (payload as { filename?: string })?.filename,
                 fileType:
                     payload?.fileType ||
                     (isImageType
@@ -404,21 +507,13 @@ export const ChatPage: React.FC = () => {
                           ? 'video/*'
                           : undefined),
                 isRecalled: payload?.isRecalled || payload?.isDeleted,
-                reactions: Array.isArray(payload?.reactions)
-                    ? payload.reactions
-                          .filter((reaction) => !!reaction?.emoji)
-                          .map((reaction) => ({
-                              userId: reaction?.userId || '',
-                              emoji: reaction?.emoji || '',
-                              reactedAt: reaction?.reactedAt,
-                          }))
-                    : [],
+                reactions: normalizeReactions(payload?.reactions),
                 conversationId: payload?.conversationId,
                 type: resolvedType,
                 callData: payload?.callData,
             };
         },
-        [],
+        [normalizeReactions],
     );
 
     const hydrateMediaMessage = useCallback(
@@ -1158,8 +1253,15 @@ export const ChatPage: React.FC = () => {
                 return;
             }
 
-            if (!selectedConversationId || message.id.startsWith('msg_'))
+            if (!selectedConversationId) return;
+
+            const persistedMessageId = resolvePersistedMessageId(message);
+            if (!persistedMessageId) {
+                setError(
+                    'Không thể bày tỏ cảm xúc: tin nhắn chưa có ID máy chủ hợp lệ.',
+                );
                 return;
+            }
 
             const messageKey = getMessageKey(message);
 
@@ -1195,12 +1297,12 @@ export const ChatPage: React.FC = () => {
                 if (isRemoving) {
                     response = await conversationApi.removeReaction(
                         selectedConversationId,
-                        message.id,
+                        persistedMessageId,
                     );
                 } else {
                     response = await conversationApi.reactToMessage(
                         selectedConversationId,
-                        message.id,
+                        persistedMessageId,
                         emoji,
                     );
                 }
@@ -1224,6 +1326,7 @@ export const ChatPage: React.FC = () => {
             getMessageKey,
             joinStatus,
             reactionOverrides,
+            resolvePersistedMessageId,
             selectedConversationId,
             USER_ID,
         ],
@@ -1633,6 +1736,31 @@ export const ChatPage: React.FC = () => {
                 m._id,
                 (m as { id?: string }).id,
             ].find((candidate) => isPersistedMessageId(candidate));
+            const attachment = (
+                m as {
+                    attachments?: Array<{
+                        mediaUrl?: string;
+                        fileName?: string;
+                        mimeType?: string;
+                    }>;
+                }
+            ).attachments?.[0];
+            const mediaUrl =
+                m.mediaUrl ||
+                (m as { fileUrl?: string }).fileUrl ||
+                attachment?.mediaUrl;
+            const mimeType = m.mimeType || attachment?.mimeType;
+            const messageType =
+                m.messageType ||
+                (mimeType?.startsWith('image/')
+                    ? 'image'
+                    : mimeType?.startsWith('video/')
+                      ? 'video'
+                      : mimeType?.startsWith('audio/')
+                        ? 'audio'
+                        : mediaUrl
+                          ? 'file'
+                          : 'text');
 
             return {
                 id:
@@ -1656,47 +1784,40 @@ export const ChatPage: React.FC = () => {
                         : (m.createdAt?.toISOString() ??
                           new Date().toISOString()),
                 isFile:
-                    m.messageType === 'FILE' ||
-                    m.messageType === 'IMAGE' ||
-                    m.messageType === 'VIDEO' ||
-                    m.messageType === 'file' ||
-                    m.messageType === 'image' ||
-                    m.messageType === 'video',
-                fileUrl: m.mediaUrl,
-                fileName: m.fileName,
+                    messageType === 'FILE' ||
+                    messageType === 'IMAGE' ||
+                    messageType === 'VIDEO' ||
+                    messageType === 'file' ||
+                    messageType === 'image' ||
+                    messageType === 'video' ||
+                    messageType === 'audio',
+                fileUrl: mediaUrl,
+                fileName: m.fileName || attachment?.fileName,
                 fileType:
-                    m.messageType === 'IMAGE' || m.messageType === 'image'
+                    mimeType ||
+                    (messageType === 'IMAGE' || messageType === 'image'
                         ? 'image/*'
-                        : m.messageType === 'VIDEO' || m.messageType === 'video'
+                        : messageType === 'VIDEO' || messageType === 'video'
                           ? 'video/*'
-                          : undefined,
+                          : messageType === 'AUDIO' || messageType === 'audio'
+                            ? 'audio/*'
+                            : undefined),
                 // Backend may return either isRevoked or recalled depending on endpoint shape.
                 isRecalled:
                     m.isRevoked === true ||
                     (m as { recalled?: boolean }).recalled === true,
-                reactions: Array.isArray(m.reactions)
-                    ? m.reactions.map((reaction) => ({
-                          userId: reaction.userId,
-                          emoji: reaction.emoji,
-                          reactedAt:
-                              typeof reaction.reactedAt === 'string'
-                                  ? reaction.reactedAt
-                                  : reaction.reactedAt?.toISOString(),
-                      }))
-                    : [],
+                reactions: normalizeReactions(m.reactions),
                 type:
-                    m.messageType === 'CALL' || m.messageType === 'call'
+                    messageType === 'CALL' || messageType === 'call'
                         ? 'call'
-                        : m.messageType === 'IMAGE' || m.messageType === 'image'
+                        : messageType === 'IMAGE' || messageType === 'image'
                           ? 'image'
-                          : m.messageType === 'VIDEO' ||
-                              m.messageType === 'video'
+                          : messageType === 'VIDEO' || messageType === 'video'
                             ? 'video'
-                            : m.messageType === 'FILE' ||
-                                m.messageType === 'file'
+                            : messageType === 'FILE' || messageType === 'file'
                               ? 'file'
-                              : m.messageType === 'AUDIO' ||
-                                  m.messageType === 'audio'
+                              : messageType === 'AUDIO' ||
+                                  messageType === 'audio'
                                 ? 'audio'
                                 : 'text',
                 callData: m.callData,

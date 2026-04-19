@@ -772,6 +772,7 @@ export const ConversationGroupInfoPanel: React.FC<
                         !deletedMessageIds.has(msg.id) &&
                         !recalledMessageIds.has(msg.id),
                 )}
+                participants={selectedConversation?.participants || []}
                 conversationId={selectedConversation?.conversationId}
                 onBack={() => setShowMediaStorage(false)}
                 onMediaAction={(action, message) => {
