@@ -19,7 +19,6 @@ import {
   usePrivacySettings,
   useUserDevices,
 } from "../../hooks/useSettings";
-import { useThemeColors } from "../../hooks/useThemeColors";
 import ProfileSettings from "./ProfileSettings";
 import PrivacySettings from "./PrivacySettings";
 import NotificationSettings from "./NotificationSettings";
@@ -120,7 +119,7 @@ export default function SettingsModal({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [hasProfileChanges, setHasProfileChanges] = useState(false);
   const [hasSettingsChanges, setHasSettingsChanges] = useState(false);
-  const { currentColors } = useThemeColors(formData.wallpaper || "teal");
+  // const { currentColors } = useThemeColors(formData.wallpaper || "teal");
 
   useEffect(() => {
     const userData = getUser();
