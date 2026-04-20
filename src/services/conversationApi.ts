@@ -202,7 +202,7 @@ class ConversationApiService {
     }
 
     async leaveConversation(conversationId: string) {
-        const response = await this.api.post(`/${conversationId}/leave`);
+        const response = await this.api.post(`/${conversationId}/leave`, {});
         return response.data;
     }
 
