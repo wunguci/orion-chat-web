@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Settings,
     Bell,
@@ -22,6 +22,7 @@ import {
     KeyRound,
     Trash2,
     MoreVertical,
+    Pencil,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Checkbox from '../common/Checkbox';
@@ -34,6 +35,11 @@ import { MediaContextMenu } from './MediaContextMenu';
 import { AutoDeleteModal } from './AutoDeleteModal';
 import { ClearHistoryModal } from './ClearHistoryModal';
 import { HideConversationModal } from './HideConversationModal';
+import GroupAvatar from './GroupAvatar';
+import {
+    AddGroupMemberModal,
+    GroupInfoEditModal,
+} from './ConversationGroupInfoModals';
 import { ViewParticipantsModal } from './ViewParticipantsModal';
 import { JoinRequestDialog } from './JoinRequestDialog';
 import { PromoteToAdminDialog } from './PromoteToAdminDialog';
@@ -66,6 +72,7 @@ import {
     offGroupJoinRequestUpdated,
     offGroupMemberJoined,
     offGroupMemberLeft,
+    offGroupInfoUpdated,
     onConversationHiddenUpdated,
     onConversationHistoryCleared,
     onGroupAdminTransferred,
@@ -76,6 +83,7 @@ import {
     onGroupJoinRequestUpdated,
     onGroupMemberJoined,
     onGroupMemberLeft,
+    onGroupInfoUpdated,
 } from '../../services/socket';
 import ChatAvatar from '../common/ChatAvatar';
 import { mapGroupManagementError } from '../../utils/groupManagementErrors';
@@ -91,6 +99,7 @@ interface ConversationGroupInfoPanelProps {
     onClearHistorySuccess?: (messages: SocketMessage[]) => void;
     onAddMember?: () => void;
     onConversationRemoved?: (conversationId: string) => void;
+    openEditAvatarTick?: number;
 }
 
 type ExpandableSection = 'images' | 'files' | 'links';
@@ -100,11 +109,43 @@ type LinkMessage = SocketMessage & { url: string };
 type GroupMemberItem = {
     userId: string;
     fullName: string | null;
+    phoneNumber?: string | null;
     avatarUrl: string | null;
     role: 'admin' | 'co-admin' | 'member';
     joinedAt: string;
     isMe: boolean;
 };
+
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_SOCKET_URL ||
+    'http://localhost:3000';
+
+const toAbsoluteMediaUrl = (url?: string | null): string | null => {
+    if (!url) return null;
+    if (
+        url.startsWith('http://') ||
+        url.startsWith('https://') ||
+        url.startsWith('blob:') ||
+        url.startsWith('data:')
+    ) {
+        return url;
+    }
+
+    const normalizedBase = API_BASE_URL.replace(/\/$/, '');
+    const normalizedPath = url.startsWith('/') ? url : `/${url}`;
+    return `${normalizedBase}${normalizedPath}`;
+};
+
+const PRESET_GROUP_AVATAR_URLS = [
+    'https://api.dicebear.com/9.x/shapes/svg?seed=orion-alpha',
+    'https://api.dicebear.com/9.x/shapes/svg?seed=orion-beta',
+    'https://api.dicebear.com/9.x/shapes/svg?seed=orion-gamma',
+    'https://api.dicebear.com/9.x/shapes/svg?seed=orion-delta',
+    'https://api.dicebear.com/9.x/shapes/svg?seed=orion-epsilon',
+    'https://api.dicebear.com/9.x/shapes/svg?seed=orion-zeta',
+];
 
 const isJoinedImmediately = (result?: JoinGroupResult): boolean => {
     return result?.status === 'joined';
@@ -123,6 +164,7 @@ export const ConversationGroupInfoPanel: React.FC<
     onClearHistorySuccess,
     onAddMember,
     onConversationRemoved,
+    openEditAvatarTick = 0,
 }) => {
     const [isGroupManagement, setIsGroupManagement] = useState(false);
     const [showMediaStorage, setShowMediaStorage] = useState(false);
@@ -186,6 +228,8 @@ export const ConversationGroupInfoPanel: React.FC<
     const [isLeaveGroupDialogOpen, setIsLeaveGroupDialogOpen] = useState(false);
     const [isDisbandGroupDialogOpen, setIsDisbandGroupDialogOpen] =
         useState(false);
+    const [isEditGroupInfoModalOpen, setIsEditGroupInfoModalOpen] =
+        useState(false);
     const [selectedMemberId, setSelectedMemberId] = useState('');
     const [selectedMemberName, setSelectedMemberName] = useState<string | null>(
         null,
@@ -201,11 +245,27 @@ export const ConversationGroupInfoPanel: React.FC<
     const [groupDetail, setGroupDetail] = useState<GroupDetailSummary | null>(
         null,
     );
+    const [groupNameInput, setGroupNameInput] = useState('');
+    const [isUpdatingGroupName, setIsUpdatingGroupName] = useState(false);
+    const [isUpdatingGroupAvatar, setIsUpdatingGroupAvatar] = useState(false);
+    const [groupInfoError, setGroupInfoError] = useState<string | null>(null);
+    const [groupNameOverride, setGroupNameOverride] = useState<string | null>(
+        null,
+    );
+    const [groupAvatarOverride, setGroupAvatarOverride] = useState<
+        string | null
+    >(null);
+    const lastHandledEditAvatarTickRef = useRef(0);
 
     const currentUserId = getCurrentUserId();
     const conversationId = selectedConversation?.conversationId || '';
     const isAdmin = selectedConversation?.myRole === 'admin';
     const effectiveMyRole = groupDetail?.myRole || selectedConversation?.myRole;
+    const canEditGroupInfo =
+        effectiveMyRole === 'admin' ||
+        effectiveMyRole === 'co-admin' ||
+        effectiveMyRole === 'leader' ||
+        effectiveMyRole === 'deputy';
     const canReviewJoinRequests =
         effectiveMyRole === 'admin' ||
         effectiveMyRole === 'co-admin' ||
@@ -247,9 +307,11 @@ export const ConversationGroupInfoPanel: React.FC<
         const keyword = friendSearch.trim().toLowerCase();
         if (!keyword) return availableFriendOptions;
 
-        return availableFriendOptions.filter((friend) =>
-            (friend.fullName || '').toLowerCase().includes(keyword),
-        );
+        return availableFriendOptions.filter((friend) => {
+            const name = (friend.fullName || '').toLowerCase();
+            const phone = String(friend.phoneNumber || '').toLowerCase();
+            return name.includes(keyword) || phone.includes(keyword);
+        });
     }, [availableFriendOptions, friendSearch]);
 
     const toggleSection = (section: ExpandableSection) => {
@@ -578,6 +640,103 @@ export const ConversationGroupInfoPanel: React.FC<
         setAddMemberError(null);
     };
 
+    const handleOpenEditGroupInfoModal = () => {
+        setGroupInfoError(null);
+        setGroupNameInput(
+            groupNameOverride || selectedConversation?.groupInfo?.groupName || '',
+        );
+        setIsEditGroupInfoModalOpen(true);
+    };
+
+    const handleUpdateGroupName = async () => {
+        if (!conversationId) return;
+
+        const normalizedName = groupNameInput.trim();
+        if (!normalizedName) {
+            setGroupInfoError('Tên nhóm không được để trống');
+            return;
+        }
+
+        try {
+            setIsUpdatingGroupName(true);
+            setGroupInfoError(null);
+
+            const result = await conversationApi.updateGroupName(
+                conversationId,
+                normalizedName,
+            );
+
+            setGroupNameOverride(result.groupName);
+            void refreshGroupDetail();
+        } catch (error) {
+            setGroupInfoError(
+                error instanceof Error ? error.message : 'Đổi tên nhóm thất bại',
+            );
+        } finally {
+            setIsUpdatingGroupName(false);
+        }
+    };
+
+    const handleFileUploadForAvatar = async (
+        event: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+        if (!conversationId) return;
+
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setIsUpdatingGroupAvatar(true);
+            setGroupInfoError(null);
+
+            const result = await conversationApi.updateGroupAvatar(
+                conversationId,
+                file,
+            );
+
+            setGroupAvatarOverride(toAbsoluteMediaUrl(result.groupAvatar));
+            void refreshGroupDetail();
+        } catch (error) {
+            setGroupInfoError(
+                error instanceof Error
+                    ? error.message
+                    : 'Cập nhật ảnh nhóm thất bại',
+            );
+        } finally {
+            setIsUpdatingGroupAvatar(false);
+            event.target.value = '';
+        }
+    };
+
+    const handlePresetAvatarSelect = async (presetUrl: string) => {
+        if (!conversationId) return;
+
+        try {
+            setIsUpdatingGroupAvatar(true);
+            setGroupInfoError(null);
+
+            const response = await fetch(presetUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'group-avatar.svg', {
+                type: blob.type || 'image/svg+xml',
+            });
+
+            const result = await conversationApi.updateGroupAvatar(
+                conversationId,
+                file,
+            );
+
+            setGroupAvatarOverride(toAbsoluteMediaUrl(result.groupAvatar));
+            void refreshGroupDetail();
+        } catch (error) {
+            setGroupInfoError(
+                error instanceof Error ? error.message : 'Không thể chọn ảnh mẫu',
+            );
+        } finally {
+            setIsUpdatingGroupAvatar(false);
+        }
+    };
+
     const handleCloseAddMemberModal = () => {
         if (isAddingMembers) return;
         setIsAddMemberModalOpen(false);
@@ -831,9 +990,38 @@ export const ConversationGroupInfoPanel: React.FC<
             Number(selectedConversation?.autoDeleteDuration || 0),
         );
         setIsConversationHidden(!!selectedConversation?.myIsHidden);
+        setGroupNameOverride(
+            selectedConversation?.groupInfo?.groupName
+                ? selectedConversation.groupInfo.groupName
+                : null,
+        );
+        setGroupAvatarOverride(
+            toAbsoluteMediaUrl(selectedConversation?.groupInfo?.groupAvatar),
+        );
     }, [
         selectedConversation?.autoDeleteDuration,
         selectedConversation?.myIsHidden,
+        selectedConversation?.groupInfo?.groupName,
+        selectedConversation?.groupInfo?.groupAvatar,
+    ]);
+
+    useEffect(() => {
+        if (!openEditAvatarTick) return;
+        if (openEditAvatarTick <= lastHandledEditAvatarTickRef.current) return;
+
+        lastHandledEditAvatarTickRef.current = openEditAvatarTick;
+        if (!canEditGroupInfo) return;
+
+        setGroupInfoError(null);
+        setGroupNameInput(
+            groupNameOverride || selectedConversation?.groupInfo?.groupName || '',
+        );
+        setIsEditGroupInfoModalOpen(true);
+    }, [
+        openEditAvatarTick,
+        canEditGroupInfo,
+        groupNameOverride,
+        selectedConversation?.groupInfo?.groupName,
     ]);
 
     useEffect(() => {
@@ -1015,6 +1203,24 @@ export const ConversationGroupInfoPanel: React.FC<
             }
         };
 
+        const handleGroupInfoUpdatedRealtime = (payload: {
+            groupId: string;
+            groupName?: string;
+            groupAvatar?: string;
+        }) => {
+            if (payload.groupId !== conversationId) return;
+
+            if (payload.groupName) {
+                setGroupNameOverride(payload.groupName);
+            }
+
+            if (payload.groupAvatar) {
+                setGroupAvatarOverride(toAbsoluteMediaUrl(payload.groupAvatar));
+            }
+
+            void refreshGroupDetail();
+        };
+
         onGroupAutoDeleteUpdated(handleAutoDeleteRealtime);
         onConversationHiddenUpdated(handleHiddenRealtime);
         onConversationHistoryCleared(handleHistoryClearedRealtime);
@@ -1027,6 +1233,7 @@ export const ConversationGroupInfoPanel: React.FC<
         onGroupJoinRequestCreated(handleJoinRequestCreatedRealtime);
         onGroupJoinRequestUpdated(handleJoinRequestUpdatedRealtime);
         onGroupMemberJoined(handleMemberJoinedRealtime);
+        onGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
 
         return () => {
             offGroupAutoDeleteUpdated();
@@ -1039,6 +1246,7 @@ export const ConversationGroupInfoPanel: React.FC<
             offGroupJoinRequestCreated();
             offGroupJoinRequestUpdated();
             offGroupMemberJoined();
+            offGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
         };
     }, [
         canReviewJoinRequests,
@@ -1049,6 +1257,7 @@ export const ConversationGroupInfoPanel: React.FC<
         isCurrentUserMember,
         onConversationRemoved,
         refreshGroupMembers,
+        refreshGroupDetail,
     ]);
 
     useEffect(() => {
@@ -1218,9 +1427,13 @@ export const ConversationGroupInfoPanel: React.FC<
     if (!isSidebarOpen) return null;
 
     const groupName =
-        selectedConversation?.groupInfo?.groupName || 'Thông tin nhóm';
+        groupNameOverride ||
+        selectedConversation?.groupInfo?.groupName ||
+        'Thông tin nhóm';
     const groupAvatar =
-        selectedConversation?.groupInfo?.groupAvatar || undefined;
+        groupAvatarOverride ||
+        toAbsoluteMediaUrl(selectedConversation?.groupInfo?.groupAvatar) ||
+        undefined;
     const memberCount =
         groupDetail?.memberCount ||
         (groupMembers.length > 0
@@ -1336,15 +1549,43 @@ export const ConversationGroupInfoPanel: React.FC<
                         </span>
 
                         <div className="flex flex-col gap-3 items-center">
-                            <ChatAvatar
+                            <GroupAvatar
                                 name={groupName}
                                 avatarUrl={groupAvatar}
-                                sizeClassName="w-16 h-16"
-                                textClassName="text-2xl"
+                                size={72}
+                                members={selectedConversation?.participants}
+                                onClick={
+                                    canEditGroupInfo
+                                        ? handleOpenEditGroupInfoModal
+                                        : undefined
+                                }
                             />
-                            <span className="font-semibold text-gray-primary">
-                                {groupName}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={
+                                        canEditGroupInfo
+                                            ? handleOpenEditGroupInfoModal
+                                            : undefined
+                                    }
+                                    disabled={!canEditGroupInfo}
+                                    className={`max-w-65 truncate font-semibold text-gray-primary ${canEditGroupInfo ? 'hover:text-green-primary' : ''}`}
+                                    title={groupName}
+                                >
+                                    {groupName}
+                                </button>
+
+                                {canEditGroupInfo && (
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenEditGroupInfoModal}
+                                        className="rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                                        title="Chỉnh sửa thông tin nhóm"
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -1987,7 +2228,14 @@ export const ConversationGroupInfoPanel: React.FC<
                             <Users size={20} />
                             <span className="text-[15px]">Chặn khỏi nhóm</span>
                         </button>
-                        <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                        <button
+                            onClick={() => {
+                                if (!isCurrentUserMember) return;
+                                void refreshGroupMembers();
+                                setIsViewParticipantsModalOpen(true);
+                            }}
+                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary"
+                        >
                             <KeyRound size={20} />
                             <span className="text-[15px]">
                                 Trưởng & phó nhóm
@@ -2240,93 +2488,58 @@ export const ConversationGroupInfoPanel: React.FC<
                 }}
             />
 
-            <Modal
+            <AddGroupMemberModal
                 isOpen={isAddMemberModalOpen}
+                friendSearch={friendSearch}
+                isAddingMembers={isAddingMembers}
+                isLoadingFriends={isLoadingFriends}
+                addMemberError={addMemberError}
+                filteredFriendOptions={filteredFriendOptions}
+                selectedFriendIds={selectedFriendIds}
+                onSearchChange={setFriendSearch}
+                onToggleFriend={handleFriendToggle}
                 onClose={handleCloseAddMemberModal}
-                title="Thêm thành viên"
-                size="sm"
-            >
-                <div className="p-4 space-y-3">
-                    <input
-                        type="text"
-                        value={friendSearch}
-                        onChange={(event) =>
-                            setFriendSearch(event.target.value)
-                        }
-                        placeholder="Tìm theo tên bạn bè"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-green-primary focus:outline-none"
-                        disabled={isAddingMembers}
-                    />
+                onConfirm={() => {
+                    void handleConfirmAddMembers();
+                }}
+            />
 
-                    <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
-                        {isLoadingFriends ? (
-                            <div className="p-3 text-sm text-gray-500">
-                                Đang tải danh sách bạn bè...
-                            </div>
-                        ) : filteredFriendOptions.length === 0 ? (
-                            <div className="p-3 text-sm text-gray-500">
-                                Không còn bạn bè nào để thêm.
-                            </div>
-                        ) : (
-                            filteredFriendOptions.map((friend) => (
-                                <label
-                                    key={friend.id}
-                                    className="flex cursor-pointer items-center gap-3 border-b border-slate-100 p-3 last:border-b-0 hover:bg-slate-50"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedFriendIds.includes(
-                                            friend.id,
-                                        )}
-                                        onChange={() =>
-                                            handleFriendToggle(friend.id)
-                                        }
-                                        disabled={isAddingMembers}
-                                        className="h-4 w-4 accent-green-primary"
-                                    />
-                                    <ChatAvatar
-                                        name={friend.fullName || friend.id}
-                                        avatarUrl={
-                                            friend.avatarUrl || undefined
-                                        }
-                                        sizeClassName="h-8 w-8"
-                                        textClassName="text-sm"
-                                    />
-                                    <span className="text-sm text-gray-primary">
-                                        {friend.fullName || friend.id}
-                                    </span>
-                                </label>
-                            ))
-                        )}
-                    </div>
-
-                    {addMemberError && (
-                        <p className="text-sm text-red-500">{addMemberError}</p>
-                    )}
-
-                    <div className="flex items-center justify-end gap-2 pt-1">
-                        <button
-                            onClick={handleCloseAddMemberModal}
-                            disabled={isAddingMembers}
-                            className="rounded-lg border border-slate-200 px-4 py-2 text-sm"
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            onClick={handleConfirmAddMembers}
-                            disabled={
-                                isAddingMembers ||
-                                selectedFriendIds.length === 0
-                            }
-                            className="rounded-lg bg-green-primary px-4 py-2 text-sm text-white disabled:opacity-50"
-                        >
-                            {isAddingMembers
-                                ? 'Đang thêm...'
-                                : 'Thêm thành viên'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+            <GroupInfoEditModal
+                isOpen={isEditGroupInfoModalOpen}
+                groupName={groupName}
+                groupAvatar={groupAvatar}
+                groupNameInput={groupNameInput}
+                isUpdatingGroupName={isUpdatingGroupName}
+                isUpdatingGroupAvatar={isUpdatingGroupAvatar}
+                groupInfoError={groupInfoError}
+                participants={(selectedConversation?.participants || []).map(
+                    (participant) => ({
+                        userId: participant.userId,
+                        fullName: participant.fullName,
+                        avatarUrl: participant.avatarUrl,
+                    }),
+                )}
+                modalMembers={(selectedConversation?.participants || [])
+                    .slice(0, 4)
+                    .map((participant) => ({
+                        userId: participant.userId,
+                        fullName: participant.fullName,
+                        avatarUrl: participant.avatarUrl,
+                    }))}
+                presetAvatarUrls={PRESET_GROUP_AVATAR_URLS}
+                onClose={() => setIsEditGroupInfoModalOpen(false)}
+                onGroupNameInputChange={setGroupNameInput}
+                onSaveGroupName={() => {
+                    void handleUpdateGroupName();
+                }}
+                onUploadAvatarFile={(event) => {
+                    void handleFileUploadForAvatar(event);
+                }}
+                onSelectPresetAvatar={(presetUrl) => {
+                    void handlePresetAvatarSelect(presetUrl);
+                }}
+                toAbsoluteMediaUrl={toAbsoluteMediaUrl}
+            />
 
             <style>{`
                 @keyframes slideUp {

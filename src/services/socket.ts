@@ -932,8 +932,12 @@ class ChatSocketService {
     this.chatSocket.on("group:info_updated", cb);
   }
 
-  offGroupInfoUpdated() {
+  offGroupInfoUpdated(cb?: (payload: GroupInfoUpdatedPayload) => void) {
     if (!this.chatSocket) return;
+    if (cb) {
+      this.chatSocket.off("group:info_updated", cb);
+      return;
+    }
     this.chatSocket.off("group:info_updated");
   }
 
@@ -1241,8 +1245,10 @@ export const onGroupInfoUpdated = (
   chatSocketService.onGroupInfoUpdated(cb);
 };
 
-export const offGroupInfoUpdated = () => {
-  chatSocketService.offGroupInfoUpdated();
+export const offGroupInfoUpdated = (
+  cb?: (payload: GroupInfoUpdatedPayload) => void,
+) => {
+  chatSocketService.offGroupInfoUpdated(cb);
 };
 
 export const onConversationHiddenUpdated = (

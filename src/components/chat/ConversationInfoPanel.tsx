@@ -36,17 +36,13 @@ import ToggleSwitch from '../common/ToggleSwitch';
 import { MediaStoragePanel } from './MediaStoragePanel';
 import { GroupMediaPanel } from './GroupMediaPanel';
 import { MediaContextMenu } from './MediaContextMenu';
-import Modal from '../common/Modal';
 import { AutoDeleteModal } from './AutoDeleteModal';
 import { HideConversationModal } from './HideConversationModal';
 import { RevealConversationModal } from './RevealConversationModal';
 import { ClearHistoryModal } from './ClearHistoryModal';
 import { BlockUserModal } from './BlockUserModal';
+import { CreateGroupModal } from './CreateGroupModal';
 import { conversationApi } from '../../services/conversationApi';
-import {
-    friendListService,
-    type FriendApiItem,
-} from '../../services/friendListService';
 import type { ConversationView } from '../../types/conversation';
 import type { SocketMessage } from './MessageList';
 import ChatAvatar from '../common/ChatAvatar';
@@ -195,15 +191,6 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
     const [showBlockUserModal, setShowBlockUserModal] = useState(false);
     const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-    const [newGroupName, setNewGroupName] = useState('');
-    const [friendSearch, setFriendSearch] = useState('');
-    const [friendsLoading, setFriendsLoading] = useState(false);
-    const [friendOptions, setFriendOptions] = useState<FriendApiItem[]>([]);
-    const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
-    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-    const [createGroupError, setCreateGroupError] = useState<string | null>(
-        null,
-    );
     const [autoDeleteDuration, setAutoDeleteDuration] = useState(0);
     const [iAmBlocked, setIAmBlocked] = useState(false);
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false);
@@ -380,121 +367,15 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         }
     };
 
-    useEffect(() => {
-        const loadFriends = async () => {
-            if (!showCreateGroupModal || !currentUserId) return;
+    const defaultCreateGroupMemberIds = useMemo(() => {
+        if (selectedConversation?.type !== 'PRIVATE') return [];
 
-            try {
-                setFriendsLoading(true);
-                const response =
-                    await friendListService.getFriends(currentUserId);
-                const friends = Array.isArray(response) ? response : [];
+        const friendId = selectedConversation.participants.find(
+            (participant) => participant.userId !== currentUserId,
+        )?.userId;
 
-                const sortedFriends = [...friends].sort((a, b) =>
-                    (a.fullName || '').localeCompare(b.fullName || '', 'vi', {
-                        sensitivity: 'base',
-                    }),
-                );
-
-                setFriendOptions(sortedFriends);
-
-                if (selectedConversation?.type === 'PRIVATE') {
-                    const defaultFriend =
-                        selectedConversation.participants.find(
-                            (participant) =>
-                                participant.userId !== currentUserId,
-                        )?.userId;
-
-                    if (
-                        defaultFriend &&
-                        sortedFriends.some(
-                            (friend) => friend.id === defaultFriend,
-                        )
-                    ) {
-                        setSelectedFriendIds([defaultFriend]);
-                    }
-                }
-            } catch (error) {
-                console.error(
-                    'Error loading friends for group creation:',
-                    error,
-                );
-                setCreateGroupError('Không thể tải danh sách bạn bè.');
-            } finally {
-                setFriendsLoading(false);
-            }
-        };
-
-        void loadFriends();
-    }, [showCreateGroupModal, currentUserId, selectedConversation]);
-
-    const filteredFriendOptions = useMemo(() => {
-        const keyword = friendSearch.trim().toLowerCase();
-        if (!keyword) return friendOptions;
-
-        return friendOptions.filter((friend) =>
-            (friend.fullName || '').toLowerCase().includes(keyword),
-        );
-    }, [friendOptions, friendSearch]);
-
-    const handleFriendToggle = (friendId: string) => {
-        setSelectedFriendIds((prev) =>
-            prev.includes(friendId)
-                ? prev.filter((id) => id !== friendId)
-                : [...prev, friendId],
-        );
-    };
-
-    const handleCreateGroup = async () => {
-        if (!newGroupName.trim()) {
-            setCreateGroupError('Vui lòng nhập tên nhóm.');
-            return;
-        }
-
-        const selectedFriends = friendOptions.filter((friend) =>
-            selectedFriendIds.includes(friend.id),
-        );
-
-        const memberIds = selectedFriends.map((friend) => friend.id);
-        const memberNicknames = selectedFriends.map((friend) => ({
-            userId: friend.id,
-            nickname: friend.fullName || 'Member',
-        }));
-
-        if (memberIds.length === 0) {
-            setCreateGroupError('Không có thành viên để tạo nhóm mới.');
-            return;
-        }
-
-        try {
-            setIsCreatingGroup(true);
-            setCreateGroupError(null);
-
-            const createdConversation =
-                await conversationApi.createConversation({
-                    type: 'GROUP',
-                    groupName: newGroupName.trim(),
-                    memberIds,
-                    memberNicknames,
-                });
-
-            setShowCreateGroupModal(false);
-            setNewGroupName('');
-            setFriendSearch('');
-            setSelectedFriendIds([]);
-            await onConversationCreated?.(
-                createdConversation as ConversationView,
-            );
-        } catch (error) {
-            setCreateGroupError(
-                error instanceof Error
-                    ? error.message
-                    : 'Không thể tạo nhóm mới',
-            );
-        } finally {
-            setIsCreatingGroup(false);
-        }
-    };
+        return friendId ? [friendId] : [];
+    }, [selectedConversation, currentUserId]);
 
     return (
         <>
@@ -537,137 +418,16 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 userName={conversationName}
             />
 
-            <Modal
+            <CreateGroupModal
                 isOpen={showCreateGroupModal}
-                onClose={() => {
-                    if (isCreatingGroup) return;
+                onClose={() => setShowCreateGroupModal(false)}
+                currentUserId={currentUserId}
+                initialSelectedFriendIds={defaultCreateGroupMemberIds}
+                onCreated={async (conversation) => {
                     setShowCreateGroupModal(false);
-                    setNewGroupName('');
-                    setFriendSearch('');
-                    setSelectedFriendIds([]);
-                    setCreateGroupError(null);
+                    await onConversationCreated?.(conversation);
                 }}
-                title="Tạo nhóm mới"
-                size="sm"
-            >
-                <div className="p-4 space-y-4">
-                    <div>
-                        <label
-                            htmlFor="newGroupName"
-                            className="mb-2 block text-sm font-medium text-slate-700"
-                        >
-                            Tên nhóm
-                        </label>
-                        <input
-                            id="newGroupName"
-                            type="text"
-                            value={newGroupName}
-                            onChange={(e) => setNewGroupName(e.target.value)}
-                            placeholder="Nhập tên nhóm"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500"
-                            disabled={isCreatingGroup}
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            htmlFor="friendSearch"
-                            className="mb-2 block text-sm font-medium text-slate-700"
-                        >
-                            Chọn thành viên
-                        </label>
-                        <input
-                            id="friendSearch"
-                            type="text"
-                            value={friendSearch}
-                            onChange={(e) => setFriendSearch(e.target.value)}
-                            placeholder="Tìm theo tên"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500"
-                            disabled={isCreatingGroup || friendsLoading}
-                        />
-
-                        <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-slate-200 p-2">
-                            {friendsLoading ? (
-                                <p className="py-3 text-center text-sm text-slate-500">
-                                    Đang tải danh sách bạn bè...
-                                </p>
-                            ) : filteredFriendOptions.length === 0 ? (
-                                <p className="py-3 text-center text-sm text-slate-500">
-                                    Không có bạn bè phù hợp
-                                </p>
-                            ) : (
-                                filteredFriendOptions.map((friend) => (
-                                    <label
-                                        key={friend.id}
-                                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-2 hover:bg-slate-50"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedFriendIds.includes(
-                                                friend.id,
-                                            )}
-                                            onChange={() =>
-                                                handleFriendToggle(friend.id)
-                                            }
-                                            disabled={isCreatingGroup}
-                                        />
-                                        {friend.avatarUrl ? (
-                                            <img
-                                                src={friend.avatarUrl}
-                                                alt={friend.fullName}
-                                                className="h-7 w-7 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="h-7 w-7 rounded-full bg-slate-200" />
-                                        )}
-                                        <span className="truncate text-sm text-slate-700">
-                                            {friend.fullName}
-                                        </span>
-                                    </label>
-                                ))
-                            )}
-                        </div>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Đã chọn {selectedFriendIds.length} thành viên
-                        </p>
-                    </div>
-
-                    {createGroupError && (
-                        <p className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-600">
-                            {createGroupError}
-                        </p>
-                    )}
-
-                    <div className="flex items-center justify-end gap-2">
-                        <button
-                            type="button"
-                            className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 disabled:opacity-60"
-                            onClick={() => {
-                                setShowCreateGroupModal(false);
-                                setNewGroupName('');
-                                setFriendSearch('');
-                                setSelectedFriendIds([]);
-                                setCreateGroupError(null);
-                            }}
-                            disabled={isCreatingGroup}
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            type="button"
-                            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
-                            onClick={handleCreateGroup}
-                            disabled={
-                                isCreatingGroup ||
-                                !newGroupName.trim() ||
-                                selectedFriendIds.length === 0
-                            }
-                        >
-                            {isCreatingGroup ? 'Đang tạo...' : 'Tạo nhóm'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+            />
 
             {/* Rest of the component JSX... */}
             {showMediaStorage &&
@@ -781,7 +541,6 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 </button>
                                 <button
                                     onClick={() => {
-                                        setCreateGroupError(null);
                                         setShowCreateGroupModal(true);
                                     }}
                                     className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1"

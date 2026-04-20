@@ -771,6 +771,14 @@ const FriendListPage = () => {
     }
   };
 
+  const handleOpenGroupChat = (groupId: string) => {
+    navigate("/chat", {
+      state: {
+        selectedConversationId: groupId,
+      },
+    });
+  };
+
   const counts = useMemo(
     () => ({
       requestCount: requests.length,
@@ -825,6 +833,7 @@ const FriendListPage = () => {
         onDeclineFriendRequest={handleDeclineFriendRequest}
         onAcceptGroupInvite={handleAcceptGroupInvite}
         onDeclineGroupInvite={handleDeclineGroupInvite}
+        onOpenGroupChat={handleOpenGroupChat}
       />
       <FriendInfoModal
         isOpen={isInfoModalOpen}

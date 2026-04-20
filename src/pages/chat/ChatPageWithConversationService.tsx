@@ -5,7 +5,7 @@ import React, {
     useCallback,
     useMemo,
 } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ChatSidebarWithConversationService from '../../components/chat/ChatSidebarWithConversationService';
 import ChatHeader from '../../components/chat/ChatHeader';
 import MessageList, {
@@ -15,6 +15,7 @@ import ChatInput from '../../components/chat/ChatInput';
 import { ConversationInfoPanel } from '../../components/chat/ConversationInfoPanel';
 import { ConversationGroupInfoPanel } from '../../components/chat/ConversationGroupInfoPanel';
 import { SearchModal } from '../../components/chat/SearchModal';
+import { CreateGroupModal } from '../../components/chat/CreateGroupModal';
 import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
 import {
@@ -49,6 +50,7 @@ import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 import { debugAuthStatus, getUser } from '../../utils/token';
 import { getUserInfo } from '../../services/userService';
 import { useCall } from '../../hooks/useCall';
+import { useGroupCallContext } from '../../hooks/useGroupCallContext';
 import type { PinnedMessageItem } from '../../types/conversation';
 import { mapChatActionError } from '../../utils/chatMessageErrors';
 
@@ -221,6 +223,8 @@ export const ChatPage: React.FC = () => {
     // Get user ID inside component (after auth is loaded)
     const USER_ID = getCurrentUserId();
     const USERNAME = getCurrentUserName();
+    const effectiveCurrentUserId =
+        USER_ID || getUser()?.userId || getUser()?.id || '';
     const {
         initiateCall,
         status: callStatus,
@@ -229,7 +233,10 @@ export const ChatPage: React.FC = () => {
         wasAnswered,
         wasRejected,
     } = useCall();
+    const { initiateGroupCall, status: groupCallStatus } =
+        useGroupCallContext();
     const location = useLocation();
+    const navigate = useNavigate();
 
     const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>(
         [],
@@ -261,13 +268,18 @@ export const ChatPage: React.FC = () => {
         useState<SocketMessage | null>(null);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true);
+    const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] =
+        useState(false);
     const [reactionOverrides, setReactionOverrides] = useState<
         Record<string, NonNullable<SocketMessage['reactions']>>
     >({});
     const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
     const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
     const [typingUserNames, setTypingUserNames] = useState<string[]>([]);
-    const [, setOpenGroupInfoEditTick] = useState(0);
+    const [openGroupInfoEditTick, setOpenGroupInfoEditTick] = useState(0);
+    const [groupInfoOverrides, setGroupInfoOverrides] = useState<
+        Record<string, { groupName?: string; groupAvatar?: string }>
+    >({});
     const [replyDraft, setReplyDraft] = useState<{
         conversationId: string;
         replyToMessageId: string;
@@ -319,21 +331,49 @@ export const ChatPage: React.FC = () => {
     });
 
     useEffect(() => {
-        if (!selectedConversationId) return;
-
         const handleGroupInfoUpdatedRealtime = (payload: {
             groupId: string;
+            groupName?: string;
+            groupAvatar?: string;
         }) => {
-            if (payload.groupId !== selectedConversationId) return;
+            setGroupInfoOverrides((prev) => {
+                const previousForGroup = prev[payload.groupId] || {};
+
+                return {
+                    ...prev,
+                    [payload.groupId]: {
+                        ...previousForGroup,
+                        ...(payload.groupName
+                            ? { groupName: payload.groupName }
+                            : {}),
+                        ...(payload.groupAvatar
+                            ? {
+                                  groupAvatar: toAbsoluteMediaUrl(
+                                      payload.groupAvatar,
+                                  ),
+                              }
+                            : {}),
+                    },
+                };
+            });
+
+            if (payload.groupId === selectedConversationId) {
+                void fetchDetail();
+            }
+
             void refreshConversations();
-            void fetchDetail();
         };
 
         onGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
         return () => {
-            offGroupInfoUpdated();
+            offGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
         };
     }, [selectedConversationId, refreshConversations, fetchDetail]);
+
+    const selectedGroupInfoOverride = useMemo(() => {
+        if (!selectedConversationId) return null;
+        return groupInfoOverrides[selectedConversationId] || null;
+    }, [groupInfoOverrides, selectedConversationId]);
 
     const getReceiverId = useCallback(() => {
         if (!selectedConversation) return '';
@@ -740,7 +780,7 @@ export const ChatPage: React.FC = () => {
                 msg.isRecalled ||
                 msg.content.trim().length > 0 ||
                 (msg.isFile && !!msg.fileUrl) ||
-                (msg.type === 'call' && !!msg.callData);
+                msg.type === 'call';
 
             if (!hasVisibleContent || !msg.conversationId) {
                 console.warn(
@@ -1060,10 +1100,19 @@ export const ChatPage: React.FC = () => {
         setIsInfoPanelOpen(true);
     }, []);
 
+    const handleOpenAddFriend = useCallback(() => {
+        // Placeholder button for future add-friend flow.
+    }, []);
+
+    const handleOpenCreateGroupModal = useCallback(() => {
+        setIsCreateGroupModalOpen(true);
+    }, []);
+
     useEffect(() => {
         // Reset state thu hoi theo tung conversation de tranh anh huong cheo.
         setRecalledMessageKeys(new Set());
         setReplyDraft(null);
+        setOpenGroupInfoEditTick(0);
     }, [selectedConversationId]);
 
     useEffect(() => {
@@ -1935,8 +1984,9 @@ export const ChatPage: React.FC = () => {
     );
 
     const isPrivateConversation = selectedConversation?.type === 'PRIVATE';
-    const disableCallButtons =
-        !isPrivateConversation || iAmBlocked || iAmTheBlocker;
+    const disableCallButtons = isPrivateConversation
+        ? iAmBlocked || iAmTheBlocker
+        : false;
 
     const handleStartCall = useCallback(
         async (callType: 'audio' | 'video') => {
@@ -2009,6 +2059,64 @@ export const ChatPage: React.FC = () => {
         ],
     );
 
+    const handleStartGroupCall = useCallback(
+        async (callType: 'audio' | 'video') => {
+            if (!selectedConversation) return;
+            if (selectedConversation.type !== 'GROUP') return;
+
+            if (groupCallStatus !== 'idle') {
+                setError('You are currently on another group call.');
+                return;
+            }
+
+            try {
+                const groupMembers = await conversationApi.getGroupMembers(
+                    selectedConversation.conversationId,
+                );
+
+                const members = groupMembers.items || [];
+                const participantIds = members
+                    .filter((member) => member.userId !== USER_ID)
+                    .map((member) => member.userId);
+
+                if (participantIds.length === 0) {
+                    setError('No other participants in this group.');
+                    return;
+                }
+
+                const participantNames: Record<string, string> = {};
+                members.forEach((member) => {
+                    if (member.userId !== USER_ID) {
+                        participantNames[member.userId] =
+                            member.fullName || 'Member';
+                    }
+                });
+
+                await initiateGroupCall(
+                    selectedConversation.conversationId,
+                    participantIds,
+                    callType,
+                    participantNames,
+                );
+
+                navigate('/group-call');
+            } catch (error) {
+                setError(
+                    error instanceof Error
+                        ? error.message
+                        : 'Failed to start group call',
+                );
+            }
+        },
+        [
+            selectedConversation,
+            groupCallStatus,
+            USER_ID,
+            initiateGroupCall,
+            navigate,
+        ],
+    );
+
     const getSenderName = useCallback(
         (senderId?: string) => {
             if (!senderId) return 'Unknown';
@@ -2078,6 +2186,8 @@ export const ChatPage: React.FC = () => {
             const mimeType = m.mimeType || attachment?.mimeType;
             const messageType =
                 m.messageType ||
+                (m as { type?: string }).type ||
+                (m.callData ? 'call' : undefined) ||
                 (mimeType?.startsWith('image/')
                     ? 'image'
                     : mimeType?.startsWith('video/')
@@ -2153,7 +2263,17 @@ export const ChatPage: React.FC = () => {
                                   messageType === 'audio'
                                 ? 'audio'
                                 : 'text',
-                callData: m.callData,
+                    callData:
+                        m.callData ||
+                        (messageType === 'CALL' || messageType === 'call'
+                            ? {
+                                  callType: 'audio',
+                                  callStatus: 'completed',
+                                  duration: 0,
+                                  isInitiator: senderRef === USER_ID,
+                                  wasRejected: false,
+                              }
+                            : undefined),
             };
         },
     );
@@ -2171,8 +2291,7 @@ export const ChatPage: React.FC = () => {
             message.isRecalled ||
             message.content.trim().length > 0 ||
             (message.isFile && !!message.fileUrl) ||
-            (message.type === 'call' &&
-                !!(message as ChatSocketMessage).callData); // ✅ Include call messages
+            message.type === 'call'; // ✅ Include call messages even when backend omits callData
         if (!hasVisibleContent) continue;
 
         const key =
@@ -2299,12 +2418,8 @@ export const ChatPage: React.FC = () => {
                 onSelectConversation={handleSelectConversation}
                 loading={conversationsLoading}
                 error={conversationsError}
-                onCreateGroupConversation={(conversation) => {
-                    void refreshConversations();
-                    if (conversation?.conversationId) {
-                        setSelectedConversationId(conversation.conversationId);
-                    }
-                }}
+                onAddFriendClick={handleOpenAddFriend}
+                onCreateGroupClick={handleOpenCreateGroupModal}
             />
 
             {/* Main chat area */}
@@ -2332,16 +2447,19 @@ export const ChatPage: React.FC = () => {
                         {/* Header */}
                         <ChatHeader
                             name={
+                                selectedGroupInfoOverride?.groupName ||
                                 selectedConversation.groupInfo?.groupName ||
                                 otherParticipant?.fullName ||
                                 'Conversation'
                             }
                             avatarUrl={
                                 selectedConversation.type === 'GROUP'
-                                    ? toAbsoluteMediaUrl(
+                                    ? selectedGroupInfoOverride?.groupAvatar ||
+                                      toAbsoluteMediaUrl(
                                           selectedConversation.groupInfo
                                               ?.groupAvatar,
-                                      ) || undefined
+                                      ) ||
+                                      undefined
                                     : toAbsoluteMediaUrl(
                                           otherParticipant?.avatarUrl,
                                       ) || undefined
@@ -2359,13 +2477,22 @@ export const ChatPage: React.FC = () => {
                                     ? selectedConversation.participants
                                     : undefined
                             }
-                            isBlocked={iAmBlocked || iAmTheBlocker}
+                            isBlocked={
+                                isPrivateConversation &&
+                                (iAmBlocked || iAmTheBlocker)
+                            }
                             disableCallButtons={disableCallButtons}
                             onAudioCall={() => {
                                 void handleStartCall('audio');
                             }}
                             onVideoCall={() => {
                                 void handleStartCall('video');
+                            }}
+                            onGroupAudioCall={() => {
+                                void handleStartGroupCall('audio');
+                            }}
+                            onGroupVideoCall={() => {
+                                void handleStartGroupCall('video');
                             }}
                             onSearchClick={() => setIsSearchOpen(true)}
                             onPanelToggle={() => {
@@ -2503,6 +2630,7 @@ export const ChatPage: React.FC = () => {
                         isSidebarOpen={true}
                         selectedConversation={selectedConversation}
                         displayMessages={displayMessages}
+                        openEditAvatarTick={openGroupInfoEditTick}
                         onConversationRemoved={handleGroupConversationRemoved}
                         onJumpToMessage={jumpToMessage}
                         onForwardMessage={handleOpenForwardModal}
@@ -2600,6 +2728,21 @@ export const ChatPage: React.FC = () => {
                     </div>
                 </div>
             </Modal>
+
+            <CreateGroupModal
+                isOpen={isCreateGroupModalOpen}
+                onClose={() => setIsCreateGroupModalOpen(false)}
+                currentUserId={effectiveCurrentUserId}
+                onCreated={async (conversation) => {
+                    setIsCreateGroupModalOpen(false);
+                    await refreshConversations();
+                    if (conversation?.conversationId) {
+                        setSelectedConversationId(conversation.conversationId);
+                        setIsInfoPanelOpen(true);
+                        setIsSearchOpen(false);
+                    }
+                }}
+            />
 
             <Dialog
                 isOpen={isRecallConfirmOpen}

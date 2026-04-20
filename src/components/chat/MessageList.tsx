@@ -479,22 +479,20 @@ export const MessageList: React.FC<{
                                         </p>
                                     )}
 
-                                    {!msg.isRecalled &&
-                                    msg.type === 'call' &&
-                                    msg.callData ? (
+                                    {!msg.isRecalled && msg.type === 'call' ? (
                                         <CallHistoryCard
                                             callType={
-                                                msg.callData.callType || 'audio'
+                                                msg.callData?.callType ||
+                                                'audio'
                                             }
                                             callStatus={
-                                                msg.callData.callStatus ||
+                                                msg.callData?.callStatus ||
                                                 'completed'
                                             }
-                                            duration={msg.callData.duration}
+                                            duration={msg.callData?.duration}
                                             isMe={isMe}
                                             isInitiator={
-                                                msg.callData?.isInitiator ||
-                                                false
+                                                msg.callData?.isInitiator || false
                                             }
                                             onCallBack={() => {
                                                 onCallBackMessage?.(msg);
