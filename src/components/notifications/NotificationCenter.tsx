@@ -52,6 +52,31 @@ const typeMeta: Record<
     badgeClass: "bg-indigo-100 text-indigo-700",
     defaultTitle: "Group invite",
   },
+  group_join_approved: {
+    icon: MdGroups,
+    badgeClass: "bg-emerald-100 text-emerald-700",
+    defaultTitle: "Group join approved",
+  },
+  group_join_rejected: {
+    icon: MdGroups,
+    badgeClass: "bg-rose-100 text-rose-700",
+    defaultTitle: "Group join rejected",
+  },
+  group_promoted: {
+    icon: MdGroups,
+    badgeClass: "bg-violet-100 text-violet-700",
+    defaultTitle: "Group role updated",
+  },
+  group_removed: {
+    icon: MdGroups,
+    badgeClass: "bg-red-100 text-red-700",
+    defaultTitle: "Removed from group",
+  },
+  group_dissolved: {
+    icon: MdGroups,
+    badgeClass: "bg-slate-200 text-slate-700",
+    defaultTitle: "Group dissolved",
+  },
   event_invite: {
     icon: MdCalendarToday,
     badgeClass: "bg-purple-100 text-purple-700",
@@ -314,7 +339,9 @@ export default function NotificationCenter({
     const targetConversationId =
       typeof item.metadata?.conversationId === "string"
         ? item.metadata.conversationId
-        : undefined;
+        : typeof item.metadata?.groupId === "string"
+          ? item.metadata.groupId
+          : undefined;
 
     if (item.link) {
       if (item.type === "friend_request" && item.link.startsWith("/friends")) {

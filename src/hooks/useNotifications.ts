@@ -9,6 +9,41 @@ type NotificationToastItem = {
   notification: AppNotification;
 };
 
+const getNotificationConversationId = (
+  item: AppNotification,
+): string | undefined => {
+  const metadata = item.metadata;
+  if (!metadata || typeof metadata !== "object") return undefined;
+
+  const conversationId = metadata.conversationId;
+  if (typeof conversationId === "string" && conversationId.length > 0) {
+    return conversationId;
+  }
+
+  const groupId = metadata.groupId;
+  if (typeof groupId === "string" && groupId.length > 0) {
+    return groupId;
+  }
+
+  return undefined;
+};
+
+const isConversationScopedNotification = (item: AppNotification): boolean => {
+  const conversationId = getNotificationConversationId(item);
+  if (!conversationId) return false;
+
+  return (
+    item.type === "message" ||
+    item.type === "call" ||
+    item.type === "group_invite" ||
+    item.type === "group_join_approved" ||
+    item.type === "group_join_rejected" ||
+    item.type === "group_promoted" ||
+    item.type === "group_removed" ||
+    item.type === "group_dissolved"
+  );
+};
+
 export function useNotifications(userId?: string) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -98,8 +133,8 @@ export function useNotifications(userId?: string) {
       const pending = notifications.filter(
         (item) =>
           !item.isRead &&
-          (item.type === "message" || item.type === "call") &&
-          item.metadata?.conversationId === conversationId,
+          isConversationScopedNotification(item) &&
+          getNotificationConversationId(item) === conversationId,
       );
 
       if (pending.length === 0) return;
@@ -232,11 +267,11 @@ export function useNotifications(userId?: string) {
     const result: Record<string, number> = {};
 
     notifications.forEach((item) => {
-      const conversationId = item.metadata?.conversationId;
+      const conversationId = getNotificationConversationId(item);
       if (
         !item.isRead &&
         typeof conversationId === "string" &&
-        (item.type === "message" || item.type === "call")
+        isConversationScopedNotification(item)
       ) {
         result[conversationId] = (result[conversationId] || 0) + 1;
       }

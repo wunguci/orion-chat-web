@@ -1929,13 +1929,8 @@ export const ChatPage: React.FC = () => {
           replyToMessageId: options?.replyToMessageId || undefined,
         });
 
-        if (isGroupConversation) {
-          setReplyDraft(null);
-          return;
-        }
-
-        const receiverId = getReceiverId();
-        if (!receiverId) {
+        const receiverId = isGroupConversation ? undefined : getReceiverId();
+        if (!isGroupConversation && !receiverId) {
           setReplyDraft(null);
           return;
         }
