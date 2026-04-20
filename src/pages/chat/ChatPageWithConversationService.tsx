@@ -2517,6 +2517,7 @@ export const ChatPage: React.FC = () => {
                         onJumpToMessage={jumpToMessage}
                         onForwardMessage={handleOpenForwardModal}
                         onPinStatusChange={refreshConversations}
+                        onConversationRemoved={handleGroupConversationRemoved}
                         onConversationCreated={async (conversation) => {
                             if (conversation?.conversationId) {
                                 setSelectedConversationId(

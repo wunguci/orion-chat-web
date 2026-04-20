@@ -19,14 +19,14 @@ export const CallControls: React.FC = () => {
   } = useCall();
 
   return (
-    <div className="flex items-center gap-4 bg-gray-900/80 px-6 py-4 rounded-full backdrop-blur-sm">
+    <div className="flex items-center gap-4 bg-wh-green-bg-light/90 px-6 py-4 rounded-full backdrop-blur-sm border border-wh-green-border-light">
       {/* microphone toggle */}
       <button
         onClick={toggleAudio}
         className={`w-14 h-14 rounded-full flex items-center justify-center transition ${
           isAudioEnabled
-            ? "bg-gray-700 hover:bg-gray-600"
-            : "bg-red-500 hover:bg-red-600"
+            ? "bg-wh-green-primary hover:bg-wh-green-primary-hover"
+            : "bg-wh-priority-critical hover:bg-wh-priority-high"
         }`}
         title={isAudioEnabled ? "Mute" : "Unmute"}
       >
@@ -41,8 +41,8 @@ export const CallControls: React.FC = () => {
           onClick={toggleVideo}
           className={`w-14 h-14 rounded-full flex items-center justify-center transition ${
             isVideoEnabled
-              ? "bg-gray-700 hover:bg-gray-600"
-              : "bg-red-500 hover:bg-red-600"
+              ? "bg-wh-green-primary hover:bg-wh-green-primary-hover"
+              : "bg-wh-priority-critical hover:bg-wh-priority-high"
           }`}
           title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
         >
@@ -57,7 +57,7 @@ export const CallControls: React.FC = () => {
         <button
           onClick={requestVideoUpgrade}
           disabled={!!isRequestingVideoUpgrade}
-          className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center transition"
+          className="w-14 h-14 rounded-full bg-wh-green-primary-light hover:bg-wh-green-primary disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center transition"
           title={
             isRequestingVideoUpgrade
               ? "Đang gửi yêu cầu video..."
@@ -71,7 +71,7 @@ export const CallControls: React.FC = () => {
       {/* end call button */}
       <button
         onClick={endCall}
-        className="w-14 h-14 rounded-full bg-red-600 hover:bg-red-700 flex items-center justify-center transition"
+        className="w-14 h-14 rounded-full bg-wh-priority-critical hover:bg-wh-priority-high flex items-center justify-center transition"
         title="End call"
       >
         <MdCallEnd className="text-white text-xl" />
