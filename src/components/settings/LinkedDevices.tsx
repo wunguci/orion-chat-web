@@ -1,129 +1,125 @@
-import React, { useState } from "react";
-import { useUserDevices } from "../../hooks/useSettings";
+import React from "react";
+import { Info, Smartphone } from "lucide-react";
+import Button from "../common/Button";
 
-export const LinkedDevices: React.FC = () => {
-  const { devices, loading, error, removeDevice, deactivateDevice } =
-    useUserDevices();
-  const [saving, setSaving] = useState<string | null>(null);
+interface Device {
+  id: string;
+  deviceName: string;
+  osType: string;
+  osVersion: string;
+  lastLogin: Date | string;
+  isCurrent: boolean;
+}
 
-  const handleRemoveDevice = async (id: string) => {
-    if (confirm("Are you sure you want to remove this device?")) {
-      setSaving(id);
-      try {
-        await removeDevice(id);
-      } catch (err) {
-        console.error("Failed to remove device:", err);
-      } finally {
-        setSaving(null);
-      }
-    }
+interface LinkedDevicesProps {
+  userDevices: {
+    devices: Device[];
+    deactivateDevice: (deviceId: string) => Promise<void>;
+    loading: boolean;
   };
+  saveError: string | null;
+  saveSuccess: string | null;
+}
 
-  const handleDeactivateDevice = async (id: string) => {
-    setSaving(id);
-    try {
-      await deactivateDevice(id);
-    } catch (err) {
-      console.error("Failed to deactivate device:", err);
-    } finally {
-      setSaving(null);
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
-
+export const LinkedDevices: React.FC<LinkedDevicesProps> = ({
+  userDevices,
+  saveError,
+  saveSuccess,
+}: LinkedDevicesProps) => {
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-8">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Linked Devices</h3>
-        <p className="text-sm text-gray-600 mb-6">
-          Manage devices where you're logged in
+        <span className="text-[28px] font-bold text-gray-primary mb-1">
+          Linked Devices
+        </span>
+        <p className="text-gray-primary">
+          Manage your active sessions and connected devices
         </p>
+      </div>
 
-        {devices.length === 0 ? (
-          <p className="text-gray-500">No devices linked</p>
+      {/* Active Devices List */}
+      <div className="flex flex-col gap-3">
+        <span className="text-lg font-bold text-gray-primary">
+          Active Devices ({userDevices.devices.length})
+        </span>
+        {userDevices.devices.length === 0 ? (
+          <div className="px-4 py-6 bg-gray-50 rounded-xl text-center text-gray-primary">
+            No active devices found
+          </div>
         ) : (
-          <div className="space-y-4">
-            {devices.map((device) => (
+          <div className="flex flex-col gap-3">
+            {userDevices.devices.map((device) => (
               <div
                 key={device.id}
-                className="flex items-center justify-between p-4 border rounded hover:bg-gray-50"
+                className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="text-2xl">
-                      {device.deviceType === "mobile" ? "📱" : "💻"}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">{device.deviceName}</h4>
-                      <p className="text-sm text-gray-600">
-                        {device.osType} {device.osVersion}
-                      </p>
-                    </div>
-                    {device.isCurrent && (
-                      <span className="ml-2 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
-                        Current device
-                      </span>
-                    )}
-                    {device.isActive ? (
-                      <span className="ml-2 px-3 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="ml-2 px-3 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
-                        Inactive
-                      </span>
-                    )}
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-green-bg-heavy rounded-xl">
+                    <Smartphone size={24} className="text-green-primary" />
                   </div>
-
-                  <div className="text-xs text-gray-500 space-y-1">
-                    <p>
-                      Added: {new Date(device.createdAt).toLocaleDateString()}
+                  <div>
+                    <p className="font-semibold text-gray-primary">
+                      {device.deviceName}
                     </p>
-                    {device.lastLogin && (
-                      <p>
-                        Last login:{" "}
-                        {new Date(device.lastLogin).toLocaleString()}
-                      </p>
-                    )}
-                    {device.ipAddress && <p>IP: {device.ipAddress}</p>}
+                    <p className="text-sm text-gray-primary">
+                      {device.osType} {device.osVersion}
+                    </p>
+                    <p className="text-xs text-gray-primary">
+                      Last login:{" "}
+                      {new Date(device.lastLogin).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-
-                <div className="flex gap-2">
-                  {device.isActive && !device.isCurrent && (
-                    <button
-                      onClick={() => handleDeactivateDevice(device.id)}
-                      disabled={saving === device.id}
-                      className="px-3 py-1 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600 disabled:opacity-50"
-                    >
-                      {saving === device.id ? "Deactivating..." : "Current"}
-                    </button>
-                  )}
-                  {!device.isCurrent && (
-                    <button
-                      onClick={() => handleRemoveDevice(device.id)}
-                      disabled={saving === device.id}
-                      className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 disabled:opacity-50"
-                    >
-                      {saving === device.id ? "Removing..." : "Remove"}
-                    </button>
-                  )}
-                </div>
+                <button
+                  onClick={() => userDevices.deactivateDevice(device.id)}
+                  className="px-4 py-2 text-green-primary hover:bg-green-bg-heavy rounded-lg font-semibold transition-colors"
+                >
+                  {device.isCurrent ? "Current Device" : "Logout"}
+                </button>
               </div>
             ))}
           </div>
         )}
+      </div>
 
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded">
-          <h4 className="font-semibold text-blue-900 mb-2">🔒 Security Tip</h4>
-          <p className="text-sm text-blue-800">
-            Regularly review your linked devices and remove unknown devices
-            immediately. If you see unauthorized devices, change your password.
+      {/* Log out from all devices */}
+      <div className="flex flex-col gap-3">
+        <span className="text-lg font-bold text-gray-primary">
+          Security Actions
+        </span>
+        <Button
+          label="Log out from all other devices"
+          onClick={() => {
+            // Implementation for logout from all devices
+          }}
+          padding="px-8 py-3"
+        />
+      </div>
+
+      {/* Security Tip */}
+      <div className="flex gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
+        <Info size={24} className="text-blue-500 shrink-0 mt-1" />
+        <div>
+          <p className="font-bold text-gray-primary mb-1">Security Tip</p>
+          <p className="text-sm text-gray-primary">
+            Regularly check active devices and deactivate any you don't
+            recognize. If you see unauthorized devices, change your password
+            immediately.
           </p>
         </div>
       </div>
+
+      {/* Error/Success Messages */}
+      {saveError && (
+        <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+          {saveError}
+        </div>
+      )}
+      {saveSuccess && (
+        <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+          {saveSuccess}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,107 +1,233 @@
-import React, { useState } from 'react';
-import { useUserSettings } from '../../hooks/useSettings';
+import React from "react";
+import { clsx } from "clsx";
+import Button from "../common/Button";
+import { Monitor, Moon, Sun } from "lucide-react";
 
-export const AppearanceSettings: React.FC = () => {
-  const { settings, loading, error, updateSettings } = useUserSettings();
-  const [localTheme, setLocalTheme] = useState(settings?.theme || 'light');
-  const [localFontSize, setLocalFontSize] = useState(settings?.fontSize || 16);
+// Giao diện Cài đặt Hình nền
+interface AppearanceSettingsProps {
+  formData: {
+    theme: string;
+    wallpaper: string;
+    fontSize: number;
+    accentColor: string;
+  };
+  handleInputChange: (field: string, value: unknown) => void;
+  handleDiscardSettings: () => void;
+  handleSaveSettings: () => void;
+  saveError: string | null;
+  saveSuccess: string | null;
+  isSaving: boolean;
+  hasSettingsChanges: boolean;
+}
 
-  const handleThemeChange = async (theme: string) => {
-    setLocalTheme(theme);
-    try {
-      await updateSettings({ theme });
-    } catch (err) {
-      console.error('Failed to update theme:', err);
-    }
+const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
+  formData,
+  handleInputChange,
+  handleDiscardSettings,
+  handleSaveSettings,
+  saveError,
+  saveSuccess,
+  isSaving,
+  hasSettingsChanges,
+}: AppearanceSettingsProps) => {
+  // Bản đồ màu cho từng loại hình nền
+  const wallpaperColorMap: Record<string, string> = {
+    teal: "#2ab3b3",
+    orange: "#ee652b",
+    purple: "#6366f1",
+    green: "#a1f258",
+    red: "#ab2346",
+    gray: "#c1cad8",
+    "light-gray": "#dfdddd",
   };
 
-  const handleFontSizeChange = async (size: number) => {
-    setLocalFontSize(size);
-    try {
-      await updateSettings({ fontSize: size });
-    } catch (err) {
-      console.error('Failed to update font size:', err);
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
+  // Màu hiện tại của hình nền đã chọn
+  const currentWallpaperColor =
+    wallpaperColorMap[formData.wallpaper] || "#2ab3b3";
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-8">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Appearance</h3>
+        <span className="text-[28px] font-bold text-gray-primary">
+          Hình nền & Chủ đề
+        </span>
+        <p className="text-gray-primary">
+          Tùy chỉnh cách giao diện trò chuyện của bạn trông như thế nào
+        </p>
+      </div>
 
-        {/* Theme Settings */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Theme</label>
-          <div className="flex gap-4">
-            {['light', 'dark', 'auto'].map((theme) => (
-              <button
-                key={theme}
-                onClick={() => handleThemeChange(theme)}
-                className={`px-4 py-2 rounded capitalize ${
-                  localTheme === theme
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
+      {/* Chế độ chủ đề */}
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Chế độ chủ đề
+        </span>
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { value: "light", label: "Light", icon: Sun },
+            { value: "dark", label: "Dark", icon: Moon },
+            { value: "auto", label: "Auto", icon: Monitor },
+          ].map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => handleInputChange("theme", value)}
+              className={clsx(
+                "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 transition-colors",
+                formData.theme === value
+                  ? "border-green-primary bg-white"
+                  : "border-gray-200 bg-white hover:border-gray-300",
+              )}
+            >
+              <Icon
+                size={32}
+                className={clsx(
+                  formData.theme === value
+                    ? "text-green-primary"
+                    : "text-green-border-light",
+                )}
+              />
+              <span
+                className={clsx(
+                  "font-semibold",
+                  formData.theme === value
+                    ? "text-green-primary"
+                    : "text-gray-primary",
+                )}
               >
-                {theme}
-              </button>
-            ))}
+                {label}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Chọn hình nền */}
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Hình nền trò chuyện
+        </span>
+        <div className="grid grid-cols-7 gap-4">
+          {[
+            { value: "teal", name: "Xanh lơ", color: "#2ab3b3" },
+            { value: "orange", name: "Cam", color: "#ee652b" },
+            { value: "purple", name: "Tím", color: "#6366f1" },
+            { value: "green", name: "Xanh lá", color: "#a1f258" },
+            { value: "red", name: "Đỏ", color: "#ab2346" },
+            { value: "gray", name: "Xám", color: "#c1cad8" },
+            { value: "light-gray", name: "Xám nhạt", color: "#dfdddd" },
+          ].map(({ value, name, color }) => (
+            <button
+              key={value}
+              onClick={() => handleInputChange("wallpaper", value)}
+              className={clsx(
+                "h-32 rounded-2xl border-2 transition-all relative group",
+                formData.wallpaper === value
+                  ? "border-green-primary scale-105"
+                  : "border-transparent hover:border-gray-300",
+              )}
+              style={{ backgroundColor: color }}
+              title={name}
+            >
+              {/* Hiển thị tên màu khi hover */}
+              <div className="absolute inset-0 bg-black/30 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-white text-xs font-semibold">{name}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Xem trước màu hình nền */}
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Xem trước hình nền
+        </span>
+        <div
+          className="rounded-2xl p-8 border-2 border-green-border-light transition-all"
+          style={{ backgroundColor: currentWallpaperColor }}
+        >
+          <div className="text-center">
+            <p className="text-white font-semibold mb-4 drop-shadow">
+              Xem trước trò chuyện
+            </p>
+            <div className="bg-white/90 rounded-lg p-4 text-gray-primary">
+              <p className="text-sm">
+                Đây là cách hình nền sẽ trông như thế nào với màu đã chọn
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Font Size Settings */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">
-            Font Size: {localFontSize}px
-          </label>
+      {/* Kích thước phông chữ */}
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Kích thước phông chữ
+        </span>
+        <div className="flex items-center gap-4">
           <input
             type="range"
             min="12"
             max="24"
-            value={localFontSize}
-            onChange={(e) => handleFontSizeChange(Number(e.target.value))}
-            className="w-full"
-          />
-        </div>
-
-        {/* Wallpaper Settings */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Wallpaper</label>
-          <input
-            type="text"
-            placeholder="Enter wallpaper URL or color"
-            defaultValue={settings?.wallpaper || ''}
-            onBlur={(e) =>
-              updateSettings({ wallpaper: e.target.value })
+            value={formData.fontSize}
+            onChange={(e) =>
+              handleInputChange("fontSize", parseInt(e.target.value))
             }
-            className="w-full px-3 py-2 border rounded"
+            className="flex-1"
+          />
+          <span className="text-gray-primary font-semibold min-w-12">
+            {formData.fontSize}px
+          </span>
+        </div>
+        <p className="text-sm text-gray-primary">
+          Văn bản xem trước sẽ xuất hiện ở kích thước được chọn
+        </p>
+      </div>
+
+      {/* Màu nhấn */}
+      <div className="flex flex-col gap-3">
+        <span className="text-[22px] font-bold text-gray-primary">
+          Màu nhấn
+        </span>
+        <div className="flex items-center gap-4">
+          <div
+            className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-300"
+            style={{ backgroundColor: formData.accentColor }}
+          />
+          <input
+            type="color"
+            value={formData.accentColor}
+            onChange={(e) => handleInputChange("accentColor", e.target.value)}
+            className="cursor-pointer"
           />
         </div>
+      </div>
 
-        {/* Accent Color Settings */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Accent Color</label>
-          <div className="flex gap-2 items-center">
-            <input
-              type="color"
-              defaultValue={settings?.accentColor || '#3B82F6'}
-              onBlur={(e) =>
-                updateSettings({ accentColor: e.target.value })
-              }
-              className="w-16 h-10 border rounded cursor-pointer"
-            />
-            <input
-              type="text"
-              defaultValue={settings?.accentColor || '#3B82F6'}
-              onBlur={(e) =>
-                updateSettings({ accentColor: e.target.value })
-              }
-              className="px-3 py-2 border rounded flex-1"
-            />
+      {/* Nút thao tác */}
+      <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+        {/* Hiển thị lỗi nếu có */}
+        {saveError && (
+          <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            {saveError}
           </div>
+        )}
+        {/* Hiển thị thông báo thành công */}
+        {saveSuccess && (
+          <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+            {saveSuccess}
+          </div>
+        )}
+        <div className="flex justify-end gap-3">
+          <Button
+            label="Hủy thay đổi"
+            onClick={handleDiscardSettings}
+            type="cancel"
+            disabled={isSaving}
+          />
+          <Button
+            label={isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+            onClick={handleSaveSettings}
+            disabled={isSaving || !hasSettingsChanges}
+          />
         </div>
       </div>
     </div>
