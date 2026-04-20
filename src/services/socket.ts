@@ -339,6 +339,7 @@ type ChatSendMessagePayload = {
     content: string;
     mediaUrl?: string;
     fileName?: string;
+    fileType?: string;
     fileSize?: number;
     replyToMessageId?: string;
     forwardedFromMessageId?: string;
@@ -486,6 +487,13 @@ type GroupInfoUpdatedPayload = {
     groupAvatar?: string;
     updatedBy: string;
     updatedAt: string;
+};
+
+type GroupCreatedPayload = {
+  groupId: string;
+  groupName: string;
+  createdBy: string;
+  createdAt: string;
 };
 
 type ConversationHiddenUpdatedPayload = {
@@ -1355,6 +1363,16 @@ export const onGroupInfoUpdated = (
 
 export const offGroupInfoUpdated = () => {
     chatSocketService.offGroupInfoUpdated();
+};
+
+export const onGroupCreated = (
+  cb: (payload: GroupCreatedPayload) => void,
+) => {
+  chatSocketService.onGroupCreated(cb);
+};
+
+export const offGroupCreated = () => {
+  chatSocketService.offGroupCreated();
 };
 
 export const onConversationHiddenUpdated = (
