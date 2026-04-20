@@ -64,8 +64,7 @@ import {
     offGroupJoinApprovalSettingUpdated,
     offGroupJoinRequestCreated,
     offGroupJoinRequestUpdated,
-    offGroupMemberJoined,
-    offGroupMemberLeft,
+    offGroupMemberChanged,
     onConversationHiddenUpdated,
     onConversationHistoryCleared,
     onGroupAdminTransferred,
@@ -74,8 +73,7 @@ import {
     onGroupJoinApprovalSettingUpdated,
     onGroupJoinRequestCreated,
     onGroupJoinRequestUpdated,
-    onGroupMemberJoined,
-    onGroupMemberLeft,
+    onGroupMemberChanged,
 } from '../../services/socket';
 import ChatAvatar from '../common/ChatAvatar';
 import { mapGroupManagementError } from '../../utils/groupManagementErrors';
@@ -211,6 +209,8 @@ export const ConversationGroupInfoPanel: React.FC<
         effectiveMyRole === 'co-admin' ||
         effectiveMyRole === 'leader' ||
         effectiveMyRole === 'deputy';
+    const isGroupOwner =
+        effectiveMyRole === 'admin' || effectiveMyRole === 'leader';
     const isCurrentUserMemberFromConversation = useMemo(
         () =>
             (selectedConversation?.participants || []).some(
@@ -235,6 +235,32 @@ export const ConversationGroupInfoPanel: React.FC<
                 ),
             ),
         [selectedConversation?.participants],
+    );
+
+    const transferableMembers = useMemo(
+        () => groupMembers.filter((member) => !member.isMe),
+        [groupMembers],
+    );
+
+    const normalizedMyTransferRole = useMemo(() => {
+        if (effectiveMyRole === 'leader') return 'admin';
+        if (effectiveMyRole === 'deputy') return 'co-admin';
+        if (effectiveMyRole === 'admin') return 'admin';
+        if (effectiveMyRole === 'co-admin') return 'co-admin';
+        return 'member';
+    }, [effectiveMyRole]);
+
+    const getMemberRoleLabel = useCallback((role: GroupMemberItem['role']) => {
+        if (role === 'admin') return 'Trưởng nhóm';
+        if (role === 'co-admin') return 'Phó nhóm';
+        return 'Thành viên';
+    }, []);
+
+    const isSameLevelTransferRole = useCallback(
+        (role: GroupMemberItem['role']) => {
+            return role === normalizedMyTransferRole;
+        },
+        [normalizedMyTransferRole],
     );
 
     const availableFriendOptions = useMemo(() => {
@@ -683,6 +709,13 @@ export const ConversationGroupInfoPanel: React.FC<
 
     const handleOpenLeaveGroupDialog = () => {
         void refreshGroupMembers();
+
+        if (isGroupOwner) {
+            setSelectedNewAdminId('');
+            setIsTransferAdminModalOpen(true);
+            return;
+        }
+
         setIsLeaveGroupDialogOpen(true);
     };
 
@@ -753,13 +786,42 @@ export const ConversationGroupInfoPanel: React.FC<
     };
 
     const handleLeaveGroup = async (newAdminUserId?: string) => {
-        void newAdminUserId;
         if (!conversationId || isLeavingGroup) return;
 
         try {
             setIsLeavingGroup(true);
+
+            if (isGroupOwner) {
+                if (!newAdminUserId) {
+                    setMediaActionError(
+                        'Vui lòng chọn thành viên để chuyển quyền quản trị trước khi rời nhóm',
+                    );
+                    return;
+                }
+
+                const selectedMember = transferableMembers.find(
+                    (member) => member.userId === newAdminUserId,
+                );
+                if (
+                    selectedMember &&
+                    isSameLevelTransferRole(selectedMember.role)
+                ) {
+                    setMediaActionError(
+                        'Không thể chuyển quyền cho thành viên cùng cấp với bạn',
+                    );
+                    return;
+                }
+
+                await groupManagementService.promoteToAdmin(
+                    conversationId,
+                    newAdminUserId,
+                );
+            }
+
             await conversationApi.leaveConversation(conversationId);
             setIsTransferAdminModalOpen(false);
+            setIsLeaveGroupDialogOpen(false);
+            onConversationRemoved?.(conversationId);
             window.location.href = '/chat';
         } catch (error) {
             const errorMessage =
@@ -781,6 +843,14 @@ export const ConversationGroupInfoPanel: React.FC<
                 isMe: item.userId === currentUserId,
             }));
             setGroupMembers(membersWithMe);
+            setGroupDetail((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          memberCount: membersWithMe.length,
+                      }
+                    : prev,
+            );
         } catch (error) {
             console.error('Failed to load group members:', error);
         }
@@ -872,27 +942,75 @@ export const ConversationGroupInfoPanel: React.FC<
             onConversationRemoved?.(payload.groupId);
         };
 
-        const handleMemberLeftRealtime = (payload: {
-            groupId: string;
-            userId: string;
+        const handleMemberChangedRealtime = (payload: {
+            type: 'join' | 'leave' | 'kick';
+            groupId?: string;
+            conversationId?: string;
+            userId?: string;
+            user?: {
+                userId: string;
+                fullName?: string | null;
+                avatarUrl?: string | null;
+            };
+            at: string;
+            groupDeleted?: boolean;
         }) => {
-            if (payload.groupId !== conversationId) return;
-            if (payload.userId === currentUserId) {
-                onConversationRemoved?.(payload.groupId);
+            const targetConversationId =
+                payload.groupId || payload.conversationId || conversationId;
+            if (targetConversationId !== conversationId) return;
+
+            const changedUserId = payload.userId || payload.user?.userId;
+            if (!changedUserId) return;
+
+            if (payload.type === 'leave' || payload.type === 'kick') {
+                if (changedUserId === currentUserId) {
+                    onConversationRemoved?.(targetConversationId);
+                    return;
+                }
+
+                setGroupMembers((prev) =>
+                    prev.filter((member) => member.userId !== changedUserId),
+                );
+                setGroupDetail((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              memberCount: Math.max(prev.memberCount - 1, 0),
+                          }
+                        : prev,
+                );
+                void refreshGroupMembers();
                 return;
             }
 
-            setGroupMembers((prev) =>
-                prev.filter((member) => member.userId !== payload.userId),
-            );
-            setGroupDetail((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          memberCount: Math.max(prev.memberCount - 1, 0),
-                      }
-                    : prev,
-            );
+            if (payload.type === 'join') {
+                setGroupDetail((prev) =>
+                    prev
+                        ? {
+                              ...prev,
+                              memberCount: Math.min(
+                                  prev.memberCount + 1,
+                                  prev.memberLimit,
+                              ),
+                          }
+                        : prev,
+                );
+
+                if (changedUserId === currentUserId) {
+                    setHasJustJoinedGroup(true);
+                    setGroupDetail((prev) =>
+                        prev
+                            ? {
+                                  ...prev,
+                                  isMember: true,
+                                  myJoinRequestStatus: 'approved',
+                              }
+                            : prev,
+                    );
+                }
+
+                void refreshGroupMembers();
+            }
         };
 
         const handleAdminTransferredRealtime = (payload: {
@@ -979,66 +1097,28 @@ export const ConversationGroupInfoPanel: React.FC<
             }
         };
 
-        const handleMemberJoinedRealtime = (payload: {
-            groupId: string;
-            userId: string;
-        }) => {
-            if (payload.groupId !== conversationId) return;
-
-            setGroupDetail((prev) =>
-                prev
-                    ? {
-                          ...prev,
-                          memberCount: Math.min(
-                              prev.memberCount + 1,
-                              prev.memberLimit,
-                          ),
-                      }
-                    : prev,
-            );
-
-            if (payload.userId === currentUserId) {
-                setHasJustJoinedGroup(true);
-                setGroupDetail((prev) =>
-                    prev
-                        ? {
-                              ...prev,
-                              isMember: true,
-                              myJoinRequestStatus: 'approved',
-                          }
-                        : prev,
-                );
-            }
-
-            if (isCurrentUserMember) {
-                void refreshGroupMembers();
-            }
-        };
-
         onGroupAutoDeleteUpdated(handleAutoDeleteRealtime);
         onConversationHiddenUpdated(handleHiddenRealtime);
         onConversationHistoryCleared(handleHistoryClearedRealtime);
         onGroupDissolved(handleGroupDissolvedRealtime);
-        onGroupMemberLeft(handleMemberLeftRealtime);
+        onGroupMemberChanged(handleMemberChangedRealtime);
         onGroupAdminTransferred(handleAdminTransferredRealtime);
         onGroupJoinApprovalSettingUpdated(
             handleJoinApprovalSettingUpdatedRealtime,
         );
         onGroupJoinRequestCreated(handleJoinRequestCreatedRealtime);
         onGroupJoinRequestUpdated(handleJoinRequestUpdatedRealtime);
-        onGroupMemberJoined(handleMemberJoinedRealtime);
 
         return () => {
             offGroupAutoDeleteUpdated();
             offConversationHiddenUpdated();
             offConversationHistoryCleared();
             offGroupDissolved();
-            offGroupMemberLeft();
+            offGroupMemberChanged();
             offGroupAdminTransferred();
             offGroupJoinApprovalSettingUpdated();
             offGroupJoinRequestCreated();
             offGroupJoinRequestUpdated();
-            offGroupMemberJoined();
         };
     }, [
         canReviewJoinRequests,
@@ -1046,7 +1126,6 @@ export const ConversationGroupInfoPanel: React.FC<
         currentUserId,
         displayMessages,
         groupSettings.approveNewMembers,
-        isCurrentUserMember,
         onConversationRemoved,
         refreshGroupMembers,
     ]);
@@ -1222,7 +1301,7 @@ export const ConversationGroupInfoPanel: React.FC<
     const groupAvatar =
         selectedConversation?.groupInfo?.groupAvatar || undefined;
     const memberCount =
-        groupDetail?.memberCount ||
+        groupDetail?.memberCount ??
         (groupMembers.length > 0
             ? groupMembers.length
             : selectedConversation?.participants?.length || 0);
@@ -1276,46 +1355,96 @@ export const ConversationGroupInfoPanel: React.FC<
                         </p>
 
                         <div className="max-h-56 overflow-y-auto flex flex-col gap-2">
-                            {groupMembers.map((member) => (
-                                <label
-                                    key={member.userId}
-                                    className="flex items-center gap-3 p-2 rounded-lg border border-slate-200 cursor-pointer"
-                                >
-                                    <input
-                                        type="radio"
-                                        name="new-admin"
-                                        checked={
-                                            selectedNewAdminId === member.userId
-                                        }
-                                        onChange={() =>
-                                            setSelectedNewAdminId(member.userId)
-                                        }
-                                    />
-                                    <ChatAvatar
-                                        name={member.fullName || member.userId}
-                                        avatarUrl={
-                                            member.avatarUrl || undefined
-                                        }
-                                        sizeClassName="w-10 h-10"
-                                    />
-                                    <span className="text-sm text-gray-primary">
-                                        {member.fullName || member.userId}
-                                    </span>
-                                </label>
-                            ))}
+                            {transferableMembers.length === 0 ? (
+                                <div className="rounded-lg border border-slate-200 p-3 text-sm text-gray-500">
+                                    Chưa có thành viên nào khác để chuyển quyền.
+                                </div>
+                            ) : (
+                                transferableMembers.map((member) =>
+                                    (() => {
+                                        const isSameLevel =
+                                            isSameLevelTransferRole(
+                                                member.role,
+                                            );
+
+                                        return (
+                                            <label
+                                                key={member.userId}
+                                                className={`flex items-center gap-3 p-2 rounded-lg border border-slate-200 ${
+                                                    isSameLevel
+                                                        ? 'cursor-not-allowed opacity-60 bg-slate-50'
+                                                        : 'cursor-pointer'
+                                                }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="new-admin"
+                                                    disabled={isSameLevel}
+                                                    checked={
+                                                        selectedNewAdminId ===
+                                                        member.userId
+                                                    }
+                                                    onChange={() => {
+                                                        if (isSameLevel) return;
+                                                        setSelectedNewAdminId(
+                                                            member.userId,
+                                                        );
+                                                    }}
+                                                />
+                                                <ChatAvatar
+                                                    name={
+                                                        member.fullName ||
+                                                        member.userId
+                                                    }
+                                                    avatarUrl={
+                                                        member.avatarUrl ||
+                                                        undefined
+                                                    }
+                                                    sizeClassName="w-10 h-10"
+                                                />
+                                                <div className="flex min-w-0 flex-1 flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm text-gray-primary truncate">
+                                                            {member.fullName ||
+                                                                member.userId}
+                                                        </span>
+                                                        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                                                            {getMemberRoleLabel(
+                                                                member.role,
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                    {isSameLevel && (
+                                                        <span className="text-[11px] text-red-500">
+                                                            Không thể chuyển
+                                                            quyền cho người cùng
+                                                            cấp với bạn
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </label>
+                                        );
+                                    })(),
+                                )
+                            )}
                         </div>
 
                         <div className="flex items-center justify-end gap-2">
                             <button
-                                onClick={() =>
-                                    setIsTransferAdminModalOpen(false)
-                                }
+                                onClick={() => {
+                                    setSelectedNewAdminId('');
+                                    setIsTransferAdminModalOpen(false);
+                                }}
                                 className="px-4 py-2 rounded-lg border border-slate-200"
                             >
                                 Hủy
                             </button>
                             <button
-                                disabled={!selectedNewAdminId || isLeavingGroup}
+                                disabled={
+                                    !selectedNewAdminId ||
+                                    isLeavingGroup ||
+                                    transferableMembers.length === 0
+                                }
                                 onClick={() =>
                                     handleLeaveGroup(selectedNewAdminId)
                                 }
@@ -1411,7 +1540,7 @@ export const ConversationGroupInfoPanel: React.FC<
                     <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
                         <div className="flex items-center justify-between">
                             <span className="font-semibold text-gray-primary">
-                                Images/Video
+                                Images
                             </span>
                             <button
                                 onClick={() => toggleSection('images')}
