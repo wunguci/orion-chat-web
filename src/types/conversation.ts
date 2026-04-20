@@ -115,6 +115,13 @@ export interface LastMessage {
     createdAt?: Date | string;
     messageStatus?: MessageStatus;
     isRecalled?: boolean;
+    callData?: {
+        callType?: 'audio' | 'video';
+        callStatus?: 'missed' | 'declined' | 'completed';
+        duration?: number;
+        isInitiator?: boolean;
+        wasRejected?: boolean;
+    };
 }
 
 export interface GroupInfo {

@@ -1,6 +1,5 @@
 import React from 'react';
 import { CiCircleList, CiPhone, CiSearch, CiVideoOn } from 'react-icons/ci';
-import { FaUsers } from 'react-icons/fa';
 import { Pencil } from 'lucide-react';
 import GroupAvatar from './GroupAvatar';
 import ChatAvatar from '../common/ChatAvatar';
@@ -20,7 +19,8 @@ type ChatHeaderProps = {
     disableCallButtons?: boolean;
     onAudioCall?: () => void;
     onVideoCall?: () => void;
-    onGroupCall?: () => void;
+    onGroupAudioCall?: () => void;
+    onGroupVideoCall?: () => void;
     onSearchClick?: () => void;
     onPanelToggle?: () => void;
     onIdentityClick?: () => void;
@@ -38,7 +38,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     disableCallButtons = false,
     onAudioCall,
     onVideoCall,
-    onGroupCall,
+    onGroupAudioCall,
+    onGroupVideoCall,
     onSearchClick,
     onPanelToggle,
     onIdentityClick,
@@ -90,7 +91,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     <button
                         type="button"
                         onClick={onEditGroupClick || onIdentityClick}
-                        className="rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                        className="cursor-pointer rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
                         title="Chỉnh sửa nhóm"
                     >
                         <Pencil className="h-4 w-4" />
@@ -98,23 +99,23 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 )}
             </div>
             <div className="flex items-center gap-3 text-slate-300">
-                {/* Group call button - for group chats */}
+                {/* Audio call button */}
                 {isGroupChat ? (
                     <button
                         className={`p-1 rounded transition-colors ${
                             isCallDisabled
                                 ? 'opacity-50 cursor-not-allowed bg-slate-100'
-                                : 'hover:bg-slate-200 text-gray-primary'
+                                : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
                         }`}
                         disabled={isCallDisabled}
-                        onClick={onGroupCall}
+                        onClick={onGroupAudioCall}
                         title={
                             isCallDisabled
                                 ? 'Unable to call because you are blocked.'
-                                : 'Group Video Call'
+                                : 'Group Audio Call'
                         }
                     >
-                        <FaUsers className="w-4 h-4" />
+                        <CiPhone className="w-5 h-5" />
                     </button>
                 ) : (
                     <>
@@ -123,7 +124,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                             className={`p-1 rounded transition-colors ${
                                 isBlocked
                                     ? 'opacity-50 cursor-not-allowed bg-slate-100'
-                                    : 'hover:bg-slate-200 text-gray-primary'
+                                    : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
                             }`}
                             disabled={isCallDisabled}
                             onClick={onAudioCall}
@@ -139,7 +140,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 )}
                 <button
                     onClick={onSearchClick}
-                    className="p-1 hover:bg-slate-200 rounded text-gray-primary"
+                    className="cursor-pointer p-1 hover:bg-slate-200 rounded text-gray-primary"
                     title="Tìm kiếm tin nhắn"
                 >
                     <CiSearch className="w-5 h-5" />
@@ -147,12 +148,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 {/* Video call button - disabled if blocked */}
                 <button
                     className={`p-1 rounded transition-colors ${
-                        isBlocked
+                        isCallDisabled
                             ? 'opacity-50 cursor-not-allowed bg-slate-100'
-                            : 'hover:bg-slate-200 text-gray-primary'
+                            : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
                     }`}
                     disabled={isCallDisabled}
-                    onClick={isGroupChat ? onGroupCall : onVideoCall}
+                    onClick={isGroupChat ? onGroupVideoCall : onVideoCall}
                     title={
                         isCallDisabled
                             ? 'Unable to video call because you are blocked.'
@@ -165,7 +166,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 </button>
                 <button
                     onClick={onPanelToggle}
-                    className="p-1 hover:bg-slate-200 rounded text-gray-primary"
+                    className="cursor-pointer p-1 hover:bg-slate-200 rounded text-gray-primary"
                     title="Thông tin hội thoại"
                 >
                     <CiCircleList className="w-5 h-5" />

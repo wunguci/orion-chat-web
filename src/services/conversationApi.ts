@@ -109,6 +109,20 @@ type SendFileResponse = {
         | 'file-text';
 };
 
+type UpdateGroupNameResponse = {
+    groupId: string;
+    groupName: string;
+    updatedBy: string;
+    updatedAt: string;
+};
+
+type UpdateGroupAvatarResponse = {
+    groupId: string;
+    groupAvatar: string;
+    updatedBy: string;
+    updatedAt: string;
+};
+
 class ConversationApiService {
     private api: AxiosInstance;
     private readonly messagesBaseUrl = `${API_BASE_URL}/messages`;
@@ -216,10 +230,42 @@ class ConversationApiService {
         return response.data;
     }
 
+    async transferGroupAdmin(groupId: string, targetUserId: string) {
+        const response = await this.api.patch(
+            `${API_BASE_URL}/groups/${groupId}/admin-transfer`,
+            {
+                targetUserId,
+            },
+        );
+        return response.data;
+    }
+
+    async removeGroupMember(groupId: string, userId: string) {
+        const response = await this.api.delete(
+            `${API_BASE_URL}/groups/${groupId}/members/${userId}`,
+        );
+        return response.data;
+    }
+
+    async updateGroupMemberRole(
+        groupId: string,
+        userId: string,
+        role: 'co-admin' | 'member',
+    ) {
+        const response = await this.api.patch(
+            `${API_BASE_URL}/groups/${groupId}/members/${userId}/role`,
+            {
+                role,
+            },
+        );
+        return response.data;
+    }
+
     async getGroupMembers(groupId: string): Promise<{
         items: Array<{
             userId: string;
             fullName: string | null;
+            phoneNumber?: string | null;
             avatarUrl: string | null;
             role: 'admin' | 'co-admin' | 'member';
             joinedAt: string;
@@ -252,6 +298,38 @@ class ConversationApiService {
             `${API_BASE_URL}/groups/${groupId}/settings/auto-delete`,
             {
                 autoDeleteDuration,
+            },
+        );
+        return response.data;
+    }
+
+    async updateGroupName(
+        groupId: string,
+        groupName: string,
+    ): Promise<UpdateGroupNameResponse> {
+        const response = await this.api.patch<UpdateGroupNameResponse>(
+            `${API_BASE_URL}/groups/${groupId}/name`,
+            {
+                groupName,
+            },
+        );
+        return response.data;
+    }
+
+    async updateGroupAvatar(
+        groupId: string,
+        file: File,
+    ): Promise<UpdateGroupAvatarResponse> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await this.api.patch<UpdateGroupAvatarResponse>(
+            `${API_BASE_URL}/groups/${groupId}/avatar`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             },
         );
         return response.data;

@@ -38,6 +38,7 @@ interface MainContentProps {
   onDeclineFriendRequest: (requestId: string) => Promise<void>;
   onAcceptGroupInvite: (inviteId: string) => Promise<void>;
   onDeclineGroupInvite: (inviteId: string) => Promise<void>;
+  onOpenGroupChat?: (groupId: string) => void;
 }
 
 const MainContent: React.FC<MainContentProps> = ({
@@ -59,6 +60,7 @@ const MainContent: React.FC<MainContentProps> = ({
   onDeclineFriendRequest,
   onAcceptGroupInvite,
   onDeclineGroupInvite,
+  onOpenGroupChat,
 }) => {
   const [searchResult, setSearchResult] = useState<Friend | null>(null);
   const [sendingSuggestionIds, setSendingSuggestionIds] = useState<Set<string>>(
@@ -226,7 +228,11 @@ const MainContent: React.FC<MainContentProps> = ({
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredGroups.map((group) => (
-                <GroupCard key={group.id} group={group} />
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  onOpen={onOpenGroupChat}
+                />
               ))}
             </div>
           </section>

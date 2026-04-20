@@ -1,12 +1,24 @@
 /* eslint-disable no-useless-catch */
-import React, { useEffect, useState, useMemo } from 'react';
-import { Image, Lock, Pin, UserRoundPlus } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import {
+    Image,
+    Lock,
+    Phone,
+    PhoneOff,
+    Pin,
+    UserPlus,
+    UsersRound,
+    UserRoundPlus,
+    Video,
+} from 'lucide-react';
 import { getCurrentUserId } from '../../utils/auth';
 import type { ConversationView } from '../../types/conversation';
 import { RevealConversationModal } from './RevealConversationModal';
 import { conversationApi } from '../../services/conversationApi';
 import { groupManagementService } from '../../services/groupManagementService';
 import ChatAvatar from '../common/ChatAvatar';
+import GroupAvatar from './GroupAvatar';
+import { onGroupInfoUpdated, offGroupInfoUpdated } from '../../services/socket';
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -37,6 +49,8 @@ interface ChatSidebarProps {
     loading?: boolean;
     error?: string | null;
     onNewConversation?: () => void;
+    onAddFriendClick?: () => void;
+    onCreateGroupClick?: () => void;
     onConversationRevealed?: (conversationId: string) => void;
 }
 
@@ -47,6 +61,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     loading = false,
     error = null,
     onNewConversation,
+    onAddFriendClick,
+    onCreateGroupClick,
     onConversationRevealed,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
@@ -72,6 +88,64 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     });
 
     const currentUserId = getCurrentUserId();
+    const [groupInfoOverrides, setGroupInfoOverrides] = useState<
+        Record<string, { groupName?: string; groupAvatar?: string }>
+    >({});
+
+    useEffect(() => {
+        const handleGroupInfoUpdatedRealtime = (payload: {
+            groupId: string;
+            groupName?: string;
+            groupAvatar?: string;
+        }) => {
+            setGroupInfoOverrides((prev) => {
+                const previousForGroup = prev[payload.groupId] || {};
+
+                return {
+                    ...prev,
+                    [payload.groupId]: {
+                        ...previousForGroup,
+                        ...(payload.groupName
+                            ? { groupName: payload.groupName }
+                            : {}),
+                        ...(payload.groupAvatar
+                            ? {
+                                  groupAvatar: toAbsoluteMediaUrl(
+                                      payload.groupAvatar,
+                                  ),
+                              }
+                            : {}),
+                    },
+                };
+            });
+        };
+
+        onGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
+        return () => {
+            offGroupInfoUpdated(handleGroupInfoUpdatedRealtime);
+        };
+    }, []);
+
+    const getEffectiveGroupInfo = useCallback(
+        (conversation: ConversationView) => {
+            if (conversation.type !== 'GROUP') {
+                return null;
+            }
+
+            const override = groupInfoOverrides[conversation.conversationId];
+
+            return {
+                groupName:
+                    override?.groupName ||
+                    conversation.groupInfo?.groupName ||
+                    'Group Chat',
+                groupAvatar:
+                    override?.groupAvatar ||
+                    toAbsoluteMediaUrl(conversation.groupInfo?.groupAvatar),
+            };
+        },
+        [groupInfoOverrides],
+    );
 
     useEffect(() => {
         const handleUnreadByConversation = (event: Event) => {
@@ -110,7 +184,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         const filtered = conversations.filter((conv) => {
             const conversationName =
                 conv.type === 'GROUP'
-                    ? conv.groupInfo?.groupName || 'Group Chat'
+                    ? getEffectiveGroupInfo(conv)?.groupName || 'Group Chat'
                     : conv.participants.find((p) => p.userId !== currentUserId)
                           ?.fullName || 'Unknown';
 
@@ -146,11 +220,11 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             const dateB = new Date(b.lastMessage?.createdAt || 0).getTime();
             return dateB - dateA; // Newer messages first
         });
-    }, [conversations, searchQuery, currentUserId]);
+    }, [conversations, searchQuery, currentUserId, getEffectiveGroupInfo]);
 
     const getConversationDisplayName = (conversation: ConversationView) => {
-        if (conversation.type === 'GROUP' && conversation.groupInfo) {
-            return conversation.groupInfo.groupName;
+        if (conversation.type === 'GROUP') {
+            return getEffectiveGroupInfo(conversation)?.groupName || 'Group Chat';
         }
 
         // For private conversations, show the other participant's name
@@ -163,8 +237,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     const getConversationAvatar = (
         conversation: ConversationView,
     ): string | undefined => {
-        if (conversation.type === 'GROUP' && conversation.groupInfo) {
-            return toAbsoluteMediaUrl(conversation.groupInfo.groupAvatar);
+        if (conversation.type === 'GROUP') {
+            return getEffectiveGroupInfo(conversation)?.groupAvatar;
         }
 
         const otherParticipant = conversation.participants.find(
@@ -178,7 +252,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             return 'Không có tin nhắn';
         }
 
-        const { content, senderBy, messageType, isRecalled } =
+        const { content, senderBy, messageType, isRecalled, callData } =
             conversation.lastMessage;
 
         // Ưu tiên hiển thị trạng thái thu hồi nếu backend hoặc state local đã đánh dấu.
@@ -204,6 +278,49 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 >
                     <Image className="w-4 h-4" />
                     Image
+                </span>
+            );
+        }
+
+        if (
+            messageType === 'CALL' ||
+            messageType === 'call' ||
+            (conversation.lastMessage.callData && !content)
+        ) {
+            const isMe = senderBy === currentUserId;
+            const callStatus = callData?.callStatus || 'completed';
+            const callType = callData?.callType || 'audio';
+
+            const getCallPreviewInfo = () => {
+                if (callStatus === 'completed') {
+                    return {
+                        text: `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} ${isMe ? 'đi' : 'đến'}`,
+                        Icon: callType === 'video' ? Video : Phone,
+                        colorClass: 'text-green-600',
+                    };
+                }
+
+                if (callStatus === 'missed') {
+                    return {
+                        text: isMe ? 'Bạn đã hủy' : 'Bạn bị nhỡ',
+                        Icon: PhoneOff,
+                        colorClass: 'text-red-500',
+                    };
+                }
+
+                return {
+                    text: isMe ? 'Người nhận từ chối' : 'Bạn đã từ chối',
+                    Icon: PhoneOff,
+                    colorClass: 'text-orange-500',
+                };
+            };
+
+            const preview = getCallPreviewInfo();
+
+            return (
+                <span className={`inline-flex items-center gap-1 ${preview.colorClass}`}>
+                    <preview.Icon className="h-3.5 w-3.5" />
+                    <span className="truncate">{preview.text}</span>
                 </span>
             );
         }
@@ -315,15 +432,35 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-bold text-gray-900">Messages</h2>
-                {onNewConversation && (
+                <div className="flex items-center gap-2">
                     <button
-                        onClick={onNewConversation}
-                        className="rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700"
-                        title="New conversation"
+                        type="button"
+                        onClick={onAddFriendClick}
+                        className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
+                        title="Thêm bạn bè"
                     >
-                        ✎
+                        <UserPlus size={16} />
                     </button>
-                )}
+
+                    <button
+                        type="button"
+                        onClick={onCreateGroupClick}
+                        className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
+                        title="Tạo nhóm"
+                    >
+                        <UsersRound size={16} />
+                    </button>
+
+                    {onNewConversation && (
+                        <button
+                            onClick={onNewConversation}
+                            className="cursor-pointer rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700"
+                            title="New conversation"
+                        >
+                            ✎
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Search box + join group button */}
@@ -445,15 +582,30 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                         <div className="flex items-start gap-3">
                                             {/* Avatar */}
                                             <div className="relative">
-                                                <ChatAvatar
-                                                    name={getConversationDisplayName(
-                                                        conversation,
-                                                    )}
-                                                    avatarUrl={getConversationAvatar(
-                                                        conversation,
-                                                    )}
-                                                    sizeClassName="h-10 w-10"
-                                                />
+                                                {conversation.type === 'GROUP' ? (
+                                                    <GroupAvatar
+                                                        name={getConversationDisplayName(
+                                                            conversation,
+                                                        )}
+                                                        avatarUrl={getConversationAvatar(
+                                                            conversation,
+                                                        )}
+                                                        members={
+                                                            conversation.participants
+                                                        }
+                                                        size={40}
+                                                    />
+                                                ) : (
+                                                    <ChatAvatar
+                                                        name={getConversationDisplayName(
+                                                            conversation,
+                                                        )}
+                                                        avatarUrl={getConversationAvatar(
+                                                            conversation,
+                                                        )}
+                                                        sizeClassName="h-10 w-10"
+                                                    />
+                                                )}
                                                 {/* ✅ Pin indicator */}
                                                 {conversation.myIsPinned && (
                                                     <div className="absolute -right-1 -bottom-1 bg-green-500 rounded-full p-1 shadow-sm border border-white">

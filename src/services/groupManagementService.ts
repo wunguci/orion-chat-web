@@ -167,9 +167,9 @@ export const groupManagementService = {
      * Promote member to co-admin (deputy role)
      */
     promoteToCoAdmin: async (groupId: string, userId: string) => {
-        const response = await api.post(
-            `/groups/${groupId}/members/${userId}/promote`,
-        );
+        const response = await api.patch(`/groups/${groupId}/members/${userId}/role`, {
+            role: 'co-admin',
+        });
         return unwrapApiPayload(response);
     },
 
@@ -202,7 +202,7 @@ export const groupManagementService = {
      * Disband group (owner only)
      */
     disbandGroup: async (groupId: string) => {
-        const response = await api.delete(`/groups/${groupId}`);
+        const response = await api.post(`/groups/${groupId}/dissolve`);
         return unwrapApiPayload(response);
     },
 };
