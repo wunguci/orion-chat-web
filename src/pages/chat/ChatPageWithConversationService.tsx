@@ -523,6 +523,39 @@ export const ChatPage: React.FC = () => {
 
   const toSocketMessage = useCallback(
     (payload: IncomingSocketPayload): ChatSocketMessage => {
+      // Helper function to determine file icon from file extension
+      const getFileIconFromExtension = (
+        fileName?: string,
+        fileType?: string
+      ): ChatSocketMessage["fileIcon"] => {
+        if (!fileName && !fileType) return undefined;
+
+        const ext = fileName?.split(".").pop()?.toLowerCase() || "";
+        const mimeType = fileType?.toLowerCase() || "";
+
+        // Check MIME type first
+        if (mimeType.startsWith("image/")) return "image";
+        if (mimeType.startsWith("video/")) return "video";
+        if (mimeType.startsWith("audio/")) return "audio";
+
+        // Check file extension
+        const pdfExts = ["pdf"];
+        const wordExts = ["doc", "docx", "dot", "dotx"];
+        const excelExts = ["xls", "xlsx", "xlt", "xltx", "csv"];
+        const powerpointExts = ["ppt", "pptx", "pot", "potx"];
+        const archiveExts = ["zip", "rar", "7z", "tar", "gz", "bz2"];
+        const textExts = ["txt", "md", "json", "xml", "yaml", "yml", "log"];
+
+        if (pdfExts.includes(ext)) return "file-pdf";
+        if (wordExts.includes(ext)) return "file-word";
+        if (excelExts.includes(ext)) return "file-excel";
+        if (powerpointExts.includes(ext)) return "file-powerpoint";
+        if (archiveExts.includes(ext)) return "file-archive";
+        if (textExts.includes(ext)) return "file-text";
+
+        return undefined;
+      };
+
       const messageType = payload?.messageType || payload?.type;
       const normalizedType = String(messageType || "").toLowerCase();
       const resolvedType: ChatSocketMessage["type"] =
@@ -587,6 +620,12 @@ export const ChatPage: React.FC = () => {
           payload?.fileType ||
           payload?.mimeType ||
           (isImageType ? "image/*" : isVideoType ? "video/*" : undefined),
+        fileIcon: getFileIconFromExtension(
+          payload?.fileName ||
+            (payload as { originalName?: string })?.originalName ||
+            (payload as { filename?: string })?.filename,
+          payload?.fileType || payload?.mimeType
+        ),
         isRecalled: payload?.isRecalled || payload?.isDeleted,
         isPinned: payload?.isPinned,
         pinnedAt: payload?.pinnedAt,
@@ -2030,6 +2069,7 @@ export const ChatPage: React.FC = () => {
         (m as { fileUrl?: string }).fileUrl ||
         attachment?.mediaUrl;
       const mimeType = m.mimeType || attachment?.mimeType;
+      const fileName = m.fileName || attachment?.fileName;
       const messageType =
         m.messageType ||
         (mimeType?.startsWith("image/")
@@ -2041,6 +2081,39 @@ export const ChatPage: React.FC = () => {
               : mediaUrl
                 ? "file"
                 : "text");
+
+      // Helper function to determine file icon from file extension
+      const getFileIconFromExtension = (
+        fileName?: string,
+        fileType?: string
+      ): ChatSocketMessage["fileIcon"] => {
+        if (!fileName && !fileType) return undefined;
+
+        const ext = fileName?.split(".").pop()?.toLowerCase() || "";
+        const mimeTypeLocal = fileType?.toLowerCase() || "";
+
+        // Check MIME type first
+        if (mimeTypeLocal.startsWith("image/")) return "image";
+        if (mimeTypeLocal.startsWith("video/")) return "video";
+        if (mimeTypeLocal.startsWith("audio/")) return "audio";
+
+        // Check file extension
+        const pdfExts = ["pdf"];
+        const wordExts = ["doc", "docx", "dot", "dotx"];
+        const excelExts = ["xls", "xlsx", "xlt", "xltx", "csv"];
+        const powerpointExts = ["ppt", "pptx", "pot", "potx"];
+        const archiveExts = ["zip", "rar", "7z", "tar", "gz", "bz2"];
+        const textExts = ["txt", "md", "json", "xml", "yaml", "yml", "log"];
+
+        if (pdfExts.includes(ext)) return "file-pdf";
+        if (wordExts.includes(ext)) return "file-word";
+        if (excelExts.includes(ext)) return "file-excel";
+        if (powerpointExts.includes(ext)) return "file-powerpoint";
+        if (archiveExts.includes(ext)) return "file-archive";
+        if (textExts.includes(ext)) return "file-text";
+
+        return undefined;
+      };
 
       return {
         id:
@@ -2070,7 +2143,7 @@ export const ChatPage: React.FC = () => {
           messageType === "video" ||
           messageType === "audio",
         fileUrl: mediaUrl,
-        fileName: m.fileName || attachment?.fileName,
+        fileName: fileName,
         fileType:
           mimeType ||
           (messageType === "IMAGE" || messageType === "image"
@@ -2080,6 +2153,7 @@ export const ChatPage: React.FC = () => {
               : messageType === "AUDIO" || messageType === "audio"
                 ? "audio/*"
                 : undefined),
+        fileIcon: getFileIconFromExtension(fileName, mimeType),
         // Backend may return either isRevoked or recalled depending on endpoint shape.
         isRecalled:
           m.isRevoked === true ||

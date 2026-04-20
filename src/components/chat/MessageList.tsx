@@ -344,7 +344,6 @@ export const MessageList: React.FC<{
       }
     }
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [socketMessages, currentUserId]);
 
   // Map từng message gốc → index trong allImages (để mở ImageViewer đúng)
@@ -380,92 +379,227 @@ export const MessageList: React.FC<{
     const imgClass =
       "w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity";
 
+    const renderActionMenu = (m: SocketMessage) => (
+      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-40">
+        <button
+          onClick={() =>
+            setOpenActionMenuKey((prev) => (prev === m.id ? null : m.id))
+          }
+          className="w-6 h-6 rounded-full bg-white/80 text-slate-600 hover:bg-white transition-colors text-xs flex items-center justify-center"
+          title="Tùy chọn"
+        >
+          ⋮
+        </button>
+        {openActionMenuKey === m.id && (
+          <div className="absolute top-7 right-0 z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-40">
+            {isMe && (
+              <button
+                onClick={() => {
+                  onRecallMessage?.(m);
+                  setOpenActionMenuKey(null);
+                }}
+                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
+              >
+                <Undo2Icon size={16} className="inline mr-2" />
+                Thu hồi
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                onReplyMessage?.(m);
+                setOpenActionMenuKey(null);
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
+            >
+              <Reply size={16} className="inline mr-2" />
+              Trả lời
+            </button>
+
+            <button
+              onClick={() => {
+                onTogglePinMessage?.(m, !m.isPinned);
+                setOpenActionMenuKey(null);
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
+            >
+              {m.isPinned ? (
+                <>
+                  <PinOff size={16} className="inline mr-2" />
+                  Bỏ ghim
+                </>
+              ) : (
+                <>
+                  <Pin size={16} className="inline mr-2" />
+                  Ghim tin nhắn
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                onDeleteMessage?.(m);
+                setOpenActionMenuKey(null);
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
+            >
+              <Trash2 size={16} className="inline mr-2" />
+              Xóa
+            </button>
+
+            <button
+              onClick={() => {
+                onForwardMessage?.(m);
+                setOpenActionMenuKey(null);
+              }}
+              className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <ArrowRight size={16} className="inline mr-2" />
+              Chuyển tiếp
+            </button>
+          </div>
+        )}
+      </div>
+    );
+
+    const renderEmojiPicker = (m: SocketMessage) => (
+      <div className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-40">
+        <div className="relative group/emoji">
+          <button
+            className="w-6 h-6 rounded-full bg-white border border-slate-300 text-sm flex items-center justify-center hover:scale-110 transition-transform"
+            title="Thêm cảm xúc"
+          >
+            😊
+          </button>
+
+          <div
+            className={`absolute bottom-7 right-0 opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible transition-all duration-150 z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-2 pointer-events-auto`}
+          >
+            <div className="grid grid-cols-6 w-40">
+              {EMOJI_LIST.map((e) => (
+                <button
+                  key={e}
+                  className="text-lg hover:scale-125 transition-transform hover:bg-slate-100 rounded p-0.5"
+                  onClick={() => onReactMessage?.(m, e)}
+                  title={e}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
     if (count === 2) {
       return (
-        <div className="grid grid-cols-2 gap-0.5 rounded-2xl overflow-hidden max-w-sm">
-          {visibleMsgs.map((m) => {
-            const idx = imageIndexMap.get(m.clientMessageId || m.id) ?? 0;
-            return (
-              <div key={m.id} className="aspect-square overflow-hidden">
-                <img
-                  src={resolveUrl(m.fileUrl!)}
-                  alt={m.fileName}
-                  className={imgClass}
-                  onClick={() => setViewerIndex(idx)}
-                />
-              </div>
-            );
-          })}
+        <div className="relative overflow-visible">
+          <div className="grid grid-cols-2 gap-0.5 rounded-2xl overflow-hidden max-w-sm">
+            {visibleMsgs.map((m) => {
+              const idx = imageIndexMap.get(m.clientMessageId || m.id) ?? 0;
+              return (
+                <div
+                  key={m.id}
+                  className="aspect-square overflow-hidden relative group"
+                >
+                  <img
+                    src={resolveUrl(m.fileUrl!)}
+                    alt={m.fileName}
+                    className={imgClass}
+                    onClick={() => setViewerIndex(idx)}
+                  />
+                  {renderActionMenu(m)}
+                  {renderEmojiPicker(m)}
+                </div>
+              );
+            })}
+          </div>
         </div>
       );
     }
 
     if (count === 3) {
       return (
-        <div
-          className="grid grid-cols-2 gap-0.5 rounded-2xl overflow-hidden max-w-sm"
-          style={{ gridTemplateRows: "160px 160px" }}
-        >
-          <div className="row-span-2 overflow-hidden">
-            {(() => {
-              const m = visibleMsgs[0];
+        <div className="relative overflow-visible">
+          <div
+            className="grid grid-cols-2 gap-0.5 rounded-2xl overflow-hidden max-w-sm"
+            style={{ gridTemplateRows: "160px 160px" }}
+          >
+            <div className="row-span-2 overflow-hidden relative group">
+              {(() => {
+                const m = visibleMsgs[0];
+                const idx = imageIndexMap.get(m.clientMessageId || m.id) ?? 0;
+                return (
+                  <>
+                    <img
+                      src={resolveUrl(m.fileUrl!)}
+                      alt={m.fileName}
+                      className={`${imgClass} h-full`}
+                      onClick={() => setViewerIndex(idx)}
+                    />
+                    {renderActionMenu(m)}
+                    {renderEmojiPicker(m)}
+                  </>
+                );
+              })()}
+            </div>
+            {visibleMsgs.slice(1).map((m) => {
               const idx = imageIndexMap.get(m.clientMessageId || m.id) ?? 0;
               return (
-                <img
-                  src={resolveUrl(m.fileUrl!)}
-                  alt={m.fileName}
-                  className={`${imgClass} h-full`}
-                  onClick={() => setViewerIndex(idx)}
-                />
+                <div key={m.id} className="overflow-hidden relative group">
+                  <img
+                    src={resolveUrl(m.fileUrl!)}
+                    alt={m.fileName}
+                    className={`${imgClass} h-40`}
+                    onClick={() => setViewerIndex(idx)}
+                  />
+                  {renderActionMenu(m)}
+                  {renderEmojiPicker(m)}
+                </div>
               );
-            })()}
+            })}
           </div>
-          {visibleMsgs.slice(1).map((m) => {
-            const idx = imageIndexMap.get(m.clientMessageId || m.id) ?? 0;
-            return (
-              <div key={m.id} className="overflow-hidden">
-                <img
-                  src={resolveUrl(m.fileUrl!)}
-                  alt={m.fileName}
-                  className={`${imgClass} h-40`}
-                  onClick={() => setViewerIndex(idx)}
-                />
-              </div>
-            );
-          })}
         </div>
       );
     }
 
     // 4 hoặc 5+ ảnh: grid 3 cột
     return (
-      <div
-        className={`grid gap-0.5 rounded-2xl overflow-hidden max-w-sm ${count === 4 ? "grid-cols-2" : "grid-cols-3"}`}
-      >
-        {visibleMsgs.map((m, pos) => {
-          const idx = imageIndexMap.get(m.clientMessageId || m.id) ?? 0;
-          const isLast = pos === visibleMsgs.length - 1 && hiddenCount > 0;
-          return (
-            <div key={m.id} className="relative aspect-square overflow-hidden">
-              <img
-                src={resolveUrl(m.fileUrl!)}
-                alt={m.fileName}
-                className={imgClass}
-                onClick={() => setViewerIndex(idx)}
-              />
-              {isLast && (
-                <div
-                  className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer"
+      <div className="relative overflow-visible">
+        <div
+          className={`grid gap-0.5 rounded-2xl overflow-hidden max-w-sm ${count === 4 ? "grid-cols-2" : "grid-cols-3"}`}
+        >
+          {visibleMsgs.map((m, pos) => {
+            const idx = imageIndexMap.get(m.clientMessageId || m.id) ?? 0;
+            const isLast = pos === visibleMsgs.length - 1 && hiddenCount > 0;
+            return (
+              <div
+                key={m.id}
+                className="relative aspect-square overflow-hidden group"
+              >
+                <img
+                  src={resolveUrl(m.fileUrl!)}
+                  alt={m.fileName}
+                  className={imgClass}
                   onClick={() => setViewerIndex(idx)}
-                >
-                  <span className="text-white text-xl font-bold">
-                    +{hiddenCount}
-                  </span>
-                </div>
-              )}
-            </div>
-          );
-        })}
+                />
+                {isLast && (
+                  <div
+                    className="absolute inset-0 bg-black/50 flex items-center justify-center cursor-pointer"
+                    onClick={() => setViewerIndex(idx)}
+                  >
+                    <span className="text-white text-xl font-bold">
+                      +{hiddenCount}
+                    </span>
+                  </div>
+                )}
+                {renderActionMenu(m)}
+                {renderEmojiPicker(m)}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   };
@@ -589,6 +723,28 @@ export const MessageList: React.FC<{
                 toAbsoluteMediaUrl(rep.senderAvatar) ||
                 `https://api.dicebear.com/7.x/avataaars/svg?seed=${rep.senderId}`;
               const lastMsg = msgs[msgs.length - 1];
+
+              // Aggregate reactions from all messages in the group
+              const groupReactionMap = new Map<
+                string,
+                { count: number; reactedByMe: boolean }
+              >();
+              for (const msg of msgs) {
+                if (Array.isArray(msg.reactions)) {
+                  for (const reaction of msg.reactions) {
+                    if (!reaction?.emoji) continue;
+                    const existing = groupReactionMap.get(reaction.emoji);
+                    groupReactionMap.set(reaction.emoji, {
+                      count: (existing?.count || 0) + 1,
+                      reactedByMe:
+                        existing?.reactedByMe ||
+                        false ||
+                        reaction.userId === currentUserId,
+                    });
+                  }
+                }
+              }
+
               return (
                 <div
                   key={groupKey}
@@ -622,6 +778,32 @@ export const MessageList: React.FC<{
                         minute: "2-digit",
                       })}
                     </p>
+
+                    {/* Reactions for image group */}
+                    {groupReactionMap.size > 0 && (
+                      <div
+                        className={`flex items-center gap-1 mt-1 ${
+                          isMe ? "justify-end" : "justify-start"
+                        }`}
+                      >
+                        {Array.from(groupReactionMap.entries()).map(
+                          ([emoji, { count, reactedByMe }]) => (
+                            <button
+                              key={emoji}
+                              onClick={() => onReactMessage?.(rep, emoji)}
+                              className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-colors ${
+                                reactedByMe
+                                  ? "bg-green-100 border-green-400 text-green-700"
+                                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                              }`}
+                            >
+                              <span>{emoji}</span>
+                              {count > 1 && <span>{count}</span>}
+                            </button>
+                          ),
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
