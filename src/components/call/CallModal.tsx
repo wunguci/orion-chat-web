@@ -69,7 +69,7 @@ export const CallModal: React.FC = () => {
   if (status === "idle") return null;
 
   return (
-    <div className="fixed inset-0 bg-black z-50">
+    <div className="fixed inset-0 bg-wh-green-text-primary z-50">
       {/* remote video (full screen) */}
       <div className="relative w-full h-full">
         {status === "connected" && remoteStream ? (
@@ -80,14 +80,14 @@ export const CallModal: React.FC = () => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900">
-            <div className="w-32 h-32 rounded-full bg-gray-700 flex items-center justify-center mb-4">
-              <FaUser className="text-6xl text-gray-500" />
+          <div className="w-full h-full flex flex-col items-center justify-center bg-wh-green-bg-medium">
+            <div className="w-32 h-32 rounded-full bg-wh-green-bg-heavy flex items-center justify-center mb-4">
+              <FaUser className="text-6xl text-wh-green-text-muted" />
             </div>
-            <h2 className="text-white text-2xl mb-2">
+            <h2 className="text-wh-green-text-primary text-2xl mb-2">
               {otherUser?.name || "Unknown"}
             </h2>
-            <p className="text-gray-400">
+            <p className="text-wh-green-text-secondary">
               {status === "calling" && "Calling..."}
               {status === "ringing" && "Connecting..."}
               {status === "connected" && "Connected"}
@@ -98,7 +98,7 @@ export const CallModal: React.FC = () => {
 
         {/* local video (picture-in-picture) */}
         {callType === "video" && localStream && (
-          <div className="absolute top-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden shadow-lg">
+          <div className="absolute top-4 right-4 w-48 h-36 bg-wh-green-bg-heavy rounded-lg overflow-hidden shadow-lg border border-wh-green-border-light">
             {isVideoEnabled ? (
               <video
                 ref={localVideoRef}
@@ -108,8 +108,8 @@ export const CallModal: React.FC = () => {
                 className="w-full h-full object-cover transform scale-x-[-1]"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-700">
-                <FiCamera className="text-4xl" />
+              <div className="w-full h-full flex items-center justify-center bg-wh-green-border-medium">
+                <FiCamera className="text-4xl text-wh-green-text-muted" />
               </div>
             )}
           </div>
@@ -117,7 +117,7 @@ export const CallModal: React.FC = () => {
 
         {/* call timer */}
         {status === "connected" && startTime && (
-          <div className="absolute top-4 left-4 bg-black/50 px-4 py-2 rounded-lg">
+          <div className="absolute top-4 left-4 bg-wh-green-text-primary/80 px-4 py-2 rounded-lg border border-wh-green-border-dark">
             <CallTimer startTime={startTime} />
           </div>
         )}
@@ -131,7 +131,7 @@ export const CallModal: React.FC = () => {
         {status === "connected" &&
           callType === "audio" &&
           incomingVideoUpgradeRequest && (
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-black/70 border border-white/20 rounded-xl px-4 py-3 text-white backdrop-blur-sm">
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-wh-green-text-primary/80 border border-wh-green-border-dark rounded-xl px-4 py-3 text-white backdrop-blur-sm">
               <p className="text-sm mb-3">
                 {otherUser?.name || "Đối phương"} muốn chuyển sang video call
               </p>
@@ -140,7 +140,7 @@ export const CallModal: React.FC = () => {
                   onClick={() => {
                     void respondVideoUpgradeRequest(false);
                   }}
-                  className="px-3 py-1.5 rounded-md bg-red-500 hover:bg-red-600 text-sm"
+                  className="px-3 py-1.5 rounded-md bg-wh-priority-critical hover:bg-wh-priority-high text-sm"
                 >
                   Từ chối
                 </button>
@@ -148,7 +148,7 @@ export const CallModal: React.FC = () => {
                   onClick={() => {
                     void respondVideoUpgradeRequest(true);
                   }}
-                  className="px-3 py-1.5 rounded-md bg-green-500 hover:bg-green-600 text-sm"
+                  className="px-3 py-1.5 rounded-md bg-wh-green-primary hover:bg-wh-green-primary-hover text-sm"
                 >
                   Đồng ý
                 </button>

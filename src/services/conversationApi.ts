@@ -206,6 +206,11 @@ class ConversationApiService {
         return response.data;
     }
 
+    async deleteConversation(conversationId: string) {
+        const response = await this.api.delete(`/${conversationId}`);
+        return response.data;
+    }
+
     async leaveGroup(groupId: string, newAdminUserId?: string) {
         const response = await this.api.post(
             `${API_BASE_URL}/groups/${groupId}/leave`,

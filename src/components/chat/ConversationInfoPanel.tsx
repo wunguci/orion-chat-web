@@ -41,6 +41,7 @@ import { AutoDeleteModal } from './AutoDeleteModal';
 import { HideConversationModal } from './HideConversationModal';
 import { RevealConversationModal } from './RevealConversationModal';
 import { ClearHistoryModal } from './ClearHistoryModal';
+import { DeleteConversationModal } from './DeleteConversationModal';
 import { BlockUserModal } from './BlockUserModal';
 import { conversationApi } from '../../services/conversationApi';
 import {
@@ -65,6 +66,7 @@ interface ConversationInfoPanelProps {
     onConversationCreated?: (
         conversation: ConversationView,
     ) => void | Promise<void>;
+    onConversationRemoved?: (conversationId: string) => void | Promise<void>;
 }
 
 export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
@@ -77,6 +79,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     onForwardMessage,
     onPinStatusChange,
     onConversationCreated,
+    onConversationRemoved,
 }) => {
     const renderFileIcon = (icon?: SocketMessage['fileIcon']) => {
         switch (icon) {
@@ -193,6 +196,8 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     const [showRevealConversationModal, setShowRevealConversationModal] =
         useState(false);
     const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
+    const [showDeleteConversationModal, setShowDeleteConversationModal] =
+        useState(false);
     const [showBlockUserModal, setShowBlockUserModal] = useState(false);
     const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
@@ -304,6 +309,18 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         } catch (error) {
             console.error('Error clearing history:', error);
         }
+    };
+
+    const handleDeleteConversation = async () => {
+        if (!selectedConversation?.conversationId) {
+            throw new Error('Không tìm thấy cuộc hội thoại');
+        }
+
+        await conversationApi.deleteConversation(
+            selectedConversation.conversationId,
+        );
+
+        await onConversationRemoved?.(selectedConversation.conversationId);
     };
 
     const handleBlockUser = async () => {
@@ -527,6 +544,14 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 onClose={() => setShowClearHistoryModal(false)}
                 onConfirm={handleClearHistory}
                 messageCount={displayMessages.length}
+            />
+
+            {/* Delete Conversation Modal */}
+            <DeleteConversationModal
+                isOpen={showDeleteConversationModal}
+                onClose={() => setShowDeleteConversationModal(false)}
+                onConfirm={handleDeleteConversation}
+                conversationName={conversationName}
             />
 
             {/* Block User Modal */}
@@ -1173,6 +1198,17 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <Trash2 size={20} />
                                     <span className="text-[15px]">
                                         Xóa lịch sử trò chuyện
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={() =>
+                                        setShowDeleteConversationModal(true)
+                                    }
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-600"
+                                >
+                                    <Trash2 size={20} />
+                                    <span className="text-[15px]">
+                                        Xóa cuộc hội thoại
                                     </span>
                                 </button>
                                 <button
