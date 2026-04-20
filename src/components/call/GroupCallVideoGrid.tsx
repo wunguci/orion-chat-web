@@ -31,14 +31,14 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
   };
 
   return (
-    <div className={`grid ${getGridColsClass()} gap-4 p-4 w-full h-full overflow-auto bg-gray-900`}>
+    <div className={`grid ${getGridColsClass()} gap-4 p-4 w-full h-full overflow-auto bg-wh-green-bg-medium`}>
       {/* Local stream */}
       {localStream && (
         <div
           className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
             activeParticipantId === localUserId
-              ? "border-green-500 shadow-lg shadow-green-500/50 ring-2 ring-green-500"
-              : "border-gray-600 hover:border-gray-400"
+              ? "border-wh-green-primary ring-2 ring-wh-green-primary"
+              : "border-wh-green-border-medium hover:border-wh-green-primary"
           }`}
           onClick={() => onParticipantClick?.(localUserId)}
         >
@@ -53,20 +53,20 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
           key={participant.id}
           className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
             activeParticipantId === participant.id
-              ? "border-green-500 shadow-lg shadow-green-500/50 ring-2 ring-green-500"
+              ? "border-wh-green-primary ring-2 ring-wh-green-primary"
               : participant.isSpeaking
-              ? "border-blue-500 shadow-lg shadow-blue-500/30"
-              : "border-gray-600 hover:border-gray-400"
+              ? "border-wh-status-inprogress ring-2 ring-wh-status-inprogress/60"
+              : "border-wh-green-border-medium hover:border-wh-green-primary"
           }`}
           onClick={() => onParticipantClick?.(participant.id)}
         >
           {participant.stream ? (
             <RemoteVideoStream stream={participant.stream} />
           ) : (
-            <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+            <div className="w-full h-full bg-wh-green-bg-heavy flex items-center justify-center">
               <div className="flex flex-col items-center gap-2">
-                <FaUser className="text-4xl text-gray-600" />
-                <p className="text-xs text-gray-400">No video</p>
+                <FaUser className="text-4xl text-wh-green-text-muted" />
+                <p className="text-xs text-wh-green-text-secondary">No video</p>
               </div>
             </div>
           )}
@@ -220,16 +220,16 @@ const VideoInfo: React.FC<VideoInfoProps> = ({
   const displayName = (name || "").trim() || "User";
 
   return (
-    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none">
+    <div className="absolute inset-0 bg-gradient-to-t from-wh-green-text-primary/90 via-wh-green-text-primary/30 to-transparent pointer-events-none">
       {/* Status badges */}
       <div className="absolute top-2 right-2 flex gap-1.5">
         {isHost && (
-          <div className="px-2.5 py-1 bg-yellow-500/80 rounded-md text-white text-xs font-semibold">
+          <div className="px-2.5 py-1 bg-wh-status-review/90 rounded-md text-white text-xs font-semibold">
             HOST
           </div>
         )}
         {isSpeaking && (
-          <div className="px-2.5 py-1 bg-green-500/80 rounded-md text-white text-xs font-semibold animate-pulse">
+          <div className="px-2.5 py-1 bg-wh-status-inprogress/90 rounded-md text-white text-xs font-semibold animate-pulse">
             SPEAKING
           </div>
         )}
@@ -238,27 +238,27 @@ const VideoInfo: React.FC<VideoInfoProps> = ({
       {/* Name and media status */}
       <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-8 h-8 rounded-full bg-wh-green-primary flex items-center justify-center text-white text-xs font-bold">
             {displayName.charAt(0).toUpperCase()}
           </div>
           <span className="text-sm font-semibold text-white truncate">{displayName}</span>
         </div>
         <div className="flex gap-1.5">
           {isMuted ? (
-            <div className="w-6 h-6 rounded-md bg-red-500/80 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md bg-wh-priority-critical/90 flex items-center justify-center text-white text-xs">
               <FaMicrophoneSlash />
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-md bg-green-500/80 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md bg-wh-green-primary/90 flex items-center justify-center text-white text-xs">
               <FaMicrophone />
             </div>
           )}
           {isVideoOff ? (
-            <div className="w-6 h-6 rounded-md bg-red-500/80 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md bg-wh-priority-critical/90 flex items-center justify-center text-white text-xs">
               <FaVideoSlash />
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-md bg-blue-500/80 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md bg-wh-green-primary-light/90 flex items-center justify-center text-white text-xs">
               <FaVideo />
             </div>
           )}
@@ -268,10 +268,7 @@ const VideoInfo: React.FC<VideoInfoProps> = ({
   );
 };
 
-/**
- * GroupCallSpeakerView Component
- * Hiển thị một participant lớn ở giữa + danh sách nhỏ ở dưới
- */
+
 interface GroupCallSpeakerViewProps {
   mainParticipant: GroupCallParticipant | null;
   localStream: MediaStream | null;
@@ -288,16 +285,16 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
   onParticipantClick,
 }) => {
   return (
-    <div className="w-full h-full flex flex-col bg-gray-900">
+    <div className="w-full h-full flex flex-col bg-wh-green-bg-medium">
       {/* Main video area */}
-      <div className="flex-1 relative rounded-lg overflow-hidden m-4 bg-black">
+      <div className="flex-1 relative rounded-lg overflow-hidden m-4 bg-wh-green-text-primary">
         {mainParticipant?.stream ? (
           <RemoteVideoStream stream={mainParticipant.stream} />
         ) : localStream ? (
           <LocalVideoStream stream={localStream} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <FaUser className="text-8xl text-gray-600" />
+            <FaUser className="text-8xl text-wh-green-text-muted" />
           </div>
         )}
         {mainParticipant && (
@@ -312,10 +309,10 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
       </div>
 
       {/* Thumbnail carousel */}
-      <div className="h-24 bg-black/50 px-4 py-2 flex items-center gap-3 overflow-x-auto">
+      <div className="h-24 bg-wh-green-text-primary/70 px-4 py-2 flex items-center gap-3 overflow-x-auto">
         {localStream && (
           <div
-            className="w-20 h-20 rounded-lg overflow-hidden border-2 border-gray-600 flex-shrink-0 cursor-pointer hover:border-green-500 transition-colors"
+            className="w-20 h-20 rounded-lg overflow-hidden border-2 border-wh-green-border-medium flex-shrink-0 cursor-pointer hover:border-wh-green-primary transition-colors"
             onClick={() => onParticipantClick?.(localUserId)}
           >
             <LocalVideoStream stream={localStream} />
@@ -324,14 +321,14 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
         {otherParticipants.map((participant) => (
           <div
             key={participant.id}
-            className="w-20 h-20 rounded-lg overflow-hidden border-2 border-gray-600 flex-shrink-0 cursor-pointer hover:border-blue-500 transition-colors"
+            className="w-20 h-20 rounded-lg overflow-hidden border-2 border-wh-green-border-medium flex-shrink-0 cursor-pointer hover:border-wh-green-primary transition-colors"
             onClick={() => onParticipantClick?.(participant.id)}
           >
             {participant.stream ? (
               <RemoteVideoStream stream={participant.stream} />
             ) : (
-              <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                <FaUser className="text-xl text-gray-600" />
+              <div className="w-full h-full bg-wh-green-bg-heavy flex items-center justify-center">
+                <FaUser className="text-xl text-wh-green-text-muted" />
               </div>
             )}
           </div>

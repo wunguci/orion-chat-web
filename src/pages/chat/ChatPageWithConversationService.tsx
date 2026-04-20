@@ -2536,8 +2536,323 @@ export const ChatPage: React.FC = () => {
     }
 
     return (
-      conversation.participants.find((p) => p.userId !== USER_ID)?.fullName ||
-      "Unknown user"
+      <div className="flex h-screen gap-4 bg-gray-50 p-4">
+        {/* Sidebar */}
+        <ChatSidebarWithConversationService
+          conversations={conversations}
+          selectedConversationId={selectedConversationId}
+          onSelectConversation={handleSelectConversation}
+          loading={conversationsLoading}
+          error={conversationsError}
+          onCreateGroupConversation={(conversation) => {
+            void refreshConversations();
+            if (conversation?.conversationId) {
+              setSelectedConversationId(conversation.conversationId);
+            }
+          }}
+        />
+
+        {/* Main chat area */}
+        <div className="flex flex-1 flex-col rounded-lg bg-white shadow-sm">
+          {isConnecting && (
+            <div className="border-b border-gray-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+              Connecting to chat...
+            </div>
+          )}
+
+          {error && (
+            <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+              {error}
+              <button
+                onClick={() => setError(null)}
+                className="ml-2 text-red-600 hover:text-red-700"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {selectedConversation ? (
+            <>
+              {/* Header */}
+              <ChatHeader
+                name={
+                  selectedConversation.groupInfo?.groupName ||
+                  otherParticipant?.fullName ||
+                  "Conversation"
+                }
+                avatarUrl={
+                  selectedConversation.type === "GROUP"
+                    ? toAbsoluteMediaUrl(
+                        selectedConversation.groupInfo?.groupAvatar,
+                      ) || undefined
+                    : toAbsoluteMediaUrl(otherParticipant?.avatarUrl) ||
+                      undefined
+                }
+                subtitle={
+                  typingUserNames.length > 0
+                    ? `${typingUserNames.join(", ")} đang nhập...`
+                    : selectedConversation.type === "GROUP"
+                      ? "Group conversation"
+                      : "Online"
+                }
+                isGroupChat={selectedConversation.type === "GROUP"}
+                groupMembers={
+                  selectedConversation.type === "GROUP"
+                    ? selectedConversation.participants
+                    : undefined
+                }
+                isBlocked={iAmBlocked || iAmTheBlocker}
+                disableCallButtons={disableCallButtons}
+                onAudioCall={() => {
+                  void handleStartCall("audio");
+                }}
+                onVideoCall={() => {
+                  void handleStartCall("video");
+                }}
+                onSearchClick={() => setIsSearchOpen(true)}
+                onPanelToggle={() => {
+                  setIsSearchOpen(false);
+                  setIsInfoPanelOpen((prev) => !prev);
+                }}
+                onIdentityClick={
+                  selectedConversation.type === "GROUP"
+                    ? () => {
+                        setIsSearchOpen(false);
+                        setIsInfoPanelOpen(true);
+                      }
+                    : undefined
+                }
+                onAvatarClick={
+                  selectedConversation.type === "GROUP"
+                    ? () => {
+                        setIsSearchOpen(false);
+                        setIsInfoPanelOpen(true);
+                        setOpenGroupInfoEditTick((prev) => prev + 1);
+                      }
+                    : undefined
+                }
+                onEditGroupClick={
+                  selectedConversation.type === "GROUP"
+                    ? () => {
+                        setIsSearchOpen(false);
+                        setIsInfoPanelOpen(true);
+                        setOpenGroupInfoEditTick((prev) => prev + 1);
+                      }
+                    : undefined
+                }
+              />
+
+              {/* Messages */}
+              {currentPinnedMessages.length > 0 && (
+                <div className="border-b border-slate-200 bg-amber-50/70 px-4 py-2">
+                  <div className="mb-1 text-xs font-semibold text-amber-700">
+                    Pinned messages
+                  </div>
+                  <div className="space-y-1">
+                    {currentPinnedMessages.slice(0, 3).map((item) => (
+                      <button
+                        key={item.messageId}
+                        type="button"
+                        onClick={() => jumpToMessage(item.messageId)}
+                        className="flex w-full items-center justify-between rounded-md bg-white/80 px-2 py-1 text-left hover:bg-white"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-slate-700">
+                            {item.senderName || "Thành viên"}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">
+                            {item.snippet || item.content || "Tin nhắn đã ghim"}
+                          </p>
+                        </div>
+                        <span className="ml-3 shrink-0 text-[11px] text-amber-600">
+                          Đi tới
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <MessageList
+                socketMessages={displayMessages}
+                currentUserId={USER_ID}
+                conversationId={selectedConversationId}
+                onCallBackMessage={handleCallBackMessage}
+                onRecallMessage={handleRequestRecallMessage}
+                onDeleteMessage={handleRequestDeleteMessage}
+                onForwardMessage={handleOpenForwardModal}
+                onReactMessage={handleReactMessage}
+                onReplyMessage={handleReplyMessage}
+                onTogglePinMessage={handleTogglePinMessage}
+              />
+
+              {/* Input */}
+              <ChatInput
+                onSend={handleSend}
+                onSendFile={handleSendFile}
+                onTypingChange={emitTyping}
+                isBlocked={iAmBlocked || iAmTheBlocker}
+                canUnblock={iAmTheBlocker}
+                onUnblock={handleUnblockUser}
+                replyDraft={
+                  replyDraft &&
+                  replyDraft.conversationId === selectedConversationId
+                    ? replyDraft
+                    : null
+                }
+                onCancelReply={() => setReplyDraft(null)}
+              />
+            </>
+          ) : (
+            <div className="flex flex-1 items-center justify-center text-gray-400">
+              {conversationsLoading ? (
+                <div>Loading conversations...</div>
+              ) : conversations.length === 0 ? (
+                <div>No conversations yet. Start a new chat!</div>
+              ) : (
+                <div>Select a conversation to start chatting</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right panel: SearchModal thay cho ConversationInfoPanel khi dang tim kiem */}
+        {selectedConversation && isSearchOpen ? (
+          <SearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            messages={displayMessages}
+            currentUserId={USER_ID}
+            onSelectMessage={jumpToMessage}
+          />
+        ) : selectedConversation && isInfoPanelOpen ? (
+          selectedConversation.type === "GROUP" ? (
+            <ConversationGroupInfoPanel
+              isSidebarOpen={true}
+              selectedConversation={selectedConversation}
+              displayMessages={displayMessages}
+              onConversationRemoved={handleGroupConversationRemoved}
+              onJumpToMessage={jumpToMessage}
+              onForwardMessage={handleOpenForwardModal}
+            />
+          ) : (
+            <ConversationInfoPanel
+              isSidebarOpen={true}
+              selectedConversation={selectedConversation}
+              displayMessages={displayMessages}
+              currentUserId={USER_ID}
+              onBlockStatusChange={loadBlockStatus}
+              onJumpToMessage={jumpToMessage}
+              onForwardMessage={handleOpenForwardModal}
+              onPinStatusChange={refreshConversations}
+              onConversationRemoved={handleGroupConversationRemoved}
+              onConversationCreated={async (conversation) => {
+                if (conversation?.conversationId) {
+                  setSelectedConversationId(conversation.conversationId);
+                }
+                await refreshConversations();
+              }}
+            />
+          )
+        ) : null}
+
+        <Modal
+          isOpen={isForwardModalOpen}
+          onClose={() => {
+            setIsForwardModalOpen(false);
+            setForwardingMessage(null);
+            setForwardTargetConversationId("");
+          }}
+          title="Chuyển tiếp tin nhắn"
+          size="sm"
+        >
+          <div className="p-4 space-y-4">
+            {forwardingMessage && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                {forwardingMessage.isFile
+                  ? `File: ${forwardingMessage.fileName || "Đính kèm"}`
+                  : forwardingMessage.content}
+              </div>
+            )}
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Chọn cuộc trò chuyện riêng
+              </label>
+              <select
+                value={forwardTargetConversationId}
+                onChange={(e) => setForwardTargetConversationId(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">-- Chọn cuộc trò chuyện --</option>
+                {forwardableConversations.map((conversation) => (
+                  <option
+                    key={conversation.conversationId}
+                    value={conversation.conversationId}
+                  >
+                    {getConversationDisplayName(conversation.conversationId)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForwardModalOpen(false);
+                  setForwardingMessage(null);
+                  setForwardTargetConversationId("");
+                }}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleForwardMessage}
+                disabled={
+                  !forwardTargetConversationId ||
+                  isForwarding ||
+                  forwardableConversations.length === 0
+                }
+                className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isForwarding ? "Đang chuyển..." : "Chuyển tiếp"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        <Dialog
+          isOpen={isRecallConfirmOpen}
+          onClose={() => {
+            setIsRecallConfirmOpen(false);
+            setPendingRecallMessage(null);
+          }}
+          onConfirm={handleConfirmRecallMessage}
+          title="Thu hồi tin nhắn?"
+          message="Tin nhắn sẽ hiển thị là đã thu hồi với cả hai bên."
+          confirmText="Thu hồi"
+          cancelText="Hủy"
+          type="warning"
+        />
+
+        <Dialog
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => {
+            setIsDeleteConfirmOpen(false);
+            setPendingDeleteMessage(null);
+          }}
+          onConfirm={handleConfirmDeleteMessage}
+          title="Xóa tin nhắn ở phía bạn?"
+          message="Tin nhắn sẽ chỉ bị ẩn ở thiết bị của bạn."
+          confirmText="Xóa"
+          cancelText="Hủy"
+          type="danger"
+        />
+      </div>
     );
   };
 

@@ -35,9 +35,10 @@ const GroupCallPage: React.FC = () => {
   const [showControls, setShowControls] = useState(true);
   const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const localUserId = user?.id || user?.userId || "N/A";
-  const remoteParticipants = participants.filter(
-    (participant) => participant.id !== localUserId,
+  const joinedParticipants = participants.filter(
+    (participant) => participant.id !== localUserId && participant.stream,
   );
+  const joinedCount = joinedParticipants.length + (localStream ? 1 : 0);
 
   // Update call duration
   useEffect(() => {
@@ -82,7 +83,7 @@ const GroupCallPage: React.FC = () => {
   const handleEndCall = () => {
     if (window.confirm("Are you sure you want to leave this group call?")) {
       leaveGroupCall();
-      navigate("/");
+      navigate("/chat");
     }
   };
 
@@ -90,25 +91,25 @@ const GroupCallPage: React.FC = () => {
   const mainParticipant = activeParticipantId
     ? activeParticipantId === localUserId
       ? null
-      : remoteParticipants.find((p) => p.id === activeParticipantId) ||
-        remoteParticipants[0] ||
+      : joinedParticipants.find((p) => p.id === activeParticipantId) ||
+        joinedParticipants[0] ||
         null
-    : remoteParticipants[0] || null;
+    : joinedParticipants[0] || null;
 
   const speakerOtherParticipants = mainParticipant
-    ? remoteParticipants.filter((p) => p.id !== mainParticipant.id)
-    : remoteParticipants;
+    ? joinedParticipants.filter((p) => p.id !== mainParticipant.id)
+    : joinedParticipants;
 
   if (status === "idle" && !callId) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-gray-900">
+      <div className="w-screen h-screen flex items-center justify-center bg-wh-green-bg-light">
         <div className="text-center">
-          <div className="text-4xl text-gray-600 mb-4">📞</div>
-          <h1 className="text-2xl font-bold text-white mb-2">No Active Call</h1>
-          <p className="text-gray-400 mb-6">Start or join a group call to begin</p>
+          <div className="text-4xl text-wh-green-text-muted mb-4">📞</div>
+          <h1 className="text-2xl font-bold text-wh-green-text-primary mb-2">No Active Call</h1>
+          <p className="text-wh-green-text-secondary mb-6">Start or join a group call to begin</p>
           <button
-            onClick={() => navigate("/")}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+            onClick={() => navigate("/chat")}
+            className="px-6 py-3 bg-wh-green-primary hover:bg-wh-green-primary-hover text-white rounded-lg font-semibold transition-colors"
           >
             Go Home
           </button>
@@ -119,14 +120,14 @@ const GroupCallPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-gray-900">
+      <div className="w-screen h-screen flex items-center justify-center bg-wh-green-bg-light">
         <div className="text-center">
-          <div className="text-4xl text-red-600 mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Call Error</h1>
-          <p className="text-gray-400 mb-6">{error}</p>
+          <div className="text-4xl text-wh-priority-critical mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-wh-green-text-primary mb-2">Call Error</h1>
+          <p className="text-wh-green-text-secondary mb-6">{error}</p>
           <button
             onClick={() => navigate("/")}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+            className="px-6 py-3 bg-wh-green-primary hover:bg-wh-green-primary-hover text-white rounded-lg font-semibold transition-colors"
           >
             Go Home
           </button>
@@ -136,21 +137,21 @@ const GroupCallPage: React.FC = () => {
   }
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-black overflow-hidden">
+    <div className="w-screen h-screen flex flex-col bg-wh-green-text-primary overflow-hidden">
       {/* Header */}
       <div
-        className={`absolute top-0 left-0 right-0 px-6 py-4 bg-gradient-to-b from-black/90 via-black/60 to-transparent flex justify-between items-center z-40 transition-all duration-300 ${
+        className={`absolute top-0 left-0 right-0 px-6 py-4 bg-gradient-to-b from-wh-green-text-primary/95 via-wh-green-text-primary/70 to-transparent flex justify-between items-center z-40 transition-all duration-300 ${
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-semibold text-white">Group Video Call</h1>
-          <div className="px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm text-white/90 border border-white/10 flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span>{callDuration}</span>
+          <div className="px-3 py-1.5 bg-wh-green-bg-light/95 backdrop-blur-sm rounded-lg text-sm text-wh-green-text-primary border border-wh-green-border-light flex items-center gap-2">
+            <div className="w-2 h-2 bg-wh-green-primary rounded-full animate-pulse"></div>
+            <span className="font-semibold">{callDuration}</span>
           </div>
-          <div className="px-3 py-1.5 bg-white/10 backdrop-blur-sm rounded-lg text-sm text-white/90 border border-white/10">
-            {remoteParticipants.length + 1} participants
+          <div className="px-3 py-1.5 bg-wh-green-bg-light/95 backdrop-blur-sm rounded-lg text-sm text-wh-green-text-primary border border-wh-green-border-light">
+            {joinedCount} participants
           </div>
         </div>
 
@@ -159,8 +160,8 @@ const GroupCallPage: React.FC = () => {
             onClick={() => setViewMode("grid")}
             className={`px-4 py-2 rounded-lg font-semibold transition-all ${
               viewMode === "grid"
-                ? "bg-blue-600 shadow-lg shadow-blue-600/50 text-white"
-                : "bg-white/10 text-white/70 hover:bg-white/20"
+                ? "bg-wh-green-primary text-white"
+                : "bg-wh-green-bg-light text-wh-green-text-secondary hover:bg-wh-green-bg-heavy"
             }`}
           >
             Grid View
@@ -169,8 +170,8 @@ const GroupCallPage: React.FC = () => {
             onClick={() => setViewMode("speaker")}
             className={`px-4 py-2 rounded-lg font-semibold transition-all ${
               viewMode === "speaker"
-                ? "bg-blue-600 shadow-lg shadow-blue-600/50 text-white"
-                : "bg-white/10 text-white/70 hover:bg-white/20"
+                ? "bg-wh-green-primary text-white"
+                : "bg-wh-green-bg-light text-wh-green-text-secondary hover:bg-wh-green-bg-heavy"
             }`}
           >
             Speaker View
@@ -182,7 +183,7 @@ const GroupCallPage: React.FC = () => {
       <div className="flex-1 flex items-center justify-center">
         {viewMode === "grid" ? (
           <GroupCallVideoGrid
-            participants={remoteParticipants}
+            participants={joinedParticipants}
             localStream={localStream}
             localUserId={localUserId}
             onParticipantClick={setActiveParticipant}
@@ -201,7 +202,7 @@ const GroupCallPage: React.FC = () => {
 
       {/* Controls */}
       <div
-        className={`absolute bottom-0 left-0 right-0 px-8 py-6 bg-gradient-to-t from-black/95 via-black/80 to-transparent flex justify-center items-center gap-4 z-40 transition-all duration-300 ${
+        className={`absolute bottom-0 left-0 right-0 px-8 py-6 bg-gradient-to-t from-wh-green-text-primary/95 via-wh-green-text-primary/80 to-transparent flex justify-center items-center gap-4 z-40 transition-all duration-300 ${
           showControls ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
@@ -210,8 +211,8 @@ const GroupCallPage: React.FC = () => {
           onClick={toggleAudio}
           className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-xl hover:scale-110 ${
             !isAudioEnabled
-              ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/50 text-white"
-              : "bg-white/15 hover:bg-white/25 border border-white/30 text-white"
+              ? "bg-wh-priority-critical hover:bg-wh-priority-high text-white"
+              : "bg-wh-green-primary hover:bg-wh-green-primary-hover text-white"
           }`}
           title={isAudioEnabled ? "Mute Mic" : "Unmute Mic"}
         >
@@ -227,8 +228,8 @@ const GroupCallPage: React.FC = () => {
           onClick={toggleVideo}
           className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-xl hover:scale-110 ${
             !isVideoEnabled
-              ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-600/50 text-white"
-              : "bg-white/15 hover:bg-white/25 border border-white/30 text-white"
+              ? "bg-wh-priority-critical hover:bg-wh-priority-high text-white"
+              : "bg-wh-green-primary hover:bg-wh-green-primary-hover text-white"
           }`}
           title={isVideoEnabled ? "Turn Off Video" : "Turn On Video"}
         >
@@ -239,29 +240,29 @@ const GroupCallPage: React.FC = () => {
           )}
         </button>
 
-        <div className="h-10 w-px bg-white/20"></div>
+        <div className="h-10 w-px bg-wh-green-border-medium"></div>
 
         {/* End Call */}
         <button
           onClick={handleEndCall}
-          className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center transition-all hover:scale-110 hover:shadow-2xl hover:shadow-red-600/50"
+          className="w-16 h-16 rounded-full bg-wh-priority-critical hover:bg-wh-priority-high text-white flex items-center justify-center transition-all hover:scale-110"
           title="Leave Call"
         >
           <FaPhone className="text-xl" />
         </button>
 
-        <div className="h-10 w-px bg-white/20"></div>
+        <div className="h-10 w-px bg-wh-green-border-medium"></div>
 
         {/* Participants */}
-        <button className="w-14 h-14 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white flex items-center justify-center transition-all hover:scale-110 relative">
+        <button className="w-14 h-14 rounded-full bg-wh-green-bg-light hover:bg-wh-green-bg-heavy border border-wh-green-border-light text-wh-green-text-primary flex items-center justify-center transition-all hover:scale-110 relative">
           <FaUsers className="text-lg" />
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full text-xs font-bold flex items-center justify-center text-white border-2 border-black">
-            {participants.length + 1}
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-wh-green-primary rounded-full text-xs font-bold flex items-center justify-center text-white border-2 border-wh-green-bg-light">
+            {joinedCount}
           </span>
         </button>
 
         {/* Chat */}
-        <button className="w-14 h-14 rounded-full bg-white/15 hover:bg-white/25 border border-white/30 text-white flex items-center justify-center transition-all hover:scale-110">
+        <button className="w-14 h-14 rounded-full bg-wh-green-bg-light hover:bg-wh-green-bg-heavy border border-wh-green-border-light text-wh-green-text-primary flex items-center justify-center transition-all hover:scale-110">
           <FaComment className="text-lg" />
         </button>
       </div>
