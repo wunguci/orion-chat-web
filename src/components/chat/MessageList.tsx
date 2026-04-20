@@ -36,7 +36,6 @@ const EMOJI_LIST = [
     // '👏', // Clap
 ];
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_API_URL ||
@@ -280,14 +279,11 @@ export const MessageList: React.FC<{
                     m.fileCategory === 'image' ||
                     m.type === 'image' ||
                     /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                        m.fileName || '',
+                        `${m.fileName || ''} ${m.fileUrl || ''} ${m.content || ''}`,
                     )),
         )
         .map((m) => ({
-            src:
-                m.fileUrl.startsWith('http') || m.fileUrl.startsWith('blob:')
-                    ? m.fileUrl
-                    : `${SERVER_URL}${m.fileUrl}`,
+            src: toAbsoluteMediaUrl(m.fileUrl) || m.fileUrl,
             time: new Date(m.timestamp).toLocaleTimeString('vi-VN', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -426,7 +422,7 @@ export const MessageList: React.FC<{
                                 msg.fileCategory === 'image' ||
                                 msg.type === 'image' ||
                                 /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                                    msg.fileName || '',
+                                    `${msg.fileName || ''} ${msg.fileUrl || ''} ${msg.content || ''}`,
                                 ));
                         if (hasImage) imgCounter++;
                         const imgIdx = imgCounter;
@@ -436,7 +432,7 @@ export const MessageList: React.FC<{
                                 msg.fileCategory === 'video' ||
                                 msg.type === 'video' ||
                                 /\.(mp4|mov|webm|mkv|avi|wmv|flv|m4v)$/i.test(
-                                    msg.fileName || '',
+                                    `${msg.fileName || ''} ${msg.fileUrl || ''} ${msg.content || ''}`,
                                 ));
                         const isAudioFile =
                             msg.isFile &&
@@ -506,12 +502,9 @@ export const MessageList: React.FC<{
                                       hasImage ? (
                                         <img
                                             src={
-                                                msg.fileUrl.startsWith(
-                                                    'http',
-                                                ) ||
-                                                msg.fileUrl.startsWith('blob:')
-                                                    ? msg.fileUrl
-                                                    : `${SERVER_URL}${msg.fileUrl}`
+                                                toAbsoluteMediaUrl(
+                                                    msg.fileUrl,
+                                                ) || msg.fileUrl
                                             }
                                             alt={msg.fileName}
                                             className="max-w-sm rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
@@ -525,12 +518,9 @@ export const MessageList: React.FC<{
                                       isVideoFile ? (
                                         <video
                                             src={
-                                                msg.fileUrl.startsWith(
-                                                    'http',
-                                                ) ||
-                                                msg.fileUrl.startsWith('blob:')
-                                                    ? msg.fileUrl
-                                                    : `${SERVER_URL}${msg.fileUrl}`
+                                                toAbsoluteMediaUrl(
+                                                    msg.fileUrl,
+                                                ) || msg.fileUrl
                                             }
                                             controls
                                             className="max-w-sm rounded-2xl"
@@ -548,14 +538,9 @@ export const MessageList: React.FC<{
                                         >
                                             <audio
                                                 src={
-                                                    msg.fileUrl.startsWith(
-                                                        'http',
-                                                    ) ||
-                                                    msg.fileUrl.startsWith(
-                                                        'blob:',
-                                                    )
-                                                        ? msg.fileUrl
-                                                        : `${SERVER_URL}${msg.fileUrl}`
+                                                    toAbsoluteMediaUrl(
+                                                        msg.fileUrl,
+                                                    ) || msg.fileUrl
                                                 }
                                                 controls
                                                 className="max-w-xs"
@@ -675,11 +660,9 @@ export const MessageList: React.FC<{
                                                   msg.fileUrl ? (
                                                     <a
                                                         href={
-                                                            msg.fileUrl.startsWith(
-                                                                'http',
-                                                            )
-                                                                ? msg.fileUrl
-                                                                : `${SERVER_URL}${msg.fileUrl}`
+                                                            toAbsoluteMediaUrl(
+                                                                msg.fileUrl,
+                                                            ) || msg.fileUrl
                                                         }
                                                         target="_blank"
                                                         rel="noopener noreferrer"

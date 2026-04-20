@@ -99,9 +99,9 @@ export const ChatPage: React.FC = () => {
         senderAvatar?: string;
         content?: string;
         timestamp?: string;
-        createdAt?: string;
+        createdAt?: string | Date;
         isFile?: boolean;
-        type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
+        type?: string;
         messageType?:
             | 'TEXT'
             | 'IMAGE'
@@ -119,6 +119,26 @@ export const ChatPage: React.FC = () => {
         mediaUrl?: string;
         fileName?: string;
         fileType?: string;
+        mimeType?: string;
+        originalName?: string;
+        filename?: string;
+        url?: string;
+        media?: {
+            url?: string;
+            mimeType?: string;
+            fileName?: string;
+        };
+        attachments?: Array<{
+            mediaUrl?: string;
+            fileUrl?: string;
+            url?: string;
+            fileName?: string;
+            originalName?: string;
+            filename?: string;
+            mimeType?: string;
+            fileType?: string;
+            messageType?: string;
+        }>;
         isDeleted?: boolean;
         isRecalled?: boolean;
         isPinned?: boolean;
@@ -129,8 +149,16 @@ export const ChatPage: React.FC = () => {
             content?: string;
             senderName?: string;
             snippet?: string;
-            createdAt?: string;
+            createdAt?: string | Date;
         } | null;
+        messageStatus?:
+            | 'SENDING'
+            | 'SENT'
+            | 'DELIVERED'
+            | 'READ'
+            | 'SEEN'
+            | 'FAILED'
+            | 'UPLOADING';
         reactions?: Array<{
             userId?: string;
             emoji?: string;
@@ -343,8 +371,16 @@ export const ChatPage: React.FC = () => {
     }, [selectedConversation, USER_ID]);
 
     const getMessageKey = useCallback(
-        (message: Pick<SocketMessage, 'id' | 'clientMessageId'>) =>
-            message.clientMessageId || message.id,
+        (message: Pick<SocketMessage, 'id' | 'clientMessageId'>) => {
+            const hasPersistedId =
+                !!message.id && /^[a-f0-9]{24}$/i.test(message.id);
+
+            if (hasPersistedId) {
+                return message.id;
+            }
+
+            return message.clientMessageId || message.id;
+        },
         [],
     );
 
@@ -565,32 +601,114 @@ export const ChatPage: React.FC = () => {
 
     const toSocketMessage = useCallback(
         (payload: IncomingSocketPayload): ChatSocketMessage => {
-            const messageType = payload?.messageType || payload?.type;
+            const attachment = payload?.attachments?.[0];
+            const resolvedFileUrl =
+                payload?.fileUrl ||
+                payload?.mediaUrl ||
+                payload?.url ||
+                payload?.media?.url ||
+                attachment?.mediaUrl ||
+                attachment?.fileUrl ||
+                attachment?.url;
+            const resolvedFileName =
+                payload?.fileName ||
+                payload?.originalName ||
+                payload?.filename ||
+                payload?.media?.fileName ||
+                attachment?.fileName ||
+                attachment?.originalName ||
+                attachment?.filename;
+            const contentAsFileName =
+                resolvedFileUrl &&
+                /\.(jpg|jpeg|png|gif|webp|bmp|svg|mp4|mov|webm|mkv|avi|wmv|flv|m4v|mp3|wav|ogg|aac|m4a)$/i.test(
+                    payload?.content || '',
+                )
+                    ? payload?.content
+                    : undefined;
+            const normalizedFileName = resolvedFileName || contentAsFileName;
+            const resolvedMimeType =
+                payload?.fileType ||
+                payload?.mimeType ||
+                payload?.media?.mimeType ||
+                attachment?.mimeType ||
+                attachment?.fileType;
+            const messageType =
+                payload?.messageType ||
+                payload?.type ||
+                attachment?.messageType;
             const normalizedType = String(messageType || '').toLowerCase();
-            const resolvedType: ChatSocketMessage['type'] =
-                normalizedType === 'image'
+            const inferredMediaType =
+                resolvedMimeType?.startsWith('image/') ||
+                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
+                    normalizedFileName || resolvedFileUrl || '',
+                )
                     ? 'image'
-                    : normalizedType === 'video'
+                    : resolvedMimeType?.startsWith('video/') ||
+                        /\.(mp4|mov|webm|mkv|avi|wmv|flv|m4v)$/i.test(
+                            normalizedFileName || resolvedFileUrl || '',
+                        )
                       ? 'video'
-                      : normalizedType === 'file'
+                      : resolvedMimeType?.startsWith('audio/')
+                        ? 'audio'
+                        : undefined;
+            const effectiveType =
+                normalizedType && normalizedType !== 'text'
+                    ? normalizedType
+                    : inferredMediaType ||
+                      (resolvedFileUrl ? 'file' : normalizedType || 'text');
+            const resolvedType: ChatSocketMessage['type'] =
+                effectiveType === 'image'
+                    ? 'image'
+                    : effectiveType === 'video'
+                      ? 'video'
+                      : effectiveType === 'file'
                         ? 'file'
-                        : normalizedType === 'audio'
+                        : effectiveType === 'audio'
                           ? 'audio'
-                          : normalizedType === 'call'
+                          : effectiveType === 'call'
                             ? 'call'
                             : 'text';
             const isImageType =
                 messageType === 'IMAGE' ||
                 messageType === 'image' ||
-                payload?.fileType?.startsWith('image/');
+                resolvedMimeType?.startsWith('image/');
             const isVideoType =
                 messageType === 'VIDEO' ||
                 messageType === 'video' ||
-                payload?.fileType?.startsWith('video/');
+                resolvedMimeType?.startsWith('video/');
+            const isAudioType =
+                messageType === 'AUDIO' ||
+                messageType === 'audio' ||
+                resolvedMimeType?.startsWith('audio/');
 
             // Get sender ID and use it as fallback for name
             const senderId =
                 payload?.senderId || payload?.senderBy || 'unknown';
+
+            const normalizedReplyPreview = payload?.replyToMessagePreview
+                ? {
+                      messageId:
+                          payload.replyToMessagePreview.messageId ||
+                          payload.replyToMessageId,
+                      senderName:
+                          payload.replyToMessagePreview.senderName ||
+                          'Tin nhắn gốc',
+                      content:
+                          payload.replyToMessagePreview.content ||
+                          payload.replyToMessagePreview.snippet ||
+                          '',
+                      snippet:
+                          payload.replyToMessagePreview.snippet ||
+                          payload.replyToMessagePreview.content ||
+                          '',
+                      createdAt:
+                          payload.replyToMessagePreview.createdAt || undefined,
+                  }
+                : null;
+            const createdAtValue =
+                payload?.createdAt instanceof Date
+                    ? payload.createdAt.toISOString()
+                    : payload?.createdAt;
 
             return {
                 id:
@@ -607,39 +725,40 @@ export const ChatPage: React.FC = () => {
                 content: payload?.content || '',
                 timestamp:
                     payload?.timestamp ||
-                    payload?.createdAt ||
+                    createdAtValue ||
                     new Date().toISOString(),
                 isFile:
                     payload?.isFile ||
-                    payload?.type === 'file' ||
-                    payload?.type === 'image' ||
-                    payload?.type === 'video' ||
+                    effectiveType === 'file' ||
+                    effectiveType === 'image' ||
+                    effectiveType === 'video' ||
+                    effectiveType === 'audio' ||
                     messageType === 'FILE' ||
                     messageType === 'IMAGE' ||
                     messageType === 'VIDEO' ||
                     messageType === 'file' ||
                     messageType === 'image' ||
-                    messageType === 'video',
-                fileUrl:
-                    payload?.fileUrl ||
-                    payload?.mediaUrl ||
-                    (payload as { url?: string })?.url,
-                fileName:
-                    payload?.fileName ||
-                    (payload as { originalName?: string })?.originalName ||
-                    (payload as { filename?: string })?.filename,
+                    messageType === 'video' ||
+                    messageType === 'AUDIO' ||
+                    messageType === 'audio' ||
+                    !!resolvedFileUrl,
+                fileUrl: resolvedFileUrl,
+                fileName: normalizedFileName,
                 fileType:
-                    payload?.fileType ||
+                    resolvedMimeType ||
                     (isImageType
                         ? 'image/*'
                         : isVideoType
                           ? 'video/*'
-                          : undefined),
+                          : isAudioType
+                            ? 'audio/*'
+                            : undefined),
                 isRecalled: payload?.isRecalled || payload?.isDeleted,
                 isPinned: payload?.isPinned,
                 pinnedAt: payload?.pinnedAt,
                 replyToMessageId: payload?.replyToMessageId,
-                replyToMessagePreview: payload?.replyToMessagePreview,
+                replyToMessagePreview: normalizedReplyPreview,
+                messageStatus: payload?.messageStatus,
                 reactions: normalizeReactions(payload?.reactions),
                 conversationId: payload?.conversationId,
                 type: resolvedType,
@@ -704,7 +823,7 @@ export const ChatPage: React.FC = () => {
             pendingMediaHydrationRef.current.add(hydrationKey);
 
             try {
-                const maxAttempts = 4;
+                const maxAttempts = 12;
                 for (let i = 0; i < maxAttempts; i += 1) {
                     const result =
                         await conversationApi.getMessagesByConversation({
@@ -721,7 +840,11 @@ export const ChatPage: React.FC = () => {
                                     message.clientMessageId),
                     );
 
-                    if (matched?.mediaUrl) {
+                    const matchedMediaUrl =
+                        matched?.mediaUrl ||
+                        (matched as { fileUrl?: string } | undefined)?.fileUrl;
+
+                    if (matched && matchedMediaUrl) {
                         const hydrated = toSocketMessage({
                             messageId: matched.messageId,
                             _id: matched._id,
@@ -735,7 +858,7 @@ export const ChatPage: React.FC = () => {
                                     : matched.createdAt?.toISOString(),
                             conversationId: matched.conversationId,
                             messageType: matched.messageType,
-                            mediaUrl: matched.mediaUrl,
+                            mediaUrl: matchedMediaUrl,
                             fileName: matched.fileName,
                             fileType: matched.mimeType,
                         });
@@ -762,7 +885,7 @@ export const ChatPage: React.FC = () => {
 
                     if (i < maxAttempts - 1) {
                         await new Promise((resolve) =>
-                            window.setTimeout(resolve, 250),
+                            window.setTimeout(resolve, 400),
                         );
                     }
                 }
@@ -780,14 +903,36 @@ export const ChatPage: React.FC = () => {
         debugAuthStatus();
         setIsConnecting(false);
 
+        const unwrapPayload = (
+            incoming: IncomingSocketPayload,
+        ): IncomingSocketPayload => {
+            let current: IncomingSocketPayload = incoming;
+
+            for (let i = 0; i < 3; i += 1) {
+                if (current?.message && typeof current.message === 'object') {
+                    current = current.message as IncomingSocketPayload;
+                    continue;
+                }
+
+                if (current?.data && typeof current.data === 'object') {
+                    current = current.data as IncomingSocketPayload;
+                    continue;
+                }
+
+                break;
+            }
+
+            return current;
+        };
+
         const messageHandler = (payload: IncomingSocketPayload) => {
-            const rawPayload = payload?.message || payload?.data || payload;
+            const rawPayload = unwrapPayload(payload);
             const msg = toSocketMessage(rawPayload);
 
             const hasVisibleContent =
                 msg.isRecalled ||
                 msg.content.trim().length > 0 ||
-                (msg.isFile && !!msg.fileUrl) ||
+                msg.isFile ||
                 (msg.type === 'call' && !!msg.callData);
 
             if (!hasVisibleContent || !msg.conversationId) {
@@ -816,6 +961,14 @@ export const ChatPage: React.FC = () => {
                         fileName: msg.fileName || current.fileName,
                         fileType: msg.fileType || current.fileType,
                         type: msg.type || current.type,
+                        replyToMessageId:
+                            msg.replyToMessageId || current.replyToMessageId,
+                        replyToMessagePreview:
+                            msg.replyToMessagePreview ||
+                            current.replyToMessagePreview ||
+                            null,
+                        messageStatus:
+                            msg.messageStatus || current.messageStatus,
                     };
                     return next;
                 }
@@ -2220,6 +2373,28 @@ export const ChatPage: React.FC = () => {
         ),
     ];
 
+    const mergeMessagePreservingMedia = (
+        current: SocketMessage,
+        incoming: SocketMessage,
+    ): SocketMessage => ({
+        ...current,
+        ...incoming,
+        isFile: incoming.isFile || current.isFile,
+        fileUrl: incoming.fileUrl || current.fileUrl,
+        fileName: incoming.fileName || current.fileName,
+        fileType: incoming.fileType || current.fileType,
+        type:
+            incoming.type && incoming.type !== 'text'
+                ? incoming.type
+                : (current.type ?? incoming.type),
+        content: incoming.content || current.content,
+        senderName: incoming.senderName || current.senderName,
+        replyToMessageId: incoming.replyToMessageId || current.replyToMessageId,
+        replyToMessagePreview:
+            incoming.replyToMessagePreview || current.replyToMessagePreview,
+        messageStatus: incoming.messageStatus || current.messageStatus,
+    });
+
     const messageMap = new Map<string, SocketMessage>();
     for (const message of mergedMessages) {
         const hasVisibleContent =
@@ -2230,12 +2405,20 @@ export const ChatPage: React.FC = () => {
                 !!(message as ChatSocketMessage).callData); // ✅ Include call messages
         if (!hasVisibleContent) continue;
 
+        const hasPersistedId = isPersistedMessageId(message.id);
         const key =
+            (hasPersistedId ? message.id : undefined) ||
             (message as ChatSocketMessage).clientMessageId ||
             message.id ||
             `${message.senderId}_${message.timestamp}_${message.content}_${message.fileUrl || ''}`;
 
-        messageMap.set(key, message);
+        const existing = messageMap.get(key);
+        if (!existing) {
+            messageMap.set(key, message);
+            continue;
+        }
+
+        messageMap.set(key, mergeMessagePreservingMedia(existing, message));
     }
 
     const displayMessages: SocketMessage[] = Array.from(messageMap.values())

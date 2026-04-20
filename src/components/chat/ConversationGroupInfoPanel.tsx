@@ -1540,7 +1540,7 @@ export const ConversationGroupInfoPanel: React.FC<
                     <div className="p-4 border-b flex flex-col gap-4 border-slate-200">
                         <div className="flex items-center justify-between">
                             <span className="font-semibold text-gray-primary">
-                                Images/Video
+                                Images
                             </span>
                             <button
                                 onClick={() => toggleSection('images')}
