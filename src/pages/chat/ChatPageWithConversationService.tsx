@@ -834,7 +834,9 @@ export const ChatPage: React.FC = () => {
 
     const hydrateMediaMessage = useCallback(
         async (message: ChatSocketMessage) => {
-            if (!message.conversationId) return;
+            // Fallback về selectedConversationId nếu message không có conversationId
+            const convId = message.conversationId || selectedConversationId;
+            if (!convId) return;
             const hydrationKey = message.id || message.clientMessageId;
             if (!hydrationKey) return;
             if (pendingMediaHydrationRef.current.has(hydrationKey)) return;
@@ -846,7 +848,7 @@ export const ChatPage: React.FC = () => {
                 for (let i = 0; i < maxAttempts; i += 1) {
                     const result =
                         await conversationApi.getMessagesByConversation({
-                            conversationId: message.conversationId,
+                            conversationId: convId,
                             limit: 30,
                         });
 
@@ -864,23 +866,31 @@ export const ChatPage: React.FC = () => {
                         (matched as { fileUrl?: string } | undefined)?.fileUrl;
 
                     if (matched && matchedMediaUrl) {
-                        const hydrated = toSocketMessage({
-                            messageId: matched.messageId,
-                            _id: matched._id,
-                            clientMessageId: matched.clientMessageId,
-                            senderBy: matched.senderBy || matched.senderId,
-                            senderName: matched.senderBy || matched.senderId,
-                            content: matched.content,
-                            createdAt:
-                                typeof matched.createdAt === 'string'
-                                    ? matched.createdAt
-                                    : matched.createdAt?.toISOString(),
-                            conversationId: matched.conversationId,
-                            messageType: matched.messageType,
-                            mediaUrl: matchedMediaUrl,
-                            fileName: matched.fileName,
-                            fileType: matched.mimeType,
-                        });
+                       const hydrated = toSocketMessage({
+                           messageId: matched.messageId,
+                           _id: matched._id,
+                           clientMessageId: matched.clientMessageId,
+                           senderId: matched.senderId || matched.senderBy,
+                           senderBy: matched.senderBy || matched.senderId,
+                           // Ưu tiên senderName từ matched API, fallback về message gốc (tên đúng từ socket event ban đầu)
+                           senderName:
+                               matched.senderName ||
+                               message.senderName ||
+                               matched.senderBy ||
+                               matched.senderId,
+                           senderAvatar:
+                               matched.senderAvatar || message.senderAvatar,
+                           content: matched.content,
+                           createdAt:
+                               typeof matched.createdAt === 'string'
+                                   ? matched.createdAt
+                                   : matched.createdAt?.toISOString(),
+                           conversationId: matched.conversationId || convId,
+                           messageType: matched.messageType,
+                           mediaUrl: matchedMediaUrl,
+                           fileName: matched.fileName || message.fileName,
+                           fileType: matched.mimeType || message.fileType,
+                       });
 
                         setSocketMessages((prev) =>
                             prev.map((msg) =>
@@ -948,10 +958,17 @@ export const ChatPage: React.FC = () => {
             const rawPayload = unwrapPayload(payload);
             const msg = toSocketMessage(rawPayload);
 
+            const isMediaType =
+                msg.type === 'image' ||
+                msg.type === 'video' ||
+                msg.type === 'audio' ||
+                msg.type === 'file';
+
             const hasVisibleContent =
                 msg.isRecalled ||
                 msg.content.trim().length > 0 ||
                 msg.isFile ||
+                isMediaType || // ← thêm: media type luôn có nội dung dù fileUrl chưa có
                 (msg.type === 'call' && !!msg.callData);
 
             if (!hasVisibleContent || !msg.conversationId) {
@@ -995,7 +1012,7 @@ export const ChatPage: React.FC = () => {
                 return [...prev, msg];
             });
 
-            if (msg.isFile && !msg.fileUrl) {
+            if ((msg.isFile || isMediaType) && !msg.fileUrl) {
                 void hydrateMediaMessage(msg);
             }
 
