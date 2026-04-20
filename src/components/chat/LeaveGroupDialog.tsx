@@ -24,7 +24,7 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const canLeave = !isOwner || hasOtherAdmin;
+    const canLeave = !isOwner;
 
     const handleConfirm = async () => {
         if (!canLeave) {
@@ -85,7 +85,7 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
                         </div>
                     )}
 
-                    {isOwner && hasOtherAdmin && (
+                    {isOwner && (
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
                             <p className="text-xs text-blue-700">
                                 ℹ️ Vì có quản lý khác, bạn có thể rời nhóm.

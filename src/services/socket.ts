@@ -328,6 +328,21 @@ type GroupMemberLeftPayload = {
     groupDeleted: boolean;
 };
 
+type GroupMemberChangedPayload = {
+    type: 'join' | 'leave' | 'kick';
+    groupId?: string;
+    conversationId?: string;
+    userId?: string;
+    user?: {
+        userId: string;
+        fullName?: string | null;
+        avatarUrl?: string | null;
+    };
+    addedBy?: string;
+    at: string;
+    groupDeleted?: boolean;
+};
+
 type GroupJoinApprovalSettingUpdatedPayload = {
     groupId: string;
     joinRequireApproval: boolean;
@@ -388,6 +403,17 @@ class ChatSocketService {
     private chatSocket: Socket | null = null;
     private joinedConversationIds = new Set<string>();
     private listenersBound = false;
+    private memberChangedHandlers = new Set<
+        (payload: GroupMemberChangedPayload) => void
+    >();
+    private legacyMemberLeftHandlers = new Map<
+        (payload: GroupMemberLeftPayload) => void,
+        (payload: GroupMemberChangedPayload) => void
+    >();
+    private legacyMemberJoinedHandlers = new Map<
+        (payload: GroupMemberJoinedPayload) => void,
+        (payload: GroupMemberChangedPayload) => void
+    >();
 
     /**
      * Kết nối socket chat sử dụng JWT token từ localStorage
@@ -485,6 +511,9 @@ class ChatSocketService {
         this.chatSocket = null;
         this.joinedConversationIds.clear();
         this.listenersBound = false;
+        this.memberChangedHandlers.clear();
+        this.legacyMemberLeftHandlers.clear();
+        this.legacyMemberJoinedHandlers.clear();
     }
 
     getSocket(): Socket | null {
@@ -760,11 +789,35 @@ class ChatSocketService {
     onGroupMemberLeft(cb: (payload: GroupMemberLeftPayload) => void) {
         if (!this.chatSocket) return;
         this.chatSocket.on('group:member_left', cb);
+
+        const mappedHandler = (payload: GroupMemberChangedPayload) => {
+            if (payload.type !== 'leave' && payload.type !== 'kick') return;
+
+            const targetUserId = payload.userId || payload.user?.userId;
+            if (!targetUserId) return;
+
+            cb({
+                groupId: String(
+                    payload.groupId || payload.conversationId || '',
+                ),
+                userId: targetUserId,
+                leftAt: payload.at,
+                groupDeleted: Boolean(payload.groupDeleted),
+            });
+        };
+
+        this.legacyMemberLeftHandlers.set(cb, mappedHandler);
+        this.chatSocket.on('group:member_changed', mappedHandler);
     }
 
     offGroupMemberLeft() {
         if (!this.chatSocket) return;
         this.chatSocket.off('group:member_left');
+
+        for (const mappedHandler of this.legacyMemberLeftHandlers.values()) {
+            this.chatSocket.off('group:member_changed', mappedHandler);
+        }
+        this.legacyMemberLeftHandlers.clear();
     }
 
     onGroupJoinApprovalSettingUpdated(
@@ -806,11 +859,49 @@ class ChatSocketService {
     onGroupMemberJoined(cb: (payload: GroupMemberJoinedPayload) => void) {
         if (!this.chatSocket) return;
         this.chatSocket.on('group:member_joined', cb);
+
+        const mappedHandler = (payload: GroupMemberChangedPayload) => {
+            if (payload.type !== 'join') return;
+
+            const targetUserId = payload.user?.userId || payload.userId;
+            if (!targetUserId) return;
+
+            cb({
+                groupId: String(
+                    payload.groupId || payload.conversationId || '',
+                ),
+                userId: targetUserId,
+                joinedAt: payload.at,
+            });
+        };
+
+        this.legacyMemberJoinedHandlers.set(cb, mappedHandler);
+        this.chatSocket.on('group:member_changed', mappedHandler);
     }
 
     offGroupMemberJoined() {
         if (!this.chatSocket) return;
         this.chatSocket.off('group:member_joined');
+
+        for (const mappedHandler of this.legacyMemberJoinedHandlers.values()) {
+            this.chatSocket.off('group:member_changed', mappedHandler);
+        }
+        this.legacyMemberJoinedHandlers.clear();
+    }
+
+    onGroupMemberChanged(cb: (payload: GroupMemberChangedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.memberChangedHandlers.add(cb);
+        this.chatSocket.on('group:member_changed', cb);
+    }
+
+    offGroupMemberChanged() {
+        if (!this.chatSocket) return;
+
+        for (const cb of this.memberChangedHandlers) {
+            this.chatSocket.off('group:member_changed', cb);
+        }
+        this.memberChangedHandlers.clear();
     }
 
     onGroupAdminTransferred(
@@ -1111,6 +1202,16 @@ export const onGroupMemberJoined = (
 
 export const offGroupMemberJoined = () => {
     chatSocketService.offGroupMemberJoined();
+};
+
+export const onGroupMemberChanged = (
+    cb: (payload: GroupMemberChangedPayload) => void,
+) => {
+    chatSocketService.onGroupMemberChanged(cb);
+};
+
+export const offGroupMemberChanged = () => {
+    chatSocketService.offGroupMemberChanged();
 };
 
 export const onGroupAdminTransferred = (

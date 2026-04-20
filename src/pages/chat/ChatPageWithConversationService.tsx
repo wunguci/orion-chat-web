@@ -19,6 +19,7 @@ import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
 import {
     sendMessage,
+    socketService,
     offMessageNew,
     onMessageNew,
     onMessageReactionUpdated,
@@ -44,10 +45,11 @@ import {
 import { useChatRoom } from '../../hooks/useChatRoom';
 import { conversationApi } from '../../services/conversationApi';
 import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
-import { debugAuthStatus, getUser } from '../../utils/token';
+import { debugAuthStatus, getToken, getUser } from '../../utils/token';
 import { getUserInfo } from '../../services/userService';
 import { useCall } from '../../hooks/useCall';
 import type { PinnedMessageItem } from '../../types/conversation';
+import type { AppNotification } from '../../types/notification';
 import { mapChatActionError } from '../../utils/chatMessageErrors';
 
 const API_BASE_URL =
@@ -281,6 +283,8 @@ export const ChatPage: React.FC = () => {
     >(null);
     const pendingMediaHydrationRef = useRef<Set<string>>(new Set());
     const lastReadMessageIdRef = useRef<string | null>(null);
+    const conversationIdsRef = useRef<Set<string>>(new Set());
+    const lastConversationRefreshAtRef = useRef<number>(0);
 
     // Fetch all conversations (for sidebar + forward modal)
     const {
@@ -291,6 +295,19 @@ export const ChatPage: React.FC = () => {
         updateConversationLastMessage,
         markConversationLastMessageRecalled,
     } = useConversations();
+
+    useEffect(() => {
+        conversationIdsRef.current = new Set(
+            conversations.map((item) => item.conversationId),
+        );
+    }, [conversations]);
+
+    const refreshConversationsThrottled = useCallback(() => {
+        const now = Date.now();
+        if (now - lastConversationRefreshAtRef.current < 800) return;
+        lastConversationRefreshAtRef.current = now;
+        void refreshConversations();
+    }, [refreshConversations]);
 
     // Fetch selected conversation detail
     // No need to pass USER_ID - JWT token from localStorage is used
@@ -439,6 +456,56 @@ export const ChatPage: React.FC = () => {
             return () => clearTimeout(timer);
         }
     }, [location.state?.selectedConversationId, refreshConversations]);
+
+    useEffect(() => {
+        if (!USER_ID) return;
+
+        const token = getToken();
+        const notificationSocket =
+            socketService.getNotificationSocket() ||
+            socketService.connectNotification(USER_ID, token || undefined);
+
+        const isGroupRelatedNotification = (payload: AppNotification) => {
+            const type = String(payload.type || '').toLowerCase();
+            const metadata = payload.metadata || {};
+
+            const hasConversationReference =
+                typeof metadata.conversationId === 'string' ||
+                typeof metadata.groupId === 'string' ||
+                (typeof payload.link === 'string' &&
+                    /\/chat|conversation|group/i.test(payload.link));
+
+            return (
+                type === 'group_invite' ||
+                type.startsWith('group_') ||
+                hasConversationReference
+            );
+        };
+
+        const handleNotificationNew = (payload: AppNotification) => {
+            if (!isGroupRelatedNotification(payload)) return;
+            void refreshConversations();
+        };
+
+        const handleNotificationUpdated = (payload: AppNotification) => {
+            if (!isGroupRelatedNotification(payload)) return;
+            void refreshConversations();
+        };
+
+        notificationSocket.on('notifications:new', handleNotificationNew);
+        notificationSocket.on(
+            'notifications:updated',
+            handleNotificationUpdated,
+        );
+
+        return () => {
+            notificationSocket.off('notifications:new', handleNotificationNew);
+            notificationSocket.off(
+                'notifications:updated',
+                handleNotificationUpdated,
+            );
+        };
+    }, [USER_ID, refreshConversations]);
 
     const handleGroupConversationRemoved = useCallback(
         async (conversationId: string) => {
@@ -779,6 +846,12 @@ export const ChatPage: React.FC = () => {
                     createdAt: msg.timestamp,
                     isRecalled: !!msg.isRecalled,
                 });
+
+                // Fallback realtime: if message belongs to a conversation not in sidebar yet,
+                // refresh the list so newly-created groups appear for invited members immediately.
+                if (!conversationIdsRef.current.has(msg.conversationId)) {
+                    refreshConversationsThrottled();
+                }
             }
         };
 
@@ -1025,6 +1098,7 @@ export const ChatPage: React.FC = () => {
         hydrateMediaMessage,
         applyPinStateToMessage,
         refreshPinnedMessages,
+        refreshConversationsThrottled,
         selectedConversationId,
         markMessageAsRecalled,
         markConversationLastMessageRecalled,
