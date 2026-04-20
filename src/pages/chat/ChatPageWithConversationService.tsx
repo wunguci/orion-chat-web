@@ -23,6 +23,8 @@ import {
   onMessageNew,
   onGroupInfoUpdated,
   offGroupInfoUpdated,
+  onGroupCreated,
+  offGroupCreated,
   onMessageReactionUpdated,
   onMessageRecalled,
   offMessageReactionUpdated,
@@ -330,6 +332,18 @@ export const ChatPage: React.FC = () => {
       offGroupInfoUpdated();
     };
   }, [selectedConversationId, refreshConversations, fetchDetail]);
+
+  // Lắng nghe sự kiện tạo nhóm mới để tự động refresh danh sách hội thoại
+  useEffect(() => {
+    const handleGroupCreated = () => {
+      void refreshConversations();
+    };
+
+    onGroupCreated(handleGroupCreated);
+    return () => {
+      offGroupCreated();
+    };
+  }, [refreshConversations]);
 
   const getReceiverId = useCallback(() => {
     if (!selectedConversation) return "";

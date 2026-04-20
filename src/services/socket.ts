@@ -472,6 +472,13 @@ type GroupInfoUpdatedPayload = {
   updatedAt: string;
 };
 
+type GroupCreatedPayload = {
+  groupId: string;
+  groupName: string;
+  createdBy: string;
+  createdAt: string;
+};
+
 type ConversationHiddenUpdatedPayload = {
   conversationId: string;
   userId: string;
@@ -937,6 +944,16 @@ class ChatSocketService {
     this.chatSocket.off("group:info_updated");
   }
 
+  onGroupCreated(cb: (payload: GroupCreatedPayload) => void) {
+    if (!this.chatSocket) return;
+    this.chatSocket.on("group:created", cb);
+  }
+
+  offGroupCreated() {
+    if (!this.chatSocket) return;
+    this.chatSocket.off("group:created");
+  }
+
   onConversationHiddenUpdated(
     cb: (payload: ConversationHiddenUpdatedPayload) => void,
   ) {
@@ -1243,6 +1260,16 @@ export const onGroupInfoUpdated = (
 
 export const offGroupInfoUpdated = () => {
   chatSocketService.offGroupInfoUpdated();
+};
+
+export const onGroupCreated = (
+  cb: (payload: GroupCreatedPayload) => void,
+) => {
+  chatSocketService.onGroupCreated(cb);
+};
+
+export const offGroupCreated = () => {
+  chatSocketService.offGroupCreated();
 };
 
 export const onConversationHiddenUpdated = (
