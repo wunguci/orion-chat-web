@@ -121,6 +121,7 @@ export const ChatPage: React.FC = () => {
     mediaUrl?: string;
     fileName?: string;
     fileType?: string;
+    mimeType?: string;
     isDeleted?: boolean;
     isRecalled?: boolean;
     isPinned?: boolean;
@@ -584,6 +585,7 @@ export const ChatPage: React.FC = () => {
           (payload as { filename?: string })?.filename,
         fileType:
           payload?.fileType ||
+          payload?.mimeType ||
           (isImageType ? "image/*" : isVideoType ? "video/*" : undefined),
         isRecalled: payload?.isRecalled || payload?.isDeleted,
         isPinned: payload?.isPinned,
@@ -648,7 +650,7 @@ export const ChatPage: React.FC = () => {
       pendingMediaHydrationRef.current.add(hydrationKey);
 
       try {
-        const maxAttempts = 4;
+        const maxAttempts = 6;
         for (let i = 0; i < maxAttempts; i += 1) {
           const result = await conversationApi.getMessagesByConversation({
             conversationId: message.conversationId,
@@ -676,7 +678,8 @@ export const ChatPage: React.FC = () => {
               _id: matched._id,
               clientMessageId: matched.clientMessageId,
               senderBy: matched.senderBy || matched.senderId,
-              senderName: matched.senderBy || matched.senderId,
+              senderName:
+                matched.senderName || matched.senderBy || matched.senderId,
               senderAvatar: resolvedAvatar,
               content: matched.content,
               createdAt:
@@ -698,8 +701,13 @@ export const ChatPage: React.FC = () => {
                   ? {
                       ...msg,
                       ...hydrated,
+                      // Preserve sender info if hydrated doesn't have it
+                      senderName: hydrated.senderName || msg.senderName,
+                      senderAvatar: hydrated.senderAvatar || msg.senderAvatar,
                       fileUrl: hydrated.fileUrl || msg.fileUrl,
                       fileType: hydrated.fileType || msg.fileType,
+                      // Clear text content that was the filename placeholder
+                      content: hydrated.content || "",
                     }
                   : msg,
               ),
@@ -708,7 +716,9 @@ export const ChatPage: React.FC = () => {
           }
 
           if (i < maxAttempts - 1) {
-            await new Promise((resolve) => window.setTimeout(resolve, 250));
+            // Exponential backoff: 300ms, 600ms, 1s, 1.5s, 2s
+            const delay = Math.min(300 * (i + 1), 2000);
+            await new Promise((resolve) => window.setTimeout(resolve, delay));
           }
         }
       } catch (err) {
@@ -745,8 +755,13 @@ export const ChatPage: React.FC = () => {
 
       const hasVisibleContent =
         msg.isRecalled ||
+        // File/image/video messages: accept even without fileUrl yet (hydration will fill it in)
+        msg.isFile ||
+        msg.type === "image" ||
+        msg.type === "video" ||
+        msg.type === "file" ||
+        msg.type === "audio" ||
         msg.content.trim().length > 0 ||
-        (msg.isFile && !!msg.fileUrl) ||
         (msg.type === "call" && !!msg.callData);
 
       if (!hasVisibleContent || !msg.conversationId) {
@@ -782,7 +797,15 @@ export const ChatPage: React.FC = () => {
         return [...prev, msg];
       });
 
-      if (msg.isFile && !msg.fileUrl) {
+      const needsHydration =
+        (msg.isFile ||
+          msg.type === "image" ||
+          msg.type === "video" ||
+          msg.type === "file" ||
+          msg.type === "audio") &&
+        !msg.fileUrl;
+
+      if (needsHydration) {
         void hydrateMediaMessage(msg);
       }
 
@@ -1822,6 +1845,7 @@ export const ChatPage: React.FC = () => {
           content: file.name,
           mediaUrl: serverFileUrl,
           fileName: file.name,
+          fileType: uploadedFileType, // Include MIME type
           fileSize: file.size,
           conversationId: selectedConversationId,
           replyToMessageId: replyDraft?.replyToMessageId,
@@ -2096,17 +2120,29 @@ export const ChatPage: React.FC = () => {
   for (const message of mergedMessages) {
     const hasVisibleContent =
       message.isRecalled ||
+      message.isFile ||
+      message.type === "image" ||
+      message.type === "video" ||
+      message.type === "file" ||
+      message.type === "audio" ||
       message.content.trim().length > 0 ||
-      (message.isFile && !!message.fileUrl) ||
-      (message.type === "call" && !!(message as ChatSocketMessage).callData); // ✅ Include call messages
+      (message.type === "call" && !!(message as ChatSocketMessage).callData);
     if (!hasVisibleContent) continue;
 
-    const key =
-      (message as ChatSocketMessage).clientMessageId ||
-      message.id ||
-      `${message.senderId}_${message.timestamp}_${message.content}_${message.fileUrl || ""}`;
+    const key = (message as ChatSocketMessage).clientMessageId || message.id;
 
-    messageMap.set(key, message);
+    // Prefer the richer entry: if existing already has fileUrl, only overwrite if new one also has fileUrl
+    const existing = messageMap.get(key);
+    if (existing?.fileUrl && !message.fileUrl) {
+      // Keep existing (richer), just update non-media fields
+      messageMap.set(key, {
+        ...message,
+        fileUrl: existing.fileUrl,
+        fileType: existing.fileType || message.fileType,
+      });
+    } else {
+      messageMap.set(key, message);
+    }
   }
 
   const displayMessages: SocketMessage[] = Array.from(messageMap.values())

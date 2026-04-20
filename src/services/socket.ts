@@ -338,6 +338,7 @@ type ChatSendMessagePayload = {
   content: string;
   mediaUrl?: string;
   fileName?: string;
+  fileType?: string;
   fileSize?: number;
   replyToMessageId?: string;
   forwardedFromMessageId?: string;
@@ -1032,6 +1033,7 @@ export const sendMessage = (data: {
   content: string;
   mediaUrl?: string;
   fileName?: string;
+  fileType?: string;
   fileSize?: number;
   replyToMessageId?: string;
   forwardedFromMessageId?: string;
