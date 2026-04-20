@@ -36,6 +36,7 @@ const EMOJI_LIST = [
     // '👏', // Clap
 ];
 
+// const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_API_URL ||
@@ -306,6 +307,117 @@ export const MessageList: React.FC<{
         return lookup;
     }, [socketMessages]);
 
+    const groupedItems = useMemo(() => {
+        const items: Array<
+            | { kind: 'imageGroup'; msgs: SocketMessage[]; isMe: boolean }
+            | { kind: 'single'; msg: SocketMessage }
+        > = [];
+
+        let currentImageGroup: SocketMessage[] = [];
+        let lastImageSenderId: string | null = null;
+
+        for (const msg of socketMessages) {
+            const isImage =
+                msg.isFile &&
+                (msg.fileType?.startsWith('image/') === true ||
+                    msg.fileCategory === 'image' ||
+                    msg.type === 'image' ||
+                    /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
+                        `${msg.fileName || ''} ${msg.fileUrl || ''} ${msg.content || ''}`,
+                    ));
+
+            if (isImage && msg.senderId === lastImageSenderId) {
+                // Continue the image group
+                currentImageGroup.push(msg);
+            } else {
+                // Finish previous image group if it exists
+                if (currentImageGroup.length > 0) {
+                    const isMe =
+                        !!currentUserId &&
+                        currentImageGroup[0].senderId === currentUserId;
+                    items.push({
+                        kind: 'imageGroup',
+                        msgs: currentImageGroup,
+                        isMe,
+                    });
+                }
+
+                // Start new image group or add single message
+                if (isImage) {
+                    currentImageGroup = [msg];
+                    lastImageSenderId = msg.senderId;
+                } else {
+                    currentImageGroup = [];
+                    lastImageSenderId = null;
+                    items.push({ kind: 'single', msg });
+                }
+            }
+        }
+
+        // Finish any remaining image group
+        if (currentImageGroup.length > 0) {
+            const isMe =
+                !!currentUserId &&
+                currentImageGroup[0].senderId === currentUserId;
+            items.push({
+                kind: 'imageGroup',
+                msgs: currentImageGroup,
+                isMe,
+            });
+        }
+
+        return items;
+    }, [socketMessages, currentUserId]);
+
+    const renderImageGrid = (
+        msgs: SocketMessage[],
+        isMe: boolean,
+    ): React.ReactNode => {
+        if (msgs.length === 1) {
+            const msg = msgs[0];
+            return (
+                <img
+                    key={msg.id}
+                    src={toAbsoluteMediaUrl(msg.fileUrl) || msg.fileUrl}
+                    alt={msg.fileName}
+                    className="max-w-sm rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => {
+                        const idx = allImages.findIndex(
+                            (img) =>
+                                img.src ===
+                                (toAbsoluteMediaUrl(msg.fileUrl) ||
+                                    msg.fileUrl),
+                        );
+                        if (idx >= 0) setViewerIndex(idx);
+                    }}
+                />
+            );
+        }
+
+        // Grid layout for multiple images
+        return (
+            <div className="grid grid-cols-2 gap-1 rounded-2xl overflow-hidden max-w-sm">
+                {msgs.map((msg) => (
+                    <img
+                        key={msg.id}
+                        src={toAbsoluteMediaUrl(msg.fileUrl) || msg.fileUrl}
+                        alt={msg.fileName}
+                        className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => {
+                            const idx = allImages.findIndex(
+                                (img) =>
+                                    img.src ===
+                                    (toAbsoluteMediaUrl(msg.fileUrl) ||
+                                        msg.fileUrl),
+                            );
+                            if (idx >= 0) setViewerIndex(idx);
+                        }}
+                    />
+                ))}
+            </div>
+        );
+    };
+
     const getSeenCount = (message: SocketMessage) => {
         if (!Array.isArray(message.seenBy)) return 0;
 
@@ -380,8 +492,6 @@ export const MessageList: React.FC<{
         }, 1500);
     };
 
-    let imgCounter = -1;
-
     return (
         <>
             <div
@@ -410,7 +520,58 @@ export const MessageList: React.FC<{
                         <p>Không có tin nhắn nào. Bắt đầu cuộc trò chuyện!</p>
                     </div>
                 ) : (
-                    socketMessages.map((msg) => {
+                    groupedItems.map((item) => {
+                        // ── IMAGE GROUP ──
+                        if (item.kind === 'imageGroup') {
+                            const { msgs, isMe } = item;
+                            const rep = msgs[0]; // representative message for avatar/name/time
+                            const groupKey = `imggroup-${rep.clientMessageId || rep.id}`;
+                            const senderAvatar =
+                                toAbsoluteMediaUrl(rep.senderAvatar) ||
+                                `https://api.dicebear.com/7.x/avataaars/svg?seed=${rep.senderId}`;
+                            const lastMsg = msgs[msgs.length - 1];
+                            return (
+                                <div
+                                    key={groupKey}
+                                    className={`flex gap-3 px-4 py-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+                                >
+                                    {!isMe ? (
+                                        <div className="shrink-0 w-8 h-8 rounded-full overflow-hidden shadow-sm">
+                                            <img
+                                                src={senderAvatar}
+                                                alt={rep.senderName}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="shrink-0 w-8" />
+                                    )}
+                                    <div
+                                        className={`flex flex-col gap-1 max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}
+                                    >
+                                        {!isMe && rep.senderName && (
+                                            <p className="text-xs font-semibold text-slate-600 px-1">
+                                                {rep.senderName}
+                                            </p>
+                                        )}
+                                        {renderImageGrid(msgs, isMe)}
+                                        <p
+                                            className={`text-[11px] px-1 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}
+                                        >
+                                            {new Date(
+                                                lastMsg.timestamp,
+                                            ).toLocaleTimeString('vi-VN', {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                            })}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        // ── SINGLE MESSAGE ──
+                        const { msg } = item;
                         const isMe =
                             !!currentUserId && msg.senderId === currentUserId;
 
@@ -424,8 +585,14 @@ export const MessageList: React.FC<{
                                 /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
                                     `${msg.fileName || ''} ${msg.fileUrl || ''} ${msg.content || ''}`,
                                 ));
-                        if (hasImage) imgCounter++;
-                        const imgIdx = imgCounter;
+                        const imgIdx = hasImage
+                            ? allImages.findIndex(
+                                  (img) =>
+                                      img.src ===
+                                      (toAbsoluteMediaUrl(msg.fileUrl) ||
+                                          msg.fileUrl),
+                              )
+                            : -1;
                         const isVideoFile =
                             msg.isFile &&
                             (msg.fileType?.startsWith('video/') === true ||

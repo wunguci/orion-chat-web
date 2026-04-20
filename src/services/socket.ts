@@ -330,24 +330,25 @@ type SocketAckError = {
 type SocketAckResponse<T> = SocketAckSuccess<T> | SocketAckError;
 
 type ChatSendMessagePayload = {
-  requestId: string;
-  clientMessageId: string;
-  conversationId: string;
-  receiverId?: string;
-  type: "text" | "image" | "file" | "audio" | "video" | "call";
-  content: string;
-  mediaUrl?: string;
-  fileName?: string;
-  fileSize?: number;
-  replyToMessageId?: string;
-  forwardedFromMessageId?: string;
-  callData?: {
-    callType?: "audio" | "video";
-    callStatus?: "completed" | "missed" | "declined";
-    duration?: number;
-    isInitiator?: boolean;
-    wasRejected?: boolean;
-  };
+    requestId: string;
+    clientMessageId: string;
+    conversationId: string;
+    receiverId?: string;
+    type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
+    content: string;
+    mediaUrl?: string;
+    fileName?: string;
+    fileType?: string;
+    fileSize?: number;
+    replyToMessageId?: string;
+    forwardedFromMessageId?: string;
+    callData?: {
+        callType?: 'audio' | 'video';
+        callStatus?: 'completed' | 'missed' | 'declined';
+        duration?: number;
+        isInitiator?: boolean;
+        wasRejected?: boolean;
+    };
 };
 
 type ChatMessageSeenPayload = {
@@ -485,6 +486,13 @@ type GroupInfoUpdatedPayload = {
   groupAvatar?: string;
   updatedBy: string;
   updatedAt: string;
+};
+
+type GroupCreatedPayload = {
+    groupId: string;
+    groupName: string;
+    createdBy: string;
+    createdAt: string;
 };
 
 type ConversationHiddenUpdatedPayload = {
@@ -1009,19 +1017,25 @@ class ChatSocketService {
     this.chatSocket.on("group:dissolved", cb);
   }
 
-  offGroupInfoUpdated(cb?: (payload: GroupInfoUpdatedPayload) => void) {
-    if (!this.chatSocket) return;
-    if (cb) {
-      this.chatSocket.off("group:info_updated", cb);
-      return;
+    offGroupDissolved() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:dissolved');
     }
-    this.chatSocket.off("group:info_updated");
-  }
 
-  offGroupDissolved() {
-    if (!this.chatSocket) return;
-    this.chatSocket.off("group:dissolved");
-  }
+    onGroupCreated(cb: (payload: GroupCreatedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:created', cb);
+    }
+
+    offGroupCreated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:created');
+    }
+
+    onGroupInfoUpdated(cb: (payload: GroupInfoUpdatedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:info_updated', cb);
+    }
 
   onGroupInfoUpdated(cb: (payload: GroupInfoUpdatedPayload) => void) {
     if (!this.chatSocket) return;
@@ -1343,10 +1357,19 @@ export const onGroupInfoUpdated = (
 };
 
 export const offGroupInfoUpdated = (
-  cb?: (payload: GroupInfoUpdatedPayload) => void,
+    cb?: (payload: GroupInfoUpdatedPayload) => void,
 ) => {
-  chatSocketService.offGroupInfoUpdated(cb);
+    chatSocketService.offGroupInfoUpdated(cb);
 };
+
+export const onGroupCreated = (cb: (payload: GroupCreatedPayload) => void) => {
+    chatSocketService.onGroupCreated(cb);
+};
+
+export const offGroupCreated = () => {
+    chatSocketService.offGroupCreated();
+};
+
 
 export const onConversationHiddenUpdated = (
   cb: (payload: ConversationHiddenUpdatedPayload) => void,
