@@ -58,6 +58,7 @@ import type {
   WorkspaceFileResponse,
   CreateWorkspaceFileRequest,
   UpdateWorkspaceFileRequest,
+  OnlyOfficeConfigResponse,
   WorkloadMemberResponse,
   ReportDataResponse,
   WorkspaceDashboardStatsResponse,
@@ -388,7 +389,6 @@ export const workHubApi = {
    */
   deleteComment: (commentId: string) => api.delete(`/comments/${commentId}`),
 
-  // ---- Attachment CRUD ----
 
   /**
    * GET /tasks/:taskId/attachments
@@ -411,8 +411,6 @@ export const workHubApi = {
   deleteAttachment: (attachmentId: string) =>
     api.delete(`/attachments/${attachmentId}`),
 
-  // ---- Activity Log ----
-
   /**
    * GET /tasks/:taskId/activities
    * Lấy tất cả activity logs của task
@@ -430,8 +428,6 @@ export const workHubApi = {
   /** GET /workspaces/:workspaceId/activities - Activity feed workspace-level */
   getWorkspaceActivities: (workspaceId: string) =>
     api.get<ActivityLogResponse[]>(`/workspaces/${workspaceId}/activities`),
-
-  // ---- Goal CRUD ----
 
   getGoals: (workspaceId: string) =>
     api.get<GoalResponse[]>(`/workspaces/${workspaceId}/goals`),
@@ -452,8 +448,6 @@ export const workHubApi = {
 
   deleteKeyResult: (krId: string) => api.delete(`/key-results/${krId}`),
 
-  // ---- Sprint CRUD ----
-
   getSprints: (workspaceId: string) =>
     api.get<SprintResponse[]>(`/workspaces/${workspaceId}/sprints`),
 
@@ -468,8 +462,6 @@ export const workHubApi = {
   getSprintTasks: (sprintId: string) =>
     api.get<TaskResponse[]>(`/sprints/${sprintId}/tasks`),
 
-  // ---- Epic CRUD ----
-
   getEpics: (workspaceId: string) =>
     api.get<EpicResponse[]>(`/workspaces/${workspaceId}/epics`),
 
@@ -481,8 +473,6 @@ export const workHubApi = {
 
   deleteEpic: (id: string) => api.delete(`/epics/${id}`),
 
-  // ---- Milestone CRUD ----
-
   getMilestones: (workspaceId: string) =>
     api.get<MilestoneResponse[]>(`/workspaces/${workspaceId}/milestones`),
 
@@ -493,8 +483,6 @@ export const workHubApi = {
     api.patch<MilestoneResponse>(`/milestones/${id}`, data),
 
   deleteMilestone: (id: string) => api.delete(`/milestones/${id}`),
-
-  // ---- Automation CRUD ----
 
   getAutomations: (workspaceId: string) =>
     api.get<AutomationRuleResponse[]>(`/workspaces/${workspaceId}/automations`),
@@ -512,8 +500,6 @@ export const workHubApi = {
     api.patch<AutomationRuleResponse>(`/automations/${id}/toggle`, {}),
 
   deleteAutomation: (id: string) => api.delete(`/automations/${id}`),
-
-  // ---- Document CRUD ----
 
   getDocuments: (workspaceId: string) =>
     api.get<DocumentResponse[]>(`/workspaces/${workspaceId}/documents`),
@@ -537,8 +523,6 @@ export const workHubApi = {
   resolveInlineComment: (commentId: string) =>
     api.patch(`/inline-comments/${commentId}/resolve`, {}),
 
-  // ---- WorkspaceFile CRUD ----
-
   getWorkspaceFiles: (workspaceId: string, parentId?: string) =>
     api.get<WorkspaceFileResponse[]>(
       `/workspaces/${workspaceId}/files${parentId ? `?parentId=${parentId}` : ""}`,
@@ -549,6 +533,22 @@ export const workHubApi = {
     data: CreateWorkspaceFileRequest,
   ) =>
     api.post<WorkspaceFileResponse>(`/workspaces/${workspaceId}/files`, data),
+
+  uploadWorkspaceFile: (
+    workspaceId: string,
+    file: File,
+    data?: Omit<CreateWorkspaceFileRequest, "name" | "type" | "mimeType" | "size">,
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (data?.parentId) formData.append("parentId", data.parentId);
+    if (data?.accessLevel) formData.append("accessLevel", data.accessLevel);
+
+    return api.postForm<WorkspaceFileResponse>(
+      `/workspaces/${workspaceId}/files`,
+      formData,
+    );
+  },
 
   createWorkspaceFolder: (
     workspaceId: string,
@@ -561,12 +561,12 @@ export const workHubApi = {
 
   deleteWorkspaceFile: (id: string) => api.delete(`/workspace-files/${id}`),
 
-  // ---- Workload Aggregate ----
+  getOnlyOfficeConfig: (id: string) =>
+    api.get<OnlyOfficeConfigResponse>(`/workspace-files/${id}/onlyoffice/config`),
 
   getWorkload: (workspaceId: string) =>
     api.get<WorkloadMemberResponse[]>(`/workspaces/${workspaceId}/workload`),
 
-  // ---- Reports Aggregate ----
 
   getReports: (workspaceId: string) =>
     api.get<ReportDataResponse>(`/workspaces/${workspaceId}/reports`),

@@ -553,11 +553,42 @@ export interface WorkspaceFileResponse {
   mimeType: string | null;
   size: number | null;
   url: string | null;
+  s3Key?: string | null;
+  currentVersion?: number;
   accessLevel: string;
   uploadedAt: string;
   createdAt: string;
   uploadedBy: UserResponse | null;
   parent: { fileId: string } | null;
+}
+
+export interface OnlyOfficeConfigResponse {
+  documentServerUrl: string;
+  config: {
+    document: {
+      fileType: "doc" | "docx" | "xlsx";
+      key: string;
+      title: string;
+      url: string;
+      permissions: {
+        edit: boolean;
+        download: boolean;
+        print: boolean;
+      };
+    };
+    documentType: "word" | "cell";
+    editorConfig: {
+      callbackUrl: string;
+      lang: string;
+      mode: "edit" | "view";
+      user: {
+        id: string;
+        name: string;
+      };
+    };
+    height: string;
+    width: string;
+  };
 }
 
 export interface CreateWorkspaceFileRequest {
@@ -566,6 +597,7 @@ export interface CreateWorkspaceFileRequest {
   mimeType?: string;
   size?: number;
   url?: string;
+  fileFormat?: "doc" | "docx" | "xlsx";
   accessLevel?: string;
   parentId?: string;
 }

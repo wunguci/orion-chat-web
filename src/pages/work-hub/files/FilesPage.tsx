@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { workHubApi } from "../../../features/work-hub/work-hub.api";
 import { mapWorkspaceFile } from "../../../features/work-hub/work-hub.mappers";
 import type { FileItem } from "../../../types/work-hub.types";
 
 const FilesPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
 
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,9 +21,18 @@ const FilesPage = () => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [showNewFileModal, setShowNewFileModal] = useState(false);
+  const [newFileName, setNewFileName] = useState("");
+  const [newFileFormat, setNewFileFormat] = useState<"docx" | "doc" | "xlsx">(
+    "docx",
+  );
+  const [creatingFile, setCreatingFile] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadName, setUploadName] = useState("");
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(
+    null,
+  );
   const [uploadUrl, setUploadUrl] = useState("");
+  const [uploadName, setUploadName] = useState("");
   const [uploadMimeType, setUploadMimeType] = useState("");
   const [uploadSize, setUploadSize] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -100,17 +110,24 @@ const FilesPage = () => {
   };
 
   const handleUploadFile = async () => {
-    if (!workspaceId || !uploadName.trim()) return;
+    if (!workspaceId || (!selectedUploadFile && !uploadName.trim())) return;
     try {
       setUploading(true);
-      await workHubApi.createWorkspaceFile(workspaceId, {
-        name: uploadName.trim(),
-        mimeType: uploadMimeType || undefined,
-        size: uploadSize ? Number(uploadSize) : undefined,
-        url: uploadUrl || undefined,
-        parentId: currentFolderId ?? undefined,
-      });
+      if (selectedUploadFile) {
+        await workHubApi.uploadWorkspaceFile(workspaceId, selectedUploadFile, {
+          parentId: currentFolderId ?? undefined,
+        });
+      } else {
+        await workHubApi.createWorkspaceFile(workspaceId, {
+          name: uploadName.trim(),
+          mimeType: uploadMimeType || undefined,
+          size: uploadSize ? Number(uploadSize) : undefined,
+          url: uploadUrl || undefined,
+          parentId: currentFolderId ?? undefined,
+        });
+      }
       setShowUploadModal(false);
+      setSelectedUploadFile(null);
       setUploadName("");
       setUploadUrl("");
       setUploadMimeType("");
@@ -199,6 +216,66 @@ const FilesPage = () => {
     );
   };
 
+  const handleCreateFile = async () => {
+    if (!workspaceId || !newFileName.trim()) return;
+    try {
+      setCreatingFile(true);
+      await workHubApi.createWorkspaceFile(workspaceId, {
+        name: newFileName.trim(),
+        fileFormat: newFileFormat,
+        parentId: currentFolderId ?? undefined,
+      });
+      setShowNewFileModal(false);
+      setNewFileName("");
+      setNewFileFormat("docx");
+      await fetchFiles(currentFolderId);
+    } catch (err) {
+      console.error("Failed to create file:", err);
+    } finally {
+      setCreatingFile(false);
+    }
+  };
+
+  const resetUploadForm = () => {
+    setShowUploadModal(false);
+    setSelectedUploadFile(null);
+    setUploadName("");
+    setUploadUrl("");
+    setUploadMimeType("");
+    setUploadSize("");
+  };
+
+  const isOfficeEditableFile = (item: FileItem) => {
+    const extension = item.name.split(".").pop()?.toLowerCase();
+    if (extension === "doc" || extension === "docx" || extension === "xlsx") {
+      return true;
+    }
+
+    const mime = item.mimeType || "";
+    return (
+      mime.includes("word") ||
+      mime.includes("msword") ||
+      mime.includes("spreadsheet") ||
+      mime.includes("excel")
+    );
+  };
+
+  const openFile = (item: FileItem) => {
+    if (item.type === "folder") {
+      navigateToFolder(item.id, item.name);
+      return;
+    }
+
+    if (workspaceId && isOfficeEditableFile(item)) {
+      navigate(`/work-hub/${workspaceId}/files/${item.id}/edit`);
+      return;
+    }
+
+    if (item.url) {
+      window.open(item.url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString("vi-VN", {
@@ -220,6 +297,13 @@ const FilesPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowNewFileModal(true)}
+              className="flex items-center gap-2 px-3 py-2 border border-wh-green-border-medium text-wh-green-primary rounded-lg hover:bg-wh-green-bg-light transition-colors text-sm font-medium"
+            >
+              <i className="fas fa-file-circle-plus"></i>
+              New File
+            </button>
             <button
               onClick={() => setShowNewFolderModal(true)}
               className="flex items-center gap-2 px-3 py-2 border border-wh-green-border-medium text-wh-green-primary rounded-lg hover:bg-wh-green-bg-light transition-colors text-sm font-medium"
@@ -357,11 +441,7 @@ const FilesPage = () => {
                 return (
                   <div
                     key={item.id}
-                    onClick={() =>
-                      item.type === "folder"
-                        ? navigateToFolder(item.id, item.name)
-                        : toggleSelect(item.id)
-                    }
+                    onClick={() => openFile(item)}
                     className={`bg-white rounded-xl border p-4 cursor-pointer transition-all hover:shadow-md group ${
                       isSelected
                         ? "border-wh-green-primary ring-2 ring-wh-green-primary/20"
@@ -437,11 +517,7 @@ const FilesPage = () => {
                     return (
                       <tr
                         key={item.id}
-                        onClick={() =>
-                          item.type === "folder"
-                            ? navigateToFolder(item.id, item.name)
-                            : toggleSelect(item.id)
-                        }
+                        onClick={() => openFile(item)}
                         className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
                           selectedFiles.includes(item.id)
                             ? "bg-wh-green-bg-light"
@@ -533,6 +609,17 @@ const FilesPage = () => {
           <button
             onClick={() => {
               const file = files.find((f) => f.id === contextMenu.fileId);
+              if (file) openFile(file);
+              setContextMenu(null);
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+          >
+            <i className="fas fa-external-link-alt w-4 text-gray-400"></i>
+            Open
+          </button>
+          <button
+            onClick={() => {
+              const file = files.find((f) => f.id === contextMenu.fileId);
               if (file) {
                 setRenameTarget({ id: file.id, name: file.name });
               }
@@ -603,6 +690,83 @@ const FilesPage = () => {
         </div>
       )}
 
+      {/* New File Modal */}
+      {showNewFileModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
+            <div className="p-5 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Create New File
+              </h2>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  File Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Project brief"
+                  value={newFileName}
+                  onChange={(e) => setNewFileName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleCreateFile();
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Format
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: "docx", label: "DOCX" },
+                    { value: "doc", label: "DOC" },
+                    { value: "xlsx", label: "Excel" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        setNewFileFormat(option.value as "docx" | "doc" | "xlsx")
+                      }
+                      className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                        newFileFormat === option.value
+                          ? "border-wh-green-primary bg-wh-green-bg-heavy text-wh-green-primary"
+                          : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowNewFileModal(false);
+                  setNewFileName("");
+                  setNewFileFormat("docx");
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateFile}
+                disabled={creatingFile || !newFileName.trim()}
+                className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
+              >
+                {creatingFile ? "Creating..." : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Upload File Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -615,7 +779,51 @@ const FilesPage = () => {
             <div className="p-5 space-y-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  File Name *
+                  Local File
+                </label>
+                <input
+                  key={selectedUploadFile ? "file-selected" : "file-empty"}
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setSelectedUploadFile(file);
+                    if (file) {
+                      setUploadName(file.name);
+                      setUploadMimeType(file.type);
+                      setUploadSize(String(file.size));
+                      setUploadUrl("");
+                    }
+                  }}
+                  className="block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-wh-green-bg-heavy file:px-3 file:py-2 file:text-sm file:font-medium file:text-wh-green-primary hover:file:bg-wh-green-bg-medium"
+                />
+                {selectedUploadFile && (
+                  <div className="mt-2 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-500">
+                    <span className="truncate">{selectedUploadFile.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedUploadFile(null);
+                        setUploadName("");
+                        setUploadMimeType("");
+                        setUploadSize("");
+                      }}
+                      className="ml-3 text-gray-400 hover:text-gray-600"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-100"></div>
+                <span className="text-xs text-gray-400">or save link</span>
+                <div className="h-px flex-1 bg-gray-100"></div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  File Name
                 </label>
                 <input
                   type="text"
@@ -623,7 +831,7 @@ const FilesPage = () => {
                   value={uploadName}
                   onChange={(e) => setUploadName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
-                  autoFocus
+                  disabled={!!selectedUploadFile}
                 />
               </div>
               <div>
@@ -636,6 +844,7 @@ const FilesPage = () => {
                   value={uploadUrl}
                   onChange={(e) => setUploadUrl(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                  disabled={!!selectedUploadFile}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -649,6 +858,7 @@ const FilesPage = () => {
                     value={uploadMimeType}
                     onChange={(e) => setUploadMimeType(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                    disabled={!!selectedUploadFile}
                   />
                 </div>
                 <div>
@@ -661,26 +871,23 @@ const FilesPage = () => {
                     value={uploadSize}
                     onChange={(e) => setUploadSize(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-wh-green-primary focus:border-transparent"
+                    disabled={!!selectedUploadFile}
                   />
                 </div>
               </div>
             </div>
             <div className="p-5 border-t border-gray-100 flex justify-end gap-2">
               <button
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setUploadName("");
-                  setUploadUrl("");
-                  setUploadMimeType("");
-                  setUploadSize("");
-                }}
+                onClick={resetUploadForm}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUploadFile}
-                disabled={uploading || !uploadName.trim()}
+                disabled={
+                  uploading || (!selectedUploadFile && !uploadName.trim())
+                }
                 className="px-4 py-2 text-sm bg-wh-green-primary text-white rounded-lg hover:bg-wh-green-primary-hover transition-colors font-medium disabled:opacity-50"
               >
                 {uploading ? "Uploading..." : "Upload"}
