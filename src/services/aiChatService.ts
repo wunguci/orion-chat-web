@@ -1,5 +1,10 @@
 import { api } from "./api";
-import { Role, type ChatSession, type Message } from "../types/aichat";
+import {
+  Role,
+  type ChatSession,
+  type Message,
+  type AIActionSuggestion,
+} from "../types/aichat";
 
 const BASE = "/ai-sessions";
 
@@ -22,6 +27,7 @@ interface AIMessageDto {
 interface SendMessageResponse {
   assistantMessage: string;
   tokenUsed?: number;
+  suggestedActions?: AIActionSuggestion[];
 }
 
 const toTimestamp = (value?: string): number => {

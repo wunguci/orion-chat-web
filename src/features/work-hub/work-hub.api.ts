@@ -62,6 +62,7 @@ import type {
   ReportDataResponse,
   WorkspaceDashboardStatsResponse,
 } from "./work-hub.api.types";
+import type { InsightsSummary } from "../../types/work-hub.types";
 
 export const workHubApi = {
   /**
@@ -103,6 +104,13 @@ export const workHubApi = {
    */
   getDashboardStats: (id: string) =>
     api.get<WorkspaceDashboardStatsResponse>(`/workspaces/${id}/dashboard-stats`),
+
+  /**
+   * GET /workspaces/:id/insights
+   * Lấy AI insights tổng hợp cho workspace
+   */
+  getInsights: (id: string) =>
+    api.get<InsightsSummary>(`/workspaces/${id}/insights`),
 
   /**
    * GET /workspaces/:workspaceId/members
