@@ -501,6 +501,12 @@ type ConversationHistoryClearedPayload = {
   clearedAt: string;
 };
 
+type ConversationDeletedPayload = {
+  conversationId: string;
+  userId: string;
+  deletedAt: string;
+};
+
 class ChatSocketService {
   private chatSocket: Socket | null = null;
   private joinedConversationIds = new Set<string>();
@@ -1052,6 +1058,16 @@ class ChatSocketService {
     this.chatSocket.off("conversation:history_cleared");
   }
 
+  onConversationDeleted(cb: (payload: ConversationDeletedPayload) => void) {
+    if (!this.chatSocket) return;
+    this.chatSocket.on("conversation:deleted", cb);
+  }
+
+  offConversationDeleted() {
+    if (!this.chatSocket) return;
+    this.chatSocket.off("conversation:deleted");
+  }
+
   onReconnect(cb: () => void) {
     if (!this.chatSocket) return;
     this.chatSocket.on("reconnect", cb);
@@ -1366,4 +1382,14 @@ export const onConversationHistoryCleared = (
 
 export const offConversationHistoryCleared = () => {
   chatSocketService.offConversationHistoryCleared();
+};
+
+export const onConversationDeleted = (
+  cb: (payload: ConversationDeletedPayload) => void,
+) => {
+  chatSocketService.onConversationDeleted(cb);
+};
+
+export const offConversationDeleted = () => {
+  chatSocketService.offConversationDeleted();
 };

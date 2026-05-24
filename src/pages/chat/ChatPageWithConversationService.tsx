@@ -39,6 +39,8 @@ import {
   offMessageDeleted,
   onMessageSeen,
   offMessageSeen,
+  onConversationDeleted,
+  offConversationDeleted,
 } from "../../services/socket";
 import {
   useConversations,
@@ -347,6 +349,20 @@ export const ChatPage: React.FC = () => {
     lastConversationRefreshAtRef.current = now;
     void refreshConversations();
   }, [refreshConversations]);
+
+  useEffect(() => {
+    const handleConversationDeleted = (payload: { conversationId: string }) => {
+      if (payload.conversationId === selectedConversationId) {
+        setSelectedConversationId(null);
+      }
+      void refreshConversations();
+    };
+
+    onConversationDeleted(handleConversationDeleted);
+    return () => {
+      offConversationDeleted();
+    };
+  }, [refreshConversations, selectedConversationId]);
 
   // Fetch selected conversation detail
   // No need to pass USER_ID - JWT token from localStorage is used

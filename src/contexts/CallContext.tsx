@@ -1,6 +1,7 @@
 import { Socket } from "socket.io-client";
 import { socketService } from "../services/socket";
 import { useWebRTC } from "../hooks/useWebRTC";
+import { useStreamVideoRuntime } from "./StreamVideoContext";
 import type {
   CallState,
   CallType,
@@ -44,6 +45,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   children,
   userId,
 }) => {
+  const streamVideoRuntime = useStreamVideoRuntime();
+  const streamVideoEnabled = streamVideoRuntime.clientReady;
   const [callState, setCallState] = useState<CallState>({
     callId: null,
     conversationId: null,
@@ -277,6 +280,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
     // listen to call offer - lưu offer, chưa xử lý
     const handleCallOffer = async (data: CallOfferData) => {
+      if (streamVideoEnabled) {
+        return;
+      }
+
       // Offer trong cuộc gọi đang active (renegotiation / ICE restart)
       if (
         currentCallIdRef.current === data.callId &&
@@ -319,6 +326,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
     // listen to call answer
     const handleCallAnswer = async (data: CallAnswerData) => {
+      if (streamVideoEnabled) {
+        return;
+      }
+
       try {
         await handleAnswerRef.current(data.answer);
       } catch (error) {
@@ -329,6 +340,10 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
     // listen to ICE candidates
     const handleIceCandidate = async (data: IceCandidateData) => {
+      if (streamVideoEnabled) {
+        return;
+      }
+
       try {
         await addIceCandidateRef.current(data.candidate);
       } catch (error) {
@@ -468,7 +483,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       socket.off("call:video-upgrade-response", handleVideoUpgradeResponse);
       socket.off("call:error", handleCallError);
     };
-  }, [userId, getLocalStream, createOffer]); // Chỉ depend trên userId - các callbacks dùng refs
+  }, [userId, getLocalStream, createOffer, streamVideoEnabled]); // Chỉ depend trên userId - các callbacks dùng refs
 
   // khởi tạo call
   const initiateCall = useCallback(
@@ -499,12 +514,14 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           },
         }));
 
-        // khởi tạo peer connection first
-        initializePeerConnection();
+        if (!streamVideoEnabled) {
+          // khởi tạo peer connection first
+          initializePeerConnection();
 
-        // lấy luồng local
-        const stream = await getLocalStream(callType === "video", true);
-        setCallState((prev) => ({ ...prev, localStream: stream }));
+          // lấy luồng local
+          const stream = await getLocalStream(callType === "video", true);
+          setCallState((prev) => ({ ...prev, localStream: stream }));
+        }
 
         // phát sự kiện khởi tạo call
         socket.emit("call:initiate", {
@@ -519,13 +536,15 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         socket.once("call:initiated", async (data: { callId: string }) => {
           setCallState((prev) => ({ ...prev, callId: data.callId }));
 
-          // tạo and gửi offer
-          const offer = await createOffer();
-          socket.emit("call:offer", {
-            callId: data.callId,
-            receiverId,
-            offer,
-          });
+          if (!streamVideoEnabled) {
+            // tạo and gửi offer
+            const offer = await createOffer();
+            socket.emit("call:offer", {
+              callId: data.callId,
+              receiverId,
+              offer,
+            });
+          }
         });
       } catch (error) {
         console.error("Error initiating call:", error);
@@ -538,7 +557,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         throw error;
       }
     },
-    [initializePeerConnection, getLocalStream, createOffer, cleanupCall],
+    [initializePeerConnection, getLocalStream, createOffer, cleanupCall, streamVideoEnabled],
   );
 
   // accept cuộc gọi đến
@@ -560,16 +579,16 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         isInitiator: false,
         isCaller: false,
         otherUser: {
-          id: incomingCall.callerId,
+          id: incomingCall.callerId || "",
           name: incomingCall.callerName || "Unknown",
           avatar: incomingCall.callerAvatar,
         },
       }));
 
       // chuẩn bị kết nối peer và local trước khi tạo câu trả lời
-      if (pendingOffer) {
+      if (!streamVideoEnabled && pendingOffer) {
         await processAcceptedOffer(pendingOffer, incomingCall);
-      } else {
+      } else if (!streamVideoEnabled) {
         console.warn(
           "[CallContext] No pending offer yet. Waiting for caller offer...",
         );
@@ -587,7 +606,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         targetUserId: incomingCall.callerId,
       });
 
-      if (pendingOffer) {
+      if (pendingOffer || streamVideoEnabled) {
         setIncomingCall(null);
       }
     } catch (error) {
@@ -602,7 +621,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         status: "failed",
       }));
     }
-  }, [incomingCall, pendingOffer, processAcceptedOffer]);
+  }, [incomingCall, pendingOffer, processAcceptedOffer, streamVideoEnabled]);
 
   // reject cuộc gọi đến
   const rejectCall = useCallback(() => {

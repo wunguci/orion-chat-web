@@ -1,56 +1,5 @@
 import { useRef, useCallback, useEffect } from "react";
-
-const getIceConfiguration = (): RTCConfiguration => {
-  const turnUrls = import.meta.env.VITE_TURN_URLS as string | undefined;
-  const turnUsername = import.meta.env.VITE_TURN_USERNAME as string | undefined;
-  const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as
-    | string
-    | undefined;
-  const forceRelayEnv =
-    (import.meta.env.VITE_FORCE_TURN_RELAY as string | undefined) === "true";
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  const forceRelay = forceRelayEnv && !isLocalhost;
-
-  const iceServers: RTCIceServer[] = [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-  ];
-
-  if (turnUrls && turnUsername && turnCredential) {
-    const parsedTurnUrls = turnUrls
-      .split(",")
-      .map((url) => url.trim())
-      .filter(
-        (url) =>
-          Boolean(url) && (url.startsWith("turn:") || url.startsWith("turns:")),
-      );
-
-    if (parsedTurnUrls.length > 0) {
-      iceServers.push({
-        urls: parsedTurnUrls,
-        username: turnUsername,
-        credential: turnCredential,
-      });
-      console.log("[WebRTC] TURN server enabled", {
-        forceRelay,
-        turnUrlCount: parsedTurnUrls.length,
-      });
-    }
-  } else {
-    console.warn(
-      "[WebRTC] TURN server is not configured. Cross-network calls may fail on strict NAT/firewall.",
-    );
-  }
-
-  return {
-    iceServers,
-    iceCandidatePoolSize: 10,
-    iceTransportPolicy: forceRelay ? "relay" : "all",
-  };
-};
+import { getIceConfiguration } from "../config/webrtcIce";
 
 interface UseWebRTCProps {
   onRemoteStream: (stream: MediaStream) => void;

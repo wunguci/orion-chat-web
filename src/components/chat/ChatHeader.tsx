@@ -21,6 +21,7 @@ type ChatHeaderProps = {
     onVideoCall?: () => void;
     onGroupAudioCall?: () => void;
     onGroupVideoCall?: () => void;
+    onGroupCall?: () => void;
     onSearchClick?: () => void;
     onPanelToggle?: () => void;
     onIdentityClick?: () => void;
@@ -40,6 +41,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     onVideoCall,
     onGroupAudioCall,
     onGroupVideoCall,
+    onGroupCall,
     onSearchClick,
     onPanelToggle,
     onIdentityClick,
@@ -108,7 +110,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                 : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
                         }`}
                         disabled={isCallDisabled}
-                        onClick={onGroupAudioCall}
+                        onClick={onGroupAudioCall || onGroupCall}
                         title={
                             isCallDisabled
                                 ? 'Unable to call because you are blocked.'
