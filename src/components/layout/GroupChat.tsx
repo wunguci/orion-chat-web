@@ -281,9 +281,6 @@ export default function GroupChat() {
         "video",
         participantNames,
       );
-
-      // Navigate tới group call page
-      navigate("/group-call");
     } catch (error) {
       alert(`Failed to start group call: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }

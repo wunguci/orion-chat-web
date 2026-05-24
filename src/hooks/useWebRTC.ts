@@ -375,6 +375,11 @@ export const useWebRTC = ({
           });
 
           const newVideoTrack = newStream.getVideoTracks()[0];
+          const audioTracks = stream.getAudioTracks();
+          const rebuiltStream = new MediaStream([
+            ...audioTracks,
+            newVideoTrack,
+          ]);
 
           // Replace track in peer connection
           if (peerConnection) {
@@ -388,7 +393,7 @@ export const useWebRTC = ({
             if (videoSender) {
               await videoSender.replaceTrack(newVideoTrack);
             } else {
-              peerConnection.addTrack(newVideoTrack, stream);
+              peerConnection.addTrack(newVideoTrack, rebuiltStream);
             }
           }
 
@@ -398,8 +403,10 @@ export const useWebRTC = ({
             track.stop();
           });
           stream.addTrack(newVideoTrack);
+          localStreamRef.current = rebuiltStream;
 
           console.log("Video track re-enabled with new stream");
+          return rebuiltStream;
         } catch (error) {
           console.error("Error re-enabling video:", error);
         }
@@ -408,22 +415,77 @@ export const useWebRTC = ({
         videoTracks.forEach((track) => {
           track.enabled = true;
         });
+        return stream;
       }
     } else {
-      // Disable video track
+      // Giữ track để bật lại không bị đen
       stream.getVideoTracks().forEach((track) => {
         track.enabled = false;
       });
+      return stream;
     }
   }, []);
 
   // toggle audio track
-  const toggleAudio = useCallback((enabled: boolean) => {
+  const toggleAudio = useCallback(async (enabled: boolean) => {
     const stream = localStreamRef.current;
-    if (stream) {
+    if (!stream) {
+      return;
+    }
+
+    if (!enabled) {
       stream.getAudioTracks().forEach((track) => {
-        track.enabled = enabled;
+        track.enabled = false;
       });
+      return;
+    }
+
+    const audioTracks = stream.getAudioTracks();
+    const shouldRecreate =
+      audioTracks.length === 0 || audioTracks[0].readyState === "ended";
+
+    if (!shouldRecreate) {
+      audioTracks.forEach((track) => {
+        track.enabled = true;
+      });
+      return;
+    }
+
+    try {
+      const newAudioStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      });
+
+      const newAudioTrack = newAudioStream.getAudioTracks()[0];
+      if (!newAudioTrack) {
+        return;
+      }
+
+      const peerConnection = peerConnectionRef.current;
+      if (peerConnection) {
+        const sender = peerConnection
+          .getSenders()
+          .find((item) => item.track?.kind === "audio");
+
+        if (sender?.replaceTrack) {
+          await sender.replaceTrack(newAudioTrack);
+        } else {
+          peerConnection.addTrack(newAudioTrack, stream);
+        }
+      }
+
+      audioTracks.forEach((track) => {
+        stream.removeTrack(track);
+        track.stop();
+      });
+      stream.addTrack(newAudioTrack);
+    } catch (error) {
+      console.error("[WebRTC] Failed to re-enable audio:", error);
     }
   }, []);
 

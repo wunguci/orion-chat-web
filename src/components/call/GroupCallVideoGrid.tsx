@@ -6,6 +6,7 @@ interface GroupCallVideoGridProps {
   participants: GroupCallParticipant[];
   localStream: MediaStream | null;
   localUserId: string;
+  localVideoEnabled: boolean;
   onParticipantClick?: (userId: string) => void;
   activeParticipantId?: string;
 }
@@ -18,6 +19,7 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
   participants,
   localStream,
   localUserId,
+  localVideoEnabled,
   onParticipantClick,
   activeParticipantId,
 }) => {
@@ -31,19 +33,35 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
   };
 
   return (
-    <div className={`grid ${getGridColsClass()} gap-4 p-4 w-full h-full overflow-auto bg-wh-green-bg-medium`}>
+    <div
+      className={`grid ${getGridColsClass()} gap-4 p-4 w-full h-full overflow-auto`}
+    >
       {/* Local stream */}
       {localStream && (
         <div
-          className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+          className={`relative rounded-xl overflow-hidden border transition-all cursor-pointer ${
             activeParticipantId === localUserId
-              ? "border-wh-green-primary ring-2 ring-wh-green-primary"
-              : "border-wh-green-border-medium hover:border-wh-green-primary"
+              ? "border-[color:var(--gc-accent)]"
+              : "border-[color:var(--gc-border)] hover:border-[color:var(--gc-accent)]"
           }`}
           onClick={() => onParticipantClick?.(localUserId)}
         >
-          <LocalVideoStream stream={localStream} />
-          <VideoInfo name="You (Local)" isMuted={false} isVideoOff={false} isHost />
+          {localVideoEnabled && localStream.getVideoTracks().length ? (
+            <LocalVideoStream stream={localStream} />
+          ) : (
+            <div className="w-full h-full bg-[color:var(--gc-surface)] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-2">
+                <FaUser className="text-3xl text-[color:var(--gc-muted)]" />
+                <p className="text-xs text-[color:var(--gc-muted)]">Camera off</p>
+              </div>
+            </div>
+          )}
+          <VideoInfo
+            name="You"
+            isMuted={false}
+            isVideoOff={!localVideoEnabled}
+            isHost
+          />
         </div>
       )}
 
@@ -51,22 +69,32 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
       {participants.map((participant) => (
         <div
           key={participant.id}
-          className={`relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+          className={`relative rounded-xl overflow-hidden border transition-all cursor-pointer ${
             activeParticipantId === participant.id
-              ? "border-wh-green-primary ring-2 ring-wh-green-primary"
-              : participant.isSpeaking
-              ? "border-wh-status-inprogress ring-2 ring-wh-status-inprogress/60"
-              : "border-wh-green-border-medium hover:border-wh-green-primary"
+              ? "border-[color:var(--gc-accent)]"
+              : "border-[color:var(--gc-border)] hover:border-[color:var(--gc-accent)]"
           }`}
           onClick={() => onParticipantClick?.(participant.id)}
         >
           {participant.stream ? (
-            <RemoteVideoStream stream={participant.stream} />
+            <>
+              <RemoteAudioStream stream={participant.stream} />
+              {participant.isVideoEnabled ? (
+                <RemoteVideoStream stream={participant.stream} />
+              ) : (
+                <div className="w-full h-full bg-[color:var(--gc-surface)] flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <FaUser className="text-3xl text-[color:var(--gc-muted)]" />
+                    <p className="text-xs text-[color:var(--gc-muted)]">Camera off</p>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="w-full h-full bg-wh-green-bg-heavy flex items-center justify-center">
+            <div className="w-full h-full bg-[color:var(--gc-surface)] flex items-center justify-center">
               <div className="flex flex-col items-center gap-2">
-                <FaUser className="text-4xl text-wh-green-text-muted" />
-                <p className="text-xs text-wh-green-text-secondary">No video</p>
+                <FaUser className="text-3xl text-[color:var(--gc-muted)]" />
+                <p className="text-xs text-[color:var(--gc-muted)]">No video</p>
               </div>
             </div>
           )}
@@ -89,6 +117,7 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
 const LocalVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playPromiseRef = useRef<Promise<void> | null>(null);
+  const videoTrackId = stream.getVideoTracks()[0]?.id;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -112,11 +141,18 @@ const LocalVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
         await playPromiseRef.current;
         console.log("[LocalVideoStream] Playing stream successfully");
       } catch (err) {
-        // Ignore AbortError from previous play attempts
         if (err instanceof DOMException && err.name === "AbortError") {
           console.log("[LocalVideoStream] Play aborted (expected when stream changes)");
-        } else {
-          console.error("[LocalVideoStream] Play error:", err);
+          return;
+        }
+
+        console.warn("[LocalVideoStream] Autoplay blocked, retrying muted", err);
+        video.muted = true;
+        try {
+          playPromiseRef.current = video.play();
+          await playPromiseRef.current;
+        } catch (err2) {
+          console.error("[LocalVideoStream] Play error:", err2);
         }
       }
     };
@@ -129,7 +165,7 @@ const LocalVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
         video.srcObject = null;
       }
     };
-  }, [stream]);
+  }, [stream, videoTrackId]);
 
   return (
     <video
@@ -148,6 +184,8 @@ const LocalVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
 const RemoteVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playPromiseRef = useRef<Promise<void> | null>(null);
+  const videoTrackId = stream.getVideoTracks()[0]?.id;
+  const audioTrackId = stream.getAudioTracks()[0]?.id;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -170,11 +208,21 @@ const RemoteVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
         await playPromiseRef.current;
         console.log("[RemoteVideoStream] Playing stream successfully");
       } catch (err) {
-        // Ignore AbortError from previous play attempts
         if (err instanceof DOMException && err.name === "AbortError") {
           console.log("[RemoteVideoStream] Play aborted (expected when stream changes)");
-        } else {
-          console.error("[RemoteVideoStream] Play error:", err);
+          return;
+        }
+
+        console.warn("[RemoteVideoStream] Autoplay blocked, retrying muted", err);
+        video.muted = true;
+        try {
+          playPromiseRef.current = video.play();
+          await playPromiseRef.current;
+          setTimeout(() => {
+            video.muted = false;
+          }, 100);
+        } catch (err2) {
+          console.error("[RemoteVideoStream] Play error:", err2);
         }
       }
     };
@@ -187,7 +235,7 @@ const RemoteVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
         video.srcObject = null;
       }
     };
-  }, [stream]);
+  }, [stream, videoTrackId, audioTrackId]);
 
   return (
     <video
@@ -197,6 +245,38 @@ const RemoteVideoStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
       className="w-full h-full object-cover"
     />
   );
+};
+
+/**
+ * RemoteAudioStream Component
+ */
+const RemoteAudioStream: React.FC<{ stream: MediaStream }> = ({ stream }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioTrackId = stream.getAudioTracks()[0]?.id;
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const setupStream = async () => {
+      try {
+        audio.srcObject = stream;
+        await audio.play();
+      } catch (err) {
+        console.warn("[RemoteAudioStream] Autoplay blocked", err);
+      }
+    };
+
+    setupStream();
+
+    return () => {
+      if (audio.srcObject === stream) {
+        audio.srcObject = null;
+      }
+    };
+  }, [stream, audioTrackId]);
+
+  return <audio ref={audioRef} autoPlay playsInline className="hidden" />;
 };
 
 /**
@@ -220,45 +300,38 @@ const VideoInfo: React.FC<VideoInfoProps> = ({
   const displayName = (name || "").trim() || "User";
 
   return (
-    <div className="absolute inset-0 bg-gradient-to-t from-wh-green-text-primary/90 via-wh-green-text-primary/30 to-transparent pointer-events-none">
-      {/* Status badges */}
-      <div className="absolute top-2 right-2 flex gap-1.5">
-        {isHost && (
-          <div className="px-2.5 py-1 bg-wh-status-review/90 rounded-md text-white text-xs font-semibold">
-            HOST
-          </div>
-        )}
-        {isSpeaking && (
-          <div className="px-2.5 py-1 bg-wh-status-inprogress/90 rounded-md text-white text-xs font-semibold animate-pulse">
-            SPEAKING
-          </div>
-        )}
-      </div>
-
-      {/* Name and media status */}
-      <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
+    <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between bg-black/45">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-wh-green-primary flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-7 h-7 rounded-full bg-[color:var(--gc-surface)] border border-[color:var(--gc-border)] flex items-center justify-center text-[color:var(--gc-text)] text-xs font-semibold">
             {displayName.charAt(0).toUpperCase()}
           </div>
-          <span className="text-sm font-semibold text-white truncate">{displayName}</span>
+          <span className="text-sm font-medium text-[color:var(--gc-text)] truncate">
+            {displayName}
+          </span>
+          {isHost ? (
+            <span className="text-[10px] text-[color:var(--gc-muted)]">Host</span>
+          ) : null}
+          {isSpeaking ? (
+            <span className="text-[10px] text-[color:var(--gc-muted)]">Speaking</span>
+          ) : null}
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 text-[color:var(--gc-text)]">
           {isMuted ? (
-            <div className="w-6 h-6 rounded-md bg-wh-priority-critical/90 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md border border-[color:var(--gc-border)] flex items-center justify-center text-xs text-[color:var(--gc-danger)]">
               <FaMicrophoneSlash />
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-md bg-wh-green-primary/90 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md border border-[color:var(--gc-border)] flex items-center justify-center text-xs">
               <FaMicrophone />
             </div>
           )}
           {isVideoOff ? (
-            <div className="w-6 h-6 rounded-md bg-wh-priority-critical/90 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md border border-[color:var(--gc-border)] flex items-center justify-center text-xs text-[color:var(--gc-danger)]">
               <FaVideoSlash />
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-md bg-wh-green-primary-light/90 flex items-center justify-center text-white text-xs">
+            <div className="w-6 h-6 rounded-md border border-[color:var(--gc-border)] flex items-center justify-center text-xs">
               <FaVideo />
             </div>
           )}
@@ -285,16 +358,16 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
   onParticipantClick,
 }) => {
   return (
-    <div className="w-full h-full flex flex-col bg-wh-green-bg-medium">
+    <div className="w-full h-full flex flex-col">
       {/* Main video area */}
-      <div className="flex-1 relative rounded-lg overflow-hidden m-4 bg-wh-green-text-primary">
+      <div className="flex-1 relative rounded-xl overflow-hidden m-4 bg-[color:var(--gc-surface)] border border-[color:var(--gc-border)]">
         {mainParticipant?.stream ? (
           <RemoteVideoStream stream={mainParticipant.stream} />
         ) : localStream ? (
           <LocalVideoStream stream={localStream} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <FaUser className="text-8xl text-wh-green-text-muted" />
+            <FaUser className="text-7xl text-[color:var(--gc-muted)]" />
           </div>
         )}
         {mainParticipant && (
@@ -309,10 +382,10 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
       </div>
 
       {/* Thumbnail carousel */}
-      <div className="h-24 bg-wh-green-text-primary/70 px-4 py-2 flex items-center gap-3 overflow-x-auto">
+      <div className="h-24 px-4 py-2 flex items-center gap-3 overflow-x-auto border-t border-[color:var(--gc-border)] bg-[color:var(--gc-surface)]/70">
         {localStream && (
           <div
-            className="w-20 h-20 rounded-lg overflow-hidden border-2 border-wh-green-border-medium flex-shrink-0 cursor-pointer hover:border-wh-green-primary transition-colors"
+            className="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--gc-border)] flex-shrink-0 cursor-pointer hover:border-[color:var(--gc-accent)] transition-colors"
             onClick={() => onParticipantClick?.(localUserId)}
           >
             <LocalVideoStream stream={localStream} />
@@ -321,14 +394,14 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
         {otherParticipants.map((participant) => (
           <div
             key={participant.id}
-            className="w-20 h-20 rounded-lg overflow-hidden border-2 border-wh-green-border-medium flex-shrink-0 cursor-pointer hover:border-wh-green-primary transition-colors"
+            className="w-20 h-20 rounded-lg overflow-hidden border border-[color:var(--gc-border)] flex-shrink-0 cursor-pointer hover:border-[color:var(--gc-accent)] transition-colors"
             onClick={() => onParticipantClick?.(participant.id)}
           >
             {participant.stream ? (
               <RemoteVideoStream stream={participant.stream} />
             ) : (
-              <div className="w-full h-full bg-wh-green-bg-heavy flex items-center justify-center">
-                <FaUser className="text-xl text-wh-green-text-muted" />
+              <div className="w-full h-full bg-[color:var(--gc-surface)] flex items-center justify-center">
+                <FaUser className="text-xl text-[color:var(--gc-muted)]" />
               </div>
             )}
           </div>

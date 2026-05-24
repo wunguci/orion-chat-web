@@ -13,6 +13,7 @@ export const CallModal: React.FC = () => {
     callType,
     otherUser,
     isVideoEnabled,
+    isRemoteVideoEnabled,
     startTime,
     error,
     incomingVideoUpgradeRequest,
@@ -21,9 +22,16 @@ export const CallModal: React.FC = () => {
 
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const remoteVideoTrackId = remoteStream?.getVideoTracks()[0]?.id;
+  const remoteAudioTrackId = remoteStream?.getAudioTracks()[0]?.id;
+  const localVideoTrackId = localStream?.getVideoTracks()[0]?.id;
 
   // Hàm play video an toàn - xử lý autoplay bị block
-  const safePlay = useCallback(async (video: HTMLVideoElement) => {
+  const safePlay = useCallback(async (
+    video: HTMLVideoElement,
+    keepMuted: boolean = false,
+  ) => {
     try {
       await video.play();
     } catch (err) {
@@ -31,9 +39,11 @@ export const CallModal: React.FC = () => {
       video.muted = true;
       try {
         await video.play();
-        setTimeout(() => {
-          video.muted = false;
-        }, 100);
+        if (!keepMuted) {
+          setTimeout(() => {
+            video.muted = false;
+          }, 100);
+        }
       } catch (err2) {
         console.error("[CallModal] Cannot play video even muted:", err2);
       }
@@ -43,11 +53,25 @@ export const CallModal: React.FC = () => {
   // gắn luồng remote vào video element
   useEffect(() => {
     const videoEl = remoteVideoRef.current;
-    if (videoEl && remoteStream) {
+    if (!videoEl) return;
+
+    if (remoteStream && isRemoteVideoEnabled) {
       videoEl.srcObject = remoteStream;
       safePlay(videoEl);
+      return;
     }
-  }, [remoteStream, safePlay]);
+
+    videoEl.srcObject = null;
+  }, [remoteStream, isRemoteVideoEnabled, remoteVideoTrackId, safePlay]);
+
+  // gắn luồng remote vào audio element để đảm bảo nghe được khi video bị tắt
+  useEffect(() => {
+    const audioEl = remoteAudioRef.current;
+    if (audioEl && remoteStream) {
+      audioEl.srcObject = remoteStream;
+      void safePlay(audioEl);
+    }
+  }, [remoteStream, remoteAudioTrackId, safePlay]);
 
   // gắn local stream vào preview và đảm bảo video phát được
   useEffect(() => {
@@ -56,14 +80,14 @@ export const CallModal: React.FC = () => {
       return;
     }
 
-    if (!localStream) {
+    if (!localStream || !isVideoEnabled || !localStream.getVideoTracks().length) {
       videoEl.srcObject = null;
       return;
     }
 
     videoEl.srcObject = localStream;
-    void safePlay(videoEl);
-  }, [localStream, safePlay]);
+    void safePlay(videoEl, true);
+  }, [localStream, isVideoEnabled, localVideoTrackId, safePlay]);
 
   // không hiển thị modal nếu idle
   if (status === "idle") return null;
@@ -72,7 +96,7 @@ export const CallModal: React.FC = () => {
     <div className="fixed inset-0 bg-wh-green-text-primary z-50">
       {/* remote video (full screen) */}
       <div className="relative w-full h-full">
-        {status === "connected" && remoteStream ? (
+        {status === "connected" && remoteStream && isRemoteVideoEnabled ? (
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -96,12 +120,17 @@ export const CallModal: React.FC = () => {
           </div>
         )}
 
+        {remoteStream && (
+          <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
+        )}
+
         {/* local video (picture-in-picture) */}
-        {callType === "video" && localStream && (
+        {callType === "video" && localStream ? (
           <div className="absolute top-4 right-4 w-48 h-36 bg-wh-green-bg-heavy rounded-lg overflow-hidden shadow-lg border border-wh-green-border-light">
-            {isVideoEnabled ? (
+            {isVideoEnabled && localStream.getVideoTracks().length ? (
               <video
                 ref={localVideoRef}
+                key={localVideoTrackId || "no-video"}
                 autoPlay
                 playsInline
                 muted
@@ -113,7 +142,7 @@ export const CallModal: React.FC = () => {
               </div>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* call timer */}
         {status === "connected" && startTime && (

@@ -167,6 +167,9 @@ export const useGroupCall = ({
         localStreamRef.current.getTracks().forEach((track) => {
           peerConnection.addTrack(track, localStreamRef.current!);
         });
+      } else if (typeof peerConnection.addTransceiver === "function") {
+        peerConnection.addTransceiver("audio", { direction: "recvonly" });
+        peerConnection.addTransceiver("video", { direction: "recvonly" });
       }
 
       // Xử lý pending ICE candidates
@@ -333,6 +336,137 @@ export const useGroupCall = ({
   }, []);
 
   /**
+   * Bật/tắt camera local cho group call (có thay track nếu track cũ đã kết thúc)
+   */
+  const toggleLocalVideo = useCallback(
+    async (enabled: boolean): Promise<MediaStream | null> => {
+      const stream = localStreamRef.current;
+      if (!stream) {
+        return null;
+      }
+
+      if (!enabled) {
+        stream.getVideoTracks().forEach((track) => {
+          track.enabled = false;
+        });
+        return stream;
+      }
+
+      const videoTracks = stream.getVideoTracks();
+      const shouldRecreate =
+        videoTracks.length === 0 || videoTracks[0].readyState === "ended";
+
+      if (!shouldRecreate) {
+        videoTracks.forEach((track) => {
+          track.enabled = true;
+        });
+        return stream;
+      }
+
+      try {
+        const newVideoStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "user",
+          },
+          audio: false,
+        });
+
+        const newVideoTrack = newVideoStream.getVideoTracks()[0];
+        const audioTracks = stream.getAudioTracks();
+        const rebuiltStream = new MediaStream([
+          ...audioTracks,
+          newVideoTrack,
+        ]);
+        if (!newVideoTrack) {
+          return stream;
+        }
+
+        await peerManagerRef.current?.replaceVideoTrackForAll(
+          newVideoTrack,
+          rebuiltStream,
+        );
+
+        // thay track trong local stream để preview đồng bộ
+        videoTracks.forEach((track) => {
+          stream.removeTrack(track);
+          track.stop();
+        });
+        stream.addTrack(newVideoTrack);
+        localStreamRef.current = rebuiltStream;
+        return rebuiltStream;
+      } catch (error) {
+        console.error("[useGroupCall] Error re-enabling video:", error);
+      }
+      return stream;
+    },
+    [],
+  );
+
+  /**
+   * Bật/tắt micro local, có thay track khi track cũ đã kết thúc
+   */
+  const toggleLocalAudio = useCallback(
+    async (enabled: boolean): Promise<void> => {
+      const stream = localStreamRef.current;
+      if (!stream) {
+        return;
+      }
+
+      if (!enabled) {
+        stream.getAudioTracks().forEach((track) => {
+          track.enabled = false;
+        });
+        toggleMediaForAll("audio", false);
+        return;
+      }
+
+      const audioTracks = stream.getAudioTracks();
+      const shouldRecreate =
+        audioTracks.length === 0 || audioTracks[0].readyState === "ended";
+
+      if (!shouldRecreate) {
+        audioTracks.forEach((track) => {
+          track.enabled = true;
+        });
+        toggleMediaForAll("audio", true);
+        return;
+      }
+
+      try {
+        const newAudioStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          video: false,
+        });
+
+        const newAudioTrack = newAudioStream.getAudioTracks()[0];
+        if (!newAudioTrack) {
+          return;
+        }
+
+        await peerManagerRef.current?.replaceAudioTrackForAll(
+          newAudioTrack,
+          stream,
+        );
+
+        audioTracks.forEach((track) => {
+          stream.removeTrack(track);
+          track.stop();
+        });
+        stream.addTrack(newAudioTrack);
+      } catch (error) {
+        console.error("[useGroupCall] Error re-enabling audio:", error);
+      }
+    },
+    [],
+  );
+
+  /**
    * Cleanup all peer connections
    */
   const cleanup = useCallback((): void => {
@@ -374,6 +508,8 @@ export const useGroupCall = ({
     toggleAudioForParticipant,
     toggleVideoForParticipant,
     toggleMediaForAll,
+    toggleLocalVideo,
+    toggleLocalAudio,
     removeParticipant,
     cleanup,
     getAllParticipantIds,

@@ -131,9 +131,7 @@ export class GroupCallPeerManager {
       context.peerConnection.close();
     });
     this.peerConnections.clear();
-    console.log(
-      `[GroupCallPeerManager] Closed all peer connections`,
-    );
+    console.log(`[GroupCallPeerManager] Closed all peer connections`);
   }
 
   /**
@@ -191,6 +189,77 @@ export class GroupCallPeerManager {
         this.toggleVideo(userId, enabled);
       }
     });
+  }
+
+  /**
+   * Thay thế video track cho tất cả peer connections (dùng khi bật lại camera)
+   */
+  async replaceVideoTrackForAll(
+    newVideoTrack: MediaStreamTrack,
+    localStream: MediaStream,
+  ): Promise<void> {
+    const tasks: Promise<void>[] = [];
+
+    this.peerConnections.forEach((context) => {
+      const sender = context.peerConnection
+        .getSenders()
+        .find((item) => item.track?.kind === "video");
+
+      if (sender?.replaceTrack) {
+        tasks.push(sender.replaceTrack(newVideoTrack));
+        return;
+      }
+
+      context.peerConnection.addTrack(newVideoTrack, localStream);
+    });
+
+    await Promise.allSettled(tasks);
+  }
+
+  /**
+   * Thay thế audio track cho tất cả peer connections (dùng khi bật lại micro)
+   */
+  async replaceAudioTrackForAll(
+    newAudioTrack: MediaStreamTrack,
+    localStream: MediaStream,
+  ): Promise<void> {
+    const tasks: Promise<void>[] = [];
+
+    this.peerConnections.forEach((context) => {
+      const sender = context.peerConnection
+        .getSenders()
+        .find((item) => item.track?.kind === "audio");
+
+      if (sender?.replaceTrack) {
+        tasks.push(sender.replaceTrack(newAudioTrack));
+        return;
+      }
+
+      context.peerConnection.addTrack(newAudioTrack, localStream);
+    });
+
+    await Promise.allSettled(tasks);
+  }
+
+  /**
+   * Ngat audio track tren tat ca peer connections
+   */
+  async clearAudioTrackForAll(): Promise<void> {
+    const tasks: Promise<void>[] = [];
+
+    this.peerConnections.forEach((context) => {
+      const sender = context.peerConnection
+        .getSenders()
+        .find((item) => item.track?.kind === "audio");
+
+      if (sender?.replaceTrack) {
+        tasks.push(sender.replaceTrack(null));
+      } else if (sender?.track) {
+        sender.track.enabled = false;
+      }
+    });
+
+    await Promise.allSettled(tasks);
   }
 
   /**

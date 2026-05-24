@@ -6,6 +6,7 @@ import { GroupCallProvider } from "../../contexts/GroupCallContext";
 import { IncomingCallModal } from "../call/IncomingCallModal";
 import { IncomingGroupCallModal } from "../call/IncomingGroupCallModal";
 import { CallModal } from "../call/CallModal";
+import { GroupCallModal } from "../call/GroupCallModal";
 // import { getUser } from "../../utils/token";
 import { useAuth } from "../../hooks/useAuth";
 import socketService from "../../services/socket";
@@ -52,6 +53,7 @@ export const MainLayout = () => {
         <IncomingCallModal />
         <IncomingGroupCallModal />
         <CallModal />
+        <GroupCallModal />
       </GroupCallProvider>
     </CallProvider>
   );

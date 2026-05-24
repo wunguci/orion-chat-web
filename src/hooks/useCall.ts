@@ -13,6 +13,8 @@ const FALLBACK_CALL_CONTEXT: CallContextValue = {
   remoteStream: null,
   isVideoEnabled: true,
   isAudioEnabled: true,
+  isRemoteVideoEnabled: true,
+  isRemoteAudioEnabled: true,
   otherUser: null,
   error: null,
   startTime: null,

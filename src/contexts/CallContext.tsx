@@ -55,6 +55,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     remoteStream: null,
     isVideoEnabled: true,
     isAudioEnabled: true,
+    isRemoteVideoEnabled: true,
+    isRemoteAudioEnabled: true,
     otherUser: null,
     error: null,
     startTime: null,
@@ -100,11 +102,40 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     cleanup: cleanupWebRTC,
   } = useWebRTC({
     onRemoteStream: (stream) => {
+      const videoTrack = stream.getVideoTracks()[0];
+      const audioTrack = stream.getAudioTracks()[0];
+
+      if (videoTrack) {
+        videoTrack.onmute = () => {
+          setCallState((prev) => ({ ...prev, isRemoteVideoEnabled: false }));
+        };
+        videoTrack.onunmute = () => {
+          setCallState((prev) => ({ ...prev, isRemoteVideoEnabled: true }));
+        };
+        videoTrack.onended = () => {
+          setCallState((prev) => ({ ...prev, isRemoteVideoEnabled: false }));
+        };
+      }
+
+      if (audioTrack) {
+        audioTrack.onmute = () => {
+          setCallState((prev) => ({ ...prev, isRemoteAudioEnabled: false }));
+        };
+        audioTrack.onunmute = () => {
+          setCallState((prev) => ({ ...prev, isRemoteAudioEnabled: true }));
+        };
+        audioTrack.onended = () => {
+          setCallState((prev) => ({ ...prev, isRemoteAudioEnabled: false }));
+        };
+      }
+
       setCallState((prev) => ({
         ...prev,
         remoteStream: stream,
         status: "connected",
         startTime: Date.now(),
+        isRemoteVideoEnabled: Boolean(videoTrack) && !videoTrack.muted,
+        isRemoteAudioEnabled: Boolean(audioTrack) && !audioTrack.muted,
       }));
     },
     onIceCandidate: (candidate) => {
@@ -190,6 +221,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       remoteStream: null,
       isVideoEnabled: true,
       isAudioEnabled: true,
+      isRemoteVideoEnabled: true,
+      isRemoteAudioEnabled: true,
       otherUser: null,
       error: null,
       startTime: null,
@@ -379,7 +412,16 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       mediaType: "video" | "audio";
       enabled: boolean;
     }) => {
-      void data;
+      if (data.userId === userId) {
+        return;
+      }
+
+      setCallState((prev) => {
+        if (data.mediaType === "video") {
+          return { ...prev, isRemoteVideoEnabled: data.enabled };
+        }
+        return { ...prev, isRemoteAudioEnabled: data.enabled };
+      });
     };
     socket.on("call:media-toggled", handleMediaToggled);
 
@@ -418,6 +460,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           callType: "video",
           localStream: stream,
           isVideoEnabled: true,
+          isRemoteVideoEnabled: true,
         }));
 
         const offer = await createOffer();
@@ -497,6 +540,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
             name: receiverInfo?.name || "Unknown",
             avatar: receiverInfo?.avatar,
           },
+          isRemoteAudioEnabled: true,
+          isRemoteVideoEnabled: callType === "video",
         }));
 
         // khởi tạo peer connection first
@@ -564,6 +609,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           name: incomingCall.callerName || "Unknown",
           avatar: incomingCall.callerAvatar,
         },
+        isRemoteAudioEnabled: true,
+        isRemoteVideoEnabled: incomingCall.callType === "video",
       }));
 
       // chuẩn bị kết nối peer và local trước khi tạo câu trả lời
@@ -640,11 +687,22 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   }, [callState.callId, callState.otherUser, cleanupCall]);
 
   // toggle video
-  const toggleVideo = useCallback(() => {
+  const toggleVideo = useCallback(async () => {
     const newState = !callState.isVideoEnabled;
-    toggleVideoTrack(newState);
 
-    setCallState((prev) => ({ ...prev, isVideoEnabled: newState }));
+    let updatedStream: MediaStream | null | undefined;
+
+    try {
+      updatedStream = await toggleVideoTrack(newState);
+    } catch (error) {
+      console.warn("[CallContext] toggleVideo failed", error);
+    }
+
+    setCallState((prev) => ({
+      ...prev,
+      isVideoEnabled: newState,
+      localStream: updatedStream || prev.localStream,
+    }));
 
     // notify other user
     const socket = callSocketRef.current;
@@ -664,11 +722,18 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   ]);
 
   // toggle audio
-  const toggleAudio = useCallback(() => {
+  const toggleAudio = useCallback(async () => {
     const newState = !callState.isAudioEnabled;
-    toggleAudioTrack(newState);
+    try {
+      await toggleAudioTrack(newState);
+    } catch (error) {
+      console.warn("[CallContext] toggleAudio failed", error);
+    }
 
-    setCallState((prev) => ({ ...prev, isAudioEnabled: newState }));
+    setCallState((prev) => ({
+      ...prev,
+      isAudioEnabled: newState,
+    }));
 
     // notify other user
     const socket = callSocketRef.current;
@@ -730,6 +795,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
           callType: "video",
           localStream: stream,
           isVideoEnabled: true,
+          isRemoteVideoEnabled: true,
         }));
       } catch (error) {
         console.error("[CallContext] Error accepting video upgrade:", error);

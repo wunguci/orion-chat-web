@@ -1,5 +1,9 @@
 import { Socket } from "socket.io-client";
-import { socketService, chatSocketService, sendMessage } from "../services/socket";
+import {
+  socketService,
+  chatSocketService,
+  sendMessage,
+} from "../services/socket";
 import { useGroupCall } from "../hooks/useGroupCall";
 import type {
   GroupCallState,
@@ -34,9 +38,9 @@ export interface GroupCallContextValue extends GroupCallState {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const GroupCallContext = createContext<GroupCallContextValue | undefined>(
-  undefined,
-);
+export const GroupCallContext = createContext<
+  GroupCallContextValue | undefined
+>(undefined);
 
 interface GroupCallProviderProps {
   children: React.ReactNode;
@@ -66,13 +70,14 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     startTime: null,
   });
 
-  const [incomingCall, setIncomingCall] = useState<GroupIncomingCallData | null>(
-    null,
-  );
+  const [incomingCall, setIncomingCall] =
+    useState<GroupIncomingCallData | null>(null);
 
   const callSocketRef = useRef<Socket | null>(null);
   const currentCallIdRef = useRef<string | null>(null);
-  const failedStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const failedStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const hasPersistedCallHistoryRef = useRef(false);
 
   const persistGroupCallHistory = useCallback(
@@ -119,10 +124,18 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
 
         hasPersistedCallHistoryRef.current = true;
       } catch (error) {
-        console.error("[GroupCallContext] Failed to persist group call history:", error);
+        console.error(
+          "[GroupCallContext] Failed to persist group call history:",
+          error,
+        );
       }
     },
-    [callState.isInitiator, callState.conversationId, callState.startTime, callState.callType],
+    [
+      callState.isInitiator,
+      callState.conversationId,
+      callState.startTime,
+      callState.callType,
+    ],
   );
 
   // Group call hooks
@@ -136,6 +149,8 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     toggleAudioForParticipant: toggleAudioForPeer,
     toggleVideoForParticipant: toggleVideoForPeer,
     toggleMediaForAll,
+    toggleLocalVideo,
+    toggleLocalAudio,
     removeParticipant,
     cleanup: cleanupGroupCall,
     getAllParticipantIds,
@@ -170,7 +185,9 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
       });
     },
     onConnectionStateChange: (userId, state) => {
-      console.log(`[GroupCallContext] Connection state with ${userId}: ${state}`);
+      console.log(
+        `[GroupCallContext] Connection state with ${userId}: ${state}`,
+      );
     },
   });
 
@@ -213,7 +230,9 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
 
   // Connect call socket
   useEffect(() => {
-    console.log(`[GroupCallContext] Connecting call socket for userId: ${userId}`);
+    console.log(
+      `[GroupCallContext] Connecting call socket for userId: ${userId}`,
+    );
     const socket = socketService.connectCall(userId);
     callSocketRef.current = socket;
 
@@ -230,7 +249,10 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     };
 
     const handleSocketConnectError = (error: any) => {
-      console.error("[GroupCallContext] Call socket connect_error event:", error);
+      console.error(
+        "[GroupCallContext] Call socket connect_error event:",
+        error,
+      );
       console.error("[GroupCallContext] Error details:", {
         message: error?.message,
         code: error?.code,
@@ -255,17 +277,21 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     socket.on("groupcall:incoming", handleIncomingGroupCall);
 
     // Listen to participant joined
-    const handleParticipantJoined = async (data: GroupParticipantJoinedData) => {
+    const handleParticipantJoined = async (
+      data: GroupParticipantJoinedData,
+    ) => {
       if (data.callId !== currentCallIdRef.current) return;
       if (data.userId === userId) return;
 
       console.log(`[GroupCallContext] Participant joined: ${data.userId}`);
 
+      const participantName = data.userName || `User ${data.userId}`;
+
       // Tạo peer connection cho participant mới
       try {
         const peerConnection = await createPeerForParticipant(
           data.userId,
-          data.userName,
+          participantName,
           false,
         );
 
@@ -282,7 +308,10 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
           }
         }
       } catch (error) {
-        console.error(`[GroupCallContext] Error creating peer for ${data.userId}:`, error);
+        console.error(
+          `[GroupCallContext] Error creating peer for ${data.userId}:`,
+          error,
+        );
       }
 
       // Thêm participant vào state
@@ -296,7 +325,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
             ...prev.participants,
             {
               id: data.userId,
-              name: data.userName,
+              name: participantName,
               avatar: data.userAvatar,
               isVideoEnabled: true,
               isAudioEnabled: true,
@@ -325,9 +354,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     const handleGroupCallOffer = async (data: GroupCallOfferData) => {
       if (data.callId !== currentCallIdRef.current) return;
 
-      console.log(
-        `[GroupCallContext] Received offer from ${data.callerId}`,
-      );
+      console.log(`[GroupCallContext] Received offer from ${data.callerId}`);
 
       try {
         // Tạo peer connection nếu chưa có
@@ -354,7 +381,10 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
           });
         }
       } catch (error) {
-        console.error("[GroupCallContext] Error handling group call offer:", error);
+        console.error(
+          "[GroupCallContext] Error handling group call offer:",
+          error,
+        );
       }
     };
     socket.on("groupcall:offer", handleGroupCallOffer);
@@ -362,16 +392,23 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     // Listen to group call answer
     const handleGroupCallAnswer = async (data: GroupCallAnswerData) => {
       try {
-        console.log(`[GroupCallContext] Received answer from ${data.responderId}`);
+        console.log(
+          `[GroupCallContext] Received answer from ${data.responderId}`,
+        );
         await handleAnswerFromParticipant(data.responderId, data.answer);
       } catch (error) {
-        console.error("[GroupCallContext] Error handling group call answer:", error);
+        console.error(
+          "[GroupCallContext] Error handling group call answer:",
+          error,
+        );
       }
     };
     socket.on("groupcall:answer", handleGroupCallAnswer);
 
     // Listen to ICE candidates
-    const handleGroupCallIceCandidate = async (data: GroupCallIceCandidateData) => {
+    const handleGroupCallIceCandidate = async (
+      data: GroupCallIceCandidateData,
+    ) => {
       try {
         await addIceCandidateForParticipant(data.fromUserId, data.candidate);
       } catch (error) {
@@ -379,6 +416,30 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
       }
     };
     socket.on("groupcall:ice-candidate", handleGroupCallIceCandidate);
+    const handleGroupCallMediaToggled = (data: {
+      callId: string;
+      userId: string;
+      mediaType: "audio" | "video";
+      enabled: boolean;
+    }) => {
+      if (data.callId !== currentCallIdRef.current) return;
+
+      setCallState((prev) => ({
+        ...prev,
+        participants: prev.participants.map((participant) => {
+          if (participant.id !== data.userId) {
+            return participant;
+          }
+
+          if (data.mediaType === "video") {
+            return { ...participant, isVideoEnabled: data.enabled };
+          }
+
+          return { ...participant, isAudioEnabled: data.enabled };
+        }),
+      }));
+    };
+    socket.on("groupcall:media-toggled", handleGroupCallMediaToggled);
 
     // Listen to group call ended
     const handleGroupCallEnded = () => {
@@ -391,7 +452,10 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     socket.on("groupcall:ended", handleGroupCallEnded);
 
     // Listen to errors
-    const handleGroupCallError = (error: { message: string; code?: string }) => {
+    const handleGroupCallError = (error: {
+      message: string;
+      code?: string;
+    }) => {
       console.error("[GroupCallContext] Group call error:", error);
       void persistGroupCallHistory("failed");
       setCallState((prev) => ({
@@ -416,10 +480,20 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
       socket.off("groupcall:offer", handleGroupCallOffer);
       socket.off("groupcall:answer", handleGroupCallAnswer);
       socket.off("groupcall:ice-candidate", handleGroupCallIceCandidate);
+      socket.off("groupcall:media-toggled", handleGroupCallMediaToggled);
       socket.off("groupcall:ended", handleGroupCallEnded);
       socket.off("groupcall:error", handleGroupCallError);
     };
-  }, [userId, createPeerForParticipant, handleOfferFromParticipant, handleAnswerFromParticipant, addIceCandidateForParticipant, removeParticipant, getAllParticipantIds, persistGroupCallHistory]);
+  }, [
+    userId,
+    createPeerForParticipant,
+    handleOfferFromParticipant,
+    handleAnswerFromParticipant,
+    addIceCandidateForParticipant,
+    removeParticipant,
+    getAllParticipantIds,
+    persistGroupCallHistory,
+  ]);
 
   // Initiate group call
   const initiateGroupCall = useCallback(
@@ -462,16 +536,26 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         return new Promise<void>((resolve, reject) => {
           const currentSocket = callSocketRef.current;
           if (!currentSocket) {
-            reject(new Error("Socket not initialized - cannot initiate group call"));
+            reject(
+              new Error("Socket not initialized - cannot initiate group call"),
+            );
             return;
           }
 
           // Define handler BEFORE setting up listener
           const handleInitiated = async (data: {
             callId: string;
-            participants: { id: string; name: string; avatar?: string; isHost: boolean }[];
+            participants: {
+              id: string;
+              name: string;
+              avatar?: string;
+              isHost: boolean;
+            }[];
           }) => {
-            console.log("[GroupCallContext] Received groupcall:initiated from server:", data);
+            console.log(
+              "[GroupCallContext] Received groupcall:initiated from server:",
+              data,
+            );
             clearTimeout(timeout);
             try {
               currentCallIdRef.current = data.callId;
@@ -497,6 +581,9 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
 
               // Tạo peer connections cho tất cả participants
               for (const participant of data.participants) {
+                if (participant.id === userId) {
+                  continue;
+                }
                 try {
                   await createPeerForParticipant(
                     participant.id,
@@ -511,7 +598,9 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
                 }
               }
 
-              console.log("[GroupCallContext] Resolving initiateGroupCall promise");
+              console.log(
+                "[GroupCallContext] Resolving initiateGroupCall promise",
+              );
               resolve();
             } catch (error) {
               reject(error);
@@ -524,11 +613,17 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
               "[GroupCallContext] Group call initiation TIMEOUT - no response from server",
             );
             currentSocket.off("groupcall:initiated", handleInitiated);
-            reject(new Error("Group call initiation timeout - server did not respond"));
+            reject(
+              new Error(
+                "Group call initiation timeout - server did not respond",
+              ),
+            );
           }, 15000); // 15 second timeout
 
           // Set up listener BEFORE emitting
-          console.log("[GroupCallContext] Setting up listener for groupcall:initiated");
+          console.log(
+            "[GroupCallContext] Setting up listener for groupcall:initiated",
+          );
           currentSocket.once("groupcall:initiated", handleInitiated);
 
           console.log(
@@ -556,7 +651,13 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         throw error;
       }
     },
-    [getLocalStream, createPeerForParticipant, userName, cleanupCall, persistGroupCallHistory],
+    [
+      getLocalStream,
+      createPeerForParticipant,
+      userName,
+      cleanupCall,
+      persistGroupCallHistory,
+    ],
   );
 
   // Join group call
@@ -683,11 +784,17 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     }
 
     cleanupCall();
-  }, [callState.callId, callState.isInitiator, cleanupCall, persistGroupCallHistory]);
+  }, [
+    callState.callId,
+    callState.isInitiator,
+    cleanupCall,
+    persistGroupCallHistory,
+  ]);
 
   // Toggle audio
-  const toggleAudio = useCallback(() => {
+  const toggleAudio = useCallback(async () => {
     const newState = !callState.isAudioEnabled;
+    await toggleLocalAudio(newState);
     toggleMediaForAll("audio", newState);
     setCallState((prev) => ({ ...prev, isAudioEnabled: newState }));
 
@@ -700,13 +807,31 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         enabled: newState,
       });
     }
-  }, [callState.isAudioEnabled, callState.callId, userId, toggleMediaForAll]);
+  }, [
+    callState.isAudioEnabled,
+    callState.callId,
+    userId,
+    toggleMediaForAll,
+    toggleLocalAudio,
+  ]);
 
   // Toggle video
-  const toggleVideo = useCallback(() => {
+  const toggleVideo = useCallback(async () => {
     const newState = !callState.isVideoEnabled;
+
+    let updatedStream: MediaStream | null = null;
+
+    try {
+      updatedStream = await toggleLocalVideo(newState);
+    } catch (error) {
+      console.warn("[GroupCallContext] toggleVideo failed", error);
+    }
     toggleMediaForAll("video", newState);
-    setCallState((prev) => ({ ...prev, isVideoEnabled: newState }));
+    setCallState((prev) => ({
+      ...prev,
+      isVideoEnabled: newState,
+      localStream: updatedStream || prev.localStream,
+    }));
 
     const socket = callSocketRef.current;
     if (socket && callState.callId) {
@@ -717,7 +842,13 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         enabled: newState,
       });
     }
-  }, [callState.isVideoEnabled, callState.callId, userId, toggleMediaForAll]);
+  }, [
+    callState.isVideoEnabled,
+    callState.callId,
+    userId,
+    toggleMediaForAll,
+    toggleLocalVideo,
+  ]);
 
   // Toggle audio for specific participant
   const toggleAudioForParticipant = useCallback(

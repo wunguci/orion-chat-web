@@ -2227,8 +2227,6 @@ export const ChatPage: React.FC = () => {
           callType,
           participantNames,
         );
-
-        navigate("/group-call");
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Failed to start group call",

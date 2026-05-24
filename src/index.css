@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
 /* Import Tailwind directives */
 @config "../tailwind.config.ts";
 @import "tailwindcss";
@@ -197,6 +198,30 @@
 /* Scrollbar hidden  */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/* ==================== GROUP CALL THEME ==================== */
+.group-call-shell {
+  --gc-bg: #0b0f14;
+  --gc-surface: #121722;
+  --gc-border: #1f2935;
+  --gc-text: #e5e7eb;
+  --gc-muted: #9aa4b2;
+  --gc-accent: #c7d2fe;
+  --gc-danger: #ef4444;
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(
+      900px 420px at 20% 20%,
+      rgba(90, 110, 140, 0.15),
+      transparent
+    ),
+    radial-gradient(
+      700px 360px at 80% 30%,
+      rgba(70, 90, 120, 0.18),
+      transparent
+    ),
+    linear-gradient(160deg, #0b0f14 0%, #0f1623 60%, #0b0f14 100%);
 }
 .hide-scrollbar {
   -ms-overflow-style: none;

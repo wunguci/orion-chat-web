@@ -1,19 +1,19 @@
 export interface CallUser {
-    id: string;
-    name: string;
-    avatar?: string;
+  id: string;
+  name: string;
+  avatar?: string;
 }
 
-export type CallType = 'video' | 'audio';
+export type CallType = "video" | "audio";
 
-export type CallStatus = 
-    | 'idle'
-    | 'calling'
-    | 'ringing'
-    | 'connected'
-    | 'ended'
-    | 'rejected'
-    | 'failed';
+export type CallStatus =
+  | "idle"
+  | "calling"
+  | "ringing"
+  | "connected"
+  | "ended"
+  | "rejected"
+  | "failed";
 
 export interface CallState {
   callId: string | null;
@@ -26,104 +26,106 @@ export interface CallState {
   remoteStream: MediaStream | null;
   isVideoEnabled: boolean;
   isAudioEnabled: boolean;
+  isRemoteVideoEnabled: boolean;
+  isRemoteAudioEnabled: boolean;
   otherUser: CallUser | null;
   error: string | null;
   startTime: number | null;
   wasAnswered?: boolean; // Theo dõi xem cuộc gọi đã được trả lời/chấp nhận hay chưa.
   wasRejected?: boolean; // Theo dõi xem cuộc gọi đã được từ chối hay chưa.
-    incomingVideoUpgradeRequest?: boolean;
-    isRequestingVideoUpgrade?: boolean;
+  incomingVideoUpgradeRequest?: boolean;
+  isRequestingVideoUpgrade?: boolean;
 }
 
 export interface IncomingCallData {
-    callId: string;
-    callerId?: string;
-    conversationId: string;
-    callType: CallType;
-    callerName?: string;
-    initiatorName?: string;
-    initiatorId?: string;
-    callerAvatar?: string;
+  callId: string;
+  callerId?: string;
+  conversationId: string;
+  callType: CallType;
+  callerName?: string;
+  initiatorName?: string;
+  initiatorId?: string;
+  callerAvatar?: string;
 }
 
 export interface CallOfferData {
-    callId: string;
-    offer: RTCSessionDescriptionInit;
-    callerId: string;
+  callId: string;
+  offer: RTCSessionDescriptionInit;
+  callerId: string;
 }
 
 export interface CallAnswerData {
-    callId: string;
-    answer: RTCSessionDescriptionInit;
-    receiverId: string;
+  callId: string;
+  answer: RTCSessionDescriptionInit;
+  receiverId: string;
 }
 
 export interface IceCandidateData {
-    callId: string;
-    candidate: RTCIceCandidateInit;
-    fromUserId: string;
+  callId: string;
+  candidate: RTCIceCandidateInit;
+  fromUserId: string;
 }
 
 // Group Call Types
-export type CallMode = '1-1' | 'group';
+export type CallMode = "1-1" | "group";
 
 export interface GroupCallParticipant extends CallUser {
-    peerConnectionId?: string;
-    isVideoEnabled: boolean;
-    isAudioEnabled: boolean;
-    isSpeaking?: boolean;
-    isHost?: boolean;
-    joinedAt?: number;
-    stream?: MediaStream;
+  peerConnectionId?: string;
+  isVideoEnabled: boolean;
+  isAudioEnabled: boolean;
+  isSpeaking?: boolean;
+  isHost?: boolean;
+  joinedAt?: number;
+  stream?: MediaStream;
 }
 
 export interface GroupCallState {
-    callId: string | null;
-    conversationId: string | null;
-    callType: CallType;
-    callMode: CallMode;
-    status: CallStatus;
-    isInitiator: boolean;
-    isCaller: boolean;
-    isHost: boolean;
-    localStream: MediaStream | null;
-    participants: GroupCallParticipant[];
-    isVideoEnabled: boolean;
-    isAudioEnabled: boolean;
-    error: string | null;
-    startTime: number | null;
-    activeParticipantId?: string; // Id của participant được phóng lớn trong gallery view
+  callId: string | null;
+  conversationId: string | null;
+  callType: CallType;
+  callMode: CallMode;
+  status: CallStatus;
+  isInitiator: boolean;
+  isCaller: boolean;
+  isHost: boolean;
+  localStream: MediaStream | null;
+  participants: GroupCallParticipant[];
+  isVideoEnabled: boolean;
+  isAudioEnabled: boolean;
+  error: string | null;
+  startTime: number | null;
+  activeParticipantId?: string; // Id của participant được phóng lớn trong gallery view
 }
 
 export interface GroupIncomingCallData extends IncomingCallData {
-    participants?: Array<{ id: string; name: string; isHost: boolean }>;
-    participantIds?: string[];
-    participantCount: number;
-    isGroupCall: true;
+  participants?: Array<{ id: string; name: string; isHost: boolean }>;
+  participantIds?: string[];
+  participantCount: number;
+  isGroupCall: true;
 }
 
 export interface GroupCallOfferData extends CallOfferData {
-    targetUserId: string; // Id của người nhận offer
+  targetUserId: string; // Id của người nhận offer
 }
 
 export interface GroupCallAnswerData extends CallAnswerData {
-    responderId: string;
-    targetUserId: string;
+  responderId: string;
+  targetUserId: string;
 }
 
 export interface GroupCallIceCandidateData extends IceCandidateData {
-    targetUserId: string;
+  targetUserId: string;
 }
 
 export interface GroupParticipantJoinedData {
-    callId: string;
-    userId: string;
-    userName: string;
-    userAvatar?: string;
-    isHost: boolean;
+  callId: string;
+  userId: string;
+  userName?: string;
+  userAvatar?: string;
+  isHost?: boolean;
 }
 
 export interface GroupParticipantLeftData {
-    callId: string;
-    userId: string;
+  callId: string;
+  userId: string;
 }

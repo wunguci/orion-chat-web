@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
 import { useGroupCallContext } from "../../hooks/useGroupCallContext";
 import { FaUsers } from "react-icons/fa";
 import {
@@ -12,8 +11,8 @@ import {
  * Hiển thị modal khi có incoming group call
  */
 export const IncomingGroupCallModal: React.FC = () => {
-  const { incomingCall, acceptGroupCall, rejectGroupCall } = useGroupCallContext();
-  const navigate = useNavigate();
+  const { incomingCall, acceptGroupCall, rejectGroupCall } =
+    useGroupCallContext();
   const audioContextRef = useRef<AudioContext | null>(null);
   const ringIntervalRef = useRef<number | null>(null);
 
@@ -75,7 +74,6 @@ export const IncomingGroupCallModal: React.FC = () => {
   const handleAccept = async () => {
     try {
       await acceptGroupCall();
-      navigate("/group-call");
     } catch {
       // Ignore; error state is handled in context
     }
@@ -97,7 +95,8 @@ export const IncomingGroupCallModal: React.FC = () => {
 
           {/* Caller info */}
           <p className="text-wh-green-text-secondary mb-2 font-semibold">
-            {incomingCall.initiatorName || incomingCall.callerName || "Someone"} is calling...
+            {incomingCall.initiatorName || incomingCall.callerName || "Someone"}{" "}
+            is calling...
           </p>
 
           {/* Participant count */}

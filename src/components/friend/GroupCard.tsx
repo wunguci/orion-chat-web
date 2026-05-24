@@ -1,6 +1,5 @@
 import React from "react";
 import { Phone, Video } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import type { CommunityGroup } from "../../types/friend";
 import { useGroupCallContext } from "../../hooks/useGroupCallContext";
 import { useAuth } from "../../hooks/useAuth";
@@ -12,7 +11,6 @@ interface GroupCardProps {
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({ group, onOpen }) => {
-  const navigate = useNavigate();
   const { initiateGroupCall } = useGroupCallContext();
   const { user } = useAuth();
   const currentUserId = user?.id || user?.userId || "user1";
@@ -39,7 +37,6 @@ const GroupCard: React.FC<GroupCardProps> = ({ group, onOpen }) => {
       }
 
       await initiateGroupCall(group.id, participantIds, callType, participantNames);
-      navigate("/group-call");
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       alert(`Failed to start ${callType} call: ${errorMsg}`);
