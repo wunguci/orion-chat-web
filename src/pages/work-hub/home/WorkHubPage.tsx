@@ -5,6 +5,7 @@ import type { WorkspaceDashboardStatsResponse } from "../../../features/work-hub
 import { workHubApi } from "../../../features/work-hub/work-hub.api";
 import { mapWorkspace } from "../../../features/work-hub/work-hub.mappers";
 import { dispatchWorkhubWorkspaceUpdated } from "../../../utils/workhubEvents";
+import { getUser } from "../../../utils/token";
 import BoardCard from "../../../components/work-hub/workspace/BoardCard";
 import BoardFormDialog from "../../../components/work-hub/workspace/BoardFormDialog";
 
@@ -17,6 +18,7 @@ const WorkHubPage = () => {
   const [loading, setLoading] = useState(true);
   const [showBoardForm, setShowBoardForm] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [showDisbandConfirm, setShowDisbandConfirm] = useState(false);
 
   const loadWorkspaceDashboard = useCallback(async () => {
     if (!workspaceId) return;
@@ -72,6 +74,14 @@ const WorkHubPage = () => {
   const recentActivities = dashboardStats?.recentActivities ?? [];
 
   const completionRate = stats.completionRate;
+  const currentUser = getUser();
+  const currentUserId = currentUser?.userId ?? currentUser?.id ?? "";
+  const currentUserRole =
+    workspace?.members.find((member) => member.user.id === currentUserId)
+      ?.role ?? "member";
+  const canManageWorkspace =
+    currentUserRole === "owner" || currentUserRole === "admin";
+  const canDisbandWorkspace = currentUserRole === "owner";
 
   const trendSeries = useMemo(() => {
     const source = dashboardStats?.trendLast7Days ?? [];
@@ -178,6 +188,16 @@ const WorkHubPage = () => {
     }
   };
 
+  const handleDisbandWorkspace = async () => {
+    if (!workspaceId || !canDisbandWorkspace) return;
+    try {
+      await workHubApi.deleteWorkspace(workspaceId);
+      navigate("/work-hub");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to disband WorkHub");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-100">
@@ -255,9 +275,15 @@ const WorkHubPage = () => {
                   )}
                 </div>
 
-                <button className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition-colors">
-                  <i className="fas fa-cog"></i>
-                </button>
+                {canDisbandWorkspace && (
+                  <button
+                    onClick={() => setShowDisbandConfirm(true)}
+                    className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 transition-colors"
+                    title="Disband WorkHub"
+                  >
+                    <i className="fas fa-trash"></i>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -376,11 +402,12 @@ const WorkHubPage = () => {
                     </h2>
                     <div className="flex items-center gap-3">
                       <button
+                        disabled={!canManageWorkspace}
                         onClick={() => {
                           setEditingBoard(null);
                           setShowBoardForm(true);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-teal-600 transition-colors hover:bg-teal-700"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-teal-600 transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <i className="fas fa-plus text-xs"></i>
                         Create Board
@@ -409,10 +436,13 @@ const WorkHubPage = () => {
                           )
                         }
                         onEdit={(b) => {
+                          if (!canManageWorkspace) return;
                           setEditingBoard(b);
                           setShowBoardForm(true);
                         }}
-                        onDelete={handleDeleteBoard}
+                        onDelete={
+                          canManageWorkspace ? handleDeleteBoard : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -544,7 +574,14 @@ const WorkHubPage = () => {
                     {workspace.members.slice(0, 6).map((member) => (
                       <div
                         key={member.user.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50"
+                        onClick={() =>
+                          window.dispatchEvent(
+                            new CustomEvent("workhub:open-member-chat", {
+                              detail: { userId: member.user.id },
+                            }),
+                          )
+                        }
+                        className="flex cursor-pointer items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <img
@@ -561,7 +598,7 @@ const WorkHubPage = () => {
                             </div>
                           </div>
                         </div>
-                        <i className="fas fa-ellipsis-v text-slate-400 text-xs"></i>
+                        <i className="fas fa-comment text-slate-400 text-xs"></i>
                       </div>
                     ))}
                   </div>
@@ -582,6 +619,32 @@ const WorkHubPage = () => {
         onSave={handleSaveBoard}
         board={editingBoard ?? undefined}
       />
+
+      {showDisbandConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-rose-100 bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-gray-900">Disband WorkHub?</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              This will permanently remove the workspace, boards, tasks, files,
+              and member access. This action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setShowDisbandConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleDisbandWorkspace()}
+                className="px-4 py-2 rounded-lg bg-rose-600 text-sm font-medium text-white hover:bg-rose-700"
+              >
+                Disband
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

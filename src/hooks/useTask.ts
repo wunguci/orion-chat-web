@@ -84,6 +84,30 @@ export function useTask(boardId: string) {
         fetchTasks();
     }, [fetchTasks]);
 
+    useEffect(() => {
+        if (!selectedTaskId) return;
+        let cancelled = false;
+
+        workHubApi
+            .getTask(selectedTaskId)
+            .then((data) => {
+                if (cancelled) return;
+                const mapped = mapTask(data);
+                setTasks((prev) =>
+                    prev.map((task) =>
+                        task.id === selectedTaskId ? mapped : task,
+                    ),
+                );
+            })
+            .catch((err) => {
+                console.error('Failed to load task detail:', err);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedTaskId]);
+
     const getTasksByColumn = (columnId: string) =>
         tasks
             .filter((t) => t.columnId === columnId)
@@ -319,16 +343,25 @@ export function useTask(boardId: string) {
 
     const addAttachment = async (
         taskId: string,
-        attachment: Omit<Attachment, 'id'>,
+        attachment: Omit<Attachment, 'id'> | File,
+        uploadedById?: string,
     ) => {
         try {
-            await workHubApi.createAttachment(taskId, {
-                fileName: attachment.name,
-                fileUrl: attachment.url,
-                fileType: attachment.type,
-                fileSize: attachment.size,
-                uploadedById: attachment.uploadedBy.id,
-            });
+            if (attachment instanceof File) {
+                await workHubApi.uploadTaskAttachment(
+                    taskId,
+                    attachment,
+                    uploadedById,
+                );
+            } else {
+                await workHubApi.createAttachment(taskId, {
+                    fileName: attachment.name,
+                    fileUrl: attachment.url,
+                    fileType: attachment.type,
+                    fileSize: attachment.size,
+                    uploadedById: attachment.uploadedBy.id,
+                });
+            }
             const attachments = await workHubApi.getAttachments(taskId);
             setTasks((prev) =>
                 prev.map((t) =>
@@ -342,31 +375,65 @@ export function useTask(boardId: string) {
         }
     };
 
-    const transferTask = (transfer: TaskTransfer) => {
-        setTasks(
-            tasks.map((t) => {
-                if (t.id !== transfer.taskId) return t;
+    const transferTask = async (transfer: TaskTransfer) => {
+        const task = tasks.find((t) => t.id === transfer.taskId);
+        if (!task) return;
 
-                const newActivity: ActivityEntry = {
-                    id: `ah-${Date.now()}`,
-                    type: 'transferred',
-                    user: transfer.fromUser,
-                    description: `transferred this task to ${transfer.toUser.name}. Reason: "${transfer.reason}"`,
-                    timestamp: transfer.timestamp,
-                };
+        const newAssignees = task.assignees
+            .filter((a) => a.id !== transfer.fromUser.id)
+            .concat(transfer.toUser);
 
-                const newAssignees = t.assignees
-                    .filter((a) => a.id !== transfer.fromUser.id)
-                    .concat(transfer.toUser);
+        try {
+            const updated = await workHubApi.updateTask(transfer.taskId, {
+                assigneeIds: Array.from(new Set(newAssignees.map((a) => a.id))),
+            });
+            const mapped = mapTask(updated);
+            setTasks((prev) =>
+                prev.map((t) => (t.id === transfer.taskId ? mapped : t)),
+            );
+            await workHubApi.createActivity(transfer.taskId, {
+                action: 'transferred',
+                description: `transferred this task to ${transfer.toUser.name}. Reason: "${transfer.reason}"`,
+                userId: transfer.fromUser.id,
+            });
+        } catch {
+            const newActivity: ActivityEntry = {
+                id: `ah-${Date.now()}`,
+                type: 'transferred',
+                user: transfer.fromUser,
+                description: `transferred this task to ${transfer.toUser.name}. Reason: "${transfer.reason}"`,
+                timestamp: transfer.timestamp,
+            };
 
-                return {
-                    ...t,
-                    assignees: newAssignees,
-                    activityHistory: [...t.activityHistory, newActivity],
-                    updatedAt: new Date().toISOString(),
-                };
-            }),
-        );
+            setTasks((prev) =>
+                prev.map((t) =>
+                    t.id === transfer.taskId
+                        ? {
+                              ...t,
+                              assignees: newAssignees,
+                              activityHistory: [...t.activityHistory, newActivity],
+                              updatedAt: new Date().toISOString(),
+                          }
+                        : t,
+                ),
+            );
+        }
+    };
+
+    const deleteAttachment = async (taskId: string, attachmentId: string) => {
+        try {
+            await workHubApi.deleteAttachment(attachmentId);
+            const attachments = await workHubApi.getAttachments(taskId);
+            setTasks((prev) =>
+                prev.map((t) =>
+                    t.id === taskId
+                        ? { ...t, attachments: attachments.map(mapAttachment) }
+                        : t,
+                ),
+            );
+        } catch (err) {
+            console.error('Failed to delete attachment:', err);
+        }
     };
 
     const markComplete = (
@@ -446,6 +513,7 @@ export function useTask(boardId: string) {
         deleteSubtask,
         addComment,
         addAttachment,
+        deleteAttachment,
         transferTask,
         markComplete,
         confirmComplete,

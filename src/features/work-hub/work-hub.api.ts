@@ -2,6 +2,7 @@ import { api } from "../../services/api";
 import type {
   WorkspaceResponse,
   WorkspaceMemberResponse,
+  WorkspaceJoinRequestResponse,
   TaskBoardResponse,
   BoardColumnResponse,
   TaskResponse,
@@ -13,6 +14,7 @@ import type {
   InviteCandidateResponse,
   WorkspaceInviteLinkResponse,
   JoinByLinkRequest,
+  JoinByLinkResponse,
   UpdateMemberRoleRequest,
   CreateBoardRequest,
   UpdateBoardRequest,
@@ -98,6 +100,12 @@ export const workHubApi = {
    */
   deleteWorkspace: (id: string) => api.delete(`/workspaces/${id}`),
 
+  transferWorkspaceOwner: (id: string, targetUserId: string) =>
+    api.patch<WorkspaceResponse>(
+      `/workspaces/${id}/transfer-owner/${targetUserId}`,
+      {},
+    ),
+
   /**
    * GET /workspaces/:id/dashboard-stats
    * Lấy thống kê dashboard từ database
@@ -160,9 +168,26 @@ export const workHubApi = {
    * Tham gia workspace thông qua token từ invite link
    */
   joinByInviteLink: (workspaceId: string, data: JoinByLinkRequest) =>
-    api.post<WorkspaceMemberResponse>(
+    api.post<JoinByLinkResponse>(
       `/workspaces/${workspaceId}/members/join-by-link`,
       data,
+    ),
+
+  getJoinRequests: (workspaceId: string) =>
+    api.get<WorkspaceJoinRequestResponse[]>(
+      `/workspaces/${workspaceId}/members/join-requests`,
+    ),
+
+  approveJoinRequest: (workspaceId: string, requestId: string) =>
+    api.post<WorkspaceMemberResponse>(
+      `/workspaces/${workspaceId}/members/join-requests/${requestId}/approve`,
+      {},
+    ),
+
+  rejectJoinRequest: (workspaceId: string, requestId: string) =>
+    api.post<WorkspaceJoinRequestResponse>(
+      `/workspaces/${workspaceId}/members/join-requests/${requestId}/reject`,
+      {},
     ),
 
   /**
@@ -403,6 +428,16 @@ export const workHubApi = {
    */
   createAttachment: (taskId: string, data: CreateAttachmentRequest) =>
     api.post<AttachmentResponse>(`/tasks/${taskId}/attachments`, data),
+
+  uploadTaskAttachment: (taskId: string, file: File, uploadedById?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (uploadedById) formData.append("uploadedById", uploadedById);
+    return api.postForm<AttachmentResponse>(
+      `/tasks/${taskId}/attachments`,
+      formData,
+    );
+  },
 
   /**
    * DELETE /attachments/:attachmentId
