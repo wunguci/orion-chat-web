@@ -1,10 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ArrowRight,
+    Bot,
     Lock,
     Pin,
     PinOff,
     Reply,
+    SmilePlus,
+    Sparkles,
     Trash2,
     Undo2Icon,
 } from 'lucide-react';
@@ -139,6 +142,12 @@ export const MessageList: React.FC<{
     onReactMessage?: (message: SocketMessage, emoji: string) => void;
     onReplyMessage?: (message: SocketMessage) => void;
     onTogglePinMessage?: (message: SocketMessage, shouldPin: boolean) => void;
+    onAISummarize?: (mode: 'range' | 'unread', rangeMonths?: 1 | 2 | 3) => void;
+    onAIReplySuggestions?: () => void;
+    emotionByMessageId?: Record<
+        string,
+        { label: string; icon?: string; summary?: string; tone?: string }
+    >;
 }> = ({
     socketMessages = [],
     currentUserId,
@@ -151,6 +160,9 @@ export const MessageList: React.FC<{
     onReactMessage,
     onReplyMessage,
     onTogglePinMessage,
+    onAISummarize,
+    onAIReplySuggestions,
+    emotionByMessageId = {},
 }) => {
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
     const [openActionMenuKey, setOpenActionMenuKey] = useState<string | null>(
@@ -416,6 +428,11 @@ export const MessageList: React.FC<{
 
                         const messageKey = getMessageKey(msg);
                         const reactionStats = getReactionStats(msg);
+                        const emotionHint =
+                            emotionByMessageId[msg.id] ||
+                            (msg.clientMessageId
+                                ? emotionByMessageId[msg.clientMessageId]
+                                : undefined);
                         const hasImage =
                             msg.isFile &&
                             (msg.fileType?.startsWith('image/') === true ||
@@ -610,7 +627,6 @@ export const MessageList: React.FC<{
                                                     )}
                                                 </div>
                                             )}
-
                                             {msg.forwardedFromMessageId && (
                                                 <div
                                                     className={`mb-2 rounded-xl border px-3 py-2 text-[11px] italic ${
@@ -955,7 +971,7 @@ export const MessageList: React.FC<{
                                                                 null,
                                                             );
                                                         }}
-                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
+                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
                                                     >
                                                         <ArrowRight
                                                             size={16}
@@ -963,8 +979,95 @@ export const MessageList: React.FC<{
                                                         />
                                                         Chuyển tiếp
                                                     </button>
+                                                    {(onAISummarize ||
+                                                        onAIReplySuggestions) && (
+                                                        <div className="my-1 border-t border-slate-100" />
+                                                    )}
+
+                                                    {onAISummarize && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => {
+                                                                    onAISummarize(
+                                                                        'unread',
+                                                                    );
+                                                                    setOpenActionMenuKey(
+                                                                        null,
+                                                                    );
+                                                                }}
+                                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-sky-50"
+                                                            >
+                                                                <Bot
+                                                                    size={16}
+                                                                    className="inline mr-2"
+                                                                />
+                                                                Summarize unread
+                                                            </button>
+                                                            {[1, 2, 3].map(
+                                                                (month) => (
+                                                                    <button
+                                                                        key={
+                                                                            month
+                                                                        }
+                                                                        onClick={() => {
+                                                                            onAISummarize(
+                                                                                'range',
+                                                                                month as
+                                                                                    | 1
+                                                                                    | 2
+                                                                                    | 3,
+                                                                            );
+                                                                            setOpenActionMenuKey(
+                                                                                null,
+                                                                            );
+                                                                        }}
+                                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-sky-50"
+                                                                    >
+                                                                        <Sparkles
+                                                                            size={
+                                                                                16
+                                                                            }
+                                                                            className="inline mr-2"
+                                                                        />
+                                                                        Summary{' '}
+                                                                        {
+                                                                            month
+                                                                        }{' '}
+                                                                        month
+                                                                    </button>
+                                                                ),
+                                                            )}
+                                                        </>
+                                                    )}
+
+                                                    {onAIReplySuggestions && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onAIReplySuggestions();
+                                                                setOpenActionMenuKey(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-sky-50"
+                                                        >
+                                                            <SmilePlus
+                                                                size={16}
+                                                                className="inline mr-2"
+                                                            />
+                                                            AI reply suggestions
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+
+                                    {!isMe && emotionHint && (
+                                        <div className="mt-1 flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 px-2 py-0.5 text-[11px] text-slate-500 opacity-60">
+                                            <SmilePlus className="h-3 w-3" />
+                                            <span className="capitalize">
+                                                {emotionHint.label}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -986,3 +1089,5 @@ export const MessageList: React.FC<{
 };
 
 export default MessageList;
+
+

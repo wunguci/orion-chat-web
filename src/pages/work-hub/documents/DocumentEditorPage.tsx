@@ -6,6 +6,7 @@ import { workHubApi } from "../../../features/work-hub/work-hub.api";
 import { mapDocument } from "../../../features/work-hub/work-hub.mappers";
 import { getUser } from "../../../utils/token";
 import type { Document, DocumentViewMode } from "../../../types/work-hub.types";
+import { orionAiService } from "../../../services/orionAiService";
 
 const DocumentEditorPage = () => {
   const { workspaceId, documentId } = useParams<{
@@ -32,6 +33,9 @@ const DocumentEditorPage = () => {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [versionName, setVersionName] = useState("");
   const [savingVersion, setSavingVersion] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [showAiPrompt, setShowAiPrompt] = useState(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -153,6 +157,35 @@ const DocumentEditorPage = () => {
       console.error("Failed to save version:", err);
     } finally {
       setSavingVersion(false);
+    }
+  };
+
+  const handleAiAssist = async () => {
+    if (!aiPrompt.trim()) return;
+    try {
+      setAiBusy(true);
+      const selectedText =
+        quillRef.current?.getText(
+          quillRef.current.getSelection()?.index || 0,
+          quillRef.current.getSelection()?.length || 0,
+        ) || "";
+      const result = await orionAiService.documentAssist({
+        prompt: aiPrompt.replace(/^@AI\s*/i, ""),
+        documentId,
+        workspaceId,
+        selectedText,
+      });
+      const draft = result.cards[0]?.body || result.summary;
+      if (draft && quillRef.current) {
+        const selection = quillRef.current.getSelection(true);
+        quillRef.current.insertText(selection?.index || 0, draft);
+      }
+      setAiPrompt("");
+      setShowAiPrompt(false);
+    } catch (err) {
+      console.error("AI document assist failed:", err);
+    } finally {
+      setAiBusy(false);
     }
   };
 
@@ -349,6 +382,13 @@ const DocumentEditorPage = () => {
 
           {/* Action buttons */}
           <button
+            onClick={() => setShowAiPrompt((open) => !open)}
+            className="px-2.5 py-1.5 rounded-lg text-xs text-wh-green-primary hover:bg-wh-green-bg-light transition-colors"
+            title="@AI"
+          >
+            <i className="fas fa-wand-magic-sparkles mr-1"></i> @AI
+          </button>
+          <button
             onClick={() => setShowVersionModal(true)}
             className="px-2.5 py-1.5 rounded-lg text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
             title="Save Version"
@@ -472,6 +512,30 @@ const DocumentEditorPage = () => {
             className="ql-clean p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
             title="Clear Formatting"
           />
+        </div>
+      )}
+
+      {showAiPrompt && (
+        <div className="border-b border-sky-100 bg-sky-50 px-4 py-3">
+          <div className="mx-auto flex max-w-3xl items-center gap-2">
+            <input
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAiAssist();
+              }}
+              placeholder="@AI Generate REST API documentation"
+              className="flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-400"
+              autoFocus
+            />
+            <button
+              onClick={handleAiAssist}
+              disabled={aiBusy || !aiPrompt.trim()}
+              className="rounded-lg bg-wh-green-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {aiBusy ? "Generating..." : "Insert"}
+            </button>
+          </div>
         </div>
       )}
 

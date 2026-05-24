@@ -15,6 +15,10 @@ interface UserSettings {
   wallpaper: string;
   fontFamily: string;
   accentColor: string;
+  smartEmotionDetection: boolean;
+  autoWorkflowSuggestions: boolean;
+  aiMemoryEnabled: boolean;
+  enabledAgents: string[];
   createdAt: Date;
   updatedAt: Date;
 }

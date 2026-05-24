@@ -19,6 +19,7 @@ import {
   Chrome,
   Info,
   Play,
+  Bot,
 } from "lucide-react";
 import clsx from "clsx";
 import "./SettingModal.css";
@@ -31,6 +32,7 @@ import SelectionButton from "../common/SelectionButton";
 import Button from "../common/Button";
 import { getUser, saveUserData } from "../../utils/token";
 import { updateUserProfile } from "../../services/userService";
+import { orionAiService } from "../../services/orionAiService";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -48,7 +50,8 @@ type TabType =
   | "privacy"
   | "notifications"
   | "appearance"
-  | "devices";
+  | "devices"
+  | "ai";
 
 interface SettingsModalProps {
   isOpen?: boolean;
@@ -84,6 +87,9 @@ export default function SettingsModal({
     themeMode: "light",
     selectedWallpaper: "teal",
     textSize: "medium",
+    smartEmotionDetection: false,
+    autoWorkflowSuggestions: true,
+    aiMemoryEnabled: true,
   });
 
   const [hasChanges, setHasChanges] = useState(false);
@@ -117,6 +123,20 @@ export default function SettingsModal({
     }
   }, []);
 
+  useEffect(() => {
+    orionAiService
+      .getSettings()
+      .then((settings) => {
+        setFormData((prev) => ({
+          ...prev,
+          smartEmotionDetection: settings.smartEmotionDetection,
+          autoWorkflowSuggestions: settings.autoWorkflowSuggestions,
+          aiMemoryEnabled: settings.aiMemoryEnabled,
+        }));
+      })
+      .catch(() => undefined);
+  }, []);
+
   const handleInputChange = (field: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
@@ -142,6 +162,18 @@ export default function SettingsModal({
     setSuccessMessage(null);
 
     try {
+      if (activeTab === "ai") {
+        await orionAiService.updateSettings({
+          smartEmotionDetection: formData.smartEmotionDetection,
+          autoWorkflowSuggestions: formData.autoWorkflowSuggestions,
+          aiMemoryEnabled: formData.aiMemoryEnabled,
+        });
+        setHasChanges(false);
+        setSuccessMessage("AI settings updated successfully!");
+        setTimeout(() => setSuccessMessage(null), 3000);
+        return;
+      }
+
       // Prepare update data - only profile User fields
       const updateData = {
         fullName: formData.fullName,
@@ -259,6 +291,12 @@ export default function SettingsModal({
       label: "Devices",
       icon: Smartphone,
       description: "Active sessions and logins",
+    },
+    {
+      id: "ai",
+      label: "AI",
+      icon: Bot,
+      description: "Assistant and smart detection",
     },
   ];
 
@@ -1030,6 +1068,77 @@ export default function SettingsModal({
                   immediately and change your account password
                 </p>
               </div>
+            </div>
+          </div>
+        );
+
+      case "ai":
+        return (
+          <div className="flex flex-col gap-8">
+            <div>
+              <span className="text-[28px] font-bold text-gray-primary">
+                AI Assistant
+              </span>
+              <p className="text-gray-primary">
+                Configure Orion AI behavior in chat and WorkHub.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {[
+                {
+                  label: "Smart Emotion Detection",
+                  description:
+                    "Show subtle emotion hints for incoming chat messages.",
+                  field: "smartEmotionDetection",
+                },
+                {
+                  label: "Auto Workflow Suggestions",
+                  description:
+                    "Allow AI to suggest task and calendar drafts from text.",
+                  field: "autoWorkflowSuggestions",
+                },
+                {
+                  label: "AI Memory",
+                  description:
+                    "Let AI use your notes, calendar, tasks, and workspace context.",
+                  field: "aiMemoryEnabled",
+                },
+              ].map(({ label, description, field }) => (
+                <div
+                  key={field}
+                  className="flex items-center justify-between px-4 py-3 bg-green-bg-light border border-green-border-light rounded-xl"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-primary">{label}</p>
+                    <p className="text-sm text-gray-primary">{description}</p>
+                  </div>
+                  <ToggleSwitch
+                    checked={
+                      formData[field as keyof typeof formData] as boolean
+                    }
+                    onChange={() => toggleOption(field)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-5 border-t border-gray-200">
+              {successMessage && (
+                <div className="mr-auto px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+                  {successMessage}
+                </div>
+              )}
+              {error && (
+                <div className="mr-auto px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+              <Button
+                label={isSaving ? "Saving..." : "Save Changes"}
+                onClick={handleSave}
+                disabled={isSaving}
+              />
             </div>
           </div>
         );

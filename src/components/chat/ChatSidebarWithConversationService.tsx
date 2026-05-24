@@ -1,11 +1,15 @@
 /* eslint-disable no-useless-catch */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
+    Bot,
     Image,
     Lock,
+    MoreVertical,
     Phone,
     PhoneOff,
     Pin,
+    SmilePlus,
+    Sparkles,
     UserPlus,
     UsersRound,
     UserRoundPlus,
@@ -52,6 +56,12 @@ interface ChatSidebarProps {
     onAddFriendClick?: () => void;
     onCreateGroupClick?: () => void;
     onConversationRevealed?: (conversationId: string) => void;
+    onAISummarizeConversation?: (
+        conversationId: string,
+        mode: 'range' | 'unread',
+        rangeMonths?: 1 | 2 | 3,
+    ) => void;
+    onAIReplySuggestions?: (conversationId: string) => void;
 }
 
 export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
@@ -64,6 +74,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     onAddFriendClick,
     onCreateGroupClick,
     onConversationRevealed,
+    onAISummarizeConversation,
+    onAIReplySuggestions,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [revealModalOpen, setRevealModalOpen] = useState(false);
@@ -86,6 +98,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
 
         return globalWindow.__unreadByConversation || {};
     });
+    const [openAiMenuId, setOpenAiMenuId] = useState<string | null>(null);
 
     const currentUserId = getCurrentUserId();
     const [groupInfoOverrides, setGroupInfoOverrides] = useState<
@@ -565,7 +578,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                     ] || 0;
 
                                 return (
-                                    <button
+                                    <div
                                         key={conversation.conversationId}
                                         onClick={() =>
                                             handleConversationSelect(
@@ -635,7 +648,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                             conversation,
                                                         )}
                                                     </h3>
-                                                    <div className="relative ml-2 w-11 shrink-0 pt-0.5 text-right">
+                                                    <div className="relative ml-2 flex w-16 shrink-0 items-start justify-end gap-1 pt-0.5 text-right">
                                                         <span className="whitespace-nowrap text-[11px] leading-4 text-gray-500">
                                                             {formatMessageTime(
                                                                 conversation
@@ -643,6 +656,28 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                                     ?.createdAt,
                                                             )}
                                                         </span>
+                                                        {(onAISummarizeConversation ||
+                                                            onAIReplySuggestions) && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenAiMenuId(
+                                                                        (prev) =>
+                                                                            prev ===
+                                                                            conversation.conversationId
+                                                                                ? null
+                                                                                : conversation.conversationId,
+                                                                    );
+                                                                }}
+                                                                className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-slate-700"
+                                                                title="AI actions"
+                                                            >
+                                                                <MoreVertical
+                                                                    size={14}
+                                                                />
+                                                            </button>
+                                                        )}
                                                         <span
                                                             className={`absolute right-0 top-7 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-opacity ${
                                                                 unreadCount > 0
@@ -670,7 +705,78 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                 </p>
                                             </div>
                                         </div>
-                                    </button>
+                                        {openAiMenuId ===
+                                            conversation.conversationId && (
+                                            <div
+                                                className="absolute right-2 top-12 z-30 min-w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        unreadCount === 0 ||
+                                                        !onAISummarizeConversation
+                                                    }
+                                                    onClick={() => {
+                                                        onAISummarizeConversation?.(
+                                                            conversation.conversationId,
+                                                            'unread',
+                                                        );
+                                                        setOpenAiMenuId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <Bot size={14} />
+                                                    Tóm tắt tin chưa đọc
+                                                </button>
+                                                {[1, 2, 3].map((month) => (
+                                                    <button
+                                                        key={month}
+                                                        type="button"
+                                                        disabled={
+                                                            !onAISummarizeConversation
+                                                        }
+                                                        onClick={() => {
+                                                            onAISummarizeConversation?.(
+                                                                conversation.conversationId,
+                                                                'range',
+                                                                month as
+                                                                    | 1
+                                                                    | 2
+                                                                    | 3,
+                                                            );
+                                                            setOpenAiMenuId(
+                                                                null,
+                                                            );
+                                                        }}
+                                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        <Sparkles size={14} />
+                                                        Tóm tắt {month} tháng
+                                                    </button>
+                                                ))}
+                                                <div className="my-1 border-t border-slate-100" />
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        !onAIReplySuggestions
+                                                    }
+                                                    onClick={() => {
+                                                        onAIReplySuggestions?.(
+                                                            conversation.conversationId,
+                                                        );
+                                                        setOpenAiMenuId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <SmilePlus size={14} />
+                                                    Gợi ý trả lời
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>

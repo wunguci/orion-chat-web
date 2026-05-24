@@ -9,6 +9,7 @@ import {
   ChevronRight,
   X,
   Loader,
+  Bot,
 } from "lucide-react";
 import clsx from "clsx";
 import { getUser, saveUserData } from "../../utils/token";
@@ -24,6 +25,7 @@ import PrivacySettings from "./PrivacySettings";
 import NotificationSettings from "./NotificationSettings";
 import AppearanceSettings from "./AppearanceSettings";
 import LinkedDevices from "./LinkedDevices";
+import ToggleSwitch from "../common/ToggleSwitch";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -41,7 +43,8 @@ type TabType =
   | "privacy"
   | "notifications"
   | "appearance"
-  | "devices";
+  | "devices"
+  | "ai";
 
 interface SettingsModalProps {
   isOpen?: boolean;
@@ -81,6 +84,10 @@ export default function SettingsModal({
     accentColor: "#2ab3b3",
     wallpaper: "teal",
     textSize: "medium",
+    smartEmotionDetection: false,
+    autoWorkflowSuggestions: true,
+    aiMemoryEnabled: true,
+    enabledAgents: [] as string[],
 
     // Notification Settings
     groupNotifications: true,
@@ -146,6 +153,12 @@ export default function SettingsModal({
         fontFamily: userSettings.settings?.fontFamily || "default",
         accentColor: userSettings.settings?.accentColor || "#2ab3b3",
         wallpaper: userSettings.settings?.wallpaper || "teal",
+        smartEmotionDetection:
+          userSettings.settings?.smartEmotionDetection ?? false,
+        autoWorkflowSuggestions:
+          userSettings.settings?.autoWorkflowSuggestions ?? true,
+        aiMemoryEnabled: userSettings.settings?.aiMemoryEnabled ?? true,
+        enabledAgents: userSettings.settings?.enabledAgents || [],
       }));
     }
   }, [userSettings.settings]);
@@ -298,6 +311,10 @@ export default function SettingsModal({
           fontFamily: formData.fontFamily,
           accentColor: formData.accentColor,
           wallpaper: formData.wallpaper,
+          smartEmotionDetection: formData.smartEmotionDetection,
+          autoWorkflowSuggestions: formData.autoWorkflowSuggestions,
+          aiMemoryEnabled: formData.aiMemoryEnabled,
+          enabledAgents: formData.enabledAgents,
         });
 
         // Update formData với giá trị trả về (nếu có)
@@ -308,6 +325,12 @@ export default function SettingsModal({
           fontFamily: result.fontFamily || prev.fontFamily,
           accentColor: result.accentColor || prev.accentColor,
           wallpaper: result.wallpaper || prev.wallpaper,
+          smartEmotionDetection:
+            result.smartEmotionDetection ?? prev.smartEmotionDetection,
+          autoWorkflowSuggestions:
+            result.autoWorkflowSuggestions ?? prev.autoWorkflowSuggestions,
+          aiMemoryEnabled: result.aiMemoryEnabled ?? prev.aiMemoryEnabled,
+          enabledAgents: result.enabledAgents || prev.enabledAgents,
         }));
       }
 
@@ -404,6 +427,15 @@ export default function SettingsModal({
         ...prev,
         theme: userSettings.settings?.theme || "light",
         fontSize: userSettings.settings?.fontSize || 16,
+        fontFamily: userSettings.settings?.fontFamily || "default",
+        accentColor: userSettings.settings?.accentColor || "#2ab3b3",
+        wallpaper: userSettings.settings?.wallpaper || "teal",
+        smartEmotionDetection:
+          userSettings.settings?.smartEmotionDetection ?? false,
+        autoWorkflowSuggestions:
+          userSettings.settings?.autoWorkflowSuggestions ?? true,
+        aiMemoryEnabled: userSettings.settings?.aiMemoryEnabled ?? true,
+        enabledAgents: userSettings.settings?.enabledAgents || [],
       }));
     }
     setHasSettingsChanges(false);
@@ -441,6 +473,12 @@ export default function SettingsModal({
       label: "Devices",
       icon: Smartphone,
       description: "Active sessions and logins",
+    },
+    {
+      id: "ai",
+      label: "AI",
+      icon: Bot,
+      description: "Assistant and smart detection",
     },
   ];
 
@@ -569,6 +607,90 @@ export default function SettingsModal({
             saveError={saveError}
             saveSuccess={saveSuccess}
           />
+        );
+
+      case "ai":
+        return (
+          <div className="flex flex-col gap-8">
+            <div>
+              <span className="text-[26px] font-bold text-gray-primary mb-1">
+                AI Assistant
+              </span>
+              <p className="text-gray-primary">
+                Configure Orion AI behavior in chat and WorkHub.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-5">
+              {[
+                {
+                  label: "Smart Emotion Detection",
+                  description:
+                    "Show subtle emotion hints for incoming chat messages.",
+                  field: "smartEmotionDetection",
+                },
+                {
+                  label: "Auto Workflow Suggestions",
+                  description:
+                    "Suggest task and calendar drafts from messages with deadlines or action items.",
+                  field: "autoWorkflowSuggestions",
+                },
+                {
+                  label: "AI Memory",
+                  description:
+                    "Let Orion AI use your notes, calendar, tasks, and workspace context.",
+                  field: "aiMemoryEnabled",
+                },
+              ].map(({ label, description, field }) => (
+                <div
+                  key={field}
+                  className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-primary">{label}</p>
+                    <p className="text-sm text-gray-primary">{description}</p>
+                  </div>
+                  <ToggleSwitch
+                    checked={
+                      formData[field as keyof typeof formData] as boolean
+                    }
+                    onChange={() => toggleOption(field)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+              {saveError && (
+                <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  {saveError}
+                </div>
+              )}
+              {saveSuccess && (
+                <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+                  {saveSuccess}
+                </div>
+              )}
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleDiscardSettings}
+                  disabled={isSaving}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg text-gray-primary bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Discard Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  disabled={isSaving || !hasSettingsChanges}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-green-primary hover:bg-green-primary/90 disabled:opacity-50"
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
         );
 
       default:

@@ -12,6 +12,7 @@ import MessageList, {
   type SocketMessage,
 } from "../../components/chat/MessageList";
 import ChatInput from "../../components/chat/ChatInput";
+import AIGridResult from "../../components/ai/AIGridResult";
 import { ConversationInfoPanel } from "../../components/chat/ConversationInfoPanel";
 import { ConversationGroupInfoPanel } from "../../components/chat/ConversationGroupInfoPanel";
 import { SearchModal } from "../../components/chat/SearchModal";
@@ -57,6 +58,8 @@ import { useGroupCallContext } from "../../hooks/useGroupCallContext";
 import type { PinnedMessageItem } from "../../types/conversation";
 import type { AppNotification } from "../../types/notification";
 import { mapChatActionError } from "../../utils/chatMessageErrors";
+import { orionAiService } from "../../services/orionAiService";
+import type { AiAction, AiGridResponse } from "../../types/orion-ai";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -298,6 +301,15 @@ export const ChatPage: React.FC = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true);
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+  const [aiResult, setAiResult] = useState<AiGridResponse | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [composerDraftText, setComposerDraftText] = useState("");
+  const [smartEmotionEnabled, setSmartEmotionEnabled] = useState(false);
+  const [autoWorkflowEnabled, setAutoWorkflowEnabled] = useState(true);
+  const [emotionByMessageId, setEmotionByMessageId] = useState<
+    Record<string, { label: string; icon?: string; summary?: string; tone?: string }>
+  >({});
+  const emotionAttemptedMessageIdsRef = useRef<Set<string>>(new Set());
   const [reactionOverrides, setReactionOverrides] = useState<
     Record<string, NonNullable<SocketMessage["reactions"]>>
   >({});
@@ -1899,6 +1911,32 @@ export const ChatPage: React.FC = () => {
     }
   }, [forwardingMessage, forwardTargetConversationId, joinStatus]);
 
+  const maybeSuggestWorkflowFromMessage = useCallback(
+    async (messageText: string) => {
+      if (!autoWorkflowEnabled || !selectedConversationId) return;
+
+      const actionablePattern =
+        /deadline|task|todo|fix|bug|deploy|release|meeting|call|sync|asap|urgent|gấp|họp|lịch|việc|xử lý|ngày mai|hôm nay|tuần sau|trễ/i;
+      if (!actionablePattern.test(messageText)) return;
+
+      try {
+        setIsAiLoading(true);
+        const result = await orionAiService.analyzeTextWorkflow({
+          text: messageText,
+          conversationId: selectedConversationId,
+        });
+        if (result.cards.length > 0 || result.actions.length > 0) {
+          setAiResult(result);
+        }
+      } catch (error) {
+        console.warn("AI workflow suggestion failed:", error);
+      } finally {
+        setIsAiLoading(false);
+      }
+    },
+    [autoWorkflowEnabled, selectedConversationId],
+  );
+
   // Handle sending message
   const handleSend = useCallback(
     async (text: string, options?: { replyToMessageId?: string | null }) => {
@@ -1966,6 +2004,7 @@ export const ChatPage: React.FC = () => {
         }
 
         setReplyDraft(null);
+        void maybeSuggestWorkflowFromMessage(text);
       } catch (err) {
         console.error("Error sending message:", err);
         setError(mapChatActionError(err, "send"));
@@ -1993,6 +2032,7 @@ export const ChatPage: React.FC = () => {
       getReceiverId,
       replyDraft,
       sendChatMessage,
+      maybeSuggestWorkflowFromMessage,
       USER_ID,
       USERNAME,
     ],
@@ -2498,8 +2538,161 @@ export const ChatPage: React.FC = () => {
     });
 
   useEffect(() => {
-    console.log("[ChatPage] displayMessages:", displayMessages);
-  }, [displayMessages]);
+    let mounted = true;
+    orionAiService
+      .getSettings()
+      .then((settings) => {
+        if (mounted) {
+          setSmartEmotionEnabled(!!settings.smartEmotionDetection);
+          setAutoWorkflowEnabled(settings.autoWorkflowSuggestions !== false);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setSmartEmotionEnabled(false);
+          setAutoWorkflowEnabled(true);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!smartEmotionEnabled) {
+      emotionAttemptedMessageIdsRef.current.clear();
+      setEmotionByMessageId((prev) =>
+        Object.keys(prev).length > 0 ? {} : prev,
+      );
+      return;
+    }
+
+    const candidates = displayMessages
+      .filter(
+        (message) =>
+          message.senderId !== USER_ID &&
+          !message.isRecalled &&
+          !message.isDeleted &&
+          message.content.trim().length > 0,
+      )
+      .slice(-12)
+      .filter(
+        (message) =>
+          !emotionByMessageId[message.id] &&
+          !emotionAttemptedMessageIdsRef.current.has(message.id),
+      );
+
+    if (candidates.length === 0) return;
+
+    let cancelled = false;
+    candidates.forEach((message) => {
+      emotionAttemptedMessageIdsRef.current.add(message.id);
+    });
+
+    void Promise.all(
+      candidates.map(async (message) => {
+        try {
+          const result = await orionAiService.detectEmotion({
+            messageId: /^[a-f0-9]{24}$/i.test(message.id)
+              ? message.id
+              : undefined,
+            text: /^[a-f0-9]{24}$/i.test(message.id)
+              ? undefined
+              : message.content,
+          });
+          const label =
+            String(result.cards[0]?.title || result.meta.label || "neutral") ||
+            "neutral";
+          return {
+            id: message.id,
+            hint: {
+              label,
+              icon: result.cards[0]?.icon,
+              summary: result.summary,
+              tone: result.cards[0]?.tone,
+            },
+          };
+        } catch {
+          return null;
+        }
+      }),
+    ).then((items) => {
+      if (cancelled) return;
+      const detectedItems = items.filter((item): item is NonNullable<typeof item> => !!item);
+      if (detectedItems.length === 0) return;
+
+      setEmotionByMessageId((prev) => {
+        const next = { ...prev };
+        let hasChanges = false;
+
+        detectedItems.forEach((item) => {
+          if (prev[item.id] !== item.hint) {
+            next[item.id] = item.hint;
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? next : prev;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayMessages, emotionByMessageId, smartEmotionEnabled, USER_ID]);
+
+  const runAiAction = useCallback(
+    async (runner: () => Promise<AiGridResponse>) => {
+      try {
+        setIsAiLoading(true);
+        setAiResult(await runner());
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "AI request failed");
+      } finally {
+        setIsAiLoading(false);
+      }
+    },
+    [],
+  );
+
+  const handleAISummarize = useCallback(
+    (
+      mode: "range" | "unread",
+      rangeMonths?: 1 | 2 | 3,
+      conversationId = selectedConversationId,
+    ) => {
+      if (!conversationId) return;
+      void runAiAction(() =>
+        orionAiService.summarizeConversation({
+          conversationId,
+          mode,
+          rangeMonths,
+        }),
+      );
+    },
+    [runAiAction, selectedConversationId],
+  );
+
+  const handleAIReplySuggestions = useCallback((conversationId = selectedConversationId) => {
+    if (!conversationId) return;
+    void runAiAction(() =>
+      orionAiService.suggestReplies({
+        conversationId,
+        limit: 4,
+      }),
+    );
+  }, [runAiAction, selectedConversationId]);
+
+  const handleAiResultAction = useCallback((action: AiAction) => {
+    if (action.type !== "copy_text") return;
+    const text =
+      typeof action.payload?.text === "string" ? action.payload.text : "";
+    if (text) {
+      setComposerDraftText(text);
+      setAiResult(null);
+    }
+  }, []);
 
   const currentPinnedMessages = useMemo(() => {
     if (!selectedConversationId) return [];
@@ -2582,6 +2775,12 @@ export const ChatPage: React.FC = () => {
         error={conversationsError}
         onAddFriendClick={handleOpenAddFriend}
         onCreateGroupClick={handleOpenCreateGroupModal}
+        onAISummarizeConversation={(conversationId, mode, rangeMonths) =>
+          handleAISummarize(mode, rangeMonths, conversationId)
+        }
+        onAIReplySuggestions={(conversationId) =>
+          handleAIReplySuggestions(conversationId)
+        }
       />
 
       {/* Main chat area */}
@@ -2725,6 +2924,9 @@ export const ChatPage: React.FC = () => {
               onReactMessage={handleReactMessage}
               onReplyMessage={handleReplyMessage}
               onTogglePinMessage={handleTogglePinMessage}
+              onAISummarize={handleAISummarize}
+              onAIReplySuggestions={handleAIReplySuggestions}
+              emotionByMessageId={emotionByMessageId}
             />
 
             {/* Input */}
@@ -2742,6 +2944,8 @@ export const ChatPage: React.FC = () => {
                   : null
               }
               onCancelReply={() => setReplyDraft(null)}
+              draftText={composerDraftText}
+              onDraftTextApplied={() => setComposerDraftText("")}
             />
           </>
         ) : (
@@ -2796,6 +3000,25 @@ export const ChatPage: React.FC = () => {
           />
         )
       ) : null}
+
+      {(aiResult || isAiLoading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+          <div className="max-h-[82vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-3 shadow-2xl">
+            {isAiLoading && (
+              <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                AI is thinking...
+              </div>
+            )}
+            {aiResult && (
+              <AIGridResult
+                result={aiResult}
+                onClose={() => setAiResult(null)}
+                onAction={handleAiResultAction}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       <Modal
         isOpen={isForwardModalOpen}
