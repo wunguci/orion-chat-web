@@ -11,6 +11,7 @@ interface UserSettings {
   id: string;
   userId: string;
   theme: string;
+  appearanceColor: string;
   fontSize: number;
   wallpaper: string;
   fontFamily: string;

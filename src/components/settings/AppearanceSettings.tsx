@@ -73,7 +73,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
               className={clsx(
                 "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 transition-colors",
                 formData.theme === value
-                  ? "border-green-primary bg-white"
+                  ? "border-[var(--settings-primary)] bg-white"
                   : "border-gray-200 bg-white hover:border-gray-300",
               )}
             >
@@ -81,15 +81,15 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                 size={32}
                 className={clsx(
                   formData.theme === value
-                    ? "text-green-primary"
-                    : "text-green-border-light",
+                    ? "text-[var(--settings-primary)]"
+                    : "text-[var(--settings-primary-border)]",
                 )}
               />
               <span
                 className={clsx(
                   "font-semibold",
                   formData.theme === value
-                    ? "text-green-primary"
+                    ? "text-[var(--settings-primary)]"
                     : "text-gray-primary",
                 )}
               >
@@ -121,7 +121,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
               className={clsx(
                 "h-32 rounded-2xl border-2 transition-all relative group",
                 formData.wallpaper === value
-                  ? "border-green-primary scale-105"
+                  ? "border-[var(--settings-primary)] scale-105"
                   : "border-transparent hover:border-gray-300",
               )}
               style={{ backgroundColor: color }}
@@ -142,7 +142,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
           Xem trước hình nền
         </span>
         <div
-          className="rounded-2xl p-8 border-2 border-green-border-light transition-all"
+          className="rounded-2xl p-8 border-2 border-[var(--settings-primary-border)] transition-all"
           style={{ backgroundColor: currentWallpaperColor }}
         >
           <div className="text-center">
@@ -203,7 +203,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       </div>
 
       {/* Nút thao tác */}
-      <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+      <div className="flex flex-col gap-4 pt-4 border-t border-[var(--settings-primary-border)]">
         {/* Hiển thị lỗi nếu có */}
         {saveError && (
           <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">

@@ -309,7 +309,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     return {
                         text: `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} ${isMe ? 'đi' : 'đến'}`,
                         Icon: callType === 'video' ? Video : Phone,
-                        colorClass: 'text-green-600',
+                        colorClass: 'text-[var(--chat-primary)]',
                     };
                 }
 
@@ -467,7 +467,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     {onNewConversation && (
                         <button
                             onClick={onNewConversation}
-                            className="cursor-pointer rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700"
+                            className="cursor-pointer rounded-lg bg-[var(--chat-primary)] p-2 text-white hover:bg-[var(--chat-primary-hover)]"
                             title="New conversation"
                         >
                             ✎
@@ -483,7 +483,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     placeholder="Search conversations..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--chat-primary)] focus:outline-none"
                 />
                 <button
                     type="button"
@@ -510,7 +510,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                         value={joinGroupCode}
                         onChange={(e) => setJoinGroupCode(e.target.value)}
                         placeholder="Nhập mã group (vd: 9fbcd750-cab0-4fca-8b0e-22be6f017dea)"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)]"
                         disabled={isJoinGroupSubmitting}
                     />
 
@@ -518,7 +518,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                         value={joinGroupMessage}
                         onChange={(e) => setJoinGroupMessage(e.target.value)}
                         placeholder="Lời nhắn (tùy chọn)"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500 resize-none"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)] resize-none"
                         rows={3}
                         disabled={isJoinGroupSubmitting}
                     />
@@ -528,7 +528,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     )}
 
                     {joinGroupSuccess && (
-                        <p className="text-sm text-green-600">
+                        <p className="text-sm text-[var(--chat-primary)]">
                             {joinGroupSuccess}
                         </p>
                     )}
@@ -537,7 +537,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                         type="button"
                         onClick={handleRequestJoinGroupByCode}
                         disabled={isJoinGroupSubmitting}
-                        className="rounded-lg bg-green-primary px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+                        className="rounded-lg bg-[var(--chat-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-60"
                     >
                         {isJoinGroupSubmitting
                             ? 'Đang gửi...'
@@ -556,7 +556,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             {/* Loading state */}
             {loading && (
                 <div className="flex justify-center py-8">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-[var(--chat-primary)]" />
                 </div>
             )}
 
@@ -588,7 +588,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                         className={`w-full rounded-lg px-3 py-2 text-left transition-colors relative ${
                                             selectedConversationId ===
                                             conversation.conversationId
-                                                ? 'bg-blue-100 text-blue-900'
+                                                ? 'bg-[var(--chat-primary-bg)] text-[var(--chat-primary)]'
                                                 : 'hover:bg-gray-100'
                                         }`}
                                     >
@@ -621,7 +621,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                 )}
                                                 {/* ✅ Pin indicator */}
                                                 {conversation.myIsPinned && (
-                                                    <div className="absolute -right-1 -bottom-1 bg-green-500 rounded-full p-1 shadow-sm border border-white">
+                                                    <div className="absolute -right-1 -bottom-1 bg-[var(--chat-primary)] rounded-full p-1 shadow-sm border border-white">
                                                         <Pin
                                                             size={12}
                                                             className="text-white fill-current"

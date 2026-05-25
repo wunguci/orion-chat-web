@@ -547,7 +547,7 @@ export const MessageList: React.FC<{
                                         <div
                                             className={`px-4 py-3 rounded-2xl ${
                                                 isMe
-                                                    ? 'bg-green-message text-white rounded-br-none shadow-md'
+                                                    ? 'bg-[var(--chat-message-sent)] text-white rounded-br-none shadow-md'
                                                     : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
                                             }`}
                                         >
@@ -590,8 +590,8 @@ export const MessageList: React.FC<{
                                                     title="Đi tới tin nhắn gốc"
                                                     className={`mb-2 max-w-full rounded-xl border px-3 py-2 text-xs ${
                                                         isMe
-                                                            ? 'border-emerald-300/40 bg-white text-green-message'
-                                                            : 'border-green-500 bg-white text-slate-700'
+                                                            ? 'border-white/40 bg-white text-[var(--chat-message-sent)]'
+                                                            : 'border-[var(--chat-primary-border)] bg-white text-slate-700'
                                                     } cursor-pointer hover:opacity-90`}
                                                 >
                                                     <div className="font-semibold">
@@ -644,7 +644,7 @@ export const MessageList: React.FC<{
                                                     msg.isRecalled
                                                         ? 'bg-gray-100 text-gray-500 shadow-none border border-gray-200'
                                                         : isMe
-                                                          ? 'bg-green-message text-white rounded-br-none shadow-md'
+                                                          ? 'bg-[var(--chat-message-sent)] text-white rounded-br-none shadow-md'
                                                           : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
                                                 }`}
                                             >
@@ -652,7 +652,7 @@ export const MessageList: React.FC<{
                                                     <div
                                                         className={`mb-1 text-[11px] font-semibold ${
                                                             isMe
-                                                                ? 'text-green-100'
+                                                                ? 'text-white/80'
                                                                 : 'text-amber-600'
                                                         }`}
                                                     >
@@ -683,7 +683,7 @@ export const MessageList: React.FC<{
                                                         className={`flex items-center gap-2 p-2 rounded-xl border ${
                                                             isMe
                                                                 ? 'text-white border-white/30'
-                                                                : 'text-blue-500 hover:text-blue-600 border-slate-200'
+                                                                : 'text-[var(--chat-primary)] hover:text-[var(--chat-primary-hover)] border-slate-200'
                                                         }`}
                                                     >
                                                         <span className="shrink-0">
@@ -707,7 +707,7 @@ export const MessageList: React.FC<{
                                                 <p
                                                     className={`text-[11px] mt-1 ${
                                                         isMe
-                                                            ? 'text-green-100'
+                                                            ? 'text-white/80'
                                                             : 'text-slate-400'
                                                     }`}
                                                 >
@@ -729,7 +729,7 @@ export const MessageList: React.FC<{
                                                                     : msg.uploadStatus ===
                                                                         'uploading'
                                                                       ? 'text-amber-100'
-                                                                      : 'text-green-100'
+                                                                      : 'text-white/80'
                                                             }`}
                                                         >
                                                             {getUploadStatusLabel(
@@ -786,7 +786,7 @@ export const MessageList: React.FC<{
                                                             }
                                                             className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-colors ${
                                                                 reactedByMe
-                                                                    ? 'bg-green-100 border-green-400 text-green-700'
+                                                                    ? 'bg-[var(--chat-primary-bg)] border-[var(--chat-primary)] text-[var(--chat-primary)]'
                                                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                                             }`}
                                                         >

@@ -25,6 +25,11 @@ import PrivacySettings from "./PrivacySettings";
 import NotificationSettings from "./NotificationSettings";
 import AppearanceSettings from "./AppearanceSettings";
 import LinkedDevices from "./LinkedDevices";
+import {
+  buildAppearanceThemeVars,
+  getAppearanceColorFromWallpaper,
+  notifyAppearanceThemeChanged,
+} from "../../theme/appearance";
 import ToggleSwitch from "../common/ToggleSwitch";
 
 const API_BASE_URL =
@@ -36,6 +41,20 @@ function toAbsoluteMediaUrl(url?: string | null): string | null {
   if (!url) return null;
   if (/^https?:\/\//i.test(url)) return url;
   return `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+type SettingsThemeVars = React.CSSProperties &
+  Record<`--settings-${string}`, string>;
+
+function buildSettingsThemeVars(
+  theme?: string | null,
+  appearanceColor?: string | null,
+): SettingsThemeVars {
+  return buildAppearanceThemeVars({
+    theme,
+    appearanceColor,
+    prefix: "settings",
+  }) as SettingsThemeVars;
 }
 
 type TabType =
@@ -79,6 +98,7 @@ export default function SettingsModal({
   const [formData, setFormData] = useState({
     // User Settings
     theme: "light",
+    appearanceColor: "green",
     fontSize: 16,
     fontFamily: "default",
     accentColor: "#2ab3b3",
@@ -149,6 +169,7 @@ export default function SettingsModal({
       setFormData((prev) => ({
         ...prev,
         theme: userSettings.settings?.theme || "light",
+        appearanceColor: userSettings.settings?.appearanceColor || "green",
         fontSize: userSettings.settings?.fontSize || 16,
         fontFamily: userSettings.settings?.fontFamily || "default",
         accentColor: userSettings.settings?.accentColor || "#2ab3b3",
@@ -215,7 +236,13 @@ export default function SettingsModal({
   }, [privacySettings.settings]);
 
   const handleInputChange = (field: string, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === "wallpaper" && typeof value === "string"
+        ? { appearanceColor: getAppearanceColorFromWallpaper(value) }
+        : {}),
+    }));
     setHasSettingsChanges(true);
   };
 
@@ -307,6 +334,7 @@ export default function SettingsModal({
       if (userSettings.settings) {
         const result = await userSettings.updateSettings({
           theme: formData.theme,
+          appearanceColor: formData.appearanceColor,
           fontSize: formData.fontSize,
           fontFamily: formData.fontFamily,
           accentColor: formData.accentColor,
@@ -321,6 +349,7 @@ export default function SettingsModal({
         setFormData((prev) => ({
           ...prev,
           theme: result.theme || prev.theme,
+          appearanceColor: result.appearanceColor || prev.appearanceColor,
           fontSize: result.fontSize || prev.fontSize,
           fontFamily: result.fontFamily || prev.fontFamily,
           accentColor: result.accentColor || prev.accentColor,
@@ -332,6 +361,11 @@ export default function SettingsModal({
           aiMemoryEnabled: result.aiMemoryEnabled ?? prev.aiMemoryEnabled,
           enabledAgents: result.enabledAgents || prev.enabledAgents,
         }));
+
+        notifyAppearanceThemeChanged({
+          theme: result.theme || formData.theme,
+          appearanceColor: result.appearanceColor || formData.appearanceColor,
+        });
       }
 
       // Save notification settings
@@ -426,6 +460,7 @@ export default function SettingsModal({
       setFormData((prev) => ({
         ...prev,
         theme: userSettings.settings?.theme || "light",
+        appearanceColor: userSettings.settings?.appearanceColor || "green",
         fontSize: userSettings.settings?.fontSize || 16,
         fontFamily: userSettings.settings?.fontFamily || "default",
         accentColor: userSettings.settings?.accentColor || "#2ab3b3",
@@ -486,11 +521,16 @@ export default function SettingsModal({
     handleInputChange(field, !formData[field as keyof typeof formData]);
   };
 
+  const modalThemeVars = buildSettingsThemeVars(
+    formData.theme,
+    formData.appearanceColor,
+  );
+
   const renderLoadingState = () => (
     <div className="flex items-center justify-center h-96">
       <div className="text-center">
-        <Loader className="w-12 h-12 animate-spin text-green-primary mx-auto mb-4" />
-        <p className="text-gray-primary">Loading settings...</p>
+        <Loader className="w-12 h-12 animate-spin text-[var(--settings-primary)] mx-auto mb-4" />
+        <p className="text-[var(--settings-muted)]">Loading settings...</p>
       </div>
     </div>
   );
@@ -644,7 +684,7 @@ export default function SettingsModal({
               ].map(({ label, description, field }) => (
                 <div
                   key={field}
-                  className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light"
+                  className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]"
                 >
                   <div>
                     <p className="font-semibold text-gray-primary">{label}</p>
@@ -660,7 +700,7 @@ export default function SettingsModal({
               ))}
             </div>
 
-            <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+            <div className="flex flex-col gap-4 pt-4 border-t border-[var(--settings-primary-border)]">
               {saveError && (
                 <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                   {saveError}
@@ -684,7 +724,7 @@ export default function SettingsModal({
                   type="button"
                   onClick={handleSaveSettings}
                   disabled={isSaving || !hasSettingsChanges}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-green-primary hover:bg-green-primary/90 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-[var(--settings-primary)] hover:bg-[var(--settings-primary-hover)] disabled:opacity-50"
                 >
                   {isSaving ? "Saving..." : "Save Changes"}
                 </button>
@@ -701,24 +741,27 @@ export default function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center px-4 py-3 z-50 overflow-hidden bg-black/30">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col relative overflow-hidden">
+    <div
+      className="fixed inset-0 flex items-center justify-center px-4 py-3 z-50 overflow-hidden bg-[var(--settings-overlay)]"
+      style={modalThemeVars}
+    >
+      <div className="bg-[var(--settings-surface)] text-[var(--settings-text)] rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col relative overflow-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 hover:bg-[var(--settings-close-hover)] rounded-full transition-colors"
           aria-label="Close"
         >
-          <X size={24} className="text-gray-primary" />
+          <X size={24} className="text-[var(--settings-muted)]" />
         </button>
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-80 bg-green-bg-light border-r border-green-border-light p-6 overflow-y-auto shrink-0">
-            <h1 className="text-2xl font-bold text-gray-primary mb-2">
+          <div className="w-80 bg-[var(--settings-surface-bg)] border-r border-[var(--settings-primary-border)] p-6 overflow-y-auto shrink-0">
+            <h1 className="text-2xl font-bold text-[var(--settings-text)] mb-2">
               Settings
             </h1>
-            <p className="text-gray-primary mb-8">
+            <p className="text-[var(--settings-muted)] mb-8">
               Manage your account and app experience
             </p>
 
@@ -730,8 +773,8 @@ export default function SettingsModal({
                   className={clsx(
                     "w-full flex items-start gap-3 px-4 py-3 rounded-2xl transition-all text-left",
                     activeTab === id
-                      ? "bg-green-bg-heavy border-2 border-green-primary"
-                      : "hover:bg-green-bg-heavy",
+                      ? "bg-[var(--settings-primary-bg)] border-2 border-[var(--settings-primary)]"
+                      : "hover:bg-[var(--settings-primary-bg)]",
                   )}
                 >
                   <Icon
@@ -739,18 +782,22 @@ export default function SettingsModal({
                     className={clsx(
                       "mt-1 shrink-0",
                       activeTab === id
-                        ? "text-green-primary"
-                        : "text-gray-primary",
+                        ? "text-[var(--settings-primary)]"
+                        : "text-[var(--settings-muted)]",
                     )}
                   />
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-primary">{label}</p>
-                    <p className="text-sm text-gray-primary">{description}</p>
+                    <p className="font-semibold text-[var(--settings-text)]">
+                      {label}
+                    </p>
+                    <p className="text-sm text-[var(--settings-muted)]">
+                      {description}
+                    </p>
                   </div>
                   {activeTab === id && (
                     <ChevronRight
                       size={24}
-                      className="text-green-primary mt-1"
+                      className="text-[var(--settings-primary)] mt-1"
                     />
                   )}
                 </button>
@@ -759,7 +806,9 @@ export default function SettingsModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-8 overflow-y-auto">{renderContent()}</div>
+          <div className="flex-1 p-8 overflow-y-auto bg-[var(--settings-content)]">
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>

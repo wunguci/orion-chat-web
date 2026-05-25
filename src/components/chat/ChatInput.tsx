@@ -501,7 +501,7 @@ export const ChatInput: React.FC<{
                         <div ref={emojiRef} className="relative shrink-0">
                             <button
                                 onClick={() => setEmojiOpen((o) => !o)}
-                                className="p-1.5 border border-slate-200 rounded-full hover:bg-green-message hover:text-white hover:border-green-message transition-colors text-slate-700"
+                                className="p-1.5 border border-slate-200 rounded-full hover:bg-[var(--chat-message-sent)] hover:text-white hover:border-[var(--chat-message-sent)] transition-colors text-slate-700"
                                 title="Emoji"
                             >
                                 😊
@@ -575,7 +575,7 @@ export const ChatInput: React.FC<{
 
                         <button
                             onClick={handleSend}
-                            className="bg-green-primary text-white px-3 py-2 rounded-full hover:bg-green-hover transition-colors shrink-0"
+                            className="bg-[var(--chat-primary)] text-white px-3 py-2 rounded-full hover:bg-[var(--chat-primary-hover)] transition-colors shrink-0"
                         >
                             <IoMdSend className="w-4 h-4" />
                         </button>

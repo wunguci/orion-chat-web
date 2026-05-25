@@ -60,6 +60,12 @@ import type { AppNotification } from "../../types/notification";
 import { mapChatActionError } from "../../utils/chatMessageErrors";
 import { orionAiService } from "../../services/orionAiService";
 import type { AiAction, AiGridResponse } from "../../types/orion-ai";
+import { useUserSettings } from "../../hooks/useSettings";
+import {
+  APPEARANCE_THEME_CHANGED_EVENT,
+  buildAppearanceThemeVars,
+  type AppearanceThemeChangeDetail,
+} from "../../theme/appearance";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -258,6 +264,53 @@ export const ChatPage: React.FC = () => {
   // Get user ID inside component (after auth is loaded)
   const USER_ID = getCurrentUserId();
   const USERNAME = getCurrentUserName();
+  const { settings: userSettings } = useUserSettings();
+  const [chatAppearance, setChatAppearance] =
+    useState<AppearanceThemeChangeDetail>({
+      theme: undefined,
+      appearanceColor: undefined,
+    });
+
+  useEffect(() => {
+    setChatAppearance({
+      theme: userSettings?.theme,
+      appearanceColor: userSettings?.appearanceColor,
+    });
+  }, [userSettings?.appearanceColor, userSettings?.theme]);
+
+  useEffect(() => {
+    const handleAppearanceChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<AppearanceThemeChangeDetail>;
+
+      setChatAppearance((prev) => ({
+        theme: customEvent.detail?.theme ?? prev.theme,
+        appearanceColor:
+          customEvent.detail?.appearanceColor ?? prev.appearanceColor,
+      }));
+    };
+
+    window.addEventListener(
+      APPEARANCE_THEME_CHANGED_EVENT,
+      handleAppearanceChanged,
+    );
+
+    return () => {
+      window.removeEventListener(
+        APPEARANCE_THEME_CHANGED_EVENT,
+        handleAppearanceChanged,
+      );
+    };
+  }, []);
+
+  const chatThemeVars = useMemo(
+    () =>
+      buildAppearanceThemeVars({
+        theme: chatAppearance.theme,
+        appearanceColor: chatAppearance.appearanceColor,
+        prefix: "chat",
+      }) as React.CSSProperties,
+    [chatAppearance.appearanceColor, chatAppearance.theme],
+  );
   const effectiveCurrentUserId =
     USER_ID || getUser()?.userId || getUser()?.id || "";
   const {
@@ -2765,7 +2818,10 @@ export const ChatPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex h-screen gap-4 bg-gray-50 p-4">
+    <div
+      className="flex h-screen gap-4 bg-gray-50 p-4"
+      style={chatThemeVars}
+    >
       {/* Sidebar */}
       <ChatSidebarWithConversationService
         conversations={conversations}
@@ -2786,7 +2842,7 @@ export const ChatPage: React.FC = () => {
       {/* Main chat area */}
       <div className="flex flex-1 flex-col rounded-lg bg-white shadow-sm">
         {isConnecting && (
-          <div className="border-b border-gray-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+          <div className="border-b border-[var(--chat-primary-border)] bg-[var(--chat-primary-bg)] px-4 py-2 text-sm text-[var(--chat-primary)]">
             Connecting to chat...
           </div>
         )}
@@ -3046,7 +3102,7 @@ export const ChatPage: React.FC = () => {
             <select
               value={forwardTargetConversationId}
               onChange={(e) => setForwardTargetConversationId(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[var(--chat-primary)] focus:outline-none"
             >
               <option value="">-- Chọn cuộc trò chuyện --</option>
               {forwardableConversations.map((conversation) => (
@@ -3080,7 +3136,7 @@ export const ChatPage: React.FC = () => {
                 isForwarding ||
                 forwardableConversations.length === 0
               }
-              className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-lg bg-[var(--chat-primary)] px-3 py-2 text-sm text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-50"
             >
               {isForwarding ? "Đang chuyển..." : "Chuyển tiếp"}
             </button>
