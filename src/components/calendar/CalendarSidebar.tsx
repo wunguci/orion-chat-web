@@ -2,7 +2,6 @@ import type React from "react";
 import type { CalendarEvent } from "../../types/calendar";
 import { FaPlus } from "react-icons/fa6";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import { MdExpandLess } from "react-icons/md";
 
 interface CalendarSidebarProps {
   onDateSelect: (date: Date) => void;
@@ -51,7 +50,6 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
             className="w-10 h-10 flex items-center justify-evenly bg-green-primary text-white rounded-lg hover:bg-green-hover transition-all active:scale-90 shadow-lg shadow-green-primary/20 cursor-pointer"
           >
             <FaPlus className="w-4 h-4" />
-            
           </button>
         </div>
       </div>
@@ -126,47 +124,8 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
           })}
         </div>
       </div>
-
-      <div className="space-y-8 px-6">
-        <div>
-          <div className="flex items-center justify-between group cursor-pointer mb-5">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Calendars
-            </span>
-            <MdExpandLess className="text-xl text-slate-400" />
-          </div>
-          <div className="space-y-4">
-            <CalendarToggle label="My Tasks" color="bg-orange-500" />
-            <CalendarToggle label="Project A" color="bg-emerald-500" />
-            <CalendarToggle label="Personal" color="bg-teal-500" />
-          </div>
-        </div>
-      </div>
     </aside>
   );
 };
 
 export default CalendarSidebar;
-
-const CalendarToggle: React.FC<{ label: string; color: string }> = ({
-  label,
-  color,
-}) => (
-  <label className="flex items-center justify-between cursor-pointer group hover:bg-slate-50 p-2 -mx-2 rounded-xl transition-all">
-    <div className="flex items-center gap-3">
-      <div
-        className={`size-2 rounded-full ${color} shadow-sm shadow-slate-200`}
-      ></div>
-      <span className="text-xs font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
-        {label}
-      </span>
-    </div>
-    <div className="relative flex items-center">
-      <input
-        type="checkbox"
-        defaultChecked
-        className="rounded border-slate-300 text-green-primary focus:ring-0 focus:ring-offset-0 size-4 transition-all"
-      />
-    </div>
-  </label>
-);

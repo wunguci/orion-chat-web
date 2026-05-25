@@ -95,6 +95,7 @@ export const ChatPage: React.FC = () => {
     clientMessageId?: string;
     conversationId?: string;
     type?: "text" | "image" | "file" | "audio" | "video" | "call";
+    messageType?: string;
     callData?: {
       callType?: "audio" | "video";
       callStatus?: "completed" | "missed" | "declined";
@@ -361,7 +362,10 @@ export const ChatPage: React.FC = () => {
   const [smartEmotionEnabled, setSmartEmotionEnabled] = useState(false);
   const [autoWorkflowEnabled, setAutoWorkflowEnabled] = useState(true);
   const [emotionByMessageId, setEmotionByMessageId] = useState<
-    Record<string, { label: string; icon?: string; summary?: string; tone?: string }>
+    Record<
+      string,
+      { label: string; icon?: string; summary?: string; tone?: string }
+    >
   >({});
   const emotionAttemptedMessageIdsRef = useRef<Set<string>>(new Set());
   const [reactionOverrides, setReactionOverrides] = useState<
@@ -923,6 +927,7 @@ export const ChatPage: React.FC = () => {
         reactions: normalizeReactions(payload?.reactions),
         conversationId: payload?.conversationId,
         type: resolvedType,
+        messageType: payload?.messageType,
         callData: payload?.callData,
       };
     },
@@ -2495,6 +2500,7 @@ export const ChatPage: React.FC = () => {
           typeof m.createdAt === "string"
             ? m.createdAt
             : (m.createdAt?.toISOString() ?? new Date().toISOString()),
+        messageType: m.messageType,
         isFile:
           messageType === "FILE" ||
           messageType === "IMAGE" ||
@@ -2717,7 +2723,9 @@ export const ChatPage: React.FC = () => {
       }),
     ).then((items) => {
       if (cancelled) return;
-      const detectedItems = items.filter((item): item is NonNullable<typeof item> => !!item);
+      const detectedItems = items.filter(
+        (item): item is NonNullable<typeof item> => !!item,
+      );
       if (detectedItems.length === 0) return;
 
       setEmotionByMessageId((prev) => {
@@ -2772,15 +2780,18 @@ export const ChatPage: React.FC = () => {
     [runAiAction, selectedConversationId],
   );
 
-  const handleAIReplySuggestions = useCallback((conversationId = selectedConversationId) => {
-    if (!conversationId) return;
-    void runAiAction(() =>
-      orionAiService.suggestReplies({
-        conversationId,
-        limit: 4,
-      }),
-    );
-  }, [runAiAction, selectedConversationId]);
+  const handleAIReplySuggestions = useCallback(
+    (conversationId = selectedConversationId) => {
+      if (!conversationId) return;
+      void runAiAction(() =>
+        orionAiService.suggestReplies({
+          conversationId,
+          limit: 4,
+        }),
+      );
+    },
+    [runAiAction, selectedConversationId],
+  );
 
   const handleAiResultAction = useCallback((action: AiAction) => {
     if (action.type !== "copy_text") return;
@@ -2863,10 +2874,7 @@ export const ChatPage: React.FC = () => {
   }, []);
 
   return (
-    <div
-      className="flex h-screen gap-4 bg-gray-50 p-4"
-      style={chatThemeVars}
-    >
+    <div className="flex h-screen gap-4 bg-gray-50 p-4" style={chatThemeVars}>
       {/* Sidebar */}
       <ChatSidebarWithConversationService
         conversations={conversations}

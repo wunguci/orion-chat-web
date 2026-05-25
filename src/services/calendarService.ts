@@ -10,6 +10,7 @@ interface CalendarParticipantApi {
   groupId?: string;
   name: string;
   avatar?: string | null;
+  status?: "pending" | "accepted" | "declined";
 }
 
 interface CalendarEventApi {
@@ -25,6 +26,11 @@ interface CalendarEventApi {
   notificationMinutes: number;
   isAllDay?: boolean;
   participants?: CalendarParticipantApi[];
+  owner?: {
+    userId: string;
+    fullName: string;
+    avatarUrl?: string | null;
+  } | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -59,7 +65,9 @@ const toCalendarEvent = (item: CalendarEventApi): CalendarEvent => ({
       participant.avatar || "https://picsum.photos/seed/calendar-user/120",
     userId: participant.userId,
     groupId: participant.groupId,
+    status: participant.status,
   })),
+  owner: item.owner ?? null,
   createdAt: item.createdAt,
   updatedAt: item.updatedAt,
 });
@@ -136,5 +144,19 @@ export const calendarService = {
 
     const response = await api.get<ParticipantOptionsResponse>(path);
     return [...response.friends, ...response.groups];
+  },
+  async getPendingInvites(): Promise<CalendarEvent[]> {
+    const rows = await api.get<CalendarEventApi[]>("/calendar-events/invites");
+    return rows.map(toCalendarEvent);
+  },
+  async respondToInvite(
+    eventId: string,
+    status: "accepted" | "declined",
+  ): Promise<CalendarEvent> {
+    const row = await api.patch<CalendarEventApi>(
+      `/calendar-events/${eventId}/respond`,
+      { status },
+    );
+    return toCalendarEvent(row);
   },
 };
