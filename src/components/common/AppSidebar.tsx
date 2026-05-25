@@ -13,9 +13,15 @@ import { Avatar } from "./Avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROUTES } from "../../types/routes.types";
 import SettingsModal from "../settings/SettingsModal";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { User } from "../../types/auth.types";
 import NotificationCenter from "../notifications/NotificationCenter";
+import { useUserSettings } from "../../hooks/useSettings";
+import {
+  APPEARANCE_THEME_CHANGED_EVENT,
+  buildAppearanceThemeVars,
+  type AppearanceThemeChangeDetail,
+} from "../../theme/appearance";
 
 type ViewMode =
   | "chat"
@@ -38,11 +44,17 @@ const AppSidebar: React.FC<SidebarProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { settings: userSettings } = useUserSettings();
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [unreadFriendCount, setUnreadFriendCount] = useState(0);
   const [unreadCalendarCount, setUnreadCalendarCount] = useState(0);
+  const [sidebarAppearance, setSidebarAppearance] =
+    useState<AppearanceThemeChangeDetail>({
+      theme: undefined,
+      appearanceColor: undefined,
+    });
   const resolvedUserId = currentUser?.userId || currentUser?.id;
 
   const API_BASE_URL =
@@ -63,13 +75,57 @@ const AppSidebar: React.FC<SidebarProps> = ({
     return fullUrl;
   };
 
+  useEffect(() => {
+    setSidebarAppearance({
+      theme: userSettings?.theme,
+      appearanceColor: userSettings?.appearanceColor,
+    });
+  }, [userSettings?.appearanceColor, userSettings?.theme]);
+
+  useEffect(() => {
+    const handleAppearanceChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<AppearanceThemeChangeDetail>;
+
+      setSidebarAppearance((prev) => ({
+        theme: customEvent.detail?.theme ?? prev.theme,
+        appearanceColor:
+          customEvent.detail?.appearanceColor ?? prev.appearanceColor,
+      }));
+    };
+
+    window.addEventListener(
+      APPEARANCE_THEME_CHANGED_EVENT,
+      handleAppearanceChanged,
+    );
+
+    return () => {
+      window.removeEventListener(
+        APPEARANCE_THEME_CHANGED_EVENT,
+        handleAppearanceChanged,
+      );
+    };
+  }, []);
+
+  const sidebarThemeVars = useMemo(
+    () =>
+      buildAppearanceThemeVars({
+        theme: sidebarAppearance.theme,
+        appearanceColor: sidebarAppearance.appearanceColor,
+        prefix: "app-sidebar",
+      }) as React.CSSProperties,
+    [sidebarAppearance.appearanceColor, sidebarAppearance.theme],
+  );
+
   return (
     <>
       <SettingsModal
         isOpen={isSettingOpen}
         onClose={() => setIsSettingOpen(false)}
       />
-      <aside className="w-16 flex flex-col items-center py-6 border-r border-slate-200 white:border-slate-800 bg-white white:bg-slate-900 shrink-0 z-20">
+      <aside
+        className="w-16 flex flex-col items-center py-6 border-r border-[var(--app-sidebar-primary-border)] bg-[var(--app-sidebar-surface)] shrink-0 z-20"
+        style={sidebarThemeVars}
+      >
         {/* User Avatar */}
         <div className="mb-8">
           <Avatar
@@ -184,7 +240,7 @@ interface NavItemProps {
 
 const NavItem: React.FC<NavItemProps> = ({
   icon: Icon,
-  active,
+        active,
   onClick,
   label,
   badgeCount = 0,
@@ -194,15 +250,15 @@ const NavItem: React.FC<NavItemProps> = ({
       onClick={onClick}
       className={`relative w-10 h-10 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
         active
-          ? "bg-teal-400 text-primary shadow-sm"
-          : "text-slate-400 hover:bg-slate-200"
+          ? "bg-[var(--app-sidebar-primary)] text-white shadow-sm"
+          : "text-[var(--app-sidebar-muted)] hover:bg-[var(--app-sidebar-primary-bg)] hover:text-[var(--app-sidebar-primary)]"
       }`}
       title={label}
       aria-label={label}
     >
       <Icon className="w-5 h-5" />
       {badgeCount > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-red-500 px-1 text-center text-[10px] leading-4 font-semibold text-white">
+        <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-[var(--app-sidebar-primary)] px-1 text-center text-[10px] leading-4 font-semibold text-white">
           {badgeCount > 99 ? "99+" : badgeCount}
         </span>
       )}

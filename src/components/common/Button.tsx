@@ -24,12 +24,12 @@ function Button({
         <button
             onClick={onClick}
             disabled={disabled}
-            className={`flex items-center gap-2 ${padding} text-sm font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`flex items-center gap-2 ${padding} text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                 variant === 'primary' || type === 'submit'
-                    ? 'text-white bg-green-primary hover:bg-green-primary/90 disabled:hover:bg-green-primary'
+                    ? 'text-white bg-[var(--settings-primary,#22c55e)] hover:bg-[var(--settings-primary-hover,#16a34a)] disabled:hover:bg-[var(--settings-primary,#22c55e)]'
                     : variant === 'secondary' || type === 'cancel'
-                      ? 'text-gray-primary bg-white border border-gray-300 hover:bg-gray-50 disabled:hover:bg-white'
-                      : 'bg-green-bg-heavy text-green-primary hover:opacity-90'
+                      ? 'text-[var(--settings-text,#505050)] bg-white border border-gray-300 hover:bg-gray-50 disabled:hover:bg-white'
+                      : 'bg-[var(--settings-primary-bg,#dcfce7)] text-[var(--settings-primary,#22c55e)] hover:opacity-90'
             }`}
         >
             {icon}

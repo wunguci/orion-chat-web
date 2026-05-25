@@ -48,17 +48,17 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <span className="text-[28px] font-bold text-gray-primary">
+        <span className="text-[28px] font-bold text-[var(--settings-text)]">
           Hình nền & Chủ đề
         </span>
-        <p className="text-gray-primary">
+        <p className="text-[var(--settings-text)]">
           Tùy chỉnh cách giao diện trò chuyện của bạn trông như thế nào
         </p>
       </div>
 
       {/* Chế độ chủ đề */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Chế độ chủ đề
         </span>
         <div className="grid grid-cols-3 gap-4">
@@ -74,7 +74,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                 "flex flex-col items-center justify-center gap-3 p-6 rounded-xl border-2 transition-colors",
                 formData.theme === value
                   ? "border-[var(--settings-primary)] bg-white"
-                  : "border-gray-200 bg-white hover:border-gray-300",
+                  : "border-gray-200 bg-white hover:border-[var(--settings-primary-border)]",
               )}
             >
               <Icon
@@ -90,7 +90,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
                   "font-semibold",
                   formData.theme === value
                     ? "text-[var(--settings-primary)]"
-                    : "text-gray-primary",
+                    : "text-[var(--settings-text)]",
                 )}
               >
                 {label}
@@ -102,7 +102,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
 
       {/* Chọn hình nền */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Hình nền trò chuyện
         </span>
         <div className="grid grid-cols-7 gap-4">
@@ -138,7 +138,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
 
       {/* Xem trước màu hình nền */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Xem trước hình nền
         </span>
         <div
@@ -149,7 +149,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
             <p className="text-white font-semibold mb-4 drop-shadow">
               Xem trước trò chuyện
             </p>
-            <div className="bg-white/90 rounded-lg p-4 text-gray-primary">
+            <div className="bg-white/90 rounded-lg p-4 text-[var(--settings-text)]">
               <p className="text-sm">
                 Đây là cách hình nền sẽ trông như thế nào với màu đã chọn
               </p>
@@ -160,7 +160,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
 
       {/* Kích thước phông chữ */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Kích thước phông chữ
         </span>
         <div className="flex items-center gap-4">
@@ -172,32 +172,32 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
             onChange={(e) =>
               handleInputChange("fontSize", parseInt(e.target.value))
             }
-            className="flex-1"
+            className="flex-1 accent-[var(--settings-primary)]"
           />
-          <span className="text-gray-primary font-semibold min-w-12">
+          <span className="text-[var(--settings-text)] font-semibold min-w-12">
             {formData.fontSize}px
           </span>
         </div>
-        <p className="text-sm text-gray-primary">
+        <p className="text-sm text-[var(--settings-text)]">
           Văn bản xem trước sẽ xuất hiện ở kích thước được chọn
         </p>
       </div>
 
       {/* Màu nhấn */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Màu nhấn
         </span>
         <div className="flex items-center gap-4">
           <div
-            className="w-12 h-12 rounded-lg cursor-pointer border-2 border-gray-300"
+            className="w-12 h-12 rounded-lg cursor-pointer border-2 border-[var(--settings-primary-border)]"
             style={{ backgroundColor: formData.accentColor }}
           />
           <input
             type="color"
             value={formData.accentColor}
             onChange={(e) => handleInputChange("accentColor", e.target.value)}
-            className="cursor-pointer"
+            className="cursor-pointer accent-[var(--settings-primary)]"
           />
         </div>
       </div>
@@ -212,7 +212,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
         )}
         {/* Hiển thị thông báo thành công */}
         {saveSuccess && (
-          <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+          <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
             {saveSuccess}
           </div>
         )}

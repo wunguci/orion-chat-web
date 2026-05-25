@@ -371,7 +371,11 @@ export default function NotificationCenter({
       <button
         ref={triggerRef}
         onClick={onToggle}
-        className="relative h-10 w-10 cursor-pointer rounded-lg text-slate-400 transition-all hover:bg-slate-200"
+        className={`relative h-10 w-10 cursor-pointer rounded-lg transition-all ${
+          open
+            ? "bg-[var(--app-sidebar-primary,#0f766e)] text-white shadow-sm"
+            : "text-[var(--app-sidebar-muted,#94a3b8)] hover:bg-[var(--app-sidebar-primary-bg,#f1f5f9)] hover:text-[var(--app-sidebar-primary,#0f766e)]"
+        }`}
         title="Notifications"
         aria-label="Notifications"
       >
@@ -379,7 +383,7 @@ export default function NotificationCenter({
           <MdNotifications className="h-5 w-5" />
         </span>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-red-500 px-1 text-center text-[10px] leading-4 font-semibold text-white">
+          <span className="absolute -top-1 -right-1 min-w-4 rounded-full bg-[var(--app-sidebar-primary,#0f766e)] px-1 text-center text-[10px] leading-4 font-semibold text-white">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}

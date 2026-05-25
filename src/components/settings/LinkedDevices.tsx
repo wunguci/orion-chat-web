@@ -29,21 +29,21 @@ export const LinkedDevices: React.FC<LinkedDevicesProps> = ({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <span className="text-[28px] font-bold text-gray-primary mb-1">
+        <span className="text-[28px] font-bold text-[var(--settings-text)] mb-1">
           Linked Devices
         </span>
-        <p className="text-gray-primary">
+        <p className="text-[var(--settings-text)]">
           Manage your active sessions and connected devices
         </p>
       </div>
 
       {/* Active Devices List */}
       <div className="flex flex-col gap-3">
-        <span className="text-lg font-bold text-gray-primary">
+        <span className="text-lg font-bold text-[var(--settings-text)]">
           Active Devices ({userDevices.devices.length})
         </span>
         {userDevices.devices.length === 0 ? (
-          <div className="px-4 py-6 bg-gray-50 rounded-xl text-center text-gray-primary">
+          <div className="px-4 py-6 bg-gray-50 rounded-xl text-center text-[var(--settings-text)]">
             No active devices found
           </div>
         ) : (
@@ -51,20 +51,20 @@ export const LinkedDevices: React.FC<LinkedDevicesProps> = ({
             {userDevices.devices.map((device) => (
               <div
                 key={device.id}
-                className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light"
+                className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-3 bg-green-bg-heavy rounded-xl">
-                    <Smartphone size={24} className="text-green-primary" />
+                  <div className="p-3 bg-[var(--settings-primary-bg)] rounded-xl">
+                    <Smartphone size={24} className="text-[var(--settings-primary)]" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-primary">
+                    <p className="font-semibold text-[var(--settings-text)]">
                       {device.deviceName}
                     </p>
-                    <p className="text-sm text-gray-primary">
+                    <p className="text-sm text-[var(--settings-text)]">
                       {device.osType} {device.osVersion}
                     </p>
-                    <p className="text-xs text-gray-primary">
+                    <p className="text-xs text-[var(--settings-text)]">
                       Last login:{" "}
                       {new Date(device.lastLogin).toLocaleDateString()}
                     </p>
@@ -72,7 +72,7 @@ export const LinkedDevices: React.FC<LinkedDevicesProps> = ({
                 </div>
                 <button
                   onClick={() => userDevices.deactivateDevice(device.id)}
-                  className="px-4 py-2 text-green-primary hover:bg-green-bg-heavy rounded-lg font-semibold transition-colors"
+                  className="px-4 py-2 text-[var(--settings-primary)] hover:bg-[var(--settings-primary-bg)] rounded-lg font-semibold transition-colors"
                 >
                   {device.isCurrent ? "Current Device" : "Logout"}
                 </button>
@@ -84,7 +84,7 @@ export const LinkedDevices: React.FC<LinkedDevicesProps> = ({
 
       {/* Log out from all devices */}
       <div className="flex flex-col gap-3">
-        <span className="text-lg font-bold text-gray-primary">
+        <span className="text-lg font-bold text-[var(--settings-text)]">
           Security Actions
         </span>
         <Button
@@ -97,11 +97,11 @@ export const LinkedDevices: React.FC<LinkedDevicesProps> = ({
       </div>
 
       {/* Security Tip */}
-      <div className="flex gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
-        <Info size={24} className="text-blue-500 shrink-0 mt-1" />
+      <div className="flex gap-3 px-4 py-3 bg-[var(--settings-primary-bg)] rounded-xl border border-[var(--settings-primary-border)]">
+        <Info size={24} className="text-[var(--settings-primary)] shrink-0 mt-1" />
         <div>
-          <p className="font-bold text-gray-primary mb-1">Security Tip</p>
-          <p className="text-sm text-gray-primary">
+          <p className="font-bold text-[var(--settings-text)] mb-1">Security Tip</p>
+          <p className="text-sm text-[var(--settings-text)]">
             Regularly check active devices and deactivate any you don't
             recognize. If you see unauthorized devices, change your password
             immediately.
@@ -116,7 +116,7 @@ export const LinkedDevices: React.FC<LinkedDevicesProps> = ({
         </div>
       )}
       {saveSuccess && (
-        <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+        <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
           {saveSuccess}
         </div>
       )}

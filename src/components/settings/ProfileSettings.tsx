@@ -50,14 +50,14 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   return (
     <div className="flex flex-col gap-12">
       <div className="flex flex-col gap-3">
-        <span className="text-[26px] font-bold text-gray-primary">
+        <span className="text-[26px] font-bold text-[var(--settings-text)]">
           Profile Settings
         </span>
 
         <div className="flex flex-col gap-8">
           {/* Avatar Upload */}
-          <div className="bg-green-bg-light rounded-2xl p-6 border border-green-border-light flex items-center gap-4">
-            <div className="w-25 h-25 rounded-full bg-linear-to-br from-green-bg-heavy to-green-border-light flex items-center justify-center text-2xl overflow-hidden">
+          <div className="bg-[var(--settings-surface-bg)] rounded-2xl p-6 border border-[var(--settings-primary-border)] flex items-center gap-4">
+            <div className="w-25 h-25 rounded-full bg-linear-to-br from-[var(--settings-primary-bg)] to-[var(--settings-primary-border)] flex items-center justify-center text-2xl overflow-hidden">
               {avatarPreview ? (
                 <img
                   src={avatarPreview}
@@ -72,10 +72,10 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
               )}
             </div>
             <div className="flex flex-col gap-2.5">
-              <span className="text-xl font-bold text-gray-primary">
+              <span className="text-xl font-bold text-[var(--settings-text)]">
                 {profileData.fullName || "Your Name"}
               </span>
-              <p className="text-sm font-semibold text-gray-primary">
+              <p className="text-sm font-semibold text-[var(--settings-text)]">
                 JPG, GIF or PNG. Max size of 800K
               </p>
               <div className="flex gap-2">
@@ -132,7 +132,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 fieldName="phoneNumber"
               />
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-gray-primary">
+                <label className="text-sm font-semibold text-[var(--settings-text)]">
                   Birth Date
                 </label>
                 <input
@@ -141,14 +141,14 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                   onChange={(e) =>
                     handleProfileInputChange("birthDate", e.target.value)
                   }
-                  className="px-4 py-3 border border-gray-200 rounded-lg text-gray-primary focus:outline-none focus:border-green-primary transition-colors"
+                  className="px-4 py-3 border border-gray-200 rounded-lg text-[var(--settings-text)] focus:outline-none focus:border-[var(--settings-primary)] transition-colors"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-gray-primary">
+                <label className="text-sm font-semibold text-[var(--settings-text)]">
                   Gender
                 </label>
                 <select
@@ -156,7 +156,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                   onChange={(e) =>
                     handleProfileInputChange("gender", e.target.value)
                   }
-                  className="px-4 py-3 border border-gray-200 rounded-lg text-gray-primary focus:outline-none focus:border-green-primary transition-colors"
+                  className="px-4 py-3 border border-gray-200 rounded-lg text-[var(--settings-text)] focus:outline-none focus:border-[var(--settings-primary)] transition-colors"
                 >
                   <option value="">Select Gender</option>
                   <option value="male">Male</option>
@@ -171,7 +171,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
 
       {/* Preferences */}
       <div className="flex flex-col gap-3">
-        <span className="text-[26px] font-bold text-gray-primary">
+        <span className="text-[26px] font-bold text-[var(--settings-text)]">
           Preferences
         </span>
         <div className="flex flex-col gap-5">
@@ -208,14 +208,14 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+      <div className="flex flex-col gap-4 pt-4 border-t border-[var(--settings-primary-border)]">
         {saveError && (
           <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
             {saveError}
           </div>
         )}
         {saveSuccess && (
-          <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+          <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
             {saveSuccess}
           </div>
         )}

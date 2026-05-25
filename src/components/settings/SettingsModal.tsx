@@ -685,10 +685,10 @@ export default function SettingsModal({
         return (
           <div className="flex flex-col gap-8">
             <div>
-              <span className="text-[26px] font-bold text-gray-primary mb-1">
+              <span className="text-[26px] font-bold text-[var(--settings-text)] mb-1">
                 AI Assistant
               </span>
-              <p className="text-gray-primary">
+              <p className="text-[var(--settings-text)]">
                 Configure Orion AI behavior in chat and WorkHub.
               </p>
             </div>
@@ -719,8 +719,8 @@ export default function SettingsModal({
                   className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]"
                 >
                   <div>
-                    <p className="font-semibold text-gray-primary">{label}</p>
-                    <p className="text-sm text-gray-primary">{description}</p>
+                    <p className="font-semibold text-[var(--settings-text)]">{label}</p>
+                    <p className="text-sm text-[var(--settings-text)]">{description}</p>
                   </div>
                   <ToggleSwitch
                     checked={
@@ -739,7 +739,7 @@ export default function SettingsModal({
                 </div>
               )}
               {saveSuccess && (
-                <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+                <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
                   {saveSuccess}
                 </div>
               )}
@@ -748,7 +748,7 @@ export default function SettingsModal({
                   type="button"
                   onClick={handleDiscardSettings}
                   disabled={isSaving}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg text-gray-primary bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg text-[var(--settings-text)] bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
                 >
                   Discard Changes
                 </button>

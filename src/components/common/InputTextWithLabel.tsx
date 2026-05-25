@@ -21,7 +21,7 @@ function InputTextWithLabel({
   return (
     <div className="flex flex-col gap-2 shrink w-full">
       {label && (
-        <label className="block text-base font-semibold text-[#505050]">
+        <label className="block text-base font-semibold text-[var(--settings-text,#505050)]">
           {label}
         </label>
       )}
@@ -30,7 +30,7 @@ function InputTextWithLabel({
         {/* Render icon nếu có truyền vào */}
         {Icon && (
           <Icon
-            className="absolute left-3 text-gray-400 group-focus-within:text-green-primary transition-colors"
+            className="absolute left-3 text-gray-400 group-focus-within:text-[var(--settings-primary,#22c55e)] transition-colors"
             size={20}
           />
         )}
@@ -40,7 +40,7 @@ function InputTextWithLabel({
           placeholder={placeholder}
           value={value}
           onChange={(e) => handleInputChange(fieldName, e.target.value)}
-          className={`w-full py-2 border border-gray-200 rounded-lg text-[#505050] focus:outline-none focus:ring-2 focus:ring-green-primary transition-all
+          className={`w-full py-2 border border-gray-200 rounded-lg text-[var(--settings-text,#505050)] focus:outline-none focus:ring-2 focus:ring-[var(--settings-primary,#22c55e)] transition-all
             ${Icon ? "pl-10 pr-4" : "px-4"}`} // Nếu có icon thì padding-left là 10, nếu không thì 4
         />
       </div>
