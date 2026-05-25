@@ -456,23 +456,55 @@ export default function SettingsModal({
   };
 
   const handleDiscardSettings = () => {
-    if (userSettings.settings) {
-      setFormData((prev) => ({
-        ...prev,
-        theme: userSettings.settings?.theme || "light",
-        appearanceColor: userSettings.settings?.appearanceColor || "green",
-        fontSize: userSettings.settings?.fontSize || 16,
-        fontFamily: userSettings.settings?.fontFamily || "default",
-        accentColor: userSettings.settings?.accentColor || "#2ab3b3",
-        wallpaper: userSettings.settings?.wallpaper || "teal",
+    setFormData((prev) => ({
+      ...prev,
+      // Appearance / AI settings
+      ...(userSettings.settings && {
+        theme: userSettings.settings.theme || "light",
+        appearanceColor: userSettings.settings.appearanceColor || "green",
+        fontSize: userSettings.settings.fontSize || 16,
+        fontFamily: userSettings.settings.fontFamily || "default",
+        accentColor: userSettings.settings.accentColor || "#2ab3b3",
+        wallpaper: userSettings.settings.wallpaper || "teal",
         smartEmotionDetection:
-          userSettings.settings?.smartEmotionDetection ?? false,
+          userSettings.settings.smartEmotionDetection ?? false,
         autoWorkflowSuggestions:
-          userSettings.settings?.autoWorkflowSuggestions ?? true,
-        aiMemoryEnabled: userSettings.settings?.aiMemoryEnabled ?? true,
-        enabledAgents: userSettings.settings?.enabledAgents || [],
-      }));
-    }
+          userSettings.settings.autoWorkflowSuggestions ?? true,
+        aiMemoryEnabled: userSettings.settings.aiMemoryEnabled ?? true,
+        enabledAgents: userSettings.settings.enabledAgents || [],
+      }),
+      // Notification settings
+      ...(notificationSettings.settings && {
+        groupNotifications:
+          notificationSettings.settings.groupNotifications ?? true,
+        tagNotifications: notificationSettings.settings.tagNotifications ?? true,
+        muteAll: notificationSettings.settings.muteAll ?? false,
+        messageNotifications:
+          notificationSettings.settings.messageNotifications ?? true,
+        friendRequestNotifications:
+          notificationSettings.settings.friendRequestNotifications ?? true,
+        callNotifications: notificationSettings.settings.callNotifications ?? true,
+        notificationSound:
+          notificationSettings.settings.notificationSound || "Crystal Clear",
+        doNotDisturbStart: notificationSettings.settings.doNotDisturbStart || 0,
+        doNotDisturbEnd: notificationSettings.settings.doNotDisturbEnd || 0,
+      }),
+      // Privacy settings
+      ...(privacySettings.settings && {
+        profileVisibility:
+          privacySettings.settings.profileVisibility || "friends",
+        messagePermission:
+          privacySettings.settings.messagePermission || "everyone",
+        lastSeenVisibility: privacySettings.settings.lastSeenVisibility ?? true,
+        onlineStatusVisibility:
+          privacySettings.settings.onlineStatusVisibility ?? true,
+        callPermission: privacySettings.settings.callPermission || "friends",
+        allowScreenSharing: privacySettings.settings.allowScreenSharing ?? true,
+        allowDataCollection:
+          privacySettings.settings.allowDataCollection ?? false,
+        allowAnalytics: privacySettings.settings.allowAnalytics ?? false,
+      }),
+    }));
     setHasSettingsChanges(false);
     setSaveError(null);
     setSaveSuccess(null);

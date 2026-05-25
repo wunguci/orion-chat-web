@@ -44,13 +44,20 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
         </span>
 
         {/* Mute all notifications */}
-        <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-green-border-light">
+        <div className={clsx(
+          "flex items-center justify-between px-4 py-3 rounded-xl border",
+          formData.muteAll
+            ? "border-amber-300 bg-amber-50"
+            : "border-green-border-light",
+        )}>
           <div>
             <p className="font-bold text-gray-primary text-lg">
               Mute all notifications
             </p>
             <p className="text-sm text-gray-primary">
-              Temporarily silence all notifications
+              {formData.muteAll
+                ? "All notifications are currently muted — turn this off to receive notifications"
+                : "Temporarily silence all notifications"}
             </p>
           </div>
           <ToggleSwitch
@@ -59,6 +66,12 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
           />
         </div>
       </div>
+
+      {/* Individual notification sections — disabled when muteAll is on */}
+      <div className={clsx(
+        "flex flex-col gap-8",
+        formData.muteAll && "opacity-40 pointer-events-none select-none",
+      )}>
 
       {/* Message Notifications */}
       <div className="flex flex-col gap-3">
@@ -164,6 +177,8 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
           />
         </div>
       </div>
+
+      </div>{/* end muteAll wrapper */}
 
       {/* Notification Sound */}
       <div className="flex flex-col gap-3">

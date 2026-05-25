@@ -42,6 +42,7 @@ import {
   offMessageSeen,
   onConversationDeleted,
   offConversationDeleted,
+  joinConversation,
 } from "../../services/socket";
 import {
   useConversations,
@@ -390,6 +391,8 @@ export const ChatPage: React.FC = () => {
   const pendingMediaHydrationRef = useRef<Set<string>>(new Set());
   const lastReadMessageIdRef = useRef<string | null>(null);
   const conversationIdsRef = useRef<Set<string>>(new Set());
+  const sidebarJoinedConversationIdsRef = useRef<Set<string>>(new Set());
+  const sidebarJoiningConversationIdsRef = useRef<Set<string>>(new Set());
   const lastConversationRefreshAtRef = useRef<number>(0);
 
   // Fetch all conversations (for sidebar + forward modal)
@@ -446,11 +449,53 @@ export const ChatPage: React.FC = () => {
     emitRead,
     sendMessage: sendChatMessage,
     joinStatus,
+    isConnected: isChatSocketConnected,
   } = useChatRoom({
     conversationId: selectedConversationId,
     enabled: true,
     onJoinError: setError,
   });
+
+  useEffect(() => {
+    if (!isChatSocketConnected) return;
+
+    let isCancelled = false;
+
+    for (const conversation of conversations) {
+      const conversationId = conversation.conversationId;
+      if (!conversationId) continue;
+      if (sidebarJoinedConversationIdsRef.current.has(conversationId)) continue;
+      if (sidebarJoiningConversationIdsRef.current.has(conversationId)) {
+        continue;
+      }
+
+      sidebarJoiningConversationIdsRef.current.add(conversationId);
+
+      void joinConversation(
+        `sidebar_join_${conversationId}_${Date.now()}`,
+        conversationId,
+      )
+        .then((ack) => {
+          if (!isCancelled && ack?.ok) {
+            sidebarJoinedConversationIdsRef.current.add(conversationId);
+          }
+        })
+        .catch((error) => {
+          console.warn(
+            "[ChatPage] Could not join sidebar conversation room:",
+            conversationId,
+            error,
+          );
+        })
+        .finally(() => {
+          sidebarJoiningConversationIdsRef.current.delete(conversationId);
+        });
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [conversations, isChatSocketConnected]);
 
   useEffect(() => {
     const handleGroupInfoUpdatedRealtime = (payload: {

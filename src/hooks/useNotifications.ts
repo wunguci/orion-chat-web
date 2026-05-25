@@ -177,6 +177,11 @@ export function useNotifications(userId?: string) {
       }
     };
 
+    const handleConnect = () => {
+      // Fetch lại toàn bộ list khi socket connect/reconnect để bắt kịp notifications bị bỏ lỡ trong thời gian mất kết nối.
+      void fetchNotifications();
+    };
+
     const handleNew = (payload: AppNotification) => {
       // Upsert theo _id để tránh duplicate khi reconnect socket.
       setNotifications((prev) => {
@@ -204,6 +209,7 @@ export function useNotifications(userId?: string) {
       void handleRefreshUnread();
     };
 
+    socket.on("connect", handleConnect);
     socket.on("notifications:new", handleNew);
     socket.on("notifications:updated", handleUpdated);
     socket.on("notifications:refresh_unread", handleRefreshUnread);
@@ -215,6 +221,7 @@ export function useNotifications(userId?: string) {
     });
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("notifications:new", handleNew);
       socket.off("notifications:updated", handleUpdated);
       socket.off("notifications:refresh_unread", handleRefreshUnread);

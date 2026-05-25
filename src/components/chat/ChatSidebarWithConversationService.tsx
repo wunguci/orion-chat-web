@@ -22,7 +22,8 @@ import { conversationApi } from '../../services/conversationApi';
 import { groupManagementService } from '../../services/groupManagementService';
 import ChatAvatar from '../common/ChatAvatar';
 import GroupAvatar from './GroupAvatar';
-import { onGroupInfoUpdated, offGroupInfoUpdated } from '../../services/socket';
+import { onGroupInfoUpdated, offGroupInfoUpdated, chatSocketService } from '../../services/socket';
+import type { LastMessage } from '../../types/conversation';
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -99,6 +100,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         return globalWindow.__unreadByConversation || {};
     });
     const [openAiMenuId, setOpenAiMenuId] = useState<string | null>(null);
+    const [lastMessageOverrides, setLastMessageOverrides] = useState<Record<string, LastMessage>>({});
 
     const currentUserId = getCurrentUserId();
     const [groupInfoOverrides, setGroupInfoOverrides] = useState<
@@ -188,6 +190,56 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         };
     }, []);
 
+    useEffect(() => {
+        const socket = chatSocketService.getSocket();
+        if (!socket) return;
+
+        const handleMessageNew = (rawPayload: unknown) => {
+            const msg = rawPayload as {
+                conversationId?: string;
+                _id?: string;
+                messageId?: string;
+                content?: string;
+                messageType?: string;
+                type?: string;
+                senderBy?: string;
+                senderId?: string;
+                createdAt?: string;
+                isRecalled?: boolean;
+                isRevoked?: boolean;
+                callData?: LastMessage['callData'];
+            };
+
+            if (!msg?.conversationId) return;
+
+            setLastMessageOverrides((prev) => ({
+                ...prev,
+                [msg.conversationId!]: {
+                    messageId: msg._id || msg.messageId,
+                    content: msg.content,
+                    messageType: (msg.messageType || msg.type) as LastMessage['messageType'],
+                    senderBy: msg.senderBy || msg.senderId,
+                    createdAt: msg.createdAt || new Date().toISOString(),
+                    isRecalled: msg.isRecalled || msg.isRevoked || false,
+                    callData: msg.callData,
+                },
+            }));
+        };
+
+        socket.on('chat:message_new', handleMessageNew);
+        return () => {
+            socket.off('chat:message_new', handleMessageNew);
+        };
+    }, []);
+
+    const getEffectiveConversation = useCallback(
+        (conv: ConversationView): ConversationView => ({
+            ...conv,
+            lastMessage: lastMessageOverrides[conv.conversationId] ?? conv.lastMessage,
+        }),
+        [lastMessageOverrides],
+    );
+
     // ✅ Filter and sort conversations
     // 1. Filter by search query and hidden status
     // 2. Sort by: pinned status (descending) -> pinnedAt (newer first) -> lastMessage.createdAt (newer first)
@@ -228,12 +280,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 return pinnedAtB - pinnedAtA; // Newer pinned first
             }
 
-            // If both are not pinned, sort by lastMessage.createdAt
-            const dateA = new Date(a.lastMessage?.createdAt || 0).getTime();
-            const dateB = new Date(b.lastMessage?.createdAt || 0).getTime();
+            // If both are not pinned, sort by lastMessage.createdAt (use real-time override if available)
+            const effA = lastMessageOverrides[a.conversationId] ?? a.lastMessage;
+            const effB = lastMessageOverrides[b.conversationId] ?? b.lastMessage;
+            const dateA = new Date(effA?.createdAt || 0).getTime();
+            const dateB = new Date(effB?.createdAt || 0).getTime();
             return dateB - dateA; // Newer messages first
         });
-    }, [conversations, searchQuery, currentUserId, getEffectiveGroupInfo]);
+    }, [conversations, searchQuery, currentUserId, getEffectiveGroupInfo, lastMessageOverrides]);
 
     const getConversationDisplayName = (conversation: ConversationView) => {
         if (conversation.type === 'GROUP') {
