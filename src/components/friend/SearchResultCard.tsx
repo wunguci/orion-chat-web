@@ -12,8 +12,9 @@ interface SearchResultCardProps {
   isPending?: boolean;
   onSendFriendRequest?: (
     targetUserId: string,
-    message: string,
+    message?: string,
   ) => Promise<void>;
+  onDirectMessage?: (friendId: string) => void;
 }
 
 const SearchResultCard: React.FC<SearchResultCardProps> = ({
@@ -21,6 +22,7 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
   onClose,
   isPending = false,
   onSendFriendRequest,
+  onDirectMessage,
 }) => {
   const [message, setMessage] = useState(
     "Hi! I'd like to connect with you on ConnectApp.",
@@ -104,7 +106,10 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
                 : "Send Friend Request"}
           </button>
 
-          <button className="flex-1 sm:flex-none px-8 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+          <button
+            onClick={() => onDirectMessage?.(friend.id)}
+            className="flex-1 sm:flex-none px-8 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+          >
             <MdOutlineChat className="text-lg" />
             Direct Message
           </button>
