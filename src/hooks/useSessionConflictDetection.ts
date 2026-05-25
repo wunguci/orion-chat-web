@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketService } from '../services/socket';
-import { useAuth } from './useAuth';
+import { handleSessionExpired } from '../utils/sessionValidator';
 
 /**
  * Khi tài khoản đăng nhập trên thiết bị khác cùng platform, tự động logout
@@ -9,8 +9,6 @@ import { useAuth } from './useAuth';
  */
 export function useSessionConflictDetection() {
     const navigate = useNavigate();
-    const { logout } = useAuth();
-
     useEffect(() => {
         const presenceSocket = socketService.getPresenceSocket();
 
@@ -40,22 +38,18 @@ export function useSessionConflictDetection() {
             }
 
             try {
-                // Tự động đăng xuất khỏi thiết bị này
-                logout();
-
-                // Hiển thị thông báo
-                alert(
-                    `Phiên đăng nhập bị chiếm dụng\n\n${data.message}\n\nBạn sẽ được điều hướng về trang đăng nhập.`,
-                );
-
-                // Điều hướng về trang đăng nhập
-                navigate('/login', { replace: true });
+                handleSessionExpired(undefined, false).catch((error) => {
+                    console.error(
+                        '[useSessionConflictDetection] Lỗi khi logout:',
+                        error,
+                    );
+                });
             } catch (error) {
                 console.error(
                     '[useSessionConflictDetection] Lỗi khi xử lý xung đột:',
                     error,
                 );
-                navigate('/login', { replace: true });
+                navigate('/auth/login', { replace: true });
             }
         };
 
