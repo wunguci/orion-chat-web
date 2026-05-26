@@ -11,10 +11,15 @@ interface UserSettings {
   id: string;
   userId: string;
   theme: string;
+  appearanceColor: string;
   fontSize: number;
   wallpaper: string;
   fontFamily: string;
   accentColor: string;
+  smartEmotionDetection: boolean;
+  autoWorkflowSuggestions: boolean;
+  aiMemoryEnabled: boolean;
+  enabledAgents: string[];
   createdAt: Date;
   updatedAt: Date;
 }

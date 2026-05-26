@@ -13,7 +13,7 @@ const BurndownChart = ({ data }: BurndownChartProps) => {
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
 
-  const maxY = Math.max(...data.map((d) => Math.max(d.ideal, d.actual)));
+  const maxY = Math.max(1, ...data.map((d) => Math.max(d.ideal, d.actual)));
   const scaleX = (i: number) => padding.left + (i / (data.length - 1)) * chartW;
   const scaleY = (v: number) => padding.top + chartH - (v / maxY) * chartH;
 

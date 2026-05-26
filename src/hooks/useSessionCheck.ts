@@ -1,44 +1,48 @@
-import { useEffect } from "react";
-import { handleSessionExpired } from "../utils/sessionValidator";
+import { useEffect } from 'react';
+import { handleSessionExpired } from '../utils/sessionValidator';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * Hook to detect when user logs in from another tab/window
  * Uses storage events to detect changes across tabs
  */
 export function useSessionCheck() {
-  useEffect(() => {
-    // Listen for storage changes (triggered by another tab)
-    const handleStorageChange = (e: StorageEvent) => {
-      console.log(
-        "[useSessionCheck] Storage event detected:",
-        e.key,
-        e.newValue ? "Changed" : "Cleared",
-      );
+    useEffect(() => {
+        // Listen for storage changes (triggered by another tab)
+        const handleStorageChange = (e: StorageEvent) => {
+            console.log(
+                '[useSessionCheck] Storage event detected:',
+                e.key,
+                e.newValue ? 'Changed' : 'Cleared',
+            );
 
-      // If auth_token was cleared or changed from another tab
-      if (e.key === "auth_token") {
-        if (!e.newValue) {
-          // Token was cleared (user logged out from another tab)
-          console.warn("[useSessionCheck] Token cleared from another tab");
-          handleSessionExpired();
-        } else if (e.oldValue && e.newValue !== e.oldValue) {
-          // Token was changed (user logged in from another tab)
-          console.warn("[useSessionCheck] Token changed from another tab");
-          handleSessionExpired();
-        }
-      }
-    };
+            // If auth_token was cleared or changed from another tab
+            if (e.key === 'auth_token') {
+                if (!e.newValue) {
+                    // Token was cleared (user logged out from another tab)
+                    console.warn(
+                        '[useSessionCheck] Token cleared from another tab',
+                    );
+                    handleSessionExpired();
+                } else if (e.oldValue && e.newValue !== e.oldValue) {
+                    // Token was changed (user logged in from another tab)
+                    console.warn(
+                        '[useSessionCheck] Token changed from another tab',
+                    );
+                    handleSessionExpired();
+                }
+            }
+        };
 
-    // Listen for storage events
-    window.addEventListener("storage", handleStorageChange);
+        // Listen for storage events
+        window.addEventListener('storage', handleStorageChange);
 
-    // Cleanup
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, []);
+        // Cleanup
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
 }
 
 /**
@@ -46,45 +50,48 @@ export function useSessionCheck() {
  * Calls backend to verify token is still current
  */
 export function usePeriodicSessionCheck(intervalMs: number = 30000) {
-  useEffect(() => {
-    // Function to check session
-    const checkSession = async () => {
-      try {
-        const token = localStorage.getItem("auth_token");
-        if (!token) return;
+    useEffect(() => {
+        // Function to check session
+        const checkSession = async () => {
+            try {
+                const token = localStorage.getItem('auth_token');
+                if (!token) return;
 
-        const response = await fetch(`${API_BASE}/auth/verify-token`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+                const response = await fetch(`${API_BASE}/auth/verify-token`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'X-Platform': 'web',
+                    },
+                });
 
-        if (response.status === 401) {
-          const data = await response.json();
-          if (
-            data.message &&
-            data.message.includes("Phiên làm việc đã hết hạn")
-          ) {
-            console.warn("[usePeriodicSessionCheck] Session expired detected");
-            handleSessionExpired();
-          }
-        }
-      } catch (error) {
-        console.error(
-          "[usePeriodicSessionCheck] Error checking session:",
-          error,
-        );
-      }
-    };
+                if (response.status === 401) {
+                    const data = await response.json();
+                    if (
+                        data.message &&
+                        data.message.includes('Phiên làm việc đã hết hạn')
+                    ) {
+                        console.warn(
+                            '[usePeriodicSessionCheck] Session expired detected',
+                        );
+                        handleSessionExpired();
+                    }
+                }
+            } catch (error) {
+                console.error(
+                    '[usePeriodicSessionCheck] Error checking session:',
+                    error,
+                );
+            }
+        };
 
-    // Set up interval
-    const interval = setInterval(checkSession, intervalMs);
+        // Set up interval
+        const interval = setInterval(checkSession, intervalMs);
 
-    // Check immediately on mount
-    checkSession();
+        // Check immediately on mount
+        checkSession();
 
-    // Cleanup
-    return () => clearInterval(interval);
-  }, [intervalMs]);
+        // Cleanup
+        return () => clearInterval(interval);
+    }, [intervalMs]);
 }

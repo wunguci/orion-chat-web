@@ -13,7 +13,7 @@ const VelocityChart = ({ data }: VelocityChartProps) => {
   const chartW = width - padding.left - padding.right;
   const chartH = height - padding.top - padding.bottom;
 
-  const maxY = Math.max(...data.flatMap((d) => [d.planned, d.completed]));
+  const maxY = Math.max(1, ...data.flatMap((d) => [d.planned, d.completed]));
   const barGroupWidth = chartW / data.length;
   const barWidth = barGroupWidth * 0.3;
   const gap = 4;

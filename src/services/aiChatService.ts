@@ -58,7 +58,7 @@ export const aiChatService = {
   }): Promise<ChatSession> {
     const session = await api.post<AISessionDto>(`${BASE}`, {
       title: payload?.title,
-      aiModel: payload?.aiModel || "gemini-2.5-flash",
+      aiModel: payload?.aiModel || "qwen2.5:7b",
       systemPrompt: payload?.systemPrompt,
     });
     return mapSession(session);

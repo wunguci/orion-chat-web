@@ -1,11 +1,15 @@
 /* eslint-disable no-useless-catch */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
+    Bot,
     Image,
     Lock,
+    MoreVertical,
     Phone,
     PhoneOff,
     Pin,
+    SmilePlus,
+    Sparkles,
     UserPlus,
     UsersRound,
     UserRoundPlus,
@@ -18,7 +22,8 @@ import { conversationApi } from '../../services/conversationApi';
 import { groupManagementService } from '../../services/groupManagementService';
 import ChatAvatar from '../common/ChatAvatar';
 import GroupAvatar from './GroupAvatar';
-import { onGroupInfoUpdated, offGroupInfoUpdated } from '../../services/socket';
+import { onGroupInfoUpdated, offGroupInfoUpdated, chatSocketService } from '../../services/socket';
+import type { LastMessage } from '../../types/conversation';
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -52,6 +57,12 @@ interface ChatSidebarProps {
     onAddFriendClick?: () => void;
     onCreateGroupClick?: () => void;
     onConversationRevealed?: (conversationId: string) => void;
+    onAISummarizeConversation?: (
+        conversationId: string,
+        mode: 'range' | 'unread',
+        rangeMonths?: 1 | 2 | 3,
+    ) => void;
+    onAIReplySuggestions?: (conversationId: string) => void;
 }
 
 export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
@@ -64,6 +75,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     onAddFriendClick,
     onCreateGroupClick,
     onConversationRevealed,
+    onAISummarizeConversation,
+    onAIReplySuggestions,
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [revealModalOpen, setRevealModalOpen] = useState(false);
@@ -86,6 +99,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
 
         return globalWindow.__unreadByConversation || {};
     });
+    const [openAiMenuId, setOpenAiMenuId] = useState<string | null>(null);
+    const [lastMessageOverrides, setLastMessageOverrides] = useState<Record<string, LastMessage>>({});
 
     const currentUserId = getCurrentUserId();
     const [groupInfoOverrides, setGroupInfoOverrides] = useState<
@@ -175,6 +190,56 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         };
     }, []);
 
+    useEffect(() => {
+        const socket = chatSocketService.getSocket();
+        if (!socket) return;
+
+        const handleMessageNew = (rawPayload: unknown) => {
+            const msg = rawPayload as {
+                conversationId?: string;
+                _id?: string;
+                messageId?: string;
+                content?: string;
+                messageType?: string;
+                type?: string;
+                senderBy?: string;
+                senderId?: string;
+                createdAt?: string;
+                isRecalled?: boolean;
+                isRevoked?: boolean;
+                callData?: LastMessage['callData'];
+            };
+
+            if (!msg?.conversationId) return;
+
+            setLastMessageOverrides((prev) => ({
+                ...prev,
+                [msg.conversationId!]: {
+                    messageId: msg._id || msg.messageId,
+                    content: msg.content,
+                    messageType: (msg.messageType || msg.type) as LastMessage['messageType'],
+                    senderBy: msg.senderBy || msg.senderId,
+                    createdAt: msg.createdAt || new Date().toISOString(),
+                    isRecalled: msg.isRecalled || msg.isRevoked || false,
+                    callData: msg.callData,
+                },
+            }));
+        };
+
+        socket.on('chat:message_new', handleMessageNew);
+        return () => {
+            socket.off('chat:message_new', handleMessageNew);
+        };
+    }, []);
+
+    const getEffectiveConversation = useCallback(
+        (conv: ConversationView): ConversationView => ({
+            ...conv,
+            lastMessage: lastMessageOverrides[conv.conversationId] ?? conv.lastMessage,
+        }),
+        [lastMessageOverrides],
+    );
+
     // ✅ Filter and sort conversations
     // 1. Filter by search query and hidden status
     // 2. Sort by: pinned status (descending) -> pinnedAt (newer first) -> lastMessage.createdAt (newer first)
@@ -215,12 +280,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 return pinnedAtB - pinnedAtA; // Newer pinned first
             }
 
-            // If both are not pinned, sort by lastMessage.createdAt
-            const dateA = new Date(a.lastMessage?.createdAt || 0).getTime();
-            const dateB = new Date(b.lastMessage?.createdAt || 0).getTime();
+            // If both are not pinned, sort by lastMessage.createdAt (use real-time override if available)
+            const effA = lastMessageOverrides[a.conversationId] ?? a.lastMessage;
+            const effB = lastMessageOverrides[b.conversationId] ?? b.lastMessage;
+            const dateA = new Date(effA?.createdAt || 0).getTime();
+            const dateB = new Date(effB?.createdAt || 0).getTime();
             return dateB - dateA; // Newer messages first
         });
-    }, [conversations, searchQuery, currentUserId, getEffectiveGroupInfo]);
+    }, [conversations, searchQuery, currentUserId, getEffectiveGroupInfo, lastMessageOverrides]);
 
     const getConversationDisplayName = (conversation: ConversationView) => {
         if (conversation.type === 'GROUP') {
@@ -296,7 +363,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     return {
                         text: `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} ${isMe ? 'đi' : 'đến'}`,
                         Icon: callType === 'video' ? Video : Phone,
-                        colorClass: 'text-green-600',
+                        colorClass: 'text-[var(--chat-primary)]',
                     };
                 }
 
@@ -454,7 +521,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     {onNewConversation && (
                         <button
                             onClick={onNewConversation}
-                            className="cursor-pointer rounded-lg bg-blue-600 p-2 text-white hover:bg-blue-700"
+                            className="cursor-pointer rounded-lg bg-[var(--chat-primary)] p-2 text-white hover:bg-[var(--chat-primary-hover)]"
                             title="New conversation"
                         >
                             ✎
@@ -470,7 +537,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     placeholder="Search conversations..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--chat-primary)] focus:outline-none"
                 />
                 <button
                     type="button"
@@ -497,7 +564,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                         value={joinGroupCode}
                         onChange={(e) => setJoinGroupCode(e.target.value)}
                         placeholder="Nhập mã group (vd: 9fbcd750-cab0-4fca-8b0e-22be6f017dea)"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)]"
                         disabled={isJoinGroupSubmitting}
                     />
 
@@ -505,7 +572,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                         value={joinGroupMessage}
                         onChange={(e) => setJoinGroupMessage(e.target.value)}
                         placeholder="Lời nhắn (tùy chọn)"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500 resize-none"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)] resize-none"
                         rows={3}
                         disabled={isJoinGroupSubmitting}
                     />
@@ -515,7 +582,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     )}
 
                     {joinGroupSuccess && (
-                        <p className="text-sm text-green-600">
+                        <p className="text-sm text-[var(--chat-primary)]">
                             {joinGroupSuccess}
                         </p>
                     )}
@@ -524,7 +591,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                         type="button"
                         onClick={handleRequestJoinGroupByCode}
                         disabled={isJoinGroupSubmitting}
-                        className="rounded-lg bg-green-primary px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+                        className="rounded-lg bg-[var(--chat-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-60"
                     >
                         {isJoinGroupSubmitting
                             ? 'Đang gửi...'
@@ -543,7 +610,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             {/* Loading state */}
             {loading && (
                 <div className="flex justify-center py-8">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-[var(--chat-primary)]" />
                 </div>
             )}
 
@@ -565,7 +632,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                     ] || 0;
 
                                 return (
-                                    <button
+                                    <div
                                         key={conversation.conversationId}
                                         onClick={() =>
                                             handleConversationSelect(
@@ -575,7 +642,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                         className={`w-full rounded-lg px-3 py-2 text-left transition-colors relative ${
                                             selectedConversationId ===
                                             conversation.conversationId
-                                                ? 'bg-blue-100 text-blue-900'
+                                                ? 'bg-[var(--chat-primary-bg)] text-[var(--chat-primary)]'
                                                 : 'hover:bg-gray-100'
                                         }`}
                                     >
@@ -608,7 +675,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                 )}
                                                 {/* ✅ Pin indicator */}
                                                 {conversation.myIsPinned && (
-                                                    <div className="absolute -right-1 -bottom-1 bg-green-500 rounded-full p-1 shadow-sm border border-white">
+                                                    <div className="absolute -right-1 -bottom-1 bg-[var(--chat-primary)] rounded-full p-1 shadow-sm border border-white">
                                                         <Pin
                                                             size={12}
                                                             className="text-white fill-current"
@@ -635,7 +702,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                             conversation,
                                                         )}
                                                     </h3>
-                                                    <div className="relative ml-2 w-11 shrink-0 pt-0.5 text-right">
+                                                    <div className="relative ml-2 flex w-16 shrink-0 items-start justify-end gap-1 pt-0.5 text-right">
                                                         <span className="whitespace-nowrap text-[11px] leading-4 text-gray-500">
                                                             {formatMessageTime(
                                                                 conversation
@@ -643,6 +710,28 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                                     ?.createdAt,
                                                             )}
                                                         </span>
+                                                        {(onAISummarizeConversation ||
+                                                            onAIReplySuggestions) && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setOpenAiMenuId(
+                                                                        (prev) =>
+                                                                            prev ===
+                                                                            conversation.conversationId
+                                                                                ? null
+                                                                                : conversation.conversationId,
+                                                                    );
+                                                                }}
+                                                                className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-slate-700"
+                                                                title="AI actions"
+                                                            >
+                                                                <MoreVertical
+                                                                    size={14}
+                                                                />
+                                                            </button>
+                                                        )}
                                                         <span
                                                             className={`absolute right-0 top-7 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-opacity ${
                                                                 unreadCount > 0
@@ -670,7 +759,78 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                 </p>
                                             </div>
                                         </div>
-                                    </button>
+                                        {openAiMenuId ===
+                                            conversation.conversationId && (
+                                            <div
+                                                className="absolute right-2 top-12 z-30 min-w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+                                                onClick={(e) =>
+                                                    e.stopPropagation()
+                                                }
+                                            >
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        unreadCount === 0 ||
+                                                        !onAISummarizeConversation
+                                                    }
+                                                    onClick={() => {
+                                                        onAISummarizeConversation?.(
+                                                            conversation.conversationId,
+                                                            'unread',
+                                                        );
+                                                        setOpenAiMenuId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <Bot size={14} />
+                                                    Tóm tắt tin chưa đọc
+                                                </button>
+                                                {[1, 2, 3].map((month) => (
+                                                    <button
+                                                        key={month}
+                                                        type="button"
+                                                        disabled={
+                                                            !onAISummarizeConversation
+                                                        }
+                                                        onClick={() => {
+                                                            onAISummarizeConversation?.(
+                                                                conversation.conversationId,
+                                                                'range',
+                                                                month as
+                                                                    | 1
+                                                                    | 2
+                                                                    | 3,
+                                                            );
+                                                            setOpenAiMenuId(
+                                                                null,
+                                                            );
+                                                        }}
+                                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    >
+                                                        <Sparkles size={14} />
+                                                        Tóm tắt {month} tháng
+                                                    </button>
+                                                ))}
+                                                <div className="my-1 border-t border-slate-100" />
+                                                <button
+                                                    type="button"
+                                                    disabled={
+                                                        !onAIReplySuggestions
+                                                    }
+                                                    onClick={() => {
+                                                        onAIReplySuggestions?.(
+                                                            conversation.conversationId,
+                                                        );
+                                                        setOpenAiMenuId(null);
+                                                    }}
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                                >
+                                                    <SmilePlus size={14} />
+                                                    Gợi ý trả lời
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 );
                             })}
                         </div>

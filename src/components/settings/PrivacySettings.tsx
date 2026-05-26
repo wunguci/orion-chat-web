@@ -36,17 +36,17 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
   return (
     <div className="flex flex-col gap-12">
       <div>
-        <span className="text-[26px] font-bold text-gray-primary mb-1">
+        <span className="text-[26px] font-bold text-[var(--settings-text)] mb-1">
           Privacy & Security
         </span>
-        <p className="text-gray-primary">
+        <p className="text-[var(--settings-text)]">
           Manage who can see your information and contact you
         </p>
       </div>
 
       {/* Who can see my info */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Who can see my info
         </span>
         <div className="flex flex-col gap-5">
@@ -69,11 +69,11 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
           ].map(({ label, description, field }) => (
             <div
               key={field}
-              className="flex flex-col gap-3 bg-green-bg-light border border-green-border-light rounded-xl py-4 px-5 w-full"
+              className="flex flex-col gap-3 bg-[var(--settings-surface-bg)] border border-[var(--settings-primary-border)] rounded-xl py-4 px-5 w-full"
             >
               <div className="flex flex-col gap-1">
-                <p className="font-semibold text-gray-primary">{label}</p>
-                <p className="text-sm text-gray-primary">{description}</p>
+                <p className="font-semibold text-[var(--settings-text)]">{label}</p>
+                <p className="text-sm text-[var(--settings-text)]">{description}</p>
               </div>
               <div className="flex gap-3">
                 {field === "profileVisibility"
@@ -117,16 +117,16 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
 
       {/* Other Security Options */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Other Security Options
         </span>
         <div className="flex flex-col gap-5">
-          <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
+          <div className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]">
             <div className="flex items-center gap-3">
-              <Eye size={24} className="text-green-primary" />
+              <Eye size={24} className="text-[var(--settings-primary)]" />
               <div>
-                <p className="font-semibold text-gray-primary">Read Receipts</p>
-                <p className="text-sm text-gray-primary">
+                <p className="font-semibold text-[var(--settings-text)]">Read Receipts</p>
+                <p className="text-sm text-[var(--settings-text)]">
                   Others can see when you've read messages
                 </p>
               </div>
@@ -137,29 +137,29 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
             />
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
+          <div className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]">
             <div className="flex items-center gap-3">
-              <Shield size={24} className="text-green-primary" />
+              <Shield size={24} className="text-[var(--settings-primary)]" />
               <div>
-                <p className="font-semibold text-gray-primary">
+                <p className="font-semibold text-[var(--settings-text)]">
                   Blocked Contacts
                 </p>
-                <p className="text-sm text-gray-primary">
+                <p className="text-sm text-[var(--settings-text)]">
                   Manage your blocked contacts list
                 </p>
               </div>
             </div>
-            <ChevronRight size={24} className="text-green-primary" />
+            <ChevronRight size={24} className="text-[var(--settings-primary)]" />
           </div>
 
-          <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
+          <div className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]">
             <div className="flex items-center gap-3">
-              <Shield size={24} className="text-green-primary" />
+              <Shield size={24} className="text-[var(--settings-primary)]" />
               <div>
-                <p className="font-semibold text-gray-primary">
+                <p className="font-semibold text-[var(--settings-text)]">
                   Two-step Verification
                 </p>
-                <p className="text-sm text-gray-primary">
+                <p className="text-sm text-[var(--settings-text)]">
                   Add extra security to your account
                 </p>
               </div>
@@ -170,14 +170,14 @@ export const PrivacySettings: React.FC<PrivacySettingsProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+      <div className="flex flex-col gap-4 pt-4 border-t border-[var(--settings-primary-border)]">
         {saveError && (
           <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
             {saveError}
           </div>
         )}
         {saveSuccess && (
-          <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+          <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
             {saveSuccess}
           </div>
         )}

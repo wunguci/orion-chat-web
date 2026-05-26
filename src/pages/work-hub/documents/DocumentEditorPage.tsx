@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
+import Quill from "quill";
+import "quill/dist/quill.snow.css";
 import { workHubApi } from "../../../features/work-hub/work-hub.api";
 import { mapDocument } from "../../../features/work-hub/work-hub.mappers";
 import { getUser } from "../../../utils/token";
 import type { Document, DocumentViewMode } from "../../../types/work-hub.types";
+import { orionAiService } from "../../../services/orionAiService";
 
 const DocumentEditorPage = () => {
   const { workspaceId, documentId } = useParams<{
@@ -30,9 +33,13 @@ const DocumentEditorPage = () => {
   const [showVersionModal, setShowVersionModal] = useState(false);
   const [versionName, setVersionName] = useState("");
   const [savingVersion, setSavingVersion] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [showAiPrompt, setShowAiPrompt] = useState(false);
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
+  const quillRef = useRef<Quill | null>(null);
 
   // Fetch document
   const fetchDocument = useCallback(async () => {
@@ -89,13 +96,35 @@ const DocumentEditorPage = () => {
     };
   }, []);
 
-  const handleContentChange = () => {
-    if (editorRef.current) {
-      const newContent = editorRef.current.innerHTML;
+  useEffect(() => {
+    if (loading || viewMode !== "edit" || !editorRef.current) return;
+
+    const quill = new Quill(editorRef.current, {
+      theme: "snow",
+      placeholder: "Start typing your document here...",
+      modules: {
+        toolbar: "#workhub-document-toolbar",
+        history: {
+          delay: 1000,
+          maxStack: 100,
+          userOnly: true,
+        },
+      },
+    });
+
+    quill.root.innerHTML =
+      content || `<h1>${displayTitle}</h1><p>Start typing your document here...</p>`;
+    quill.on("text-change", () => {
+      const newContent = quill.root.innerHTML;
       setContent(newContent);
       autoSaveContent(newContent);
-    }
-  };
+    });
+    quillRef.current = quill;
+
+    return () => {
+      quillRef.current = null;
+    };
+  }, [autoSaveContent, doc?.id, loading, viewMode]);
 
   const handleTitleSave = async () => {
     if (!documentId || !user?.id || !title.trim()) return;
@@ -115,8 +144,9 @@ const DocumentEditorPage = () => {
     if (!documentId || !user?.id) return;
     try {
       setSavingVersion(true);
+      const latestContent = quillRef.current?.root.innerHTML ?? content;
       await workHubApi.createDocumentVersion(documentId, {
-        content,
+        content: latestContent,
         editedById: user.id,
         name: versionName || undefined,
       });
@@ -127,6 +157,35 @@ const DocumentEditorPage = () => {
       console.error("Failed to save version:", err);
     } finally {
       setSavingVersion(false);
+    }
+  };
+
+  const handleAiAssist = async () => {
+    if (!aiPrompt.trim()) return;
+    try {
+      setAiBusy(true);
+      const selectedText =
+        quillRef.current?.getText(
+          quillRef.current.getSelection()?.index || 0,
+          quillRef.current.getSelection()?.length || 0,
+        ) || "";
+      const result = await orionAiService.documentAssist({
+        prompt: aiPrompt.replace(/^@AI\s*/i, ""),
+        documentId,
+        workspaceId,
+        selectedText,
+      });
+      const draft = result.cards[0]?.body || result.summary;
+      if (draft && quillRef.current) {
+        const selection = quillRef.current.getSelection(true);
+        quillRef.current.insertText(selection?.index || 0, draft);
+      }
+      setAiPrompt("");
+      setShowAiPrompt(false);
+    } catch (err) {
+      console.error("AI document assist failed:", err);
+    } finally {
+      setAiBusy(false);
     }
   };
 
@@ -323,6 +382,13 @@ const DocumentEditorPage = () => {
 
           {/* Action buttons */}
           <button
+            onClick={() => setShowAiPrompt((open) => !open)}
+            className="px-2.5 py-1.5 rounded-lg text-xs text-wh-green-primary hover:bg-wh-green-bg-light transition-colors"
+            title="@AI"
+          >
+            <i className="fas fa-wand-magic-sparkles mr-1"></i> @AI
+          </button>
+          <button
             onClick={() => setShowVersionModal(true)}
             className="px-2.5 py-1.5 rounded-lg text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
             title="Save Version"
@@ -370,142 +436,106 @@ const DocumentEditorPage = () => {
 
       {/* Editor toolbar (Edit mode only) */}
       {viewMode === "edit" && (
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-100 bg-gray-50/50 flex-wrap">
-          {/* Text formatting */}
+        <div
+          id="workhub-document-toolbar"
+          className="flex items-center gap-1 px-4 py-2 border-b border-gray-100 bg-gray-50/50 flex-wrap"
+        >
           <div className="flex items-center gap-0.5">
             <button
-              className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+              className="ql-bold p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
               title="Bold"
-            >
-              <i className="fas fa-bold"></i>
-            </button>
+            />
             <button
-              className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+              className="ql-italic p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
               title="Italic"
-            >
-              <i className="fas fa-italic"></i>
-            </button>
+            />
             <button
-              className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+              className="ql-underline p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
               title="Underline"
-            >
-              <i className="fas fa-underline"></i>
-            </button>
+            />
             <button
-              className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+              className="ql-strike p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
               title="Strikethrough"
-            >
-              <i className="fas fa-strikethrough"></i>
-            </button>
+            />
           </div>
           <div className="w-px h-5 bg-gray-200 mx-1"></div>
 
-          {/* Heading */}
-          <select className="text-sm text-gray-600 bg-transparent border border-gray-200 rounded px-2 py-1 hover:bg-gray-100 cursor-pointer">
-            <option>Paragraph</option>
-            <option>Heading 1</option>
-            <option>Heading 2</option>
-            <option>Heading 3</option>
-            <option>Heading 4</option>
-            <option>Heading 5</option>
-            <option>Heading 6</option>
+          <select
+            className="ql-header text-sm text-gray-600 bg-transparent border border-gray-200 rounded px-2 py-1 hover:bg-gray-100 cursor-pointer"
+            defaultValue=""
+            title="Block style"
+          >
+            <option value="">Paragraph</option>
+            <option value="1">Heading 1</option>
+            <option value="2">Heading 2</option>
+            <option value="3">Heading 3</option>
           </select>
           <div className="w-px h-5 bg-gray-200 mx-1"></div>
 
-          {/* Colors */}
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Text Color"
-          >
-            <i className="fas fa-font"></i>
-          </button>
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Highlight"
-          >
-            <i className="fas fa-highlighter"></i>
-          </button>
+          <select className="ql-color" title="Text color"></select>
+          <select className="ql-background" title="Highlight"></select>
           <div className="w-px h-5 bg-gray-200 mx-1"></div>
 
-          {/* Lists */}
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            className="ql-list p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            value="bullet"
             title="Bullet List"
-          >
-            <i className="fas fa-list-ul"></i>
-          </button>
+          />
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            className="ql-list p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            value="ordered"
             title="Numbered List"
-          >
-            <i className="fas fa-list-ol"></i>
-          </button>
+          />
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            className="ql-list p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            value="check"
             title="Checklist"
-          >
-            <i className="fas fa-tasks"></i>
-          </button>
+          />
           <div className="w-px h-5 bg-gray-200 mx-1"></div>
 
-          {/* Alignment */}
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Align Left"
-          >
-            <i className="fas fa-align-left"></i>
-          </button>
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Align Center"
-          >
-            <i className="fas fa-align-center"></i>
-          </button>
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Align Right"
-          >
-            <i className="fas fa-align-right"></i>
-          </button>
+          <select className="ql-align" title="Alignment"></select>
           <div className="w-px h-5 bg-gray-200 mx-1"></div>
 
-          {/* Insert */}
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Insert Image"
-          >
-            <i className="fas fa-image"></i>
-          </button>
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Insert Table"
-          >
-            <i className="fas fa-table"></i>
-          </button>
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            className="ql-link p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
             title="Insert Link"
-          >
-            <i className="fas fa-link"></i>
-          </button>
+          />
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            className="ql-blockquote p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            title="Quote"
+          />
+          <button
+            className="ql-code-block p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
             title="Code Block"
-          >
-            <i className="fas fa-code"></i>
-          </button>
+          />
           <button
-            className="p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
-            title="Divider"
-          >
-            <i className="fas fa-minus"></i>
-          </button>
-          <button
-            className="p-1.5 rounded hover:bg-gray-200 text-wh-green-primary text-sm w-8 h-8"
-            title="Embed Task Link"
-          >
-            <i className="fas fa-clipboard-check"></i>
-          </button>
+            className="ql-clean p-1.5 rounded hover:bg-gray-200 text-gray-600 text-sm w-8 h-8"
+            title="Clear Formatting"
+          />
+        </div>
+      )}
+
+      {showAiPrompt && (
+        <div className="border-b border-sky-100 bg-sky-50 px-4 py-3">
+          <div className="mx-auto flex max-w-3xl items-center gap-2">
+            <input
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAiAssist();
+              }}
+              placeholder="@AI Generate REST API documentation"
+              className="flex-1 rounded-lg border border-sky-200 bg-white px-3 py-2 text-sm outline-none focus:border-sky-400"
+              autoFocus
+            />
+            <button
+              onClick={handleAiAssist}
+              disabled={aiBusy || !aiPrompt.trim()}
+              className="rounded-lg bg-wh-green-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+            >
+              {aiBusy ? "Generating..." : "Insert"}
+            </button>
+          </div>
         </div>
       )}
 
@@ -517,15 +547,7 @@ const DocumentEditorPage = () => {
             <div className="max-w-3xl mx-auto py-10 px-8">
               <div
                 ref={editorRef}
-                className="prose prose-sm max-w-none min-h-[500px] outline-none"
-                contentEditable
-                suppressContentEditableWarning
-                onInput={handleContentChange}
-                dangerouslySetInnerHTML={{
-                  __html:
-                    content ||
-                    `<h1>${displayTitle}</h1><p>Start typing your document here...</p>`,
-                }}
+                className="workhub-quill min-h-[560px]"
               />
             </div>
           ) : viewMode === "preview" ? (

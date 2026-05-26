@@ -6,6 +6,7 @@ export type MessageType =
   | "VIDEO"
   | "AUDIO"
   | "CALL"
+  | "SYSTEM"
   | "text"
   | "image"
   | "file"
@@ -23,6 +24,8 @@ export type ParticipantRole = "admin" | "co-admin" | "member";
 export type ConversationStatus = "active" | "dissolved" | "left_or_removed";
 
 export interface SeenByItem {
+  userId: string;
+  seenAt: Date | string;
   userId: string;
   seenAt: Date | string;
 }
@@ -108,22 +111,22 @@ export interface PinnedMessageItem {
 }
 
 export interface LastMessage {
-    messageId?: string;
-    _id?: string;
-    clientMessageId?: string;
-    content?: string;
-    messageType?: MessageType;
-    senderBy?: string;
-    createdAt?: Date | string;
-    messageStatus?: MessageStatus;
-    isRecalled?: boolean;
-    callData?: {
-        callType?: 'audio' | 'video';
-        callStatus?: 'missed' | 'declined' | 'completed';
-        duration?: number;
-        isInitiator?: boolean;
-        wasRejected?: boolean;
-    };
+  messageId?: string;
+  _id?: string;
+  clientMessageId?: string;
+  content?: string;
+  messageType?: MessageType;
+  senderBy?: string;
+  createdAt?: Date | string;
+  messageStatus?: MessageStatus;
+  isRecalled?: boolean;
+  callData?: {
+    callType?: "audio" | "video";
+    callStatus?: "missed" | "declined" | "completed";
+    duration?: number;
+    isInitiator?: boolean;
+    wasRejected?: boolean;
+  };
 }
 
 export interface GroupInfo {

@@ -23,24 +23,32 @@ export async function checkSessionValidity(): Promise<CheckSessionResponse> {
             method: 'GET',
             headers: {
                 Authorization: `Bearer ${token}`,
+                'X-Platform': 'web',
             },
         });
 
         if (response.status === 401) {
             const data = await response.json();
-            if (
-                data.message &&
-                data.message.includes('Phiên làm việc đã hết hạn')
-            ) {
-                // Determine the reason for timeout
-                const reason = data.message.includes('không hoạt động')
-                    ? 'do không hoạt động'
-                    : 'Bạn đã đăng nhập ở nơi khác';
+            if (data.message) {
+                const messageText = String(data.message);
+                const isExpired = messageText.includes('hết hạn');
+                const isInactive = messageText.includes('không hoạt động');
+                const isOtherLogin =
+                    messageText.includes('đăng nhập') ||
+                    messageText.includes('thiết bị');
 
-                return {
-                    isValid: false,
-                    message: `Phiên làm việc đã hết hạn ${reason}.`,
-                };
+                if (isExpired || isInactive || isOtherLogin) {
+                    const reason = isInactive
+                        ? 'do không hoạt động'
+                        : isOtherLogin
+                          ? 'do đăng nhập ở thiết bị khác'
+                          : 'do phiên đã hết hạn';
+
+                    return {
+                        isValid: false,
+                        message: `Phiên làm việc đã hết hạn ${reason}.`,
+                    };
+                }
             }
         }
 
@@ -57,13 +65,19 @@ export async function checkSessionValidity(): Promise<CheckSessionResponse> {
     }
 }
 
-export async function handleSessionExpired(): Promise<void> {
+export async function handleSessionExpired(
+    message?: string,
+    showAlert: boolean = true,
+): Promise<void> {
     console.log('[Session] Handling expired session...');
 
     // Show mandatory alert - only OK button, user MUST click OK
-    alert(
-        'Phiên đăng nhập của bạn đã hết hạn.\n\n' + 'Vui lòng đăng nhập lại.',
-    );
+    if (showAlert) {
+        alert(
+            message ||
+                'Phiên đăng nhập của bạn đã hết hạn.\n\nVui lòng đăng nhập lại.',
+        );
+    }
 
     try {
         const token = getToken();

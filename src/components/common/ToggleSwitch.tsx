@@ -15,7 +15,9 @@ function ToggleSwitch({
             disabled={disabled}
             className={clsx(
                 'relative w-10 h-6 rounded-full transition-colors disabled:opacity-60 disabled:cursor-not-allowed',
-                checked ? 'bg-green-primary' : 'bg-gray-300',
+                checked
+                    ? 'bg-[var(--settings-primary,#22c55e)]'
+                    : 'bg-gray-300',
             )}
         >
             <div

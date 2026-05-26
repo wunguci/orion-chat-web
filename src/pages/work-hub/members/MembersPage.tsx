@@ -5,12 +5,16 @@ import type {
   WorkspaceRole,
   WorkspaceMember,
 } from "../../../types/work-hub.types";
-import type { WorkspaceInviteLinkResponse } from "../../../features/work-hub/work-hub.api.types";
+import type {
+  WorkspaceInviteLinkResponse,
+  WorkspaceJoinRequestResponse,
+} from "../../../features/work-hub/work-hub.api.types";
 import { workHubApi } from "../../../features/work-hub/work-hub.api";
 import {
   mapWorkspace,
   roleToBE,
 } from "../../../features/work-hub/work-hub.mappers";
+import { getUser } from "../../../utils/token";
 import MemberList from "../../../components/work-hub/workspace/MemberList";
 import InviteMemberDialog from "../../../components/work-hub/workspace/InviteMemberDialog";
 
@@ -21,6 +25,9 @@ const MembersPage = () => {
   const [loading, setLoading] = useState(true);
   const [inviteLinkData, setInviteLinkData] =
     useState<WorkspaceInviteLinkResponse | null>(null);
+  const [joinRequests, setJoinRequests] = useState<
+    WorkspaceJoinRequestResponse[]
+  >([]);
 
   const [showInvite, setShowInvite] = useState(false);
 
@@ -31,6 +38,10 @@ const MembersPage = () => {
     const mapped = mapWorkspace(data);
     setWorkspace(mapped);
     setMembers(mapped.members);
+    workHubApi
+      .getJoinRequests(workspaceId)
+      .then(setJoinRequests)
+      .catch(() => setJoinRequests([]));
   }, [workspaceId]);
 
   // Fetch workspace data từ API
@@ -70,6 +81,34 @@ const MembersPage = () => {
     }
   };
 
+  const handleTransferOwner = async (userId: string) => {
+    if (!workspaceId) return;
+    if (!confirm("Transfer workspace ownership to this member?")) return;
+    try {
+      await workHubApi.transferWorkspaceOwner(workspaceId, userId);
+      await reloadWorkspace();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to transfer owner");
+    }
+  };
+
+  const handleReviewJoinRequest = async (
+    requestId: string,
+    action: "approve" | "reject",
+  ) => {
+    if (!workspaceId) return;
+    try {
+      if (action === "approve") {
+        await workHubApi.approveJoinRequest(workspaceId, requestId);
+      } else {
+        await workHubApi.rejectJoinRequest(workspaceId, requestId);
+      }
+      await reloadWorkspace();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to review request");
+    }
+  };
+
   const handleInvite = async (data: {
     type: "phone" | "name";
     value: string;
@@ -89,6 +128,10 @@ const MembersPage = () => {
       throw err;
     }
   };
+
+  const currentUserId = getUser()?.userId ?? getUser()?.id ?? "";
+  const currentUserRole =
+    members.find((member) => member.user.id === currentUserId)?.role ?? "member";
 
   const handleGenerateLink = async () => {
     if (!workspaceId) return;
@@ -155,10 +198,70 @@ const MembersPage = () => {
 
           <MemberList
             members={members}
-            currentUserRole="owner"
+            currentUserRole={currentUserRole}
             onRemoveMember={handleRemoveMember}
             onChangeRole={handleChangeRole}
+            onTransferOwner={handleTransferOwner}
           />
+
+          {joinRequests.length > 0 && (
+            <div className="mt-6 bg-white rounded-xl border border-wh-green-border-light overflow-hidden">
+              <div className="px-5 py-3 border-b border-wh-green-border-light bg-wh-green-bg-light">
+                <h2 className="text-sm font-semibold text-gray-800">
+                  Pending Join Requests
+                </h2>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {joinRequests.map((request) => (
+                  <div
+                    key={request.requestId}
+                    className="flex items-center justify-between gap-4 px-5 py-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={request.user.avatarUrl || "/avatar-user.png"}
+                        alt={request.user.fullName}
+                        className="w-9 h-9 rounded-full object-cover"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {request.user.fullName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Requested {request.requestedRole.toLowerCase()} ·{" "}
+                          {new Date(request.requestedAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          void handleReviewJoinRequest(
+                            request.requestId,
+                            "reject",
+                          )
+                        }
+                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() =>
+                          void handleReviewJoinRequest(
+                            request.requestId,
+                            "approve",
+                          )
+                        }
+                        className="px-3 py-1.5 rounded-lg bg-wh-green-primary text-sm text-white hover:bg-wh-green-primary-hover"
+                      >
+                        Approve
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

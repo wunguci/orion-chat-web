@@ -149,6 +149,7 @@ export const groupManagementService = {
     approveJoinRequest: async (groupId: string, requestId: string) => {
         const response = await api.post(
             `/groups/${groupId}/join-requests/${requestId}/approve`,
+            {},
         );
         return unwrapApiPayload(response);
     },
@@ -159,6 +160,7 @@ export const groupManagementService = {
     rejectJoinRequest: async (groupId: string, requestId: string) => {
         const response = await api.post(
             `/groups/${groupId}/join-requests/${requestId}/reject`,
+            {},
         );
         return unwrapApiPayload(response);
     },
@@ -194,7 +196,7 @@ export const groupManagementService = {
      * Leave group
      */
     leaveGroup: async (groupId: string) => {
-        const response = await api.post(`/groups/${groupId}/leave`);
+        const response = await api.post(`/groups/${groupId}/leave`, {});
         return unwrapApiPayload(response);
     },
 
@@ -202,7 +204,7 @@ export const groupManagementService = {
      * Disband group (owner only)
      */
     disbandGroup: async (groupId: string) => {
-        const response = await api.post(`/groups/${groupId}/dissolve`);
+        const response = await api.post(`/groups/${groupId}/dissolve`, {});
         return unwrapApiPayload(response);
     },
 };

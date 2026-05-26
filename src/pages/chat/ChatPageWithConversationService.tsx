@@ -9,54 +9,64 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import ChatSidebarWithConversationService from '../../components/chat/ChatSidebarWithConversationService';
 import ChatHeader from '../../components/chat/ChatHeader';
 import MessageList, {
-    type SocketMessage,
-} from '../../components/chat/MessageList';
-import ChatInput from '../../components/chat/ChatInput';
-import { ConversationInfoPanel } from '../../components/chat/ConversationInfoPanel';
-import { ConversationGroupInfoPanel } from '../../components/chat/ConversationGroupInfoPanel';
-import { SearchModal } from '../../components/chat/SearchModal';
-import { CreateGroupModal } from '../../components/chat/CreateGroupModal';
-import Modal from '../../components/common/Modal';
-import { Dialog } from '../../components/common/Dialog';
+  type SocketMessage,
+} from "../../components/chat/MessageList";
+import ChatInput from "../../components/chat/ChatInput";
+import AIGridResult from "../../components/ai/AIGridResult";
+import { ConversationInfoPanel } from "../../components/chat/ConversationInfoPanel";
+import { ConversationGroupInfoPanel } from "../../components/chat/ConversationGroupInfoPanel";
+import { SearchModal } from "../../components/chat/SearchModal";
+import { CreateGroupModal } from "../../components/chat/CreateGroupModal";
+import Modal from "../../components/common/Modal";
+import { Dialog } from "../../components/common/Dialog";
 import {
-    sendMessage,
-    socketService,
-    offMessageNew,
-    onMessageNew,
-    onGroupInfoUpdated,
-    offGroupInfoUpdated,
-    onGroupCreated,
-    offGroupCreated,
-    onMessageReactionUpdated,
-    onMessageRecalled,
-    offMessageReactionUpdated,
-    offMessageRecalled,
-    onMessagePinned,
-    offMessagePinned,
-    onMessageUnpinned,
-    offMessageUnpinned,
-    onTyping,
-    offTyping,
-    onMessageDeleted,
-    offMessageDeleted,
-    onMessageSeen,
-    offMessageSeen,
-} from '../../services/socket';
+  sendMessage,
+  socketService,
+  offMessageNew,
+  onMessageNew,
+  onGroupInfoUpdated,
+  offGroupInfoUpdated,
+  onMessageReactionUpdated,
+  onMessageRecalled,
+  offMessageReactionUpdated,
+  offMessageRecalled,
+  onMessagePinned,
+  offMessagePinned,
+  onMessageUnpinned,
+  offMessageUnpinned,
+  onTyping,
+  offTyping,
+  onMessageDeleted,
+  offMessageDeleted,
+  onMessageSeen,
+  offMessageSeen,
+  onConversationDeleted,
+  offConversationDeleted,
+  joinConversation,
+} from "../../services/socket";
 import {
-    useConversations,
-    useConversationDetail,
-    useConversationMessages,
-} from '../../hooks/useConversation';
-import { useChatRoom } from '../../hooks/useChatRoom';
-import { conversationApi } from '../../services/conversationApi';
-import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
-import { debugAuthStatus, getToken, getUser } from '../../utils/token';
-import { getUserInfo } from '../../services/userService';
-import { useCall } from '../../hooks/useCall';
-import { useGroupCallContext } from '../../hooks/useGroupCallContext';
-import type { PinnedMessageItem } from '../../types/conversation';
-import type { AppNotification } from '../../types/notification';
-import { mapChatActionError } from '../../utils/chatMessageErrors';
+  useConversations,
+  useConversationDetail,
+  useConversationMessages,
+} from "../../hooks/useConversation";
+import { useChatRoom } from "../../hooks/useChatRoom";
+import { conversationApi } from "../../services/conversationApi";
+import { getCurrentUserId, getCurrentUserName } from "../../utils/auth";
+import { debugAuthStatus, getToken, getUser } from "../../utils/token";
+import { getUserInfo } from "../../services/userService";
+import { useCall } from "../../hooks/useCall";
+import { useGroupCallContext } from "../../hooks/useGroupCallContext";
+import type { PinnedMessageItem } from "../../types/conversation";
+import type { AppNotification } from "../../types/notification";
+import { mapChatActionError } from "../../utils/chatMessageErrors";
+import { orionAiService } from "../../services/orionAiService";
+import type { AiAction, AiGridResponse } from "../../types/orion-ai";
+import { useUserSettings } from "../../hooks/useSettings";
+import {
+  APPEARANCE_THEME_CHANGED_EVENT,
+  buildAppearanceThemeVars,
+  type AppearanceThemeChangeDetail,
+} from "../../theme/appearance";
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -81,18 +91,19 @@ const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
 };
 
 export const ChatPage: React.FC = () => {
-    type ChatSocketMessage = SocketMessage & {
-        clientMessageId?: string;
-        conversationId?: string;
-        type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
-        callData?: {
-            callType?: 'audio' | 'video';
-            callStatus?: 'completed' | 'missed' | 'declined';
-            duration?: number;
-            isInitiator?: boolean;
-            wasRejected?: boolean;
-        };
+  type ChatSocketMessage = SocketMessage & {
+    clientMessageId?: string;
+    conversationId?: string;
+    type?: "text" | "image" | "file" | "audio" | "video" | "call";
+    messageType?: string;
+    callData?: {
+      callType?: "audio" | "video";
+      callStatus?: "completed" | "missed" | "declined";
+      duration?: number;
+      isInitiator?: boolean;
+      wasRejected?: boolean;
     };
+  };
 
     type IncomingSocketPayload = {
         messageId?: string;
@@ -252,83 +263,141 @@ export const ChatPage: React.FC = () => {
         [],
     );
 
-    // Get user ID inside component (after auth is loaded)
-    const USER_ID = getCurrentUserId();
-    const USERNAME = getCurrentUserName();
-    const effectiveCurrentUserId =
-        USER_ID || getUser()?.userId || getUser()?.id || '';
-    const {
-        initiateCall,
-        status: callStatus,
-        startTime: callStartTime,
-        isInitiator,
-        wasAnswered,
-        wasRejected,
-    } = useCall();
-    const { initiateGroupCall, status: groupCallStatus } =
-        useGroupCallContext();
-    const location = useLocation();
-    const navigate = useNavigate();
+  // Get user ID inside component (after auth is loaded)
+  const USER_ID = getCurrentUserId();
+  const USERNAME = getCurrentUserName();
+  const { settings: userSettings } = useUserSettings();
+  const [chatAppearance, setChatAppearance] =
+    useState<AppearanceThemeChangeDetail>({
+      theme: undefined,
+      appearanceColor: undefined,
+    });
 
-    const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>(
-        [],
+  useEffect(() => {
+    setChatAppearance({
+      theme: userSettings?.theme,
+      appearanceColor: userSettings?.appearanceColor,
+    });
+  }, [userSettings?.appearanceColor, userSettings?.theme]);
+
+  useEffect(() => {
+    const handleAppearanceChanged = (event: Event) => {
+      const customEvent = event as CustomEvent<AppearanceThemeChangeDetail>;
+
+      setChatAppearance((prev) => ({
+        theme: customEvent.detail?.theme ?? prev.theme,
+        appearanceColor:
+          customEvent.detail?.appearanceColor ?? prev.appearanceColor,
+      }));
+    };
+
+    window.addEventListener(
+      APPEARANCE_THEME_CHANGED_EVENT,
+      handleAppearanceChanged,
     );
-    const prevCallStatusRef = useRef<typeof callStatus>('idle');
-    const wasInitiatorRef = useRef(false);
-    const [isConnecting, setIsConnecting] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [selectedConversationId, setSelectedConversationId] = useState<
-        string | null
-    >(null);
-    const [hiddenMessageKeys, setHiddenMessageKeys] = useState<Set<string>>(
-        new Set(),
-    );
-    const [recalledMessageKeys, setRecalledMessageKeys] = useState<Set<string>>(
-        new Set(),
-    );
-    const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
-    const [forwardingMessage, setForwardingMessage] =
-        useState<SocketMessage | null>(null);
-    const [forwardTargetConversationId, setForwardTargetConversationId] =
-        useState('');
-    const [isForwarding, setIsForwarding] = useState(false);
-    const [isRecallConfirmOpen, setIsRecallConfirmOpen] = useState(false);
-    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [pendingRecallMessage, setPendingRecallMessage] =
-        useState<SocketMessage | null>(null);
-    const [pendingDeleteMessage, setPendingDeleteMessage] =
-        useState<SocketMessage | null>(null);
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true);
-    const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
-    const [reactionOverrides, setReactionOverrides] = useState<
-        Record<string, NonNullable<SocketMessage['reactions']>>
-    >({});
-    const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
-    const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
-    const [typingUserNames, setTypingUserNames] = useState<string[]>([]);
-    const [openGroupInfoEditTick, setOpenGroupInfoEditTick] = useState(0);
-    const [groupInfoOverrides, setGroupInfoOverrides] = useState<
-        Record<string, { groupName?: string; groupAvatar?: string }>
-    >({});
-    const [replyDraft, setReplyDraft] = useState<{
-        conversationId: string;
-        replyToMessageId: string;
-        senderName?: string;
-        snippet?: string;
-    } | null>(null);
-    const [pinOverrides, setPinOverrides] = useState<
-        Record<string, { isPinned: boolean; pinnedAt?: string }>
-    >({});
-    const [pinnedMessagesByConversation, setPinnedMessagesByConversation] =
-        useState<Record<string, PinnedMessageItem[]>>({});
-    const messageListenerRef = useRef<
-        ((payload: IncomingSocketPayload) => void) | null
-    >(null);
-    const pendingMediaHydrationRef = useRef<Set<string>>(new Set());
-    const lastReadMessageIdRef = useRef<string | null>(null);
-    const conversationIdsRef = useRef<Set<string>>(new Set());
-    const lastConversationRefreshAtRef = useRef<number>(0);
+
+    return () => {
+      window.removeEventListener(
+        APPEARANCE_THEME_CHANGED_EVENT,
+        handleAppearanceChanged,
+      );
+    };
+  }, []);
+
+  const chatThemeVars = useMemo(
+    () =>
+      buildAppearanceThemeVars({
+        theme: chatAppearance.theme,
+        appearanceColor: chatAppearance.appearanceColor,
+        prefix: "chat",
+      }) as React.CSSProperties,
+    [chatAppearance.appearanceColor, chatAppearance.theme],
+  );
+  const effectiveCurrentUserId =
+    USER_ID || getUser()?.userId || getUser()?.id || "";
+  const {
+    initiateCall,
+    status: callStatus,
+    startTime: callStartTime,
+    isInitiator,
+    wasAnswered,
+    wasRejected,
+  } = useCall();
+  const { initiateGroupCall, status: groupCallStatus } = useGroupCallContext();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>([]);
+  const prevCallStatusRef = useRef<typeof callStatus>("idle");
+  const wasInitiatorRef = useRef(false);
+  const [isConnecting, setIsConnecting] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
+  const [hiddenMessageKeys, setHiddenMessageKeys] = useState<Set<string>>(
+    new Set(),
+  );
+  const [recalledMessageKeys, setRecalledMessageKeys] = useState<Set<string>>(
+    new Set(),
+  );
+  const [isForwardModalOpen, setIsForwardModalOpen] = useState(false);
+  const [forwardingMessage, setForwardingMessage] =
+    useState<SocketMessage | null>(null);
+  const [forwardTargetConversationId, setForwardTargetConversationId] =
+    useState("");
+  const [isForwarding, setIsForwarding] = useState(false);
+  const [isRecallConfirmOpen, setIsRecallConfirmOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [pendingRecallMessage, setPendingRecallMessage] =
+    useState<SocketMessage | null>(null);
+  const [pendingDeleteMessage, setPendingDeleteMessage] =
+    useState<SocketMessage | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isInfoPanelOpen, setIsInfoPanelOpen] = useState(true);
+  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
+  const [aiResult, setAiResult] = useState<AiGridResponse | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [composerDraftText, setComposerDraftText] = useState("");
+  const [smartEmotionEnabled, setSmartEmotionEnabled] = useState(false);
+  const [autoWorkflowEnabled, setAutoWorkflowEnabled] = useState(true);
+  const [emotionByMessageId, setEmotionByMessageId] = useState<
+    Record<
+      string,
+      { label: string; icon?: string; summary?: string; tone?: string }
+    >
+  >({});
+  const emotionAttemptedMessageIdsRef = useRef<Set<string>>(new Set());
+  const [reactionOverrides, setReactionOverrides] = useState<
+    Record<string, NonNullable<SocketMessage["reactions"]>>
+  >({});
+  const [iAmBlocked, setIAmBlocked] = useState(false); // Current user is blocked
+  const [iAmTheBlocker, setIAmTheBlocker] = useState(false); // Current user is the blocker (can unblock)
+  const [typingUserNames, setTypingUserNames] = useState<string[]>([]);
+  const [openGroupInfoEditTick, setOpenGroupInfoEditTick] = useState(0);
+  const [groupInfoOverrides, setGroupInfoOverrides] = useState<
+    Record<string, { groupName?: string; groupAvatar?: string }>
+  >({});
+  const [replyDraft, setReplyDraft] = useState<{
+    conversationId: string;
+    replyToMessageId: string;
+    senderName?: string;
+    snippet?: string;
+  } | null>(null);
+  const [pinOverrides, setPinOverrides] = useState<
+    Record<string, { isPinned: boolean; pinnedAt?: string }>
+  >({});
+  const [pinnedMessagesByConversation, setPinnedMessagesByConversation] =
+    useState<Record<string, PinnedMessageItem[]>>({});
+  const messageListenerRef = useRef<
+    ((payload: IncomingSocketPayload) => void) | null
+  >(null);
+  const pendingMediaHydrationRef = useRef<Set<string>>(new Set());
+  const lastReadMessageIdRef = useRef<string | null>(null);
+  const conversationIdsRef = useRef<Set<string>>(new Set());
+  const sidebarJoinedConversationIdsRef = useRef<Set<string>>(new Set());
+  const sidebarJoiningConversationIdsRef = useRef<Set<string>>(new Set());
+  const lastConversationRefreshAtRef = useRef<number>(0);
 
     // Fetch all conversations (for sidebar + forward modal)
     const {
@@ -346,12 +415,26 @@ export const ChatPage: React.FC = () => {
         );
     }, [conversations]);
 
-    const refreshConversationsThrottled = useCallback(() => {
-        const now = Date.now();
-        if (now - lastConversationRefreshAtRef.current < 800) return;
-        lastConversationRefreshAtRef.current = now;
-        void refreshConversations();
-    }, [refreshConversations]);
+  const refreshConversationsThrottled = useCallback(() => {
+    const now = Date.now();
+    if (now - lastConversationRefreshAtRef.current < 800) return;
+    lastConversationRefreshAtRef.current = now;
+    void refreshConversations();
+  }, [refreshConversations]);
+
+  useEffect(() => {
+    const handleConversationDeleted = (payload: { conversationId: string }) => {
+      if (payload.conversationId === selectedConversationId) {
+        setSelectedConversationId(null);
+      }
+      void refreshConversations();
+    };
+
+    onConversationDeleted(handleConversationDeleted);
+    return () => {
+      offConversationDeleted();
+    };
+  }, [refreshConversations, selectedConversationId]);
 
     // Fetch selected conversation detail
     // No need to pass USER_ID - JWT token from localStorage is used
@@ -365,16 +448,58 @@ export const ChatPage: React.FC = () => {
         30,
     );
 
-    const {
-        emitTyping,
-        emitRead,
-        sendMessage: sendChatMessage,
-        joinStatus,
-    } = useChatRoom({
-        conversationId: selectedConversationId,
-        enabled: true,
-        onJoinError: setError,
-    });
+  const {
+    emitTyping,
+    emitRead,
+    sendMessage: sendChatMessage,
+    joinStatus,
+    isConnected: isChatSocketConnected,
+  } = useChatRoom({
+    conversationId: selectedConversationId,
+    enabled: true,
+    onJoinError: setError,
+  });
+
+  useEffect(() => {
+    if (!isChatSocketConnected) return;
+
+    let isCancelled = false;
+
+    for (const conversation of conversations) {
+      const conversationId = conversation.conversationId;
+      if (!conversationId) continue;
+      if (sidebarJoinedConversationIdsRef.current.has(conversationId)) continue;
+      if (sidebarJoiningConversationIdsRef.current.has(conversationId)) {
+        continue;
+      }
+
+      sidebarJoiningConversationIdsRef.current.add(conversationId);
+
+      void joinConversation(
+        `sidebar_join_${conversationId}_${Date.now()}`,
+        conversationId,
+      )
+        .then((ack) => {
+          if (!isCancelled && ack?.ok) {
+            sidebarJoinedConversationIdsRef.current.add(conversationId);
+          }
+        })
+        .catch((error) => {
+          console.warn(
+            "[ChatPage] Could not join sidebar conversation room:",
+            conversationId,
+            error,
+          );
+        })
+        .finally(() => {
+          sidebarJoiningConversationIdsRef.current.delete(conversationId);
+        });
+    }
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [conversations, isChatSocketConnected]);
 
     useEffect(() => {
         const handleGroupInfoUpdatedRealtime = (payload: {
@@ -777,63 +902,62 @@ export const ChatPage: React.FC = () => {
                     ? payload.createdAt.toISOString()
                     : payload?.createdAt;
 
-            return {
-                id:
-                    payload?.messageId ||
-                    payload?.id ||
-                    payload?._id ||
-                    payload?.clientMessageId ||
-                    `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-                clientMessageId: payload?.clientMessageId,
-                senderId: senderId,
-                // Use senderName if provided, otherwise use senderId (phone/userId) as fallback
-                senderName: payload?.senderName || senderId,
-                senderAvatar: toAbsoluteMediaUrl(payload?.senderAvatar),
-                content: payload?.content || '',
-                timestamp:
-                    payload?.timestamp ||
-                    createdAtValue ||
-                    new Date().toISOString(),
-                isFile:
-                    payload?.isFile ||
-                    effectiveType === 'file' ||
-                    effectiveType === 'image' ||
-                    effectiveType === 'video' ||
-                    effectiveType === 'audio' ||
-                    messageType === 'FILE' ||
-                    messageType === 'IMAGE' ||
-                    messageType === 'VIDEO' ||
-                    messageType === 'file' ||
-                    messageType === 'image' ||
-                    messageType === 'video' ||
-                    messageType === 'AUDIO' ||
-                    messageType === 'audio' ||
-                    !!resolvedFileUrl,
-                fileUrl: resolvedFileUrl,
-                fileName: normalizedFileName,
-                fileType:
-                    resolvedMimeType ||
-                    (isImageType
-                        ? 'image/*'
-                        : isVideoType
-                          ? 'video/*'
-                          : isAudioType
-                            ? 'audio/*'
-                            : undefined),
-                isRecalled: payload?.isRecalled || payload?.isDeleted,
-                isPinned: payload?.isPinned,
-                pinnedAt: payload?.pinnedAt,
-                replyToMessageId: payload?.replyToMessageId,
-                replyToMessagePreview: normalizedReplyPreview,
-                messageStatus: payload?.messageStatus,
-                reactions: normalizeReactions(payload?.reactions),
-                conversationId: payload?.conversationId,
-                type: resolvedType,
-                callData: payload?.callData,
-            };
-        },
-        [normalizeReactions],
-    );
+      return {
+        id:
+          payload?.messageId ||
+          payload?.id ||
+          payload?._id ||
+          payload?.clientMessageId ||
+          `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        clientMessageId: payload?.clientMessageId,
+        senderId: senderId,
+        // Use senderName if provided, otherwise use senderId (phone/userId) as fallback
+        senderName: payload?.senderName || senderId,
+        senderAvatar: toAbsoluteMediaUrl(payload?.senderAvatar),
+        content: payload?.content || "",
+        timestamp:
+          payload?.timestamp || createdAtValue || new Date().toISOString(),
+        isFile:
+          payload?.isFile ||
+          effectiveType === "file" ||
+          effectiveType === "image" ||
+          effectiveType === "video" ||
+          effectiveType === "audio" ||
+          messageType === "FILE" ||
+          messageType === "IMAGE" ||
+          messageType === "VIDEO" ||
+          messageType === "file" ||
+          messageType === "image" ||
+          messageType === "video" ||
+          messageType === "AUDIO" ||
+          messageType === "audio" ||
+          !!resolvedFileUrl,
+        fileUrl: resolvedFileUrl,
+        fileName: normalizedFileName,
+        fileType:
+          resolvedMimeType ||
+          (isImageType
+            ? "image/*"
+            : isVideoType
+              ? "video/*"
+              : isAudioType
+                ? "audio/*"
+                : undefined),
+        isRecalled: payload?.isRecalled || payload?.isDeleted,
+        isPinned: payload?.isPinned,
+        pinnedAt: payload?.pinnedAt,
+        replyToMessageId: payload?.replyToMessageId,
+        replyToMessagePreview: normalizedReplyPreview,
+        messageStatus: payload?.messageStatus,
+        reactions: normalizeReactions(payload?.reactions),
+        conversationId: payload?.conversationId,
+        type: resolvedType,
+        messageType: payload?.messageType,
+        callData: payload?.callData,
+      };
+    },
+    [normalizeReactions],
+  );
 
     const applyPinStateToMessage = useCallback(
         (messageId: string, isPinned: boolean, pinnedAt?: string) => {
@@ -1998,20 +2122,44 @@ export const ChatPage: React.FC = () => {
                 clientMessageId,
             );
 
-            setIsForwardModalOpen(false);
-            setForwardingMessage(null);
-            setForwardTargetConversationId('');
-        } catch (err) {
-            console.error('Error forwarding message:', err);
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : 'Failed to forward message',
-            );
-        } finally {
-            setIsForwarding(false);
+      setIsForwardModalOpen(false);
+      setForwardingMessage(null);
+      setForwardTargetConversationId("");
+    } catch (err) {
+      console.error("Error forwarding message:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to forward message",
+      );
+    } finally {
+      setIsForwarding(false);
+    }
+  }, [forwardingMessage, forwardTargetConversationId, joinStatus]);
+
+  const maybeSuggestWorkflowFromMessage = useCallback(
+    async (messageText: string) => {
+      if (!autoWorkflowEnabled || !selectedConversationId) return;
+
+      const actionablePattern =
+        /deadline|task|todo|fix|bug|deploy|release|meeting|call|sync|asap|urgent|gấp|họp|lịch|việc|xử lý|ngày mai|hôm nay|tuần sau|trễ/i;
+      if (!actionablePattern.test(messageText)) return;
+
+      try {
+        setIsAiLoading(true);
+        const result = await orionAiService.analyzeTextWorkflow({
+          text: messageText,
+          conversationId: selectedConversationId,
+        });
+        if (result.cards.length > 0 || result.actions.length > 0) {
+          setAiResult(result);
         }
-    }, [forwardingMessage, forwardTargetConversationId, joinStatus]);
+      } catch (error) {
+        console.warn("AI workflow suggestion failed:", error);
+      } finally {
+        setIsAiLoading(false);
+      }
+    },
+    [autoWorkflowEnabled, selectedConversationId],
+  );
 
     // Handle sending message
     const handleSend = useCallback(
@@ -2093,38 +2241,40 @@ export const ChatPage: React.FC = () => {
                     throw new Error(ack.error.message);
                 }
 
-                setReplyDraft(null);
-            } catch (err) {
-                console.error('Error sending message:', err);
-                setError(mapChatActionError(err, 'send'));
+        setReplyDraft(null);
+        void maybeSuggestWorkflowFromMessage(text);
+      } catch (err) {
+        console.error("Error sending message:", err);
+        setError(mapChatActionError(err, "send"));
 
-                setSocketMessages((prev) =>
-                    prev.map((msg) =>
-                        msg.content === text && msg.senderId === USER_ID
-                            ? {
-                                  ...msg,
-                                  uploadStatus: 'failed',
-                                  errorMessage:
-                                      err instanceof Error
-                                          ? err.message
-                                          : 'Failed to send message',
-                              }
-                            : msg,
-                    ),
-                );
-            }
-        },
-        [
-            joinStatus,
-            selectedConversation,
-            selectedConversationId,
-            getReceiverId,
-            replyDraft,
-            sendChatMessage,
-            USER_ID,
-            USERNAME,
-        ],
-    );
+        setSocketMessages((prev) =>
+          prev.map((msg) =>
+            msg.content === text && msg.senderId === USER_ID
+              ? {
+                  ...msg,
+                  uploadStatus: "failed",
+                  errorMessage:
+                    err instanceof Error
+                      ? err.message
+                      : "Failed to send message",
+                }
+              : msg,
+          ),
+        );
+      }
+    },
+    [
+      joinStatus,
+      selectedConversation,
+      selectedConversationId,
+      getReceiverId,
+      replyDraft,
+      sendChatMessage,
+      maybeSuggestWorkflowFromMessage,
+      USER_ID,
+      USERNAME,
+    ],
+  );
 
     // Handle sending file
     const handleSendFile = useCallback(
@@ -2488,85 +2638,83 @@ export const ChatPage: React.FC = () => {
                           ? 'file'
                           : 'text');
 
-            return {
-                id:
-                    persistedMessageId ||
-                    m.clientMessageId ||
-                    `${m.senderBy || 'unknown'}_${String(m.createdAt || idx)}`,
-                clientMessageId: m.clientMessageId,
-                senderId: senderRef,
-                senderName: getSenderName(senderRef),
-                senderAvatar: toAbsoluteMediaUrl(
-                    selectedConversation?.participants?.find(
-                        (p) => p.userId === senderRef,
-                    )?.avatarUrl,
-                ),
-                conversationId:
-                    m.conversationId || selectedConversationId || undefined,
-                content: m.content || '',
-                timestamp:
-                    typeof m.createdAt === 'string'
-                        ? m.createdAt
-                        : (m.createdAt?.toISOString() ??
-                          new Date().toISOString()),
-                isFile:
-                    messageType === 'FILE' ||
-                    messageType === 'IMAGE' ||
-                    messageType === 'VIDEO' ||
-                    messageType === 'file' ||
-                    messageType === 'image' ||
-                    messageType === 'video' ||
-                    messageType === 'audio',
-                fileUrl: mediaUrl,
-                fileName: m.fileName || attachment?.fileName,
-                fileType:
-                    mimeType ||
-                    (messageType === 'IMAGE' || messageType === 'image'
-                        ? 'image/*'
-                        : messageType === 'VIDEO' || messageType === 'video'
-                          ? 'video/*'
-                          : messageType === 'AUDIO' || messageType === 'audio'
-                            ? 'audio/*'
-                            : undefined),
-                // Backend may return either isRevoked or recalled depending on endpoint shape.
-                isRecalled:
-                    m.isRevoked === true ||
-                    (m as { recalled?: boolean }).recalled === true,
-                isPinned: m.isPinned,
-                pinnedAt:
-                    typeof m.pinnedAt === 'string'
-                        ? m.pinnedAt
-                        : m.pinnedAt?.toISOString(),
-                replyToMessageId: m.replyToMessageId || undefined,
-                replyToMessagePreview: m.replyToMessagePreview || null,
-                reactions: normalizeReactions(m.reactions),
-                type:
-                    messageType === 'CALL' || messageType === 'call'
-                        ? 'call'
-                        : messageType === 'IMAGE' || messageType === 'image'
-                          ? 'image'
-                          : messageType === 'VIDEO' || messageType === 'video'
-                            ? 'video'
-                            : messageType === 'FILE' || messageType === 'file'
-                              ? 'file'
-                              : messageType === 'AUDIO' ||
-                                  messageType === 'audio'
-                                ? 'audio'
-                                : 'text',
-                callData:
-                    m.callData ||
-                    (messageType === 'CALL' || messageType === 'call'
-                        ? {
-                              callType: 'audio',
-                              callStatus: 'completed',
-                              duration: 0,
-                              isInitiator: senderRef === USER_ID,
-                              wasRejected: false,
-                          }
-                        : undefined),
-            };
-        },
-    );
+      return {
+        id:
+          persistedMessageId ||
+          m.clientMessageId ||
+          `${m.senderBy || "unknown"}_${String(m.createdAt || idx)}`,
+        clientMessageId: m.clientMessageId,
+        senderId: senderRef,
+        senderName: getSenderName(senderRef),
+        senderAvatar: toAbsoluteMediaUrl(
+          selectedConversation?.participants?.find(
+            (p) => p.userId === senderRef,
+          )?.avatarUrl,
+        ),
+        conversationId: m.conversationId || selectedConversationId || undefined,
+        content: m.content || "",
+        timestamp:
+          typeof m.createdAt === "string"
+            ? m.createdAt
+            : (m.createdAt?.toISOString() ?? new Date().toISOString()),
+        messageType: m.messageType,
+        isFile:
+          messageType === "FILE" ||
+          messageType === "IMAGE" ||
+          messageType === "VIDEO" ||
+          messageType === "file" ||
+          messageType === "image" ||
+          messageType === "video" ||
+          messageType === "audio",
+        fileUrl: mediaUrl,
+        fileName: m.fileName || attachment?.fileName,
+        fileType:
+          mimeType ||
+          (messageType === "IMAGE" || messageType === "image"
+            ? "image/*"
+            : messageType === "VIDEO" || messageType === "video"
+              ? "video/*"
+              : messageType === "AUDIO" || messageType === "audio"
+                ? "audio/*"
+                : undefined),
+        // Backend may return either isRevoked or recalled depending on endpoint shape.
+        isRecalled:
+          m.isRevoked === true ||
+          (m as { recalled?: boolean }).recalled === true,
+        isPinned: m.isPinned,
+        pinnedAt:
+          typeof m.pinnedAt === "string"
+            ? m.pinnedAt
+            : m.pinnedAt?.toISOString(),
+        replyToMessageId: m.replyToMessageId || undefined,
+        replyToMessagePreview: m.replyToMessagePreview || null,
+        reactions: normalizeReactions(m.reactions),
+        type:
+          messageType === "CALL" || messageType === "call"
+            ? "call"
+            : messageType === "IMAGE" || messageType === "image"
+              ? "image"
+              : messageType === "VIDEO" || messageType === "video"
+                ? "video"
+                : messageType === "FILE" || messageType === "file"
+                  ? "file"
+                  : messageType === "AUDIO" || messageType === "audio"
+                    ? "audio"
+                    : "text",
+        callData:
+          m.callData ||
+          (messageType === "CALL" || messageType === "call"
+            ? {
+                callType: "audio",
+                callStatus: "completed",
+                duration: 0,
+                isInitiator: senderRef === USER_ID,
+                wasRejected: false,
+              }
+            : undefined),
+      };
+    },
+  );
 
     const mergedMessages: SocketMessage[] = [
         ...paginatedAsSocketMessages,
@@ -2659,9 +2807,167 @@ export const ChatPage: React.FC = () => {
             };
         });
 
-    useEffect(() => {
-        console.log('[ChatPage] displayMessages:', displayMessages);
-    }, [displayMessages]);
+  useEffect(() => {
+    let mounted = true;
+    orionAiService
+      .getSettings()
+      .then((settings) => {
+        if (mounted) {
+          setSmartEmotionEnabled(!!settings.smartEmotionDetection);
+          setAutoWorkflowEnabled(settings.autoWorkflowSuggestions !== false);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setSmartEmotionEnabled(false);
+          setAutoWorkflowEnabled(true);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!smartEmotionEnabled) {
+      emotionAttemptedMessageIdsRef.current.clear();
+      setEmotionByMessageId((prev) =>
+        Object.keys(prev).length > 0 ? {} : prev,
+      );
+      return;
+    }
+
+    const candidates = displayMessages
+      .filter(
+        (message) =>
+          message.senderId !== USER_ID &&
+          !message.isRecalled &&
+          !message.isDeleted &&
+          message.content.trim().length > 0,
+      )
+      .slice(-12)
+      .filter(
+        (message) =>
+          !emotionByMessageId[message.id] &&
+          !emotionAttemptedMessageIdsRef.current.has(message.id),
+      );
+
+    if (candidates.length === 0) return;
+
+    let cancelled = false;
+    candidates.forEach((message) => {
+      emotionAttemptedMessageIdsRef.current.add(message.id);
+    });
+
+    void Promise.all(
+      candidates.map(async (message) => {
+        try {
+          const result = await orionAiService.detectEmotion({
+            messageId: /^[a-f0-9]{24}$/i.test(message.id)
+              ? message.id
+              : undefined,
+            text: /^[a-f0-9]{24}$/i.test(message.id)
+              ? undefined
+              : message.content,
+          });
+          const label =
+            String(result.cards[0]?.title || result.meta.label || "neutral") ||
+            "neutral";
+          return {
+            id: message.id,
+            hint: {
+              label,
+              icon: result.cards[0]?.icon,
+              summary: result.summary,
+              tone: result.cards[0]?.tone,
+            },
+          };
+        } catch {
+          return null;
+        }
+      }),
+    ).then((items) => {
+      if (cancelled) return;
+      const detectedItems = items.filter(
+        (item): item is NonNullable<typeof item> => !!item,
+      );
+      if (detectedItems.length === 0) return;
+
+      setEmotionByMessageId((prev) => {
+        const next = { ...prev };
+        let hasChanges = false;
+
+        detectedItems.forEach((item) => {
+          if (prev[item.id] !== item.hint) {
+            next[item.id] = item.hint;
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? next : prev;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [displayMessages, emotionByMessageId, smartEmotionEnabled, USER_ID]);
+
+  const runAiAction = useCallback(
+    async (runner: () => Promise<AiGridResponse>) => {
+      try {
+        setIsAiLoading(true);
+        setAiResult(await runner());
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "AI request failed");
+      } finally {
+        setIsAiLoading(false);
+      }
+    },
+    [],
+  );
+
+  const handleAISummarize = useCallback(
+    (
+      mode: "range" | "unread",
+      rangeMonths?: 1 | 2 | 3,
+      conversationId = selectedConversationId,
+    ) => {
+      if (!conversationId) return;
+      void runAiAction(() =>
+        orionAiService.summarizeConversation({
+          conversationId,
+          mode,
+          rangeMonths,
+        }),
+      );
+    },
+    [runAiAction, selectedConversationId],
+  );
+
+  const handleAIReplySuggestions = useCallback(
+    (conversationId = selectedConversationId) => {
+      if (!conversationId) return;
+      void runAiAction(() =>
+        orionAiService.suggestReplies({
+          conversationId,
+          limit: 4,
+        }),
+      );
+    },
+    [runAiAction, selectedConversationId],
+  );
+
+  const handleAiResultAction = useCallback((action: AiAction) => {
+    if (action.type !== "copy_text") return;
+    const text =
+      typeof action.payload?.text === "string" ? action.payload.text : "";
+    if (text) {
+      setComposerDraftText(text);
+      setAiResult(null);
+    }
+  }, []);
 
     const currentPinnedMessages = useMemo(() => {
         if (!selectedConversationId) return [];
@@ -2734,26 +3040,32 @@ export const ChatPage: React.FC = () => {
         }
     }, []);
 
-    return (
-        <div className="flex h-screen gap-4 bg-gray-50 p-4">
-            {/* Sidebar */}
-            <ChatSidebarWithConversationService
-                conversations={conversations}
-                selectedConversationId={selectedConversationId}
-                onSelectConversation={handleSelectConversation}
-                loading={conversationsLoading}
-                error={conversationsError}
-                onAddFriendClick={handleOpenAddFriend}
-                onCreateGroupClick={handleOpenCreateGroupModal}
-            />
+  return (
+    <div className="flex h-screen gap-4 bg-gray-50 p-4" style={chatThemeVars}>
+      {/* Sidebar */}
+      <ChatSidebarWithConversationService
+        conversations={conversations}
+        selectedConversationId={selectedConversationId}
+        onSelectConversation={handleSelectConversation}
+        loading={conversationsLoading}
+        error={conversationsError}
+        onAddFriendClick={handleOpenAddFriend}
+        onCreateGroupClick={handleOpenCreateGroupModal}
+        onAISummarizeConversation={(conversationId, mode, rangeMonths) =>
+          handleAISummarize(mode, rangeMonths, conversationId)
+        }
+        onAIReplySuggestions={(conversationId) =>
+          handleAIReplySuggestions(conversationId)
+        }
+      />
 
-            {/* Main chat area */}
-            <div className="flex flex-1 flex-col rounded-lg bg-white shadow-sm">
-                {isConnecting && (
-                    <div className="border-b border-gray-200 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-                        Connecting to chat...
-                    </div>
-                )}
+      {/* Main chat area */}
+      <div className="flex flex-1 flex-col rounded-lg bg-white shadow-sm">
+        {isConnecting && (
+          <div className="border-b border-[var(--chat-primary-border)] bg-[var(--chat-primary-bg)] px-4 py-2 text-sm text-[var(--chat-primary)]">
+            Connecting to chat...
+          </div>
+        )}
 
                 {error && (
                     <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
@@ -2896,91 +3208,112 @@ export const ChatPage: React.FC = () => {
                             </div>
                         )}
 
-                        <MessageList
-                            socketMessages={displayMessages}
-                            currentUserId={USER_ID}
-                            conversationId={selectedConversationId}
-                            onCallBackMessage={handleCallBackMessage}
-                            onRecallMessage={handleRequestRecallMessage}
-                            onDeleteMessage={handleRequestDeleteMessage}
-                            onForwardMessage={handleOpenForwardModal}
-                            onReactMessage={handleReactMessage}
-                            onReplyMessage={handleReplyMessage}
-                            onTogglePinMessage={handleTogglePinMessage}
-                        />
+            <MessageList
+              socketMessages={displayMessages}
+              currentUserId={USER_ID}
+              conversationId={selectedConversationId}
+              onCallBackMessage={handleCallBackMessage}
+              onRecallMessage={handleRequestRecallMessage}
+              onDeleteMessage={handleRequestDeleteMessage}
+              onForwardMessage={handleOpenForwardModal}
+              onReactMessage={handleReactMessage}
+              onReplyMessage={handleReplyMessage}
+              onTogglePinMessage={handleTogglePinMessage}
+              onAISummarize={handleAISummarize}
+              onAIReplySuggestions={handleAIReplySuggestions}
+              emotionByMessageId={emotionByMessageId}
+            />
 
-                        {/* Input */}
-                        <ChatInput
-                            onSend={handleSend}
-                            onSendFile={handleSendFile}
-                            onTypingChange={emitTyping}
-                            isBlocked={iAmBlocked || iAmTheBlocker}
-                            canUnblock={iAmTheBlocker}
-                            onUnblock={handleUnblockUser}
-                            replyDraft={
-                                replyDraft &&
-                                replyDraft.conversationId ===
-                                    selectedConversationId
-                                    ? replyDraft
-                                    : null
-                            }
-                            onCancelReply={() => setReplyDraft(null)}
-                        />
-                    </>
-                ) : (
-                    <div className="flex flex-1 items-center justify-center text-gray-400">
-                        {conversationsLoading ? (
-                            <div>Loading conversations...</div>
-                        ) : conversations.length === 0 ? (
-                            <div>No conversations yet. Start a new chat!</div>
-                        ) : (
-                            <div>Select a conversation to start chatting</div>
-                        )}
-                    </div>
-                )}
-            </div>
+            {/* Input */}
+            <ChatInput
+              onSend={handleSend}
+              onSendFile={handleSendFile}
+              onTypingChange={emitTyping}
+              isBlocked={iAmBlocked || iAmTheBlocker}
+              canUnblock={iAmTheBlocker}
+              onUnblock={handleUnblockUser}
+              replyDraft={
+                replyDraft &&
+                replyDraft.conversationId === selectedConversationId
+                  ? replyDraft
+                  : null
+              }
+              onCancelReply={() => setReplyDraft(null)}
+              draftText={composerDraftText}
+              onDraftTextApplied={() => setComposerDraftText("")}
+            />
+          </>
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-gray-400">
+            {conversationsLoading ? (
+              <div>Loading conversations...</div>
+            ) : conversations.length === 0 ? (
+              <div>No conversations yet. Start a new chat!</div>
+            ) : (
+              <div>Select a conversation to start chatting</div>
+            )}
+          </div>
+        )}
+      </div>
 
-            {/* Right panel: SearchModal thay cho ConversationInfoPanel khi dang tim kiem */}
-            {selectedConversation && isSearchOpen ? (
-                <SearchModal
-                    isOpen={isSearchOpen}
-                    onClose={() => setIsSearchOpen(false)}
-                    messages={displayMessages}
-                    currentUserId={USER_ID}
-                    onSelectMessage={jumpToMessage}
-                />
-            ) : selectedConversation && isInfoPanelOpen ? (
-                selectedConversation.type === 'GROUP' ? (
-                    <ConversationGroupInfoPanel
-                        isSidebarOpen={true}
-                        selectedConversation={selectedConversation}
-                        displayMessages={displayMessages}
-                        openEditAvatarTick={openGroupInfoEditTick}
-                        onConversationRemoved={handleGroupConversationRemoved}
-                        onJumpToMessage={jumpToMessage}
-                        onForwardMessage={handleOpenForwardModal}
-                    />
-                ) : (
-                    <ConversationInfoPanel
-                        isSidebarOpen={true}
-                        selectedConversation={selectedConversation}
-                        displayMessages={displayMessages}
-                        currentUserId={USER_ID}
-                        onBlockStatusChange={loadBlockStatus}
-                        onJumpToMessage={jumpToMessage}
-                        onForwardMessage={handleOpenForwardModal}
-                        onPinStatusChange={refreshConversations}
-                        onConversationCreated={async (conversation) => {
-                            if (conversation?.conversationId) {
-                                setSelectedConversationId(
-                                    conversation.conversationId,
-                                );
-                            }
-                            await refreshConversations();
-                        }}
-                    />
-                )
-            ) : null}
+      {/* Right panel: SearchModal thay cho ConversationInfoPanel khi dang tim kiem */}
+      {selectedConversation && isSearchOpen ? (
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          messages={displayMessages}
+          currentUserId={USER_ID}
+          onSelectMessage={jumpToMessage}
+        />
+      ) : selectedConversation && isInfoPanelOpen ? (
+        selectedConversation.type === "GROUP" ? (
+          <ConversationGroupInfoPanel
+            isSidebarOpen={true}
+            selectedConversation={selectedConversation}
+            displayMessages={displayMessages}
+            openEditAvatarTick={openGroupInfoEditTick}
+            onConversationRemoved={handleGroupConversationRemoved}
+            onJumpToMessage={jumpToMessage}
+            onForwardMessage={handleOpenForwardModal}
+          />
+        ) : (
+          <ConversationInfoPanel
+            isSidebarOpen={true}
+            selectedConversation={selectedConversation}
+            displayMessages={displayMessages}
+            currentUserId={USER_ID}
+            onBlockStatusChange={loadBlockStatus}
+            onJumpToMessage={jumpToMessage}
+            onForwardMessage={handleOpenForwardModal}
+            onPinStatusChange={refreshConversations}
+            onConversationCreated={async (conversation) => {
+              if (conversation?.conversationId) {
+                setSelectedConversationId(conversation.conversationId);
+              }
+              await refreshConversations();
+            }}
+          />
+        )
+      ) : null}
+
+      {(aiResult || isAiLoading) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+          <div className="max-h-[82vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-3 shadow-2xl">
+            {isAiLoading && (
+              <div className="rounded-lg border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
+                AI is thinking...
+              </div>
+            )}
+            {aiResult && (
+              <AIGridResult
+                result={aiResult}
+                onClose={() => setAiResult(null)}
+                onAction={handleAiResultAction}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
             <Modal
                 isOpen={isForwardModalOpen}
@@ -3001,58 +3334,54 @@ export const ChatPage: React.FC = () => {
                         </div>
                     )}
 
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-700">
-                            Chọn cuộc trò chuyện riêng
-                        </label>
-                        <select
-                            value={forwardTargetConversationId}
-                            onChange={(e) =>
-                                setForwardTargetConversationId(e.target.value)
-                            }
-                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                        >
-                            <option value="">-- Chọn cuộc trò chuyện --</option>
-                            {forwardableConversations.map((conversation) => (
-                                <option
-                                    key={conversation.conversationId}
-                                    value={conversation.conversationId}
-                                >
-                                    {getConversationDisplayName(
-                                        conversation.conversationId,
-                                    )}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+          <div>
+            <label className="mb-2 block text-sm font-medium text-slate-700">
+              Chọn cuộc trò chuyện riêng
+            </label>
+            <select
+              value={forwardTargetConversationId}
+              onChange={(e) => setForwardTargetConversationId(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[var(--chat-primary)] focus:outline-none"
+            >
+              <option value="">-- Chọn cuộc trò chuyện --</option>
+              {forwardableConversations.map((conversation) => (
+                <option
+                  key={conversation.conversationId}
+                  value={conversation.conversationId}
+                >
+                  {getConversationDisplayName(conversation.conversationId)}
+                </option>
+              ))}
+            </select>
+          </div>
 
-                    <div className="flex justify-end gap-2">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsForwardModalOpen(false);
-                                setForwardingMessage(null);
-                                setForwardTargetConversationId('');
-                            }}
-                            className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleForwardMessage}
-                            disabled={
-                                !forwardTargetConversationId ||
-                                isForwarding ||
-                                forwardableConversations.length === 0
-                            }
-                            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            {isForwarding ? 'Đang chuyển...' : 'Chuyển tiếp'}
-                        </button>
-                    </div>
-                </div>
-            </Modal>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsForwardModalOpen(false);
+                setForwardingMessage(null);
+                setForwardTargetConversationId("");
+              }}
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={handleForwardMessage}
+              disabled={
+                !forwardTargetConversationId ||
+                isForwarding ||
+                forwardableConversations.length === 0
+              }
+              className="rounded-lg bg-[var(--chat-primary)] px-3 py-2 text-sm text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-50"
+            >
+              {isForwarding ? "Đang chuyển..." : "Chuyển tiếp"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
             <CreateGroupModal
                 isOpen={isCreateGroupModalOpen}

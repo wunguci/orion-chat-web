@@ -6,6 +6,7 @@ import { GroupCallProvider } from "../../contexts/GroupCallContext";
 import { IncomingCallModal } from "../call/IncomingCallModal";
 import { IncomingGroupCallModal } from "../call/IncomingGroupCallModal";
 import { CallModal } from "../call/CallModal";
+import { StreamVideoProvider } from "../../contexts/StreamVideoContext";
 // import { getUser } from "../../utils/token";
 import { useAuth } from "../../hooks/useAuth";
 import socketService from "../../services/socket";
@@ -14,7 +15,7 @@ export const MainLayout = () => {
   const { isAuthenticated, user } = useAuth();
   const userId =
     user?.userId || user?.id || localStorage.getItem("userId") || "";
-  const userName = user?.name || "User";
+  const userName = user?.fullName || user?.phoneNumber || "User";
 
   useEffect(() => {
     if (!isAuthenticated || !user || !userId) {
@@ -36,7 +37,8 @@ export const MainLayout = () => {
   }
 
   return (
-    <CallProvider userId={userId}>
+    <StreamVideoProvider user={user}>
+      <CallProvider userId={userId}>
       <GroupCallProvider userId={userId} userName={userName}>
         <div className="flex h-screen overflow-hidden bg-white">
           {/* Sidebar  */}
@@ -53,6 +55,7 @@ export const MainLayout = () => {
         <IncomingGroupCallModal />
         <CallModal />
       </GroupCallProvider>
-    </CallProvider>
+      </CallProvider>
+    </StreamVideoProvider>
   );
 };

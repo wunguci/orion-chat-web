@@ -1,5 +1,5 @@
 /*eslint-disable*/
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { Workspace } from '../../types/work-hub.types';
 import type { WorkspaceResponse } from '../../features/work-hub/work-hub.api.types';
@@ -7,6 +7,10 @@ import { workHubApi } from '../../features/work-hub/work-hub.api';
 import { mapWorkspace } from '../../features/work-hub/work-hub.mappers';
 import { getUser } from '../../utils/token';
 import BoardFormDialog from '../work-hub/workspace/BoardFormDialog';
+import {
+    dispatchWorkhubWorkspaceUpdated,
+    onWorkhubWorkspaceUpdated,
+} from '../../utils/workhubEvents';
 
 interface SideBarWorkHubProps {
     workspaceId: string;
@@ -21,13 +25,23 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
     const [allWorkspaces, setAllWorkspaces] = useState<WorkspaceResponse[]>([]);
     const switcherRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
+    const loadWorkspace = useCallback(() => {
         if (!workspaceId) return;
         workHubApi
             .getWorkspace(workspaceId)
             .then((data) => setWorkspace(mapWorkspace(data)))
             .catch(() => setWorkspace(null));
     }, [workspaceId]);
+
+    useEffect(() => {
+        loadWorkspace();
+    }, [loadWorkspace]);
+
+    useEffect(() => {
+        return onWorkhubWorkspaceUpdated((updatedWorkspaceId) => {
+            if (updatedWorkspaceId === workspaceId) loadWorkspace();
+        });
+    }, [workspaceId, loadWorkspace]);
 
     useEffect(() => {
         if (!showWorkspaceSwitcher) return;
@@ -185,6 +199,7 @@ const SideBarWorkHub = ({ workspaceId }: SideBarWorkHubProps) => {
             });
             const wsData = await workHubApi.getWorkspace(workspaceId);
             setWorkspace(mapWorkspace(wsData));
+            dispatchWorkhubWorkspaceUpdated(workspaceId);
             setShowCreateBoard(false);
         } catch (err) {
             console.error('Failed to create board:', err);

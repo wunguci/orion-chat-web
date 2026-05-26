@@ -1,6 +1,7 @@
 import { Socket } from "socket.io-client";
 import { socketService, chatSocketService, sendMessage } from "../services/socket";
 import { useGroupCall } from "../hooks/useGroupCall";
+import { useStreamVideoRuntime } from "./StreamVideoContext";
 import type {
   GroupCallState,
   GroupCallParticipant,
@@ -49,6 +50,8 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
   userId,
   userName = "User",
 }) => {
+  const streamVideoRuntime = useStreamVideoRuntime();
+  const streamVideoEnabled = streamVideoRuntime.clientReady;
   const [callState, setCallState] = useState<GroupCallState>({
     callId: null,
     conversationId: null,
@@ -263,11 +266,9 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
 
       // Tạo peer connection cho participant mới
       try {
-        const peerConnection = await createPeerForParticipant(
-          data.userId,
-          data.userName,
-          false,
-        );
+        if (!getAllParticipantIds().includes(data.userId)) {
+          await createPeerForParticipant(data.userId, data.userName, false);
+        }
 
         // Tạo offer và gửi
         const offer = await createOfferForParticipant(data.userId);
@@ -323,6 +324,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
 
     // Listen to group call offer
     const handleGroupCallOffer = async (data: GroupCallOfferData) => {
+      if (streamVideoEnabled) return;
       if (data.callId !== currentCallIdRef.current) return;
 
       console.log(
@@ -361,6 +363,8 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
 
     // Listen to group call answer
     const handleGroupCallAnswer = async (data: GroupCallAnswerData) => {
+      if (streamVideoEnabled) return;
+      if (data.callId !== currentCallIdRef.current) return;
       try {
         console.log(`[GroupCallContext] Received answer from ${data.responderId}`);
         await handleAnswerFromParticipant(data.responderId, data.answer);
@@ -372,6 +376,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
 
     // Listen to ICE candidates
     const handleGroupCallIceCandidate = async (data: GroupCallIceCandidateData) => {
+      if (streamVideoEnabled) return;
       try {
         await addIceCandidateForParticipant(data.fromUserId, data.candidate);
       } catch (error) {
@@ -419,7 +424,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
       socket.off("groupcall:ended", handleGroupCallEnded);
       socket.off("groupcall:error", handleGroupCallError);
     };
-  }, [userId, createPeerForParticipant, handleOfferFromParticipant, handleAnswerFromParticipant, addIceCandidateForParticipant, removeParticipant, getAllParticipantIds, persistGroupCallHistory]);
+  }, [userId, createPeerForParticipant, handleOfferFromParticipant, handleAnswerFromParticipant, addIceCandidateForParticipant, removeParticipant, getAllParticipantIds, persistGroupCallHistory, streamVideoEnabled]);
 
   // Initiate group call
   const initiateGroupCall = useCallback(
@@ -452,11 +457,12 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         }));
         hasPersistedCallHistoryRef.current = false;
 
-        // Lấy local stream
-        console.log("[GroupCallContext] Getting local stream...");
-        const stream = await getLocalStream(callType === "video", true);
-        console.log("[GroupCallContext] Got local stream:", stream?.id);
-        setCallState((prev) => ({ ...prev, localStream: stream }));
+        if (!streamVideoEnabled) {
+          console.log("[GroupCallContext] Getting local stream...");
+          const stream = await getLocalStream(callType === "video", true);
+          console.log("[GroupCallContext] Got local stream:", stream?.id);
+          setCallState((prev) => ({ ...prev, localStream: stream }));
+        }
 
         // Phát sự kiện khởi tạo group call và chờ xác nhận
         return new Promise<void>((resolve, reject) => {
@@ -496,18 +502,20 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
               console.log("[GroupCallContext] Creating peer connections...");
 
               // Tạo peer connections cho tất cả participants
-              for (const participant of data.participants) {
-                try {
-                  await createPeerForParticipant(
-                    participant.id,
-                    participant.name,
-                    true,
-                  );
-                } catch (error) {
-                  console.error(
-                    `[GroupCallContext] Error creating peer for ${participant.id}:`,
-                    error,
-                  );
+              if (!streamVideoEnabled) {
+                for (const participant of remoteParticipants) {
+                  try {
+                    await createPeerForParticipant(
+                      participant.id,
+                      participant.name,
+                      true,
+                    );
+                  } catch (error) {
+                    console.error(
+                      `[GroupCallContext] Error creating peer for ${participant.id}:`,
+                      error,
+                    );
+                  }
                 }
               }
 
@@ -556,7 +564,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         throw error;
       }
     },
-    [getLocalStream, createPeerForParticipant, userName, cleanupCall, persistGroupCallHistory],
+    [getLocalStream, createPeerForParticipant, userName, cleanupCall, persistGroupCallHistory, streamVideoEnabled],
   );
 
   // Join group call
@@ -588,12 +596,13 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
           participants: initialParticipants,
         }));
 
-        // Lấy local stream
-        const stream = await getLocalStream(
-          incomingCall.callType === "video",
-          true,
-        );
-        setCallState((prev) => ({ ...prev, localStream: stream }));
+        if (!streamVideoEnabled) {
+          const stream = await getLocalStream(
+            incomingCall.callType === "video",
+            true,
+          );
+          setCallState((prev) => ({ ...prev, localStream: stream }));
+        }
 
         // Phát sự kiện tham gia group call
         const currentSocket = callSocketRef.current;
@@ -609,7 +618,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         });
 
         // Tạo peer connections cho các participant hiện tại
-        if (incomingCall.participants) {
+        if (!streamVideoEnabled && incomingCall.participants) {
           for (const participant of incomingCall.participants) {
             if (participant.id !== userId) {
               try {
@@ -638,7 +647,7 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
         }));
       }
     },
-    [userId, userName, incomingCall, getLocalStream, createPeerForParticipant],
+    [userId, userName, incomingCall, getLocalStream, createPeerForParticipant, streamVideoEnabled],
   );
 
   // Accept group call (compatibility with 1-1 interface)

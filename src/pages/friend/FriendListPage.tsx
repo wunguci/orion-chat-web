@@ -361,6 +361,11 @@ const FriendListPage = () => {
             : f,
         ),
       );
+      setRecentlyActive((prev) =>
+        prev.map((item) =>
+          item.id === onlineUserId ? { ...item, isActive: true } : item,
+        ),
+      );
     };
 
     const onOffline = ({ userId: offlineUserId }: { userId: string }) => {
@@ -376,6 +381,11 @@ const FriendListPage = () => {
             : f,
         ),
       );
+      setRecentlyActive((prev) =>
+        prev.map((item) =>
+          item.id === offlineUserId ? { ...item, isActive: false } : item,
+        ),
+      );
     };
 
     const onOnlineList = ({ users }: { users: string[] }) => {
@@ -386,6 +396,12 @@ const FriendListPage = () => {
           isOnline: onlineSet.has(f.id),
           status: onlineSet.has(f.id) ? "online" : "offline",
           subtext: onlineSet.has(f.id) ? "Online" : "Offline",
+        })),
+      );
+      setRecentlyActive((prev) =>
+        prev.map((item) => ({
+          ...item,
+          isActive: onlineSet.has(item.id),
         })),
       );
     };
@@ -461,7 +477,10 @@ const FriendListPage = () => {
     };
   };
 
-  const handleSendFriendRequest = async (targetUserId: string) => {
+  const handleSendFriendRequest = async (
+    targetUserId: string,
+    _message?: string,
+  ) => {
     if (!userId) return;
     await friendListService.sendFriendRequest(userId, targetUserId);
     setPendingSentRequestIds((prev) => {
@@ -666,12 +685,47 @@ const FriendListPage = () => {
     setPendingRemoveFriendId(null);
   };
 
-  const handleMessageFromProfile = (friendId: string) => {
+  const handleMessageFromProfile = async (friendId: string) => {
     setIsInfoModalOpen(false);
     setSelectedFriendProfile(null);
-    window.alert(
-      `Messaging ${friendId} will provide support in the next step.`,
-    );
+
+    try {
+      const conversationId = await createOrOpenConversation(friendId);
+      if (!conversationId) {
+        window.alert("Failed to open conversation. Please try again.");
+        return;
+      }
+
+      navigate("/chat", {
+        state: { selectedConversationId: conversationId },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to open conversation";
+      window.alert(message);
+    }
+  };
+
+  const handleDirectMessageSearch = async (friendId: string) => {
+    try {
+      const conversationId = await createOrOpenConversation(friendId);
+      if (!conversationId) {
+        setChatErrorMessage("Failed to open conversation. Please try again.");
+        return;
+      }
+
+      navigate("/chat", {
+        state: { selectedConversationId: conversationId },
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to open conversation";
+      setChatErrorMessage(errorMessage);
+    }
   };
 
   const handleUnblockFriend = async (friendId: string) => {
@@ -829,6 +883,7 @@ const FriendListPage = () => {
         }}
         onSearchByPhone={handleSearchByPhone}
         onSendFriendRequest={handleSendFriendRequest}
+        onDirectMessageSearch={handleDirectMessageSearch}
         onAcceptFriendRequest={handleAcceptFriendRequest}
         onDeclineFriendRequest={handleDeclineFriendRequest}
         onAcceptGroupInvite={handleAcceptGroupInvite}

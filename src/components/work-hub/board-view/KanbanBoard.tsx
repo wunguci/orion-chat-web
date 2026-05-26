@@ -70,9 +70,10 @@ const KanbanBoard = ({
       .filter((t) => t.columnId === columnId)
       .sort((a, b) => a.order - b.order);
 
-  const handleDrop = (columnId: string, column: BoardColumn) => {
-    if (draggedItemId) {
-      onTaskMove(draggedItemId, columnId, column.status);
+  const handleDrop = (taskId: string, columnId: string, column: BoardColumn) => {
+    const nextTaskId = taskId || draggedItemId;
+    if (nextTaskId) {
+      onTaskMove(nextTaskId, columnId, column.status);
     }
     handleDragEnd();
   };
@@ -106,7 +107,7 @@ const KanbanBoard = ({
             key={column.id}
             column={column}
             tasks={getTasksByColumn(column.id)}
-            onDrop={() => handleDrop(column.id, column)}
+            onDrop={(taskId) => handleDrop(taskId, column.id, column)}
             onTaskClick={onTaskClick}
             onAddTask={() => onAddTask(column.id)}
             onDragStart={(taskId) => {

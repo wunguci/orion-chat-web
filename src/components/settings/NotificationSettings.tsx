@@ -39,18 +39,25 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-5">
-        <span className="text-[28px] font-bold text-gray-primary">
+        <span className="text-[28px] font-bold text-[var(--settings-text)]">
           Notifications
         </span>
 
         {/* Mute all notifications */}
-        <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-green-border-light">
+        <div className={clsx(
+          "flex items-center justify-between px-4 py-3 rounded-xl border",
+          formData.muteAll
+            ? "border-[var(--settings-primary)] bg-[var(--settings-primary-bg)]"
+            : "border-[var(--settings-primary-border)]",
+        )}>
           <div>
-            <p className="font-bold text-gray-primary text-lg">
+            <p className="font-bold text-[var(--settings-text)] text-lg">
               Mute all notifications
             </p>
-            <p className="text-sm text-gray-primary">
-              Temporarily silence all notifications
+            <p className="text-sm text-[var(--settings-text)]">
+              {formData.muteAll
+                ? "All notifications are currently muted — turn this off to receive notifications"
+                : "Temporarily silence all notifications"}
             </p>
           </div>
           <ToggleSwitch
@@ -60,12 +67,18 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
         </div>
       </div>
 
+      {/* Individual notification sections — disabled when muteAll is on */}
+      <div className={clsx(
+        "flex flex-col gap-8",
+        formData.muteAll && "opacity-40 pointer-events-none select-none",
+      )}>
+
       {/* Message Notifications */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Message Notifications
         </span>
-        <div className="flex flex-col gap-2 rounded-2xl overflow-hidden border border-green-border-light">
+        <div className="flex flex-col gap-2 rounded-2xl overflow-hidden border border-[var(--settings-primary-border)]">
           {[
             {
               label: "Message Notifications",
@@ -83,16 +96,16 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
             <div
               key={field}
               className={clsx(
-                "flex items-center justify-between px-4 py-3 bg-green-bg-light",
+                "flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)]",
                 index === 0 && "rounded-t-lg",
                 index === 1 && "rounded-b-lg",
               )}
             >
               <div className="flex items-center gap-3">
-                <Icon size={24} className="text-green-primary" />
+                <Icon size={24} className="text-[var(--settings-primary)]" />
                 <div>
-                  <p className="font-semibold text-gray-primary">{label}</p>
-                  <p className="text-sm text-gray-primary">{description}</p>
+                  <p className="font-semibold text-[var(--settings-text)]">{label}</p>
+                  <p className="text-sm text-[var(--settings-text)]">{description}</p>
                 </div>
               </div>
               <ToggleSwitch
@@ -106,10 +119,10 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
 
       {/* Group Notifications */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Group Notifications
         </span>
-        <div className="flex flex-col gap-2 rounded-2xl overflow-hidden border border-green-border-light">
+        <div className="flex flex-col gap-2 rounded-2xl overflow-hidden border border-[var(--settings-primary-border)]">
           {[
             {
               label: "Group Notifications",
@@ -125,14 +138,14 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
             <div
               key={field}
               className={clsx(
-                "flex items-center justify-between px-4 py-3 bg-green-bg-light",
+                "flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)]",
                 index === 0 && "rounded-t-lg",
                 index === 1 && "rounded-b-lg",
               )}
             >
               <div>
-                <p className="font-semibold text-gray-primary">{label}</p>
-                <p className="text-sm text-gray-primary">{description}</p>
+                <p className="font-semibold text-[var(--settings-text)]">{label}</p>
+                <p className="text-sm text-[var(--settings-text)]">{description}</p>
               </div>
               <ToggleSwitch
                 checked={formData[field as keyof typeof formData] as boolean}
@@ -145,15 +158,15 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
 
       {/* Call Notifications */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">Call</span>
-        <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">Call</span>
+        <div className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]">
           <div className="flex items-center gap-3">
-            <Bell size={24} className="text-green-primary" />
+            <Bell size={24} className="text-[var(--settings-primary)]" />
             <div>
-              <p className="font-semibold text-gray-primary">
+              <p className="font-semibold text-[var(--settings-text)]">
                 Call Notifications
               </p>
-              <p className="text-sm text-gray-primary">
+              <p className="text-sm text-[var(--settings-text)]">
                 Receive notifications for incoming calls
               </p>
             </div>
@@ -165,19 +178,21 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
         </div>
       </div>
 
+      </div>{/* end muteAll wrapper */}
+
       {/* Notification Sound */}
       <div className="flex flex-col gap-3">
-        <span className="text-[22px] font-bold text-gray-primary">
+        <span className="text-[22px] font-bold text-[var(--settings-text)]">
           Sound Settings
         </span>
-        <div className="flex items-center justify-between px-4 py-3 bg-green-bg-light rounded-xl border border-green-border-light">
+        <div className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]">
           <div className="flex items-center gap-3">
-            <Play size={24} className="text-green-primary" />
+            <Play size={24} className="text-[var(--settings-primary)]" />
             <div>
-              <p className="font-semibold text-gray-primary">
+              <p className="font-semibold text-[var(--settings-text)]">
                 Notification Sound
               </p>
-              <p className="text-sm text-gray-primary">
+              <p className="text-sm text-[var(--settings-text)]">
                 Choose the sound for notifications
               </p>
             </div>
@@ -188,14 +203,14 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
               onChange={(e) =>
                 handleInputChange("notificationSound", e.target.value)
               }
-              className="px-4 py-2 border border-gray-200 rounded-lg text-gray-primary focus:outline-none"
+              className="px-4 py-2 border border-gray-200 rounded-lg text-[var(--settings-text)] focus:outline-none"
             >
               <option>Crystal Clear</option>
               <option>Bell</option>
               <option>Chime</option>
               <option>Ding</option>
             </select>
-            <button className="p-2 bg-green-primary text-white rounded-full hover:bg-green-primary/90">
+            <button className="p-2 bg-[var(--settings-primary)] text-white rounded-full hover:bg-[var(--settings-primary-hover)]">
               <Play size={20} />
             </button>
           </div>
@@ -203,14 +218,14 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-col gap-4 pt-4 border-t border-green-border-light">
+      <div className="flex flex-col gap-4 pt-4 border-t border-[var(--settings-primary-border)]">
         {saveError && (
           <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
             {saveError}
           </div>
         )}
         {saveSuccess && (
-          <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+          <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
             {saveSuccess}
           </div>
         )}

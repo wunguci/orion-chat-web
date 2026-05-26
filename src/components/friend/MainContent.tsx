@@ -33,12 +33,16 @@ interface MainContentProps {
   onViewSuggestedInfo: (friendId: string) => void;
   onViewRecentlyActiveInfo: (friendId: string) => void;
   onSearchByPhone: (phone: string) => Promise<Friend | null>;
-  onSendFriendRequest: (targetUserId: string, message: string) => Promise<void>;
+  onSendFriendRequest: (
+    targetUserId: string,
+    message?: string,
+  ) => Promise<void>;
   onAcceptFriendRequest: (requestId: string) => Promise<void>;
   onDeclineFriendRequest: (requestId: string) => Promise<void>;
   onAcceptGroupInvite: (inviteId: string) => Promise<void>;
   onDeclineGroupInvite: (inviteId: string) => Promise<void>;
   onOpenGroupChat?: (groupId: string) => void;
+  onDirectMessageSearch?: (friendId: string) => void;
 }
 
 const MainContent: React.FC<MainContentProps> = ({
@@ -61,6 +65,7 @@ const MainContent: React.FC<MainContentProps> = ({
   onAcceptGroupInvite,
   onDeclineGroupInvite,
   onOpenGroupChat,
+  onDirectMessageSearch,
 }) => {
   const [searchResult, setSearchResult] = useState<Friend | null>(null);
   const [sendingSuggestionIds, setSendingSuggestionIds] = useState<Set<string>>(
@@ -151,6 +156,7 @@ const MainContent: React.FC<MainContentProps> = ({
                   onSendFriendRequest={onSendFriendRequest}
                   isPending={pendingSentRequestIds.has(searchResult.id)}
                   onClose={() => setSearchResult(null)}
+                  onDirectMessage={onDirectMessageSearch}
                 />
               </section>
             )}

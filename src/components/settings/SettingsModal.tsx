@@ -9,6 +9,7 @@ import {
   ChevronRight,
   X,
   Loader,
+  Bot,
 } from "lucide-react";
 import clsx from "clsx";
 import { getUser, saveUserData } from "../../utils/token";
@@ -24,6 +25,12 @@ import PrivacySettings from "./PrivacySettings";
 import NotificationSettings from "./NotificationSettings";
 import AppearanceSettings from "./AppearanceSettings";
 import LinkedDevices from "./LinkedDevices";
+import {
+  buildAppearanceThemeVars,
+  getAppearanceColorFromWallpaper,
+  notifyAppearanceThemeChanged,
+} from "../../theme/appearance";
+import ToggleSwitch from "../common/ToggleSwitch";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -36,12 +43,27 @@ function toAbsoluteMediaUrl(url?: string | null): string | null {
   return `${API_BASE_URL}${url.startsWith("/") ? "" : "/"}${url}`;
 }
 
+type SettingsThemeVars = React.CSSProperties &
+  Record<`--settings-${string}`, string>;
+
+function buildSettingsThemeVars(
+  theme?: string | null,
+  appearanceColor?: string | null,
+): SettingsThemeVars {
+  return buildAppearanceThemeVars({
+    theme,
+    appearanceColor,
+    prefix: "settings",
+  }) as SettingsThemeVars;
+}
+
 type TabType =
   | "profile"
   | "privacy"
   | "notifications"
   | "appearance"
-  | "devices";
+  | "devices"
+  | "ai";
 
 interface SettingsModalProps {
   isOpen?: boolean;
@@ -76,11 +98,16 @@ export default function SettingsModal({
   const [formData, setFormData] = useState({
     // User Settings
     theme: "light",
+    appearanceColor: "green",
     fontSize: 16,
     fontFamily: "default",
     accentColor: "#2ab3b3",
     wallpaper: "teal",
     textSize: "medium",
+    smartEmotionDetection: false,
+    autoWorkflowSuggestions: true,
+    aiMemoryEnabled: true,
+    enabledAgents: [] as string[],
 
     // Notification Settings
     groupNotifications: true,
@@ -142,10 +169,17 @@ export default function SettingsModal({
       setFormData((prev) => ({
         ...prev,
         theme: userSettings.settings?.theme || "light",
+        appearanceColor: userSettings.settings?.appearanceColor || "green",
         fontSize: userSettings.settings?.fontSize || 16,
         fontFamily: userSettings.settings?.fontFamily || "default",
         accentColor: userSettings.settings?.accentColor || "#2ab3b3",
         wallpaper: userSettings.settings?.wallpaper || "teal",
+        smartEmotionDetection:
+          userSettings.settings?.smartEmotionDetection ?? false,
+        autoWorkflowSuggestions:
+          userSettings.settings?.autoWorkflowSuggestions ?? true,
+        aiMemoryEnabled: userSettings.settings?.aiMemoryEnabled ?? true,
+        enabledAgents: userSettings.settings?.enabledAgents || [],
       }));
     }
   }, [userSettings.settings]);
@@ -202,7 +236,13 @@ export default function SettingsModal({
   }, [privacySettings.settings]);
 
   const handleInputChange = (field: string, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+      ...(field === "wallpaper" && typeof value === "string"
+        ? { appearanceColor: getAppearanceColorFromWallpaper(value) }
+        : {}),
+    }));
     setHasSettingsChanges(true);
   };
 
@@ -294,21 +334,38 @@ export default function SettingsModal({
       if (userSettings.settings) {
         const result = await userSettings.updateSettings({
           theme: formData.theme,
+          appearanceColor: formData.appearanceColor,
           fontSize: formData.fontSize,
           fontFamily: formData.fontFamily,
           accentColor: formData.accentColor,
           wallpaper: formData.wallpaper,
+          smartEmotionDetection: formData.smartEmotionDetection,
+          autoWorkflowSuggestions: formData.autoWorkflowSuggestions,
+          aiMemoryEnabled: formData.aiMemoryEnabled,
+          enabledAgents: formData.enabledAgents,
         });
 
         // Update formData với giá trị trả về (nếu có)
         setFormData((prev) => ({
           ...prev,
           theme: result.theme || prev.theme,
+          appearanceColor: result.appearanceColor || prev.appearanceColor,
           fontSize: result.fontSize || prev.fontSize,
           fontFamily: result.fontFamily || prev.fontFamily,
           accentColor: result.accentColor || prev.accentColor,
           wallpaper: result.wallpaper || prev.wallpaper,
+          smartEmotionDetection:
+            result.smartEmotionDetection ?? prev.smartEmotionDetection,
+          autoWorkflowSuggestions:
+            result.autoWorkflowSuggestions ?? prev.autoWorkflowSuggestions,
+          aiMemoryEnabled: result.aiMemoryEnabled ?? prev.aiMemoryEnabled,
+          enabledAgents: result.enabledAgents || prev.enabledAgents,
         }));
+
+        notifyAppearanceThemeChanged({
+          theme: result.theme || formData.theme,
+          appearanceColor: result.appearanceColor || formData.appearanceColor,
+        });
       }
 
       // Save notification settings
@@ -399,13 +456,55 @@ export default function SettingsModal({
   };
 
   const handleDiscardSettings = () => {
-    if (userSettings.settings) {
-      setFormData((prev) => ({
-        ...prev,
-        theme: userSettings.settings?.theme || "light",
-        fontSize: userSettings.settings?.fontSize || 16,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      // Appearance / AI settings
+      ...(userSettings.settings && {
+        theme: userSettings.settings.theme || "light",
+        appearanceColor: userSettings.settings.appearanceColor || "green",
+        fontSize: userSettings.settings.fontSize || 16,
+        fontFamily: userSettings.settings.fontFamily || "default",
+        accentColor: userSettings.settings.accentColor || "#2ab3b3",
+        wallpaper: userSettings.settings.wallpaper || "teal",
+        smartEmotionDetection:
+          userSettings.settings.smartEmotionDetection ?? false,
+        autoWorkflowSuggestions:
+          userSettings.settings.autoWorkflowSuggestions ?? true,
+        aiMemoryEnabled: userSettings.settings.aiMemoryEnabled ?? true,
+        enabledAgents: userSettings.settings.enabledAgents || [],
+      }),
+      // Notification settings
+      ...(notificationSettings.settings && {
+        groupNotifications:
+          notificationSettings.settings.groupNotifications ?? true,
+        tagNotifications: notificationSettings.settings.tagNotifications ?? true,
+        muteAll: notificationSettings.settings.muteAll ?? false,
+        messageNotifications:
+          notificationSettings.settings.messageNotifications ?? true,
+        friendRequestNotifications:
+          notificationSettings.settings.friendRequestNotifications ?? true,
+        callNotifications: notificationSettings.settings.callNotifications ?? true,
+        notificationSound:
+          notificationSettings.settings.notificationSound || "Crystal Clear",
+        doNotDisturbStart: notificationSettings.settings.doNotDisturbStart || 0,
+        doNotDisturbEnd: notificationSettings.settings.doNotDisturbEnd || 0,
+      }),
+      // Privacy settings
+      ...(privacySettings.settings && {
+        profileVisibility:
+          privacySettings.settings.profileVisibility || "friends",
+        messagePermission:
+          privacySettings.settings.messagePermission || "everyone",
+        lastSeenVisibility: privacySettings.settings.lastSeenVisibility ?? true,
+        onlineStatusVisibility:
+          privacySettings.settings.onlineStatusVisibility ?? true,
+        callPermission: privacySettings.settings.callPermission || "friends",
+        allowScreenSharing: privacySettings.settings.allowScreenSharing ?? true,
+        allowDataCollection:
+          privacySettings.settings.allowDataCollection ?? false,
+        allowAnalytics: privacySettings.settings.allowAnalytics ?? false,
+      }),
+    }));
     setHasSettingsChanges(false);
     setSaveError(null);
     setSaveSuccess(null);
@@ -442,17 +541,28 @@ export default function SettingsModal({
       icon: Smartphone,
       description: "Active sessions and logins",
     },
+    {
+      id: "ai",
+      label: "AI",
+      icon: Bot,
+      description: "Assistant and smart detection",
+    },
   ];
 
   const toggleOption = (field: string) => {
     handleInputChange(field, !formData[field as keyof typeof formData]);
   };
 
+  const modalThemeVars = buildSettingsThemeVars(
+    formData.theme,
+    formData.appearanceColor,
+  );
+
   const renderLoadingState = () => (
     <div className="flex items-center justify-center h-96">
       <div className="text-center">
-        <Loader className="w-12 h-12 animate-spin text-green-primary mx-auto mb-4" />
-        <p className="text-gray-primary">Loading settings...</p>
+        <Loader className="w-12 h-12 animate-spin text-[var(--settings-primary)] mx-auto mb-4" />
+        <p className="text-[var(--settings-muted)]">Loading settings...</p>
       </div>
     </div>
   );
@@ -571,6 +681,90 @@ export default function SettingsModal({
           />
         );
 
+      case "ai":
+        return (
+          <div className="flex flex-col gap-8">
+            <div>
+              <span className="text-[26px] font-bold text-[var(--settings-text)] mb-1">
+                AI Assistant
+              </span>
+              <p className="text-[var(--settings-text)]">
+                Configure Orion AI behavior in chat and WorkHub.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-5">
+              {[
+                {
+                  label: "Smart Emotion Detection",
+                  description:
+                    "Show subtle emotion hints for incoming chat messages.",
+                  field: "smartEmotionDetection",
+                },
+                {
+                  label: "Auto Workflow Suggestions",
+                  description:
+                    "Suggest task and calendar drafts from messages with deadlines or action items.",
+                  field: "autoWorkflowSuggestions",
+                },
+                {
+                  label: "AI Memory",
+                  description:
+                    "Let Orion AI use your notes, calendar, tasks, and workspace context.",
+                  field: "aiMemoryEnabled",
+                },
+              ].map(({ label, description, field }) => (
+                <div
+                  key={field}
+                  className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]"
+                >
+                  <div>
+                    <p className="font-semibold text-[var(--settings-text)]">{label}</p>
+                    <p className="text-sm text-[var(--settings-text)]">{description}</p>
+                  </div>
+                  <ToggleSwitch
+                    checked={
+                      formData[field as keyof typeof formData] as boolean
+                    }
+                    onChange={() => toggleOption(field)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-4 pt-4 border-t border-[var(--settings-primary-border)]">
+              {saveError && (
+                <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  {saveError}
+                </div>
+              )}
+              {saveSuccess && (
+                <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
+                  {saveSuccess}
+                </div>
+              )}
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleDiscardSettings}
+                  disabled={isSaving}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg text-[var(--settings-text)] bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Discard Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  disabled={isSaving || !hasSettingsChanges}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-[var(--settings-primary)] hover:bg-[var(--settings-primary-hover)] disabled:opacity-50"
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
@@ -579,24 +773,27 @@ export default function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center px-4 py-3 z-50 overflow-hidden bg-black/30">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col relative overflow-hidden">
+    <div
+      className="fixed inset-0 flex items-center justify-center px-4 py-3 z-50 overflow-hidden bg-[var(--settings-overlay)]"
+      style={modalThemeVars}
+    >
+      <div className="bg-[var(--settings-surface)] text-[var(--settings-text)] rounded-2xl shadow-xl w-full max-w-6xl h-[90vh] flex flex-col relative overflow-hidden">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="absolute top-4 right-4 z-10 p-2 hover:bg-[var(--settings-close-hover)] rounded-full transition-colors"
           aria-label="Close"
         >
-          <X size={24} className="text-gray-primary" />
+          <X size={24} className="text-[var(--settings-muted)]" />
         </button>
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-80 bg-green-bg-light border-r border-green-border-light p-6 overflow-y-auto shrink-0">
-            <h1 className="text-2xl font-bold text-gray-primary mb-2">
+          <div className="w-80 bg-[var(--settings-surface-bg)] border-r border-[var(--settings-primary-border)] p-6 overflow-y-auto shrink-0">
+            <h1 className="text-2xl font-bold text-[var(--settings-text)] mb-2">
               Settings
             </h1>
-            <p className="text-gray-primary mb-8">
+            <p className="text-[var(--settings-muted)] mb-8">
               Manage your account and app experience
             </p>
 
@@ -608,8 +805,8 @@ export default function SettingsModal({
                   className={clsx(
                     "w-full flex items-start gap-3 px-4 py-3 rounded-2xl transition-all text-left",
                     activeTab === id
-                      ? "bg-green-bg-heavy border-2 border-green-primary"
-                      : "hover:bg-green-bg-heavy",
+                      ? "bg-[var(--settings-primary-bg)] border-2 border-[var(--settings-primary)]"
+                      : "hover:bg-[var(--settings-primary-bg)]",
                   )}
                 >
                   <Icon
@@ -617,18 +814,22 @@ export default function SettingsModal({
                     className={clsx(
                       "mt-1 shrink-0",
                       activeTab === id
-                        ? "text-green-primary"
-                        : "text-gray-primary",
+                        ? "text-[var(--settings-primary)]"
+                        : "text-[var(--settings-muted)]",
                     )}
                   />
                   <div className="flex-1">
-                    <p className="font-semibold text-gray-primary">{label}</p>
-                    <p className="text-sm text-gray-primary">{description}</p>
+                    <p className="font-semibold text-[var(--settings-text)]">
+                      {label}
+                    </p>
+                    <p className="text-sm text-[var(--settings-muted)]">
+                      {description}
+                    </p>
                   </div>
                   {activeTab === id && (
                     <ChevronRight
                       size={24}
-                      className="text-green-primary mt-1"
+                      className="text-[var(--settings-primary)] mt-1"
                     />
                   )}
                 </button>
@@ -637,7 +838,9 @@ export default function SettingsModal({
           </div>
 
           {/* Content */}
-          <div className="flex-1 p-8 overflow-y-auto">{renderContent()}</div>
+          <div className="flex-1 p-8 overflow-y-auto bg-[var(--settings-content)]">
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>

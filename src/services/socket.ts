@@ -19,6 +19,7 @@ class SocketService {
   private callSocket: Socket | null = null;
   private presenceSocket: Socket | null = null;
   private notificationSocket: Socket | null = null;
+  private notificationUserId: string | null = null;
   private currentUserId: string | null = null; // Track userId hiện tại
   private presenceHeartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -229,19 +230,41 @@ class SocketService {
   }
 
   connectNotification(userId: string, token?: string) {
-    if (this.notificationSocket?.connected) {
+    if (
+      this.notificationSocket?.connected &&
+      this.notificationUserId === userId
+    ) {
+      this.notificationSocket.emit("notifications:join", { userId });
       return this.notificationSocket;
     }
 
+    // Disconnect socket cũ (đang connecting hoặc disconnected) trước khi tạo mới
+    if (this.notificationSocket && this.notificationUserId !== userId) {
+      console.log(
+        `[SocketService] Notification userId changed from ${this.notificationUserId} to ${userId}, reconnecting...`,
+      );
+      this.notificationSocket.disconnect();
+      this.notificationSocket = null;
+      this.notificationUserId = null;
+    }
+
+    if (this.notificationSocket) {
+      return this.notificationSocket;
+    }
+
+    this.notificationUserId = userId;
     this.notificationSocket = io(NOTIFICATION_NAMESPACE_URL, {
       query: { userId },
       auth: { token },
       transports: ["websocket"],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     });
 
     this.notificationSocket.on("connect", () => {
       console.log(
-        `[SocketService] Notification socket connected: ${this.notificationSocket?.id}`,
+        `[SocketService] Notification socket connected: ${this.notificationSocket?.id} (userId: ${userId})`,
       );
       this.notificationSocket?.emit("notifications:join", { userId });
     });
@@ -249,6 +272,13 @@ class SocketService {
     this.notificationSocket.on("disconnect", (reason) => {
       console.log(
         `[SocketService] Notification socket disconnected. Reason: ${reason}`,
+      );
+    });
+
+    this.notificationSocket.on("connect_error", (error: Error) => {
+      console.error(
+        "[SocketService] Notification socket connection error:",
+        error?.message || error,
       );
     });
 
@@ -270,6 +300,7 @@ class SocketService {
     this.callSocket = null;
     this.presenceSocket = null;
     this.notificationSocket = null;
+    this.notificationUserId = null;
     this.currentUserId = null;
 
     if (this.presenceHeartbeatTimer) {
@@ -301,6 +332,7 @@ class SocketService {
     console.log("[SocketService] Disconnecting notification socket");
     this.notificationSocket?.disconnect();
     this.notificationSocket = null;
+    this.notificationUserId = null;
   }
 }
 
@@ -507,6 +539,12 @@ type ConversationHistoryClearedPayload = {
   userId: string;
   deletedMessagesCount: number;
   clearedAt: string;
+};
+
+type ConversationDeletedPayload = {
+  conversationId: string;
+  userId: string;
+  deletedAt: string;
 };
 
 class ChatSocketService {
@@ -1066,6 +1104,16 @@ class ChatSocketService {
     this.chatSocket.off("conversation:history_cleared");
   }
 
+  onConversationDeleted(cb: (payload: ConversationDeletedPayload) => void) {
+    if (!this.chatSocket) return;
+    this.chatSocket.on("conversation:deleted", cb);
+  }
+
+  offConversationDeleted() {
+    if (!this.chatSocket) return;
+    this.chatSocket.off("conversation:deleted");
+  }
+
   onReconnect(cb: () => void) {
     if (!this.chatSocket) return;
     this.chatSocket.on("reconnect", cb);
@@ -1389,4 +1437,14 @@ export const onConversationHistoryCleared = (
 
 export const offConversationHistoryCleared = () => {
   chatSocketService.offConversationHistoryCleared();
+};
+
+export const onConversationDeleted = (
+  cb: (payload: ConversationDeletedPayload) => void,
+) => {
+  chatSocketService.onConversationDeleted(cb);
+};
+
+export const offConversationDeleted = () => {
+  chatSocketService.offConversationDeleted();
 };

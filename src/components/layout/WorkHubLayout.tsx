@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useParams } from "react-router-dom";
 import SideBarWorkHub from "../common/SideBarWorkHub";
+import FloatingWorkHubChat from "../work-hub/FloatingWorkHubChat";
 
 const WorkHubLayout = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -14,6 +15,7 @@ const WorkHubLayout = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Outlet />
       </div>
+      <FloatingWorkHubChat workspaceId={workspaceId} />
     </div>
   );
 };

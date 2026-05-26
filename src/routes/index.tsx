@@ -32,6 +32,7 @@ import AIInsightsPage from "../pages/work-hub/insights/AIInsightsPage";
 import DocumentsPage from "../pages/work-hub/documents/DocumentsPage";
 import DocumentEditorPage from "../pages/work-hub/documents/DocumentEditorPage";
 import FilesPage from "../pages/work-hub/files/FilesPage";
+import FileEditorPage from "../pages/work-hub/files/FileEditorPage";
 import ChannelsPage from "../pages/work-hub/channels/ChannelsPage";
 import DirectMessagesPage from "../pages/work-hub/messages/DirectMessagesPage";
 import WorkHubIntroPage from "../pages/work-hub/intro/WorkHubIntroPage";
@@ -194,6 +195,10 @@ export const router = createBrowserRouter([
           {
             path: "files",
             element: <FilesPage />,
+          },
+          {
+            path: "files/:fileId/edit",
+            element: <FileEditorPage />,
           },
           // Channels & DirectMessages tạm:(( bỏ khỏi WorkHub
           // {

@@ -80,7 +80,7 @@ export const isConversationAdmin = (
     );
     return (
         !!participant &&
-        (participant.role === 'OWNER' || participant.role === 'ADMIN')
+        (participant.role === 'admin' || participant.role === 'co-admin')
     );
 };
 

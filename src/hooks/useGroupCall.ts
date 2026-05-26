@@ -1,54 +1,12 @@
 import { useCallback, useRef, useEffect, useState } from "react";
 import { GroupCallPeerManager } from "../services/groupCallPeerManager";
 import { useWebRTC } from "./useWebRTC";
+import { getIceConfiguration } from "../config/webrtcIce";
 import type {
   GroupCallState,
   GroupCallParticipant,
   CallType,
 } from "../types/call";
-
-const getIceConfiguration = (): RTCConfiguration => {
-  const turnUrls = import.meta.env.VITE_TURN_URLS as string | undefined;
-  const turnUsername = import.meta.env.VITE_TURN_USERNAME as string | undefined;
-  const turnCredential = import.meta.env
-    .VITE_TURN_CREDENTIAL as string | undefined;
-  const forceRelayEnv =
-    (import.meta.env.VITE_FORCE_TURN_RELAY as string | undefined) === "true";
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  const forceRelay = forceRelayEnv && !isLocalhost;
-
-  const iceServers: RTCIceServer[] = [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-  ];
-
-  if (turnUrls && turnUsername && turnCredential) {
-    const parsedTurnUrls = turnUrls
-      .split(",")
-      .map((url) => url.trim())
-      .filter(
-        (url) =>
-          Boolean(url) && (url.startsWith("turn:") || url.startsWith("turns:")),
-      );
-
-    if (parsedTurnUrls.length > 0) {
-      iceServers.push({
-        urls: parsedTurnUrls,
-        username: turnUsername,
-        credential: turnCredential,
-      });
-    }
-  }
-
-  return {
-    iceServers,
-    iceCandidatePoolSize: 10,
-    iceTransportPolicy: forceRelay ? "relay" : "all",
-  };
-};
 
 interface UseGroupCallProps {
   onParticipantStream: (userId: string, stream: MediaStream) => void;
@@ -72,6 +30,28 @@ export const useGroupCall = ({
   const [groupCallState, setGroupCallState] = useState<Partial<GroupCallState>>({
     participants: [],
   });
+
+  const flushPendingIceCandidates = useCallback(async (userId: string) => {
+    const peerConnection = peerManagerRef.current?.getPeerConnection(userId);
+    if (!peerConnection || !peerConnection.remoteDescription) {
+      return;
+    }
+
+    const pendingCandidates = pendingIceCandidatesRef.current.get(userId);
+    if (!pendingCandidates?.length) {
+      return;
+    }
+
+    pendingIceCandidatesRef.current.delete(userId);
+
+    for (const candidate of pendingCandidates) {
+      try {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (error) {
+        console.error("[useGroupCall] Error adding pending ICE candidate:", error);
+      }
+    }
+  }, []);
 
   // Initialize peer manager on mount
   useEffect(() => {
@@ -129,6 +109,11 @@ export const useGroupCall = ({
         throw new Error("Peer manager not initialized");
       }
 
+      const existingPeer = peerManager.getPeerConnection(userId);
+      if (existingPeer) {
+        return existingPeer;
+      }
+
       const peerConnection = peerManager.createPeerConnection(
         userId,
         userName,
@@ -167,21 +152,6 @@ export const useGroupCall = ({
         localStreamRef.current.getTracks().forEach((track) => {
           peerConnection.addTrack(track, localStreamRef.current!);
         });
-      }
-
-      // Xử lý pending ICE candidates
-      const pendingCandidates = pendingIceCandidatesRef.current.get(userId);
-      if (pendingCandidates) {
-        for (const candidate of pendingCandidates) {
-          try {
-            await peerConnection.addIceCandidate(
-              new RTCIceCandidate(candidate),
-            );
-          } catch (error) {
-            console.error("[useGroupCall] Error adding pending ICE candidate:", error);
-          }
-        }
-        pendingIceCandidatesRef.current.delete(userId);
       }
 
       return peerConnection;
@@ -237,6 +207,7 @@ export const useGroupCall = ({
         await peerConnection.setRemoteDescription(
           new RTCSessionDescription(offer),
         );
+        await flushPendingIceCandidates(userId);
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
         return answer;
@@ -245,7 +216,7 @@ export const useGroupCall = ({
         return null;
       }
     },
-    [],
+    [flushPendingIceCandidates],
   );
 
   /**
@@ -265,11 +236,12 @@ export const useGroupCall = ({
         await peerConnection.setRemoteDescription(
           new RTCSessionDescription(answer),
         );
+        await flushPendingIceCandidates(userId);
       } catch (error) {
         console.error("[useGroupCall] Error handling answer:", error);
       }
     },
-    [],
+    [flushPendingIceCandidates],
   );
 
   /**
@@ -282,7 +254,7 @@ export const useGroupCall = ({
     ): Promise<void> => {
       const peerConnection = peerManagerRef.current?.getPeerConnection(userId);
 
-      if (!peerConnection) {
+      if (!peerConnection || !peerConnection.remoteDescription) {
         // Lưu candidate lại nếu peer connection chưa được tạo
         if (!pendingIceCandidatesRef.current.has(userId)) {
           pendingIceCandidatesRef.current.set(userId, []);

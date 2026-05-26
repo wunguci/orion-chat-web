@@ -1,10 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { IoMdAdd, IoMdSend } from 'react-icons/io';
 import { FiImage, FiVideo, FiFile, FiX } from 'react-icons/fi';
+import { RotateCcw, WandSparkles } from 'lucide-react';
 import {
     validateOutgoingFiles,
     MAX_FILES_PER_BATCH,
 } from '../../utils/chatMedia';
+import { orionAiService } from '../../services/orionAiService';
+import type { RewriteTone } from '../../types/orion-ai';
 
 const INPUT_EMOJIS = [
     '😀',
@@ -77,6 +80,8 @@ export const ChatInput: React.FC<{
         snippet?: string;
     } | null;
     onCancelReply?: () => void;
+    draftText?: string;
+    onDraftTextApplied?: () => void;
 }> = ({
     onSend,
     onSendFile,
@@ -87,11 +92,18 @@ export const ChatInput: React.FC<{
     onUnblock,
     replyDraft,
     onCancelReply,
+    draftText,
+    onDraftTextApplied,
 }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [emojiOpen, setEmojiOpen] = useState(false);
     const [attachments, setAttachments] = useState<AttachFile[]>([]);
     const [text, setText] = useState('');
+    const [lastTextBeforeRewrite, setLastTextBeforeRewrite] = useState<
+        string | null
+    >(null);
+    const [rewriteOpen, setRewriteOpen] = useState(false);
+    const [isRewriting, setIsRewriting] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
     const typingTimeoutRef = useRef<number | null>(null);
 
@@ -102,6 +114,7 @@ export const ChatInput: React.FC<{
     });
     const menuRef = useRef<HTMLDivElement>(null);
     const emojiRef = useRef<HTMLDivElement>(null);
+    const rewriteRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const handler = (e: MouseEvent) => {
@@ -117,10 +130,22 @@ export const ChatInput: React.FC<{
             ) {
                 setEmojiOpen(false);
             }
+            if (
+                rewriteRef.current &&
+                !rewriteRef.current.contains(e.target as Node)
+            ) {
+                setRewriteOpen(false);
+            }
         };
         document.addEventListener('mousedown', handler);
         return () => document.removeEventListener('mousedown', handler);
     }, []);
+
+    useEffect(() => {
+        if (!draftText) return;
+        setText(draftText);
+        onDraftTextApplied?.();
+    }, [draftText, onDraftTextApplied]);
 
     useEffect(() => {
         if (!onTypingChange) return;
@@ -231,6 +256,36 @@ export const ChatInput: React.FC<{
     const insertEmoji = (emoji: string) => {
         setText((prev) => `${prev}${emoji}`);
         setEmojiOpen(false);
+    };
+
+    const handleRewrite = async (tone: RewriteTone) => {
+        const current = text.trim();
+        if (!current || isRewriting) return;
+
+        try {
+            setIsRewriting(true);
+            setLastTextBeforeRewrite(text);
+            const result = await orionAiService.rewriteMessage({
+                message: current,
+                tone,
+                audience: 'chat recipient',
+            });
+            const rewritten =
+                result.cards[0]?.body ||
+                result.cards[0]?.title ||
+                result.summary ||
+                current;
+            setText(rewritten);
+            setRewriteOpen(false);
+        } catch (error) {
+            setValidationError(
+                error instanceof Error
+                    ? error.message
+                    : 'AI rewrite failed.',
+            );
+        } finally {
+            setIsRewriting(false);
+        }
     };
 
     return (
@@ -446,7 +501,7 @@ export const ChatInput: React.FC<{
                         <div ref={emojiRef} className="relative shrink-0">
                             <button
                                 onClick={() => setEmojiOpen((o) => !o)}
-                                className="p-1.5 border border-slate-200 rounded-full hover:bg-green-message hover:text-white hover:border-green-message transition-colors text-slate-700"
+                                className="p-1.5 border border-slate-200 rounded-full hover:bg-[var(--chat-message-sent)] hover:text-white hover:border-[var(--chat-message-sent)] transition-colors text-slate-700"
                                 title="Emoji"
                             >
                                 😊
@@ -472,9 +527,55 @@ export const ChatInput: React.FC<{
                             )}
                         </div>
 
+                        <div ref={rewriteRef} className="relative shrink-0">
+                            <button
+                                onClick={() => setRewriteOpen((open) => !open)}
+                                disabled={!text.trim() || isRewriting}
+                                className="p-1.5 border border-slate-200 rounded-full hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200 transition-colors text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                                title="Rewrite message"
+                            >
+                                <WandSparkles className="h-4 w-4" />
+                            </button>
+
+                            {rewriteOpen && (
+                                <div className="absolute bottom-full right-0 z-20 mb-2 min-w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                                    {(
+                                        [
+                                            ['professional', 'Chuyên nghiệp hơn'],
+                                            ['polite', 'Lịch sự hơn'],
+                                            ['concise', 'Ngắn gọn hơn'],
+                                        ] as Array<[RewriteTone, string]>
+                                    ).map(([tone, label]) => (
+                                        <button
+                                            key={tone}
+                                            type="button"
+                                            onClick={() => handleRewrite(tone)}
+                                            className="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                    {lastTextBeforeRewrite && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setText(lastTextBeforeRewrite);
+                                                setLastTextBeforeRewrite(null);
+                                                setRewriteOpen(false);
+                                            }}
+                                            className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-xs text-slate-600 hover:bg-slate-50"
+                                        >
+                                            <RotateCcw className="h-3.5 w-3.5" />
+                                            Undo rewrite
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         <button
                             onClick={handleSend}
-                            className="bg-green-primary text-white px-3 py-2 rounded-full hover:bg-green-hover transition-colors shrink-0"
+                            className="bg-[var(--chat-primary)] text-white px-3 py-2 rounded-full hover:bg-[var(--chat-primary-hover)] transition-colors shrink-0"
                         >
                             <IoMdSend className="w-4 h-4" />
                         </button>

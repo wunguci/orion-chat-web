@@ -66,6 +66,34 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     return text ? JSON.parse(text) : ({} as T);
 }
 
+async function requestForm<T>(path: string, formData: FormData): Promise<T> {
+    const token = getToken();
+    const headers: Record<string, string> = {
+        'X-Platform': 'web',
+        'ngrok-skip-browser-warning': 'true',
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(buildUrl(path), {
+        method: 'POST',
+        headers,
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const error = await res
+            .json()
+            .catch(() => ({ message: res.statusText }));
+        throw new Error(error.message || 'API Error');
+    }
+
+    const text = await res.text();
+    return text ? JSON.parse(text) : ({} as T);
+}
+
 export const api = {
     get: <T>(path: string) => request<T>(path),
 
@@ -79,4 +107,7 @@ export const api = {
         request<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
 
     delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+
+    postForm: <T>(path: string, formData: FormData) =>
+        requestForm<T>(path, formData),
 };

@@ -1,272 +1,248 @@
-import React, { useEffect, useRef, useState } from "react";
+import { Mic, MicOff, PhoneOff, Users, Video, VideoOff } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useGroupCallContext } from "../../hooks/useGroupCallContext";
-import { GroupCallVideoGrid, GroupCallSpeakerView } from "../../components/call/GroupCallVideoGrid";
-import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaPhone, FaUsers, FaComment } from "react-icons/fa";
+import { StreamCallView } from "../../components/call/StreamCallView";
 import { useAuth } from "../../hooks/useAuth";
+import { useGroupCallContext } from "../../hooks/useGroupCallContext";
 
-type ViewMode = "grid" | "speaker";
+const statusText: Record<string, string> = {
+  idle: "Idle",
+  calling: "Calling...",
+  ringing: "Ringing...",
+  connected: "Connected",
+  ended: "Call ended",
+  rejected: "Call rejected",
+  failed: "Call failed",
+};
 
-/**
- * GroupCallPage
- * Hiển thị giao diện group video call
- */
+const getInitials = (name?: string) =>
+  (name || "User")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "U";
+
+function MediaTile({
+  name,
+  stream,
+  isLocal,
+  isVideoEnabled,
+  isAudioEnabled,
+  isHost,
+  callType,
+  active,
+  onClick,
+}: {
+  name: string;
+  stream?: MediaStream | null;
+  isLocal?: boolean;
+  isVideoEnabled: boolean;
+  isAudioEnabled: boolean;
+  isHost?: boolean;
+  callType: "audio" | "video";
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const showVideo = callType === "video" && Boolean(stream) && isVideoEnabled;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !stream) return;
+
+    video.srcObject = stream;
+    video.play().catch((error) => {
+      console.warn("[GroupCallPage] Media autoplay blocked:", error);
+    });
+  }, [stream]);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative min-h-0 overflow-hidden rounded-lg border bg-neutral-900 text-left ${
+        active ? "border-emerald-400" : "border-white/10"
+      }`}
+    >
+      {stream ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isLocal}
+          className={showVideo ? "h-full w-full object-cover" : "hidden"}
+        />
+      ) : null}
+
+      {!showVideo ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900">
+          <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-500/15 text-xl font-semibold text-emerald-100">
+            {getInitials(name)}
+          </div>
+          <div className="mt-3 text-sm text-white/60">
+            {stream ? "Camera off" : "Waiting for media"}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 rounded-full bg-black/60 px-3 py-1.5">
+          <span className="truncate text-sm font-medium text-white">{name}</span>
+          {isHost ? (
+            <span className="text-xs font-medium text-emerald-300">Host</span>
+          ) : null}
+        </div>
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/60">
+          {isAudioEnabled ? (
+            <Mic size={16} className="text-emerald-200" />
+          ) : (
+            <MicOff size={16} className="text-red-300" />
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 const GroupCallPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const {
-    callId,
-    status,
-    localStream,
-    participants,
-    isAudioEnabled,
-    isVideoEnabled,
-    error,
-    startTime,
-    activeParticipantId,
-    toggleAudio,
-    toggleVideo,
-    leaveGroupCall,
-    setActiveParticipant,
-  } = useGroupCallContext();
+  const call = useGroupCallContext();
+  const currentUserId = user?.userId || user?.id || "";
+  const conversationId = call.conversationId;
+  const memberIds = [
+    currentUserId,
+    ...call.participants.map((participant) => participant.id),
+  ].filter(Boolean) as string[];
 
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [callDuration, setCallDuration] = useState("00:00:00");
-  const [showControls, setShowControls] = useState(true);
-  const hideControlsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const localUserId = user?.id || user?.userId || "N/A";
-  const joinedParticipants = participants.filter(
-    (participant) => participant.id !== localUserId && participant.stream,
+  const tiles = useMemo(
+    () => [
+      {
+        id: "local",
+        name: "You",
+        stream: call.localStream,
+        isLocal: true,
+        isVideoEnabled: call.isVideoEnabled,
+        isAudioEnabled: call.isAudioEnabled,
+        isHost: call.isHost,
+      },
+      ...call.participants.map((participant) => ({
+        id: participant.id,
+        name: participant.name,
+        stream: participant.stream,
+        isLocal: false,
+        isVideoEnabled: participant.isVideoEnabled,
+        isAudioEnabled: participant.isAudioEnabled,
+        isHost: participant.isHost,
+      })),
+    ],
+    [
+      call.localStream,
+      call.isVideoEnabled,
+      call.isAudioEnabled,
+      call.isHost,
+      call.participants,
+    ],
   );
-  const joinedCount = joinedParticipants.length + (localStream ? 1 : 0);
 
-  // Update call duration
-  useEffect(() => {
-    if (!startTime || status !== "connected") return;
-
-    const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const hours = Math.floor(elapsed / 3600)
-        .toString()
-        .padStart(2, "0");
-      const minutes = Math.floor((elapsed % 3600) / 60)
-        .toString()
-        .padStart(2, "0");
-      const seconds = (elapsed % 60).toString().padStart(2, "0");
-      setCallDuration(`${hours}:${minutes}:${seconds}`);
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [startTime, status]);
-
-  // Auto-hide controls
-  useEffect(() => {
-    const handleMouseMove = () => {
-      setShowControls(true);
-      if (hideControlsTimeoutRef.current) {
-        clearTimeout(hideControlsTimeoutRef.current);
-      }
-      hideControlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 3000);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      if (hideControlsTimeoutRef.current) {
-        clearTimeout(hideControlsTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleEndCall = () => {
-    if (window.confirm("Are you sure you want to leave this group call?")) {
-      leaveGroupCall();
-      navigate("/chat");
-    }
-  };
-
-  // Get main participant for speaker view
-  const mainParticipant = activeParticipantId
-    ? activeParticipantId === localUserId
-      ? null
-      : joinedParticipants.find((p) => p.id === activeParticipantId) ||
-        joinedParticipants[0] ||
-        null
-    : joinedParticipants[0] || null;
-
-  const speakerOtherParticipants = mainParticipant
-    ? joinedParticipants.filter((p) => p.id !== mainParticipant.id)
-    : joinedParticipants;
-
-  if (status === "idle" && !callId) {
+  if (!conversationId) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-wh-green-bg-light">
+      <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 px-6 text-white">
         <div className="text-center">
-          <div className="text-4xl text-wh-green-text-muted mb-4">📞</div>
-          <h1 className="text-2xl font-bold text-wh-green-text-primary mb-2">No Active Call</h1>
-          <p className="text-wh-green-text-secondary mb-6">Start or join a group call to begin</p>
+          <h1 className="mb-2 text-xl font-semibold">No active group call</h1>
           <button
             onClick={() => navigate("/chat")}
-            className="px-6 py-3 bg-wh-green-primary hover:bg-wh-green-primary-hover text-white rounded-lg font-semibold transition-colors"
+            className="mt-4 rounded-lg bg-emerald-500 px-4 py-2 font-medium text-white"
           >
-            Go Home
+            Back to chat
           </button>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="w-screen h-screen flex items-center justify-center bg-wh-green-bg-light">
-        <div className="text-center">
-          <div className="text-4xl text-wh-priority-critical mb-4">⚠️</div>
-          <h1 className="text-2xl font-bold text-wh-green-text-primary mb-2">Call Error</h1>
-          <p className="text-wh-green-text-secondary mb-6">{error}</p>
-          <button
-            onClick={() => navigate("/")}
-            className="px-6 py-3 bg-wh-green-primary hover:bg-wh-green-primary-hover text-white rounded-lg font-semibold transition-colors"
-          >
-            Go Home
-          </button>
+  const fallback = (
+    <div className="flex h-screen w-screen flex-col bg-neutral-950 text-white">
+      <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Users size={18} className="text-emerald-300" />
+            <h1 className="truncate text-lg font-semibold">
+              Group {call.callType === "video" ? "Video" : "Audio"} Call
+            </h1>
+          </div>
+          <p className="mt-1 text-sm text-white/60">
+            {statusText[call.status] || call.status} · {tiles.length} members
+          </p>
+          {call.error ? (
+            <p className="mt-1 text-sm text-red-300">{call.error}</p>
+          ) : null}
         </div>
-      </div>
-    );
-  }
+      </header>
+
+      <main className="grid flex-1 min-h-0 gap-3 p-3 sm:grid-cols-2 lg:grid-cols-3">
+        {tiles.map((tile) => (
+          <MediaTile
+            key={tile.id}
+            {...tile}
+            callType={call.callType}
+            active={call.activeParticipantId === tile.id}
+            onClick={() => call.setActiveParticipant(tile.id)}
+          />
+        ))}
+      </main>
+
+      <footer className="flex items-center justify-center gap-3 border-t border-white/10 px-5 py-5">
+        <button
+          type="button"
+          onClick={call.toggleAudio}
+          className={`grid h-12 w-12 place-items-center rounded-full ${
+            call.isAudioEnabled ? "bg-neutral-800" : "bg-amber-600"
+          }`}
+          title={call.isAudioEnabled ? "Mute" : "Unmute"}
+        >
+          {call.isAudioEnabled ? <Mic size={21} /> : <MicOff size={21} />}
+        </button>
+
+        {call.callType === "video" ? (
+          <button
+            type="button"
+            onClick={call.toggleVideo}
+            className={`grid h-12 w-12 place-items-center rounded-full ${
+              call.isVideoEnabled ? "bg-neutral-800" : "bg-amber-600"
+            }`}
+            title={call.isVideoEnabled ? "Stop video" : "Start video"}
+          >
+            {call.isVideoEnabled ? <Video size={21} /> : <VideoOff size={21} />}
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={call.leaveGroupCall}
+          className="grid h-12 w-12 place-items-center rounded-full bg-red-600"
+          title="Leave call"
+        >
+          <PhoneOff size={21} />
+        </button>
+      </footer>
+    </div>
+  );
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-wh-green-text-primary overflow-hidden">
-      {/* Header */}
-      <div
-        className={`absolute top-0 left-0 right-0 px-6 py-4 bg-gradient-to-b from-wh-green-text-primary/95 via-wh-green-text-primary/70 to-transparent flex justify-between items-center z-40 transition-all duration-300 ${
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">Group Video Call</h1>
-          <div className="px-3 py-1.5 bg-wh-green-bg-light/95 backdrop-blur-sm rounded-lg text-sm text-wh-green-text-primary border border-wh-green-border-light flex items-center gap-2">
-            <div className="w-2 h-2 bg-wh-green-primary rounded-full animate-pulse"></div>
-            <span className="font-semibold">{callDuration}</span>
-          </div>
-          <div className="px-3 py-1.5 bg-wh-green-bg-light/95 backdrop-blur-sm rounded-lg text-sm text-wh-green-text-primary border border-wh-green-border-light">
-            {joinedCount} participants
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              viewMode === "grid"
-                ? "bg-wh-green-primary text-white"
-                : "bg-wh-green-bg-light text-wh-green-text-secondary hover:bg-wh-green-bg-heavy"
-            }`}
-          >
-            Grid View
-          </button>
-          <button
-            onClick={() => setViewMode("speaker")}
-            className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-              viewMode === "speaker"
-                ? "bg-wh-green-primary text-white"
-                : "bg-wh-green-bg-light text-wh-green-text-secondary hover:bg-wh-green-bg-heavy"
-            }`}
-          >
-            Speaker View
-          </button>
-        </div>
-      </div>
-
-      {/* Video Area */}
-      <div className="flex-1 flex items-center justify-center">
-        {viewMode === "grid" ? (
-          <GroupCallVideoGrid
-            participants={joinedParticipants}
-            localStream={localStream}
-            localUserId={localUserId}
-            onParticipantClick={setActiveParticipant}
-            activeParticipantId={activeParticipantId}
-          />
-        ) : (
-          <GroupCallSpeakerView
-            mainParticipant={mainParticipant || null}
-            localStream={localStream}
-            localUserId={localUserId}
-            otherParticipants={speakerOtherParticipants}
-            onParticipantClick={setActiveParticipant}
-          />
-        )}
-      </div>
-
-      {/* Controls */}
-      <div
-        className={`absolute bottom-0 left-0 right-0 px-8 py-6 bg-gradient-to-t from-wh-green-text-primary/95 via-wh-green-text-primary/80 to-transparent flex justify-center items-center gap-4 z-40 transition-all duration-300 ${
-          showControls ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        {/* Mic Toggle */}
-        <button
-          onClick={toggleAudio}
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-xl hover:scale-110 ${
-            !isAudioEnabled
-              ? "bg-wh-priority-critical hover:bg-wh-priority-high text-white"
-              : "bg-wh-green-primary hover:bg-wh-green-primary-hover text-white"
-          }`}
-          title={isAudioEnabled ? "Mute Mic" : "Unmute Mic"}
-        >
-          {isAudioEnabled ? (
-            <FaMicrophone className="text-lg" />
-          ) : (
-            <FaMicrophoneSlash className="text-lg" />
-          )}
-        </button>
-
-        {/* Video Toggle */}
-        <button
-          onClick={toggleVideo}
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-xl hover:scale-110 ${
-            !isVideoEnabled
-              ? "bg-wh-priority-critical hover:bg-wh-priority-high text-white"
-              : "bg-wh-green-primary hover:bg-wh-green-primary-hover text-white"
-          }`}
-          title={isVideoEnabled ? "Turn Off Video" : "Turn On Video"}
-        >
-          {isVideoEnabled ? (
-            <FaVideo className="text-lg" />
-          ) : (
-            <FaVideoSlash className="text-lg" />
-          )}
-        </button>
-
-        <div className="h-10 w-px bg-wh-green-border-medium"></div>
-
-        {/* End Call */}
-        <button
-          onClick={handleEndCall}
-          className="w-16 h-16 rounded-full bg-wh-priority-critical hover:bg-wh-priority-high text-white flex items-center justify-center transition-all hover:scale-110"
-          title="Leave Call"
-        >
-          <FaPhone className="text-xl" />
-        </button>
-
-        <div className="h-10 w-px bg-wh-green-border-medium"></div>
-
-        {/* Participants */}
-        <button className="w-14 h-14 rounded-full bg-wh-green-bg-light hover:bg-wh-green-bg-heavy border border-wh-green-border-light text-wh-green-text-primary flex items-center justify-center transition-all hover:scale-110 relative">
-          <FaUsers className="text-lg" />
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-wh-green-primary rounded-full text-xs font-bold flex items-center justify-center text-white border-2 border-wh-green-bg-light">
-            {joinedCount}
-          </span>
-        </button>
-
-        {/* Chat */}
-        <button className="w-14 h-14 rounded-full bg-wh-green-bg-light hover:bg-wh-green-bg-heavy border border-wh-green-border-light text-wh-green-text-primary flex items-center justify-center transition-all hover:scale-110">
-          <FaComment className="text-lg" />
-        </button>
-      </div>
-    </div>
+    <StreamCallView
+      conversationId={conversationId}
+      mode="group"
+      title="Group video call"
+      memberIds={memberIds}
+      custom={{
+        signalingCallId: call.callId,
+        callType: call.callType,
+      }}
+      onLeave={call.leaveGroupCall}
+      fallback={fallback}
+    />
   );
 };
 

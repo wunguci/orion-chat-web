@@ -1,4 +1,5 @@
 /** eslint-disable */
+import { handleSessionExpired } from './sessionValidator';
 
 interface FetchOptions extends RequestInit {
     skipSessionCheck?: boolean;
@@ -21,13 +22,26 @@ export async function apiFetch(
                 const data = await response.clone().json();
 
                 // nếu phiên làm việc đã hết hạn
-                if (
-                    data.message &&
-                    data.message.includes('Phiên làm việc đã hết hạn !!!')
-                ) {
-                    console.warn('Session expired detected:', data.message);
+                if (data.message) {
+                    const messageText = String(data.message);
+                    const isExpired = messageText.includes('hết hạn');
+                    const isInactive = messageText.includes('không hoạt động');
+                    const isOtherLogin =
+                        messageText.includes('đăng nhập') ||
+                        messageText.includes('thiết bị');
 
-                    throw new Error(data.message);
+                    if (isExpired || isInactive || isOtherLogin) {
+                        console.warn(
+                            '[API Interceptor] Session expired detected:',
+                            messageText,
+                        );
+
+                        void handleSessionExpired(
+                            `Phiên đăng nhập đã hết hoặc bị thay thế.\n\n${messageText}\n\nVui lòng đăng nhập lại.`,
+                        );
+
+                        throw new Error(messageText);
+                    }
                 }
             } catch (error) {
                 if (
