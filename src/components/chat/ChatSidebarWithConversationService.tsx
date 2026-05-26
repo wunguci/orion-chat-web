@@ -22,10 +22,15 @@ import { conversationApi } from '../../services/conversationApi';
 import { groupManagementService } from '../../services/groupManagementService';
 import ChatAvatar from '../common/ChatAvatar';
 import GroupAvatar from './GroupAvatar';
-import { onGroupInfoUpdated, offGroupInfoUpdated, chatSocketService } from '../../services/socket';
+import {
+    onGroupInfoUpdated,
+    offGroupInfoUpdated,
+    chatSocketService,
+} from '../../services/socket';
 import type { LastMessage } from '../../types/conversation';
 
-const API_BASE_URL =
+const MEDIA_BASE_URL =
+    import.meta.env.VITE_MEDIA_BASE_URL ||
     import.meta.env.VITE_API_BASE_URL ||
     import.meta.env.VITE_API_URL ||
     import.meta.env.VITE_SOCKET_URL ||
@@ -33,18 +38,25 @@ const API_BASE_URL =
 
 const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
     if (!url) return undefined;
-    if (
-        url.startsWith('http://') ||
-        url.startsWith('https://') ||
-        url.startsWith('blob:') ||
-        url.startsWith('data:')
-    ) {
+
+    const mediaBase = MEDIA_BASE_URL.replace(/\/$/, '');
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (url.includes('/uploads/')) {
+            const uploadsPath = url.split('/uploads/').pop();
+            if (uploadsPath) {
+                return `${mediaBase}/${uploadsPath.replace(/^\/+/, '')}`;
+            }
+        }
         return url;
     }
 
-    const normalizedBase = API_BASE_URL.replace(/\/$/, '');
-    const normalizedPath = url.startsWith('/') ? url : `/${url}`;
-    return `${normalizedBase}${normalizedPath}`;
+    if (url.startsWith('blob:') || url.startsWith('data:')) {
+        return url;
+    }
+
+    const normalizedPath = url.replace(/^\/?uploads\//, '/');
+    return `${mediaBase}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
 };
 
 interface ChatSidebarProps {
@@ -100,7 +112,9 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         return globalWindow.__unreadByConversation || {};
     });
     const [openAiMenuId, setOpenAiMenuId] = useState<string | null>(null);
-    const [lastMessageOverrides, setLastMessageOverrides] = useState<Record<string, LastMessage>>({});
+    const [lastMessageOverrides, setLastMessageOverrides] = useState<
+        Record<string, LastMessage>
+    >({});
 
     const currentUserId = getCurrentUserId();
     const [groupInfoOverrides, setGroupInfoOverrides] = useState<
@@ -217,7 +231,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 [msg.conversationId!]: {
                     messageId: msg._id || msg.messageId,
                     content: msg.content,
-                    messageType: (msg.messageType || msg.type) as LastMessage['messageType'],
+                    messageType: (msg.messageType ||
+                        msg.type) as LastMessage['messageType'],
                     senderBy: msg.senderBy || msg.senderId,
                     createdAt: msg.createdAt || new Date().toISOString(),
                     isRecalled: msg.isRecalled || msg.isRevoked || false,
@@ -232,13 +247,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         };
     }, []);
 
-    const getEffectiveConversation = useCallback(
-        (conv: ConversationView): ConversationView => ({
-            ...conv,
-            lastMessage: lastMessageOverrides[conv.conversationId] ?? conv.lastMessage,
-        }),
-        [lastMessageOverrides],
-    );
+    // const getEffectiveConversation = useCallback(
+    //     (conv: ConversationView): ConversationView => ({
+    //         ...conv,
+    //         lastMessage:
+    //             lastMessageOverrides[conv.conversationId] ?? conv.lastMessage,
+    //     }),
+    //     [lastMessageOverrides],
+    // );
 
     // ✅ Filter and sort conversations
     // 1. Filter by search query and hidden status
@@ -281,17 +297,27 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             }
 
             // If both are not pinned, sort by lastMessage.createdAt (use real-time override if available)
-            const effA = lastMessageOverrides[a.conversationId] ?? a.lastMessage;
-            const effB = lastMessageOverrides[b.conversationId] ?? b.lastMessage;
+            const effA =
+                lastMessageOverrides[a.conversationId] ?? a.lastMessage;
+            const effB =
+                lastMessageOverrides[b.conversationId] ?? b.lastMessage;
             const dateA = new Date(effA?.createdAt || 0).getTime();
             const dateB = new Date(effB?.createdAt || 0).getTime();
             return dateB - dateA; // Newer messages first
         });
-    }, [conversations, searchQuery, currentUserId, getEffectiveGroupInfo, lastMessageOverrides]);
+    }, [
+        conversations,
+        searchQuery,
+        currentUserId,
+        getEffectiveGroupInfo,
+        lastMessageOverrides,
+    ]);
 
     const getConversationDisplayName = (conversation: ConversationView) => {
         if (conversation.type === 'GROUP') {
-            return getEffectiveGroupInfo(conversation)?.groupName || 'Group Chat';
+            return (
+                getEffectiveGroupInfo(conversation)?.groupName || 'Group Chat'
+            );
         }
 
         // For private conversations, show the other participant's name
@@ -385,7 +411,9 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             const preview = getCallPreviewInfo();
 
             return (
-                <span className={`inline-flex items-center gap-1 ${preview.colorClass}`}>
+                <span
+                    className={`inline-flex items-center gap-1 ${preview.colorClass}`}
+                >
                     <preview.Icon className="h-3.5 w-3.5" />
                     <span className="truncate">{preview.text}</span>
                 </span>
@@ -649,7 +677,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                         <div className="flex items-start gap-3">
                                             {/* Avatar */}
                                             <div className="relative">
-                                                {conversation.type === 'GROUP' ? (
+                                                {conversation.type ===
+                                                'GROUP' ? (
                                                     <GroupAvatar
                                                         name={getConversationDisplayName(
                                                             conversation,
@@ -714,10 +743,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                             onAIReplySuggestions) && (
                                                             <button
                                                                 type="button"
-                                                                onClick={(e) => {
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
                                                                     e.stopPropagation();
                                                                     setOpenAiMenuId(
-                                                                        (prev) =>
+                                                                        (
+                                                                            prev,
+                                                                        ) =>
                                                                             prev ===
                                                                             conversation.conversationId
                                                                                 ? null

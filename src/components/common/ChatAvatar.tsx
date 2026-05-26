@@ -15,7 +15,8 @@ export const ChatAvatar: React.FC<ChatAvatarProps> = ({
     textClassName = 'text-base',
     className = '',
 }) => {
-    const API_BASE_URL =
+    const MEDIA_BASE_URL =
+        import.meta.env.VITE_MEDIA_BASE_URL ||
         import.meta.env.VITE_API_BASE_URL ||
         import.meta.env.VITE_API_URL ||
         import.meta.env.VITE_SOCKET_URL ||
@@ -23,18 +24,24 @@ export const ChatAvatar: React.FC<ChatAvatarProps> = ({
 
     const toAbsoluteMediaUrl = (url?: string): string | undefined => {
         if (!url) return undefined;
-        if (
-            url.startsWith('http://') ||
-            url.startsWith('https://') ||
-            url.startsWith('blob:') ||
-            url.startsWith('data:')
-        ) {
+        const mediaBase = MEDIA_BASE_URL.replace(/\/$/, '');
+
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            if (url.includes('/uploads/')) {
+                const uploadsPath = url.split('/uploads/').pop();
+                if (uploadsPath) {
+                    return `${mediaBase}/${uploadsPath.replace(/^\/+/, '')}`;
+                }
+            }
             return url;
         }
 
-        const normalizedBase = API_BASE_URL.replace(/\/$/, '');
-        const normalizedPath = url.startsWith('/') ? url : `/${url}`;
-        return `${normalizedBase}${normalizedPath}`;
+        if (url.startsWith('blob:') || url.startsWith('data:')) {
+            return url;
+        }
+
+        const normalizedPath = url.replace(/^\/?uploads\//, '/');
+        return `${mediaBase}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
     };
 
     const [hasError, setHasError] = React.useState(false);

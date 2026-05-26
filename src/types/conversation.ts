@@ -26,8 +26,6 @@ export type ConversationStatus = "active" | "dissolved" | "left_or_removed";
 export interface SeenByItem {
   userId: string;
   seenAt: Date | string;
-  userId: string;
-  seenAt: Date | string;
 }
 
 export interface MessageReaction {
