@@ -2,10 +2,18 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { isAxiosError } from 'axios';
 import type { ConversationView, MessageDetail } from '../types/conversation';
 import { conversationApi } from '../services/conversationApi';
+import { groupManagementService } from '../services/groupManagementService';
 
 const isConversationActive = (conversation: ConversationView) =>
     !conversation.conversationStatus ||
     conversation.conversationStatus === 'active';
+
+const shouldAutoDeleteGroup = (conversation: ConversationView) =>
+    conversation.type === 'GROUP' &&
+    (conversation.participants?.length || 0) <= 2;
+
+const isVisibleConversation = (conversation: ConversationView) =>
+    isConversationActive(conversation) && !shouldAutoDeleteGroup(conversation);
 
 const emitForbiddenConversationEvent = (conversationId: string) => {
     if (!conversationId) return;
@@ -58,13 +66,53 @@ export const useConversations = (): UseConversationsResult => {
     const [conversations, setConversations] = useState<ConversationView[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const autoDeleteRequestedGroupIdsRef = useRef<Set<string>>(new Set());
+
+    const requestGroupAutoDelete = useCallback(
+        async (conversation: ConversationView) => {
+            if (conversation.type !== 'GROUP') return;
+
+            const groupId = conversation.conversationId;
+            if (
+                !groupId ||
+                autoDeleteRequestedGroupIdsRef.current.has(groupId)
+            ) {
+                return;
+            }
+
+            if ((conversation.participants?.length || 0) > 2) {
+                return;
+            }
+
+            autoDeleteRequestedGroupIdsRef.current.add(groupId);
+
+            try {
+                await groupManagementService.disbandGroup(groupId);
+            } catch (err) {
+                console.warn(
+                    '[useConversations] Failed to auto-delete small group conversation:',
+                    groupId,
+                    err,
+                );
+            }
+        },
+        [],
+    );
 
     const fetchConversations = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
             const data = await conversationApi.findAll();
-            setConversations(data.filter(isConversationActive));
+
+            const visibleConversations = data.filter(isVisibleConversation);
+            setConversations(visibleConversations);
+
+            for (const conversation of data) {
+                if (shouldAutoDeleteGroup(conversation)) {
+                    void requestGroupAutoDelete(conversation);
+                }
+            }
         } catch (err) {
             setError(
                 err instanceof Error
@@ -75,7 +123,7 @@ export const useConversations = (): UseConversationsResult => {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [requestGroupAutoDelete]);
 
     const refreshConversations = useCallback(async () => {
         await fetchConversations();
@@ -185,6 +233,14 @@ export const useConversationDetail = (
             setError(null);
             // ✅ conversationApi.findDetailById() uses JWT token from localStorage
             const data = await conversationApi.findDetailById(conversationId);
+
+            if (shouldAutoDeleteGroup(data)) {
+                void groupManagementService.disbandGroup(data.conversationId);
+                setConversation(null);
+                emitForbiddenConversationEvent(conversationId);
+                setError('Conversation is no longer available');
+                return;
+            }
 
             if (!isConversationActive(data)) {
                 setConversation(null);

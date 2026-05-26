@@ -2675,12 +2675,17 @@ export const ChatPage: React.FC = () => {
                     `${m.senderBy || 'unknown'}_${String(m.createdAt || idx)}`,
                 clientMessageId: m.clientMessageId,
                 senderId: senderRef,
-                senderName: getSenderName(senderRef),
-                senderAvatar: toAbsoluteMediaUrl(
-                    selectedConversation?.participants?.find(
-                        (p) => p.userId === senderRef,
-                    )?.avatarUrl,
+                senderName: resolveSenderName(
+                    m.senderName || getSenderName(senderRef),
+                    senderRef,
                 ),
+                senderAvatar:
+                    toAbsoluteMediaUrl(m.senderAvatar) ||
+                    toAbsoluteMediaUrl(
+                        selectedConversation?.participants?.find(
+                            (p) => p.userId === senderRef,
+                        )?.avatarUrl,
+                    ),
                 conversationId:
                     m.conversationId || selectedConversationId || undefined,
                 content: m.content || '',
