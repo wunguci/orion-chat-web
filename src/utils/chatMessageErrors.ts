@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios';
 
-type ChatAction = 'reply' | 'pin' | 'unpin' | 'send';
+type ChatAction = 'reply' | 'pin' | 'unpin' | 'send' | 'recall';
 
 const ACTION_LABELS: Record<ChatAction, string> = {
     reply: 'trả lời tin nhắn',
@@ -26,6 +26,14 @@ export const mapChatActionError = (
     ).toLowerCase();
 
     if (status === 400) {
+        if (
+            action === 'recall' &&
+            (serverMessage.includes('expired') ||
+                serverMessage.includes('24h') ||
+                serverMessage.includes('24 hours'))
+        ) {
+            return 'Tin nhắn đã qua 24h, không thể thu hồi';
+        }
         if (serverMessage.includes('max') || serverMessage.includes('3')) {
             return 'Mỗi cuộc trò chuyện chỉ pin tối đa 3 tin nhắn';
         }

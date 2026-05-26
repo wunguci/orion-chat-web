@@ -362,6 +362,8 @@ export const ChatPage: React.FC = () => {
         useState('');
     const [isForwarding, setIsForwarding] = useState(false);
     const [isRecallConfirmOpen, setIsRecallConfirmOpen] = useState(false);
+    const [isRecallExpiredDialogOpen, setIsRecallExpiredDialogOpen] =
+        useState(false);
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [pendingRecallMessage, setPendingRecallMessage] =
         useState<SocketMessage | null>(null);
@@ -1701,11 +1703,15 @@ export const ChatPage: React.FC = () => {
                 recallLocalMessage(message);
             } catch (err) {
                 console.error('Error recalling message:', err);
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : 'Failed to recall message',
-                );
+                const errorMessage = mapChatActionError(err, 'recall');
+
+                if (errorMessage === 'Tin nhắn đã qua 24h, không thể thu hồi') {
+                    setIsRecallExpiredDialogOpen(true);
+                    setError(null);
+                    return;
+                }
+
+                setError(errorMessage);
             }
         },
         [
@@ -3483,6 +3489,15 @@ export const ChatPage: React.FC = () => {
                 confirmText="Xóa"
                 cancelText="Hủy"
                 type="danger"
+            />
+
+            <Dialog
+                isOpen={isRecallExpiredDialogOpen}
+                onClose={() => setIsRecallExpiredDialogOpen(false)}
+                onConfirm={() => setIsRecallExpiredDialogOpen(false)}
+                title="Không thể thu hồi"
+                message="Tin nhắn đã qua 24h, không thể thu hồi"
+                type="info"
             />
         </div>
     );

@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     Settings,
     Bell,
@@ -520,7 +526,7 @@ export const ConversationGroupInfoPanel: React.FC<
             Date.now() - createdAt <= 24 * 60 * 60 * 1000;
 
         if (!within24Hours) {
-            setMediaActionError('Tin nhắn đã quá 24h, không thể thu hồi/xóa');
+            setMediaActionError('Tin nhắn đã qua 24h, không thể thu hồi');
             return;
         }
 
@@ -673,7 +679,9 @@ export const ConversationGroupInfoPanel: React.FC<
     const handleOpenEditGroupInfoModal = () => {
         setGroupInfoError(null);
         setGroupNameInput(
-            groupNameOverride || selectedConversation?.groupInfo?.groupName || '',
+            groupNameOverride ||
+                selectedConversation?.groupInfo?.groupName ||
+                '',
         );
         setIsEditGroupInfoModalOpen(true);
     };
@@ -700,7 +708,9 @@ export const ConversationGroupInfoPanel: React.FC<
             void refreshGroupDetail();
         } catch (error) {
             setGroupInfoError(
-                error instanceof Error ? error.message : 'Đổi tên nhóm thất bại',
+                error instanceof Error
+                    ? error.message
+                    : 'Đổi tên nhóm thất bại',
             );
         } finally {
             setIsUpdatingGroupName(false);
@@ -760,7 +770,9 @@ export const ConversationGroupInfoPanel: React.FC<
             void refreshGroupDetail();
         } catch (error) {
             setGroupInfoError(
-                error instanceof Error ? error.message : 'Không thể chọn ảnh mẫu',
+                error instanceof Error
+                    ? error.message
+                    : 'Không thể chọn ảnh mẫu',
             );
         } finally {
             setIsUpdatingGroupAvatar(false);
@@ -1088,7 +1100,9 @@ export const ConversationGroupInfoPanel: React.FC<
 
         setGroupInfoError(null);
         setGroupNameInput(
-            groupNameOverride || selectedConversation?.groupInfo?.groupName || '',
+            groupNameOverride ||
+                selectedConversation?.groupInfo?.groupName ||
+                '',
         );
         setIsEditGroupInfoModalOpen(true);
     }, [
