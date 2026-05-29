@@ -64,7 +64,9 @@ const VideoCallPage: React.FC = () => {
   const memberIds = [currentUserId, call.otherUser?.id].filter(Boolean) as string[];
   const title = call.otherUser?.name || "Video call";
   const showRemoteVideo =
-    call.callType === "video" && call.remoteStream && call.isVideoEnabled;
+    call.callType === "video" &&
+    call.remoteStream &&
+    call.isRemoteVideoEnabled !== false;
 
   if (!conversationId) {
     return (
@@ -95,31 +97,46 @@ const VideoCallPage: React.FC = () => {
       </div>
 
       <div className="relative flex flex-1 items-center justify-center overflow-hidden">
-        {call.remoteStream ? (
+        {call.remoteStream && showRemoteVideo ? (
           <StreamVideo
             stream={call.remoteStream}
-            className={showRemoteVideo ? "h-full w-full object-cover" : "hidden"}
+            className="h-full w-full object-cover"
           />
         ) : null}
 
         {!showRemoteVideo ? (
           <div className="flex flex-col items-center">
-            <div className="grid h-28 w-28 place-items-center rounded-full bg-neutral-800 text-3xl font-semibold">
-              {getInitials(title)}
-            </div>
+            {call.otherUser?.avatar ? (
+              <img
+                src={call.otherUser.avatar}
+                alt={title}
+                className="h-28 w-28 rounded-full object-cover bg-neutral-800"
+              />
+            ) : (
+              <div className="grid h-28 w-28 place-items-center rounded-full bg-neutral-800 text-3xl font-semibold">
+                {getInitials(title)}
+              </div>
+            )}
             <p className="mt-4 text-white/70">
-              {call.remoteStream ? "Audio connected" : "Waiting for media..."}
+              {call.remoteStream ? "Camera off" : "Waiting for media..."}
             </p>
           </div>
         ) : null}
 
         {call.callType === "video" && call.localStream ? (
-          <div className="absolute right-5 top-24 h-44 w-32 overflow-hidden rounded-lg border border-white/20 bg-black">
-            <StreamVideo
-              stream={call.localStream}
-              muted
-              className="h-full w-full object-cover"
-            />
+          <div className="absolute right-5 top-24 h-44 w-32 overflow-hidden rounded-lg border border-white/20 bg-neutral-900 flex items-center justify-center">
+            {call.isVideoEnabled ? (
+              <StreamVideo
+                stream={call.localStream}
+                muted
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex flex-col items-center p-2 text-center">
+                <VideoOff size={20} className="text-white/40" />
+                <span className="mt-1 text-[10px] text-white/40">Camera off</span>
+              </div>
+            )}
           </div>
         ) : null}
       </div>

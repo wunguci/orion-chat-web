@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { socketService } from '../services/socket';
+import { presenceSocketService } from '../services/websocket/presenceSocket';
 import { handleSessionExpired } from '../utils/sessionValidator';
 
 /**
@@ -10,7 +10,7 @@ import { handleSessionExpired } from '../utils/sessionValidator';
 export function useSessionConflictDetection() {
     const navigate = useNavigate();
     useEffect(() => {
-        const presenceSocket = socketService.getPresenceSocket();
+        const presenceSocket = presenceSocketService.getSocket();
 
         if (!presenceSocket) {
             console.log('[useSessionConflictDetection] socket chưa kết nối');

@@ -63,7 +63,7 @@ export const CallModal: React.FC = () => {
 
     videoEl.srcObject = localStream;
     void safePlay(videoEl);
-  }, [localStream, safePlay]);
+  }, [localStream, safePlay, isVideoEnabled]);
 
   // không hiển thị modal nếu idle
   if (status === "idle") return null;

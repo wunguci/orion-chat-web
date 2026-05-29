@@ -1,5 +1,4 @@
-import { Socket } from "socket.io-client";
-import { socketService } from "../services/socket";
+import { callSocketService } from "../services/websocket/callSocket";
 import { useWebRTC } from "../hooks/useWebRTC";
 import { useStreamVideoRuntime } from "./StreamVideoContext";
 import type {
@@ -12,6 +11,7 @@ import type {
   CallUser,
 } from "../types/call";
 import { createContext, useCallback, useEffect, useRef, useState } from "react";
+import type { Socket } from "socket.io-client";
 
 export interface CallContextValue extends CallState {
   initiateCall: (
@@ -58,6 +58,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     remoteStream: null,
     isVideoEnabled: true,
     isAudioEnabled: true,
+    isRemoteVideoEnabled: true,
+    isRemoteAudioEnabled: true,
     otherUser: null,
     error: null,
     startTime: null,
@@ -107,7 +109,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         ...prev,
         remoteStream: stream,
         status: "connected",
-        startTime: Date.now(),
+        startTime: prev.startTime || Date.now(),
       }));
     },
     onIceCandidate: (candidate) => {
@@ -172,6 +174,16 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         offer,
       });
     },
+    onRemoteTrackMuteChange: (kind, muted) => {
+      console.log(`[CallContext] Remote track mute changed: ${kind} is muted: ${muted}`);
+      setCallState((prev) => {
+        if (kind === "video") {
+          return { ...prev, isRemoteVideoEnabled: !muted };
+        } else {
+          return { ...prev, isRemoteAudioEnabled: !muted };
+        }
+      });
+    },
   });
 
   // cleanup call
@@ -193,6 +205,8 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       remoteStream: null,
       isVideoEnabled: true,
       isAudioEnabled: true,
+      isRemoteVideoEnabled: true,
+      isRemoteAudioEnabled: true,
       otherUser: null,
       error: null,
       startTime: null,
@@ -269,7 +283,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
 
   // khởi tạo call socket - chỉ depend trên userId để tránh listener bị tear down/rebuild
   useEffect(() => {
-    const socket = socketService.connectCall(userId);
+    const socket = callSocketService.connect(userId);
     callSocketRef.current = socket;
 
     // listen to incoming call
@@ -394,7 +408,14 @@ export const CallProvider: React.FC<CallProviderProps> = ({
       mediaType: "video" | "audio";
       enabled: boolean;
     }) => {
-      void data;
+      console.log(`[CallContext] Peer toggled media: ${data.mediaType} is now ${data.enabled}`);
+      setCallState((prev) => {
+        if (data.mediaType === "video") {
+          return { ...prev, isRemoteVideoEnabled: data.enabled };
+        } else {
+          return { ...prev, isRemoteAudioEnabled: data.enabled };
+        }
+      });
     };
     socket.on("call:media-toggled", handleMediaToggled);
 
@@ -659,11 +680,21 @@ export const CallProvider: React.FC<CallProviderProps> = ({
   }, [callState.callId, callState.otherUser, cleanupCall]);
 
   // toggle video
-  const toggleVideo = useCallback(() => {
+  const toggleVideo = useCallback(async () => {
     const newState = !callState.isVideoEnabled;
-    toggleVideoTrack(newState);
+    await toggleVideoTrack(newState);
 
-    setCallState((prev) => ({ ...prev, isVideoEnabled: newState }));
+    setCallState((prev) => {
+      let updatedStream = prev.localStream;
+      if (prev.localStream) {
+        updatedStream = new MediaStream(prev.localStream.getTracks());
+      }
+      return {
+        ...prev,
+        isVideoEnabled: newState,
+        localStream: updatedStream,
+      };
+    });
 
     // notify other user
     const socket = callSocketRef.current;

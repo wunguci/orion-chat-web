@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AppNotification } from "../types/notification";
 import { notificationApi } from "../services/notificationApi";
-import { socketService } from "../services/socket";
+import { notificationSocketService } from "../services/websocket/notificationSocket";
 import { getToken } from "../utils/token";
 
 type NotificationToastItem = {
@@ -162,7 +162,7 @@ export function useNotifications(userId?: string) {
     if (!userId) return;
 
     const token = getToken();
-    const socket = socketService.connectNotification(
+    const socket = notificationSocketService.connect(
       userId,
       token || undefined,
     );
@@ -226,7 +226,7 @@ export function useNotifications(userId?: string) {
       socket.off("notifications:updated", handleUpdated);
       socket.off("notifications:refresh_unread", handleRefreshUnread);
       socket.off("notifications:all_read");
-      socketService.disconnectNotification();
+      notificationSocketService.disconnect();
     };
   }, [userId]);
 

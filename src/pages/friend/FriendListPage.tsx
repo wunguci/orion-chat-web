@@ -18,10 +18,11 @@ import type {
   SuggestedFriend,
 } from "../../types/friend";
 import { friendListService } from "../../services/friendListService";
-import socketService, {
+import { presenceSocketService } from "../../services/websocket/presenceSocket";
+import {
   chatSocketService,
   sendMessage,
-} from "../../services/socket";
+} from "../../services/websocket/chatSocket";
 import { getUser } from "../../utils/token";
 import { useCall } from "../../hooks/useCall";
 import { useCreateOrOpenConversation } from "../../hooks/useCreateOrOpenConversation";
@@ -345,7 +346,7 @@ const FriendListPage = () => {
   useEffect(() => {
     if (!userId) return;
 
-    const presenceSocket = socketService.connectPresence(userId);
+    const presenceSocket = presenceSocketService.connect(userId);
     if (!presenceSocket) return;
 
     const onOnline = ({ userId: onlineUserId }: { userId: string }) => {

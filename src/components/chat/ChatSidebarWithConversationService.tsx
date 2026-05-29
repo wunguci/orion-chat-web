@@ -26,7 +26,7 @@ import {
     onGroupInfoUpdated,
     offGroupInfoUpdated,
     chatSocketService,
-} from '../../services/socket';
+} from '../../services/websocket/chatSocket';
 import type { LastMessage } from '../../types/conversation';
 
 const MEDIA_BASE_URL =

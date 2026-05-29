@@ -23,6 +23,7 @@ import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
 import CallHistoryCard from './CallHistoryCard';
 import ChatAvatar from '../common/ChatAvatar';
+import { useGroupCallContext } from '../../hooks/useGroupCallContext';
 
 // Inspired by Zalo's emoji reactions
 const EMOJI_LIST = [
@@ -150,11 +151,13 @@ export type SocketMessage = {
     reactions?: MessageReaction[];
     callData?: {
         callType?: 'audio' | 'video';
-        callStatus?: 'completed' | 'missed' | 'declined';
+        callStatus?: 'completed' | 'missed' | 'declined' | 'active';
         duration?: number;
         participants?: string[];
         isInitiator?: boolean;
         wasRejected?: boolean;
+        callId?: string;
+        callMode?: 'group' | 'direct' | string;
     };
 };
 
@@ -192,6 +195,7 @@ export const MessageList: React.FC<{
     onAIReplySuggestions,
     emotionByMessageId = {},
 }) => {
+    const { joinGroupCall } = useGroupCallContext();
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
     const [openActionMenuKey, setOpenActionMenuKey] = useState<string | null>(
         null,
@@ -708,6 +712,13 @@ export const MessageList: React.FC<{
                                                 msg.callData?.isInitiator ||
                                                 false
                                             }
+                                            callId={msg.callData?.callId}
+                                            callMode={msg.callData?.callMode}
+                                            onJoinCall={() => {
+                                                if (msg.callData?.callId && conversationId) {
+                                                    joinGroupCall(msg.callData.callId, conversationId, msg.callData.callType);
+                                                }
+                                            }}
                                             onCallBack={() => {
                                                 onCallBackMessage?.(msg);
                                             }}

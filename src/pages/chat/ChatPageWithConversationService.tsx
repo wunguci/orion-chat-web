@@ -19,9 +19,9 @@ import { SearchModal } from '../../components/chat/SearchModal';
 import { CreateGroupModal } from '../../components/chat/CreateGroupModal';
 import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
+import { notificationSocketService } from '../../services/websocket/notificationSocket';
 import {
     sendMessage,
-    socketService,
     offMessageNew,
     onMessageNew,
     onGroupInfoUpdated,
@@ -45,7 +45,7 @@ import {
     joinConversation,
     onGroupCreated,
     offGroupCreated,
-} from '../../services/socket';
+} from '../../services/websocket/chatSocket';
 import {
     useConversations,
     useConversationDetail,
@@ -718,8 +718,8 @@ export const ChatPage: React.FC = () => {
 
         const token = getToken();
         const notificationSocket =
-            socketService.getNotificationSocket() ||
-            socketService.connectNotification(USER_ID, token || undefined);
+            notificationSocketService.getSocket() ||
+            notificationSocketService.connect(USER_ID, token || undefined);
 
         const isGroupRelatedNotification = (payload: AppNotification) => {
             const type = String(payload.type || '').toLowerCase();
@@ -2561,10 +2561,13 @@ export const ChatPage: React.FC = () => {
                 }
 
                 const participantNames: Record<string, string> = {};
+                const participantAvatars: Record<string, string> = {};
                 members.forEach((member) => {
                     if (member.userId !== USER_ID) {
                         participantNames[member.userId] =
                             member.fullName || 'Member';
+                        participantAvatars[member.userId] =
+                            member.avatarUrl || '';
                     }
                 });
 
@@ -2573,6 +2576,7 @@ export const ChatPage: React.FC = () => {
                     participantIds,
                     callType,
                     participantNames,
+                    participantAvatars,
                 );
 
                 navigate('/group-call');

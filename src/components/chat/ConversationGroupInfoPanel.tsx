@@ -65,9 +65,9 @@ import {
 } from '../../services/friendListService';
 import { getCurrentUserId } from '../../utils/auth';
 import { getToken } from '../../utils/token';
+import { notificationSocketService } from '../../services/websocket/notificationSocket';
 import type { AppNotification } from '../../types/notification';
 import {
-    socketService,
     offConversationHiddenUpdated,
     offConversationHistoryCleared,
     offGroupAdminTransferred,
@@ -92,7 +92,7 @@ import {
     onGroupMemberJoined,
     onGroupMemberLeft,
     onGroupInfoUpdated,
-} from '../../services/socket';
+} from '../../services/websocket/chatSocket';
 import ChatAvatar from '../common/ChatAvatar';
 import { mapGroupManagementError } from '../../utils/groupManagementErrors';
 
@@ -1451,8 +1451,8 @@ export const ConversationGroupInfoPanel: React.FC<
 
         const token = getToken();
         const notificationSocket =
-            socketService.getNotificationSocket() ||
-            socketService.connectNotification(
+            notificationSocketService.getSocket() ||
+            notificationSocketService.connect(
                 currentUserId,
                 token || undefined,
             );

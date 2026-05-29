@@ -25,6 +25,7 @@ const getInitials = (name?: string) =>
 
 function MediaTile({
   name,
+  avatar,
   stream,
   isLocal,
   isVideoEnabled,
@@ -35,6 +36,7 @@ function MediaTile({
   onClick,
 }: {
   name: string;
+  avatar?: string;
   stream?: MediaStream | null;
   isLocal?: boolean;
   isVideoEnabled: boolean;
@@ -45,7 +47,7 @@ function MediaTile({
   onClick?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const showVideo = callType === "video" && Boolean(stream) && isVideoEnabled;
+  const showVideo = Boolean(stream) && isVideoEnabled;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -77,9 +79,17 @@ function MediaTile({
 
       {!showVideo ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900">
-          <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-500/15 text-xl font-semibold text-emerald-100">
-            {getInitials(name)}
-          </div>
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={name}
+              className="h-20 w-20 rounded-full object-cover"
+            />
+          ) : (
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-500/15 text-xl font-semibold text-emerald-100">
+              {getInitials(name)}
+            </div>
+          )}
           <div className="mt-3 text-sm text-white/60">
             {stream ? "Camera off" : "Waiting for media"}
           </div>
@@ -116,35 +126,50 @@ const GroupCallPage: React.FC = () => {
     ...call.participants.map((participant) => participant.id),
   ].filter(Boolean) as string[];
 
-  const tiles = useMemo(
-    () => [
+  const tiles = useMemo(() => {
+    const seenIds = new Set<string>();
+    if (currentUserId) {
+      seenIds.add(currentUserId);
+    }
+
+    const list = [
       {
         id: "local",
         name: "You",
+        avatar: user?.avatarUrl || user?.avatar || "",
         stream: call.localStream,
         isLocal: true,
         isVideoEnabled: call.isVideoEnabled,
         isAudioEnabled: call.isAudioEnabled,
         isHost: call.isHost,
-      },
-      ...call.participants.map((participant) => ({
-        id: participant.id,
-        name: participant.name,
-        stream: participant.stream,
-        isLocal: false,
-        isVideoEnabled: participant.isVideoEnabled,
-        isAudioEnabled: participant.isAudioEnabled,
-        isHost: participant.isHost,
-      })),
-    ],
-    [
-      call.localStream,
-      call.isVideoEnabled,
-      call.isAudioEnabled,
-      call.isHost,
-      call.participants,
-    ],
-  );
+      }
+    ];
+
+    (call.participants || []).forEach((participant) => {
+      if (participant.id && participant.id !== currentUserId && !seenIds.has(participant.id)) {
+        seenIds.add(participant.id);
+        list.push({
+          id: participant.id,
+          name: participant.name,
+          avatar: participant.avatar,
+          stream: participant.stream,
+          isLocal: false,
+          isVideoEnabled: participant.isVideoEnabled,
+          isAudioEnabled: participant.isAudioEnabled,
+          isHost: participant.isHost,
+        });
+      }
+    });
+
+    return list;
+  }, [
+    call.localStream,
+    call.isVideoEnabled,
+    call.isAudioEnabled,
+    call.isHost,
+    call.participants,
+    currentUserId,
+  ]);
 
   if (!conversationId) {
     return (
@@ -205,18 +230,16 @@ const GroupCallPage: React.FC = () => {
           {call.isAudioEnabled ? <Mic size={21} /> : <MicOff size={21} />}
         </button>
 
-        {call.callType === "video" ? (
-          <button
-            type="button"
-            onClick={call.toggleVideo}
-            className={`grid h-12 w-12 place-items-center rounded-full ${
-              call.isVideoEnabled ? "bg-neutral-800" : "bg-amber-600"
-            }`}
-            title={call.isVideoEnabled ? "Stop video" : "Start video"}
-          >
-            {call.isVideoEnabled ? <Video size={21} /> : <VideoOff size={21} />}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={call.toggleVideo}
+          className={`grid h-12 w-12 place-items-center rounded-full ${
+            call.isVideoEnabled ? "bg-neutral-800" : "bg-amber-600"
+          }`}
+          title={call.isVideoEnabled ? "Stop video" : "Start video"}
+        >
+          {call.isVideoEnabled ? <Video size={21} /> : <VideoOff size={21} />}
+        </button>
 
         <button
           type="button"

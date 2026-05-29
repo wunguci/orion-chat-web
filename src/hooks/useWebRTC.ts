@@ -6,6 +6,7 @@ interface UseWebRTCProps {
   onIceCandidate: (candidate: RTCIceCandidate) => void;
   onConnectionStateChange: (state: RTCPeerConnectionState) => void;
   onIceRestart?: (offer: RTCSessionDescriptionInit) => Promise<void>;
+  onRemoteTrackMuteChange?: (kind: "video" | "audio", muted: boolean) => void;
 }
 
 export const useWebRTC = ({
@@ -13,6 +14,7 @@ export const useWebRTC = ({
   onIceCandidate,
   onConnectionStateChange,
   onIceRestart,
+  onRemoteTrackMuteChange,
 }: UseWebRTCProps) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -24,6 +26,7 @@ export const useWebRTC = ({
   const onIceCandidateRef = useRef(onIceCandidate);
   const onConnectionStateChangeRef = useRef(onConnectionStateChange);
   const onIceRestartRef = useRef(onIceRestart);
+  const onRemoteTrackMuteChangeRef = useRef(onRemoteTrackMuteChange);
 
   useEffect(() => {
     onRemoteStreamRef.current = onRemoteStream;
@@ -40,6 +43,10 @@ export const useWebRTC = ({
   useEffect(() => {
     onIceRestartRef.current = onIceRestart;
   }, [onIceRestart]);
+
+  useEffect(() => {
+    onRemoteTrackMuteChangeRef.current = onRemoteTrackMuteChange;
+  }, [onRemoteTrackMuteChange]);
 
   // ICE restart - tạo lại offer với iceRestart flag
   const restartIce = useCallback(async () => {
@@ -104,6 +111,23 @@ export const useWebRTC = ({
     // xử lý luồng từ xa
     peerConnection.ontrack = (event) => {
       console.log("Received remote track:", event.track.kind);
+      
+      const track = event.track;
+      
+      track.onmute = () => {
+        console.log(`[WebRTC] Remote track muted: ${track.kind}`);
+        if (onRemoteTrackMuteChangeRef.current) {
+          onRemoteTrackMuteChangeRef.current(track.kind as "video" | "audio", true);
+        }
+      };
+
+      track.onunmute = () => {
+        console.log(`[WebRTC] Remote track unmuted: ${track.kind}`);
+        if (onRemoteTrackMuteChangeRef.current) {
+          onRemoteTrackMuteChangeRef.current(track.kind as "video" | "audio", false);
+        }
+      };
+
       if (event.streams && event.streams[0]) {
         onRemoteStreamRef.current(event.streams[0]);
       } else {

@@ -1,5 +1,4 @@
 /*eslint-disable*/
-// Call
 import { io, Socket } from 'socket.io-client';
 
 const RAW_SOCKET_URL =
@@ -10,332 +9,6 @@ const normalizeSocketBaseUrl = (url: string) =>
     url.replace(/\/$/, '').replace(/\/call$/, '');
 
 const SOCKET_BASE_URL = normalizeSocketBaseUrl(RAW_SOCKET_URL);
-const CALL_NAMESPACE_URL = `${SOCKET_BASE_URL}/call`;
-const PRESENCE_NAMESPACE_URL = `${SOCKET_BASE_URL}/presence`;
-const NOTIFICATION_NAMESPACE_URL = `${SOCKET_BASE_URL}/notifications`;
-
-class SocketService {
-    private socket: Socket | null = null;
-    private callSocket: Socket | null = null;
-    private presenceSocket: Socket | null = null;
-    private notificationSocket: Socket | null = null;
-    private notificationUserId: string | null = null;
-    private currentUserId: string | null = null; // Track userId hiện tại
-    private presenceHeartbeatTimer: ReturnType<typeof setInterval> | null =
-        null;
-
-    // connect main socket
-    connect(userId: string, token?: string) {
-        if (this.socket?.connected) {
-            return this.socket;
-        }
-
-        this.socket = io(SOCKET_BASE_URL, {
-            query: { userId },
-            auth: { token }, // nếu có authentication
-            transports: ['websocket'],
-        });
-
-        this.socket.on('connect', () => {
-            console.log('Main socket connected:', this.socket?.id);
-        });
-
-        this.socket.on('disconnect', () => {
-            console.log('Main socket disconnected');
-        });
-
-        return this.socket;
-    }
-
-    // kết nối call socket (namespace /call)
-    connectCall(userId: string, token?: string) {
-        // nếu userId thay đổi, ngắt kết nối socket cũ.
-        if (this.currentUserId && this.currentUserId !== userId) {
-            console.log(
-                `[SocketService] UserId changed from ${this.currentUserId} to ${userId}, reconnecting...`,
-            );
-            this.disconnectCall();
-        }
-
-        // nếu đã kết nối hoặc đang kết nối với cùng userId, trả về socket hiện có.
-        if (this.callSocket && this.currentUserId === userId) {
-            console.log(`[SocketService] Already connected/connecting as ${userId}`);
-            return this.callSocket;
-        }
-
-        console.log(
-            `[SocketService] Connecting call socket for userId: ${userId} via ${CALL_NAMESPACE_URL}`,
-        );
-        this.currentUserId = userId;
-
-        this.callSocket = io(CALL_NAMESPACE_URL, {
-            query: { userId },
-            auth: { token },
-            forceNew: true, // buộc kết nối mới
-            transports: ['websocket'],
-        });
-
-        this.callSocket.on('connect', () => {
-            console.log(
-                `[SocketService] Call socket connected: ${this.callSocket?.id} (userId: ${userId})`,
-            );
-        });
-
-        this.callSocket.on('disconnect', (reason) => {
-            console.log(
-                `[SocketService] Call socket disconnected. Reason: ${reason}`,
-            );
-        });
-
-        this.callSocket.on('connect_error', (error: any) => {
-            console.error(
-                '[SocketService] Call socket connection error:',
-                error?.message || error,
-            );
-            if (error) {
-                console.error('[SocketService] Connection error details:', {
-                    message: error.message,
-                    code: error.code,
-                    type: error.type,
-                    reason: error.reason,
-                });
-            }
-
-            this.disconnectCall();
-        });
-
-        return this.callSocket;
-    }
-
-    // get main socket instance
-    getSocket(): Socket | null {
-        return this.socket;
-    }
-
-    // get call socket instance
-    getCallSocket(): Socket | null {
-        return this.callSocket;
-    }
-
-    // wait for call socket to be connected
-    async waitForCallSocketConnection(
-        timeoutMs: number = 6000,
-    ): Promise<boolean> {
-        if (!this.callSocket) {
-            console.log('[SocketService] Call socket not initialized');
-            return false;
-        }
-
-        if (this.callSocket.connected) {
-            console.log('[SocketService] Call socket already connected');
-            return true;
-        }
-
-        return new Promise((resolve) => {
-            const timeout = setTimeout(() => {
-                console.error('[SocketService] Call socket connection timeout');
-                if (this.callSocket) {
-                    this.callSocket.off('connect', handleConnect);
-                }
-                resolve(false);
-            }, timeoutMs);
-
-            const handleConnect = () => {
-                clearTimeout(timeout);
-                if (this.callSocket) {
-                    this.callSocket.off('connect', handleConnect);
-                }
-                console.log('[SocketService] Call socket connected (waited)');
-                resolve(true);
-            };
-
-            if (this.callSocket) {
-                this.callSocket.on('connect', handleConnect);
-            }
-        });
-    }
-
-    // connect presence socket (namespace /presence)
-    connectPresence(userId: string, token?: string) {
-        if (this.presenceSocket && this.presenceSocket.connected) {
-            return this.presenceSocket;
-        }
-
-        if (this.presenceSocket) {
-            this.presenceSocket.disconnect();
-            this.presenceSocket = null;
-        }
-
-        this.presenceSocket = io(PRESENCE_NAMESPACE_URL, {
-            query: { userId, platform: 'web' },
-            auth: { token },
-            transports: ['websocket'],
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-        });
-
-        this.presenceSocket.on('connect', () => {
-            console.log(
-                `[SocketService] Presence socket connected: ${this.presenceSocket?.id} (userId: ${userId}, platform: web)`,
-            );
-
-            // Prime online list right after connect/reconnect.
-            this.presenceSocket?.emit('presence:get-online');
-
-            if (this.presenceHeartbeatTimer) {
-                clearInterval(this.presenceHeartbeatTimer);
-            }
-
-            this.presenceHeartbeatTimer = setInterval(() => {
-                this.presenceSocket?.emit('presence:heartbeat', { userId });
-            }, 15000);
-        });
-
-        this.presenceSocket.on('disconnect', (reason) => {
-            console.log(
-                `[SocketService] Presence socket disconnected. Reason: ${reason}`,
-            );
-
-            if (this.presenceHeartbeatTimer) {
-                clearInterval(this.presenceHeartbeatTimer);
-                this.presenceHeartbeatTimer = null;
-            }
-        });
-
-        this.presenceSocket.on('connect_error', (error) => {
-            // console.error("[SocketService] Presence socket connection error:", error);
-        });
-
-        this.presenceSocket.on('disconnect', (reason) => {
-            console.log(
-                `[SocketService] Presence socket disconnected. Reason: ${reason}`,
-            );
-        });
-
-        this.presenceSocket.on('connect_error', () => {
-            // console.error("[SocketService] Presence socket connection error:", error);
-        });
-
-        return this.presenceSocket;
-    }
-
-    getPresenceSocket(): Socket | null {
-        return this.presenceSocket;
-    }
-
-    connectNotification(userId: string, token?: string) {
-        if (
-            this.notificationSocket?.connected &&
-            this.notificationUserId === userId
-        ) {
-            this.notificationSocket.emit('notifications:join', { userId });
-            return this.notificationSocket;
-        }
-
-        // Disconnect socket cũ (đang connecting hoặc disconnected) trước khi tạo mới
-        if (this.notificationSocket && this.notificationUserId !== userId) {
-            console.log(
-                `[SocketService] Notification userId changed from ${this.notificationUserId} to ${userId}, reconnecting...`,
-            );
-            this.notificationSocket.disconnect();
-            this.notificationSocket = null;
-            this.notificationUserId = null;
-        }
-
-        if (this.notificationSocket) {
-            return this.notificationSocket;
-        }
-
-        this.notificationUserId = userId;
-        this.notificationSocket = io(NOTIFICATION_NAMESPACE_URL, {
-            query: { userId },
-            auth: { token },
-            transports: ['websocket'],
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-        });
-
-        this.notificationSocket.on('connect', () => {
-            console.log(
-                `[SocketService] Notification socket connected: ${this.notificationSocket?.id} (userId: ${userId})`,
-            );
-            this.notificationSocket?.emit('notifications:join', { userId });
-        });
-
-        this.notificationSocket.on('disconnect', (reason) => {
-            console.log(
-                `[SocketService] Notification socket disconnected. Reason: ${reason}`,
-            );
-        });
-
-        this.notificationSocket.on('connect_error', (error: Error) => {
-            console.error(
-                '[SocketService] Notification socket connection error:',
-                error?.message || error,
-            );
-        });
-
-        return this.notificationSocket;
-    }
-
-    getNotificationSocket(): Socket | null {
-        return this.notificationSocket;
-    }
-
-    // disconnect all sockets
-    disconnect() {
-        console.log('[SocketService] Disconnecting all sockets');
-        this.socket?.disconnect();
-        this.callSocket?.disconnect();
-        this.presenceSocket?.disconnect();
-        this.notificationSocket?.disconnect();
-        this.socket = null;
-        this.callSocket = null;
-        this.presenceSocket = null;
-        this.notificationSocket = null;
-        this.notificationUserId = null;
-        this.currentUserId = null;
-
-        if (this.presenceHeartbeatTimer) {
-            clearInterval(this.presenceHeartbeatTimer);
-            this.presenceHeartbeatTimer = null;
-        }
-    }
-
-    // disconnect only call socket
-    disconnectCall() {
-        console.log('[SocketService] Disconnecting call socket');
-        this.callSocket?.disconnect();
-        this.callSocket = null;
-        this.currentUserId = null;
-    }
-
-    disconnectPresence() {
-        console.log('[SocketService] Disconnecting presence socket');
-        this.presenceSocket?.disconnect();
-        this.presenceSocket = null;
-
-        if (this.presenceHeartbeatTimer) {
-            clearInterval(this.presenceHeartbeatTimer);
-            this.presenceHeartbeatTimer = null;
-        }
-    }
-
-    disconnectNotification() {
-        console.log('[SocketService] Disconnecting notification socket');
-        this.notificationSocket?.disconnect();
-        this.notificationSocket = null;
-        this.notificationUserId = null;
-    }
-}
-
-export const socketService = new SocketService();
-export default socketService;
-
-// Chat Socket Service (JWT-based)
-
 const CHAT_NAMESPACE_URL = `${SOCKET_BASE_URL}/chat`;
 
 type SocketAckSuccess<T> = {
@@ -371,10 +44,12 @@ type ChatSendMessagePayload = {
     forwardedFromMessageId?: string;
     callData?: {
         callType?: 'audio' | 'video';
-        callStatus?: 'completed' | 'missed' | 'declined';
+        callStatus?: 'completed' | 'missed' | 'declined' | 'active';
         duration?: number;
         isInitiator?: boolean;
         wasRejected?: boolean;
+        callId?: string;
+        callMode?: string;
     };
 };
 
@@ -1182,10 +857,12 @@ export const sendMessage = (data: {
     forwardedFromMessageId?: string;
     callData?: {
         callType?: 'audio' | 'video';
-        callStatus?: 'completed' | 'missed' | 'declined';
+        callStatus?: 'completed' | 'missed' | 'declined' | 'active';
         duration?: number;
         isInitiator?: boolean;
         wasRejected?: boolean;
+        callId?: string;
+        callMode?: string;
     };
 }) => {
     return chatSocketService.sendMessage(data);
@@ -1455,4 +1132,12 @@ export const onConversationDeleted = (
 
 export const offConversationDeleted = () => {
     chatSocketService.offConversationDeleted();
+};
+
+export const onReconnect = (cb: () => void) => {
+    chatSocketService.onReconnect(cb);
+};
+
+export const offReconnect = (cb: () => void) => {
+    chatSocketService.offReconnect(cb);
 };

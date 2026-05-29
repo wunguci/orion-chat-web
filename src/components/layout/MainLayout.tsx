@@ -9,7 +9,7 @@ import { CallModal } from "../call/CallModal";
 import { StreamVideoProvider } from "../../contexts/StreamVideoContext";
 // import { getUser } from "../../utils/token";
 import { useAuth } from "../../hooks/useAuth";
-import socketService from "../../services/socket";
+import { presenceSocketService } from "../../services/websocket/presenceSocket";
 
 export const MainLayout = () => {
   const { isAuthenticated, user } = useAuth();
@@ -19,15 +19,15 @@ export const MainLayout = () => {
 
   useEffect(() => {
     if (!isAuthenticated || !user || !userId) {
-      socketService.disconnectPresence();
+      presenceSocketService.disconnect();
       return;
     }
 
     const token = localStorage.getItem("auth_token") || undefined;
-    socketService.connectPresence(userId, token);
+    presenceSocketService.connect(userId, token);
 
     return () => {
-      socketService.disconnectPresence();
+      presenceSocketService.disconnect();
     };
   }, [isAuthenticated, user, userId]);
 
@@ -39,7 +39,7 @@ export const MainLayout = () => {
   return (
     <StreamVideoProvider user={user}>
       <CallProvider userId={userId}>
-      <GroupCallProvider userId={userId} userName={userName}>
+      <GroupCallProvider userId={userId} userName={userName} userAvatar={user?.avatarUrl || user?.avatarUrl || ""}>
         <div className="flex h-screen overflow-hidden bg-white">
           {/* Sidebar  */}
           <AppSidebar currentView="chat" setView={() => {}} currentUser={user} />

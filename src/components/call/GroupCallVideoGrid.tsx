@@ -6,6 +6,7 @@ interface GroupCallVideoGridProps {
   participants: GroupCallParticipant[];
   localStream: MediaStream | null;
   localUserId: string;
+  localUserAvatar?: string;
   onParticipantClick?: (userId: string) => void;
   activeParticipantId?: string;
 }
@@ -18,6 +19,7 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
   participants,
   localStream,
   localUserId,
+  localUserAvatar,
   onParticipantClick,
   activeParticipantId,
 }) => {
@@ -43,7 +45,7 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
           onClick={() => onParticipantClick?.(localUserId)}
         >
           <LocalVideoStream stream={localStream} />
-          <VideoInfo name="You (Local)" isMuted={false} isVideoOff={false} isHost />
+          <VideoInfo name="You (Local)" isMuted={false} isVideoOff={false} isHost avatar={localUserAvatar} />
         </div>
       )}
 
@@ -65,7 +67,15 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
           ) : (
             <div className="w-full h-full bg-wh-green-bg-heavy flex items-center justify-center">
               <div className="flex flex-col items-center gap-2">
-                <FaUser className="text-4xl text-wh-green-text-muted" />
+                {participant.avatar ? (
+                  <img
+                    src={participant.avatar}
+                    alt={participant.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                ) : (
+                  <FaUser className="text-4xl text-wh-green-text-muted" />
+                )}
                 <p className="text-xs text-wh-green-text-secondary">No video</p>
               </div>
             </div>
@@ -76,6 +86,7 @@ export const GroupCallVideoGrid: React.FC<GroupCallVideoGridProps> = ({
             isVideoOff={!participant.isVideoEnabled}
             isHost={participant.isHost}
             isSpeaking={participant.isSpeaking}
+            avatar={participant.avatar}
           />
         </div>
       ))}
@@ -208,6 +219,7 @@ interface VideoInfoProps {
   isVideoOff: boolean;
   isHost?: boolean;
   isSpeaking?: boolean;
+  avatar?: string;
 }
 
 const VideoInfo: React.FC<VideoInfoProps> = ({
@@ -216,6 +228,7 @@ const VideoInfo: React.FC<VideoInfoProps> = ({
   isVideoOff,
   isHost,
   isSpeaking,
+  avatar,
 }) => {
   const displayName = (name || "").trim() || "User";
 
@@ -238,9 +251,17 @@ const VideoInfo: React.FC<VideoInfoProps> = ({
       {/* Name and media status */}
       <div className="absolute bottom-0 left-0 right-0 p-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-wh-green-primary flex items-center justify-center text-white text-xs font-bold">
-            {displayName.charAt(0).toUpperCase()}
-          </div>
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={displayName}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-wh-green-primary flex items-center justify-center text-white text-xs font-bold">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+          )}
           <span className="text-sm font-semibold text-white truncate">{displayName}</span>
         </div>
         <div className="flex gap-1.5">
@@ -273,6 +294,7 @@ interface GroupCallSpeakerViewProps {
   mainParticipant: GroupCallParticipant | null;
   localStream: MediaStream | null;
   localUserId: string;
+  localUserAvatar?: string;
   otherParticipants: GroupCallParticipant[];
   onParticipantClick?: (userId: string) => void;
 }
@@ -281,6 +303,7 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
   mainParticipant,
   localStream,
   localUserId,
+  localUserAvatar,
   otherParticipants,
   onParticipantClick,
 }) => {
@@ -294,7 +317,15 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
           <LocalVideoStream stream={localStream} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <FaUser className="text-8xl text-wh-green-text-muted" />
+            {mainParticipant?.avatar ? (
+              <img
+                src={mainParticipant.avatar}
+                alt={mainParticipant.name}
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            ) : (
+              <FaUser className="text-8xl text-wh-green-text-muted" />
+            )}
           </div>
         )}
         {mainParticipant && (
@@ -304,6 +335,7 @@ export const GroupCallSpeakerView: React.FC<GroupCallSpeakerViewProps> = ({
             isVideoOff={!mainParticipant.isVideoEnabled}
             isHost={mainParticipant.isHost}
             isSpeaking={mainParticipant.isSpeaking}
+            avatar={mainParticipant.avatar}
           />
         )}
       </div>

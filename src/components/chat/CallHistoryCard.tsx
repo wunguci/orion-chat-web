@@ -3,10 +3,13 @@ import { Phone, Video, PhoneOff, Clock } from 'lucide-react';
 
 export interface CallHistoryData {
     callType: 'audio' | 'video';
-    callStatus: 'missed' | 'declined' | 'completed';
+    callStatus: 'missed' | 'declined' | 'completed' | 'active';
     duration?: number; // in seconds
     isMe?: boolean;
     isInitiator?: boolean; // Whether the sender initiated the call
+    callId?: string;
+    callMode?: 'group' | 'direct' | string;
+    onJoinCall?: () => void;
 }
 
 export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => void }> = ({
@@ -14,7 +17,9 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
     callStatus,
     duration = 0,
     isMe = false,
+    callMode,
     onCallBack,
+    onJoinCall,
 }) => {
   // Định dạng thời lượng: 0 seconds -> "0 phút", 3 seconds -> "0 phút 3 giây", 65 seconds -> "1 phút 5 giây"
   const formatDuration = (seconds: number): string => {
@@ -32,6 +37,29 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
     // Messages are written by caller only.
     // isMe=true  -> caller view
     // isMe=false -> receiver view
+
+    if (callMode === "group") {
+      if (callStatus === "active") {
+        return {
+          text: "Cuộc gọi nhóm đang diễn ra",
+          color: "text-indigo-600 font-bold animate-pulse",
+          icon: callType === "video" ? Video : Phone,
+        };
+      }
+      return {
+        text: "Cuộc gọi nhóm đã kết thúc",
+        color: "text-slate-500 font-semibold",
+        icon: callType === "video" ? Video : Phone,
+      };
+    }
+
+    if (callStatus === "active") {
+      return {
+        text: "Cuộc gọi nhóm đang diễn ra",
+        color: "text-indigo-600 font-bold animate-pulse",
+        icon: callType === "video" ? Video : Phone,
+      };
+    }
 
     if (callStatus === "completed") {
       return {
@@ -71,9 +99,11 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
   return (
     <div
       className={`w-full px-4 py-2 rounded-xl border ${
-        isMe
-          ? "bg-green-message border-green-400 text-white"
-          : "bg-white border-slate-200 text-slate-800"
+        callStatus === "active"
+          ? "bg-indigo-50 border-indigo-300 text-slate-800 shadow-sm"
+          : isMe
+            ? "bg-green-message border-green-400 text-white"
+            : "bg-white border-slate-200 text-slate-800"
       }`}
     >
       {/* Header: trạng thái + icon */}
@@ -96,17 +126,26 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
         </div>
       )}
 
-      {/* Call back button */}
-      <button
-        onClick={onCallBack}
-        className={`w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
-          isMe
-            ? "bg-white/20 hover:bg-white/30 text-white"
-            : "bg-blue-500 hover:bg-blue-600 text-white"
-        }`}
-      >
-        Gọi lại
-      </button>
+      {/* Call button */}
+      {callStatus === "active" ? (
+        <button
+          onClick={onJoinCall}
+          className="w-full px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm"
+        >
+          Tham gia
+        </button>
+      ) : (
+        <button
+          onClick={onCallBack}
+          className={`w-full px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+            isMe
+              ? "bg-white/20 hover:bg-white/30 text-white"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
+        >
+          Gọi lại
+        </button>
+      )}
     </div>
   );
 };

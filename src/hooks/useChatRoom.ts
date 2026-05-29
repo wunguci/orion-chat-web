@@ -6,7 +6,7 @@ import {
     markMessageRead,
     sendMessage,
     sendTyping,
-} from '../services/socket';
+} from '../services/websocket/chatSocket';
 
 export type ChatRoomJoinStatus = 'idle' | 'joining' | 'joined' | 'error';
 
