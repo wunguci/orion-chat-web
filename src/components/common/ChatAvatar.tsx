@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_CHAT_AVATAR_URL } from '../../constants/avatar';
 
 type ChatAvatarProps = {
     name?: string;
@@ -12,7 +13,6 @@ export const ChatAvatar: React.FC<ChatAvatarProps> = ({
     name,
     avatarUrl,
     sizeClassName = 'w-10 h-10',
-    textClassName = 'text-base',
     className = '',
 }) => {
     const MEDIA_BASE_URL =
@@ -44,14 +44,19 @@ export const ChatAvatar: React.FC<ChatAvatarProps> = ({
         return `${mediaBase}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
     };
 
+
+
     const [hasError, setHasError] = React.useState(false);
 
     React.useEffect(() => {
         setHasError(false);
     }, [avatarUrl]);
 
-    const firstChar = (name || '?').trim().charAt(0).toUpperCase() || '?';
-    const normalizedAvatarUrl = toAbsoluteMediaUrl(avatarUrl);
+    const defaultAvatarUrl = name
+        ? `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
+        : DEFAULT_CHAT_AVATAR_URL;
+
+    const normalizedAvatarUrl = toAbsoluteMediaUrl(avatarUrl) || defaultAvatarUrl;
     const showImage = !!normalizedAvatarUrl && !hasError;
 
     if (showImage) {
@@ -66,13 +71,11 @@ export const ChatAvatar: React.FC<ChatAvatarProps> = ({
     }
 
     return (
-        <div
-            aria-label={name || 'avatar'}
-            className={`${sizeClassName} ${textClassName} rounded-full bg-linear-to-br from-indigo-500 to-purple-600 text-white font-semibold flex items-center justify-center ${className}`.trim()}
-        >
-            {firstChar}
-        </div>
+        <img
+            src={defaultAvatarUrl}
+            alt={name || 'avatar'}
+            className={`${sizeClassName} rounded-full object-cover ${className}`.trim()}
+        />
     );
 };
-
 export default ChatAvatar;

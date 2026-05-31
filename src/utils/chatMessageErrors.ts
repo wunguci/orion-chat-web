@@ -7,6 +7,7 @@ const ACTION_LABELS: Record<ChatAction, string> = {
     pin: 'ghim tin nhắn',
     unpin: 'gỡ ghim tin nhắn',
     send: 'gửi tin nhắn',
+    recall: 'thu hồi tin nhắn',
 };
 
 export const mapChatActionError = (

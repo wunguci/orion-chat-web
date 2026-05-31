@@ -11,9 +11,9 @@ import {
   Trash2,
   ChevronRight,
   UserRound,
-  MessageSquareWarning,
   LogOut,
   NotebookText,
+  BarChart3,
   AlarmClockCheck,
   Clock7,
   EyeOff,
@@ -34,7 +34,6 @@ import { useNavigate } from "react-router-dom";
 import ToggleSwitch from "../common/ToggleSwitch";
 import Checkbox from "../common/Checkbox";
 import AddMemberModal from "./AddMemberModal";
-import AppSidebar from "../common/AppSidebar";
 import { useGroupCallContext } from "../../hooks/useGroupCallContext";
 import { useAuth } from "../../hooks/useAuth";
 import { friendListService } from "../../services/friendListService";
@@ -195,9 +194,6 @@ export default function GroupChat() {
   const currentUserId = user?.id || user?.userId || "user1";
   const [selectedChat, setSelectedChat] = useState<Chat>(chats[0]);
   const [messageInput, setMessageInput] = useState("");
-  const [currentView, setCurrentView] = useState<
-    "chat" | "contacts" | "notes" | "calendar" | "friends" | "aichat"
-  >("chat");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isGroupManagement, setIsGroupManagement] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
@@ -248,7 +244,7 @@ export default function GroupChat() {
     };
   }, [isSidebarOpen]);
 
-  const handleAddMembers = (_selectedMembers: string[]) => {};
+  const handleAddMembers = () => {};
 
   const handleGroupCall = async () => {
     try {
@@ -719,9 +715,15 @@ export default function GroupChat() {
                   </button>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <NotebookText size={20} />
-                    <span className="text-[15px]">
-                      Ghi chú, ghim, bình chọn
-                    </span>
+                    <span className="text-[15px]">Ghi chú</span>
+                  </button>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <Pin size={20} />
+                    <span className="text-[15px]">Ghim</span>
+                  </button>
+                  <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                    <BarChart3 size={20} />
+                    <span className="text-[15px]">Bình chọn</span>
                   </button>
                 </div>
 
@@ -743,10 +745,6 @@ export default function GroupChat() {
                   </button>
                 </div>
 
-                <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                  <MessageSquareWarning size={20} />
-                  <span className="text-[15px]">Báo xấu</span>
-                </button>
                 <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-500">
                   <Trash2 size={20} />
                   <span className="text-[15px]">Xóa lịch sử trò chuyện</span>

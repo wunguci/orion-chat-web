@@ -1,4 +1,3 @@
-/*eslint-disable*/
 import { io, Socket } from 'socket.io-client';
 
 const RAW_SOCKET_URL =
@@ -852,6 +851,7 @@ export const sendMessage = (data: {
     content: string;
     mediaUrl?: string;
     fileName?: string;
+    fileType?: string;
     fileSize?: number;
     replyToMessageId?: string;
     forwardedFromMessageId?: string;

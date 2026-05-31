@@ -1,6 +1,5 @@
 import React from 'react';
-import { CiCircleList, CiPhone, CiSearch, CiVideoOn } from 'react-icons/ci';
-import { Pencil } from 'lucide-react';
+import { Info, Pencil, Phone, Search, Video } from 'lucide-react';
 import GroupAvatar from './GroupAvatar';
 import ChatAvatar from '../common/ChatAvatar';
 
@@ -33,7 +32,7 @@ type ChatHeaderProps = {
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
     name = 'Olivia Isabella',
     avatarUrl,
-    subtitle = 'Online',
+    subtitle = 'Vừa mới truy cập',
     isBlocked = false,
     isGroupChat = false,
     disableCallButtons = false,
@@ -113,11 +112,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                         onClick={onGroupAudioCall || onGroupCall}
                         title={
                             isCallDisabled
-                                ? 'Unable to call because you are blocked.'
-                                : 'Group Audio Call'
+                                ? 'Không thể gọi trong hội thoại này.'
+                                : 'Gọi thoại nhóm'
                         }
                     >
-                        <CiPhone className="w-5 h-5" />
+                        <Phone className="w-5 h-5" />
                     </button>
                 ) : (
                     <>
@@ -132,11 +131,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                             onClick={onAudioCall}
                             title={
                                 isCallDisabled
-                                    ? 'Unable to call because you are blocked.'
-                                    : 'Call'
+                                    ? 'Không thể gọi trong hội thoại này.'
+                                    : 'Gọi thoại'
                             }
                         >
-                            <CiPhone className="w-5 h-5" />
+                            <Phone className="w-5 h-5" />
                         </button>
                     </>
                 )}
@@ -145,7 +144,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     className="cursor-pointer p-1 hover:bg-slate-200 rounded text-gray-primary"
                     title="Tìm kiếm tin nhắn"
                 >
-                    <CiSearch className="w-5 h-5" />
+                    <Search className="w-5 h-5" />
                 </button>
                 {/* Video call button - disabled if blocked */}
                 <button
@@ -158,20 +157,20 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     onClick={isGroupChat ? onGroupVideoCall : onVideoCall}
                     title={
                         isCallDisabled
-                            ? 'Unable to video call because you are blocked.'
+                            ? 'Không thể gọi video trong hội thoại này.'
                             : isGroupChat
-                              ? 'Group Video Call'
-                              : 'Video Call'
+                              ? 'Gọi video nhóm'
+                              : 'Gọi video'
                     }
                 >
-                    <CiVideoOn className="w-5 h-5" />
+                    <Video className="w-5 h-5" />
                 </button>
                 <button
                     onClick={onPanelToggle}
                     className="cursor-pointer p-1 hover:bg-slate-200 rounded text-gray-primary"
                     title="Thông tin hội thoại"
                 >
-                    <CiCircleList className="w-5 h-5" />
+                    <Info className="w-5 h-5" />
                 </button>
             </div>
             <style>{`

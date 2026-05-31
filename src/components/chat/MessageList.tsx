@@ -24,22 +24,7 @@ import type { ViewerImage } from './ImageViewer';
 import CallHistoryCard from './CallHistoryCard';
 import ChatAvatar from '../common/ChatAvatar';
 import { useGroupCallContext } from '../../hooks/useGroupCallContext';
-
-// Inspired by Zalo's emoji reactions
-const EMOJI_LIST = [
-    '👍', // Like
-    '❤️', // Love
-    '😂', // Laugh
-    '😮', // Wow
-    '😢', // Sad
-    '😡', // Angry
-    // '🔥', // Fire/Hot
-    // '😎', // Cool
-    // '🤔', // Thinking
-    // '✨', // Sparkle
-    // '🎉', // Party
-    // '👏', // Clap
-];
+import { REACTION_OPTIONS, ReactionIcon } from './reactions';
 
 // const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 const MEDIA_BASE_URL =
@@ -112,7 +97,7 @@ export type SocketMessage = {
         | 'FAILED'
         | 'UPLOADING';
     conversationId?: string;
-    type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
+    type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call' | 'system' | 'SYSTEM' | 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO' | 'CALL';
     messageType?: string;
     isFile?: boolean;
     fileUrl?: string;
@@ -412,10 +397,7 @@ export const MessageList: React.FC<{
         return items;
     }, [socketMessages, currentUserId]);
 
-    const renderImageGrid = (
-        msgs: SocketMessage[],
-        isMe: boolean,
-    ): React.ReactNode => {
+    const renderImageGrid = (msgs: SocketMessage[]): React.ReactNode => {
         if (msgs.length === 1) {
             const msg = msgs[0];
             return (
@@ -595,7 +577,7 @@ export const MessageList: React.FC<{
                                                 {rep.senderName}
                                             </p>
                                         )}
-                                        {renderImageGrid(msgs, isMe)}
+                                        {renderImageGrid(msgs)}
                                         <p
                                             className={`text-[11px] px-1 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}
                                         >
@@ -1002,7 +984,10 @@ export const MessageList: React.FC<{
                                                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                                             }`}
                                                         >
-                                                            <span>{emoji}</span>
+                                                            <ReactionIcon
+                                                                emoji={emoji}
+                                                                size={14}
+                                                            />
                                                             {count > 1 && (
                                                                 <span>
                                                                     {count}
@@ -1025,7 +1010,7 @@ export const MessageList: React.FC<{
                                                     className="w-7 h-7 rounded-full bg-white border border-slate-300 shadow-md text-lg flex items-center justify-center hover:scale-110 transition-transform"
                                                     title="Thêm cảm xúc"
                                                 >
-                                                    😊
+                                                    <SmilePlus size={16} />
                                                 </button>
 
                                                 <div
@@ -1036,19 +1021,23 @@ export const MessageList: React.FC<{
                                                     } opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible transition-all duration-150 z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-2`}
                                                 >
                                                     <div className="grid grid-cols-6 w-40">
-                                                        {EMOJI_LIST.map((e) => (
+                                                        {REACTION_OPTIONS.map((reaction) => (
                                                             <button
-                                                                key={e}
-                                                                className="text-lg hover:scale-125 transition-transform hover:bg-slate-100 rounded"
+                                                                key={reaction.emoji}
+                                                                className="flex h-8 w-8 items-center justify-center rounded hover:scale-110 hover:bg-slate-100 transition-transform"
                                                                 onClick={() =>
                                                                     onReactMessage?.(
                                                                         msg,
-                                                                        e,
+                                                                        reaction.emoji,
                                                                     )
                                                                 }
-                                                                title={e}
+                                                                title={reaction.label}
                                                             >
-                                                                {e}
+                                                                <ReactionIcon
+                                                                    emoji={reaction.emoji}
+                                                                    size={18}
+                                                                    className={reaction.className}
+                                                                />
                                                             </button>
                                                         ))}
                                                     </div>

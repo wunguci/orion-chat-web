@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-catch */
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
+    BellOff,
     Bot,
     Image,
     Lock,
@@ -115,6 +116,20 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     const [lastMessageOverrides, setLastMessageOverrides] = useState<
         Record<string, LastMessage>
     >({});
+    const [mutedConversationIds, setMutedConversationIds] = useState<
+        Set<string>
+    >(() => {
+        try {
+            return new Set(
+                JSON.parse(
+                    localStorage.getItem('chat_muted_conversation_ids') ||
+                        '[]',
+                ) as string[],
+            );
+        } catch {
+            return new Set();
+        }
+    });
 
     const currentUserId = getCurrentUserId();
     const [groupInfoOverrides, setGroupInfoOverrides] = useState<
@@ -247,6 +262,42 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         };
     }, []);
 
+    useEffect(() => {
+        const handleMuteChanged = (event: Event) => {
+            const customEvent = event as CustomEvent<{
+                conversationId?: string;
+                muted?: boolean;
+            }>;
+            const conversationId = customEvent.detail?.conversationId;
+            if (!conversationId) return;
+
+            setMutedConversationIds((prev) => {
+                const next = new Set(prev);
+                if (customEvent.detail?.muted) {
+                    next.add(conversationId);
+                } else {
+                    next.delete(conversationId);
+                }
+                localStorage.setItem(
+                    'chat_muted_conversation_ids',
+                    JSON.stringify(Array.from(next)),
+                );
+                return next;
+            });
+        };
+
+        window.addEventListener(
+            'chat:conversation_mute_changed',
+            handleMuteChanged,
+        );
+        return () => {
+            window.removeEventListener(
+                'chat:conversation_mute_changed',
+                handleMuteChanged,
+            );
+        };
+    }, []);
+
     // const getEffectiveConversation = useCallback(
     //     (conv: ConversationView): ConversationView => ({
     //         ...conv,
@@ -301,8 +352,12 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 lastMessageOverrides[a.conversationId] ?? a.lastMessage;
             const effB =
                 lastMessageOverrides[b.conversationId] ?? b.lastMessage;
-            const dateA = new Date(effA?.createdAt || 0).getTime();
-            const dateB = new Date(effB?.createdAt || 0).getTime();
+            const dateA = new Date(
+                effA?.createdAt || a.createdAt || 0,
+            ).getTime();
+            const dateB = new Date(
+                effB?.createdAt || b.createdAt || 0,
+            ).getTime();
             return dateB - dateA; // Newer messages first
         });
     }, [
@@ -341,79 +396,60 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     };
 
     const getLastMessagePreview = (conversation: ConversationView) => {
-        if (!conversation.lastMessage) {
-            return 'Không có tin nhắn';
+        const lastMessage =
+            lastMessageOverrides[conversation.conversationId] ??
+            conversation.lastMessage;
+
+        if (!lastMessage) {
+            return 'Chưa có tin nhắn';
         }
 
         const { content, senderBy, messageType, isRecalled, callData } =
-            conversation.lastMessage;
+            lastMessage;
 
-        // Ưu tiên hiển thị trạng thái thu hồi nếu backend hoặc state local đã đánh dấu.
         if (isRecalled || content === 'Tin nhắn đã được thu hồi') {
             return 'Tin nhắn đã được thu hồi';
         }
 
         if (messageType === 'FILE' || messageType === 'file') {
-            return '📎 File attached';
+            return 'Tệp đính kèm';
         }
 
-        if (
-            messageType?.toLowerCase() === 'image' ||
-            messageType?.toLowerCase() === 'IMAGE'
-        ) {
+        if (messageType?.toLowerCase() === 'image') {
             return (
-                <span
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '2px',
-                    }}
-                >
+                <span className="inline-flex items-center gap-1">
                     <Image className="w-4 h-4" />
-                    Image
+                    Hình ảnh
                 </span>
             );
         }
 
-        if (
-            messageType === 'CALL' ||
-            messageType === 'call' ||
-            (conversation.lastMessage.callData && !content)
-        ) {
+        if (messageType === 'CALL' || messageType === 'call' || (lastMessage.callData && !content)) {
             const isMe = senderBy === currentUserId;
             const callStatus = callData?.callStatus || 'completed';
             const callType = callData?.callType || 'audio';
 
-            const getCallPreviewInfo = () => {
-                if (callStatus === 'completed') {
-                    return {
-                        text: `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} ${isMe ? 'đi' : 'đến'}`,
-                        Icon: callType === 'video' ? Video : Phone,
-                        colorClass: 'text-[var(--chat-primary)]',
-                    };
-                }
-
-                if (callStatus === 'missed') {
-                    return {
-                        text: isMe ? 'Bạn đã hủy' : 'Bạn bị nhỡ',
-                        Icon: PhoneOff,
-                        colorClass: 'text-red-500',
-                    };
-                }
-
-                return {
-                    text: isMe ? 'Người nhận từ chối' : 'Bạn đã từ chối',
-                    Icon: PhoneOff,
-                    colorClass: 'text-orange-500',
-                };
-            };
-
-            const preview = getCallPreviewInfo();
+            const preview =
+                callStatus === 'completed'
+                    ? {
+                          text: `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} ${isMe ? 'đi' : 'đến'}`,
+                          Icon: callType === 'video' ? Video : Phone,
+                          colorClass: 'text-[var(--chat-primary)]',
+                      }
+                    : callStatus === 'missed'
+                      ? {
+                            text: isMe ? 'Bạn đã hủy' : 'Bạn bị nhỡ',
+                            Icon: PhoneOff,
+                            colorClass: 'text-red-500',
+                        }
+                      : {
+                            text: isMe ? 'Người nhận từ chối' : 'Bạn đã từ chối',
+                            Icon: PhoneOff,
+                            colorClass: 'text-orange-500',
+                        };
 
             return (
-                <span
-                    className={`inline-flex items-center gap-1 ${preview.colorClass}`}
-                >
+                <span className={`inline-flex items-center gap-1 ${preview.colorClass}`}>
                     <preview.Icon className="h-3.5 w-3.5" />
                     <span className="truncate">{preview.text}</span>
                 </span>
@@ -421,8 +457,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         }
 
         const senderLabel = senderBy === currentUserId ? 'Bạn: ' : '';
-
-        return `${senderLabel}${content || 'Message sent'}`.substring(0, 50);
+        return `${senderLabel}${content || 'Đã gửi tin nhắn'}`.substring(0, 50);
     };
 
     const formatMessageTime = (date: Date | string | undefined) => {
@@ -435,13 +470,13 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'Now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
+        if (diffMins < 1) return 'Vừa xong';
+        if (diffMins < 60) return `${diffMins} phút`;
+        if (diffHours < 24) return `${diffHours} giờ`;
+        if (diffDays < 7) return `${diffDays} ngày`;
 
-        return messageDate.toLocaleDateString('en-US', {
-            month: 'short',
+        return messageDate.toLocaleDateString('vi-VN', {
+            month: '2-digit',
             day: 'numeric',
         });
     };
@@ -526,7 +561,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         <div className="flex w-80 flex-col gap-4 rounded-lg bg-white p-4 shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Messages</h2>
+                <h2 className="text-xl font-bold text-gray-900">Tin nhắn</h2>
                 <div className="flex items-center gap-2">
                     <button
                         type="button"
@@ -658,6 +693,13 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                     unreadByConversation[
                                         conversation.conversationId
                                     ] || 0;
+                                const effectiveLastMessage =
+                                    lastMessageOverrides[
+                                        conversation.conversationId
+                                    ] ?? conversation.lastMessage;
+                                const isMuted = mutedConversationIds.has(
+                                    conversation.conversationId,
+                                );
 
                                 return (
                                     <div
@@ -734,9 +776,9 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                     <div className="relative ml-2 flex w-16 shrink-0 items-start justify-end gap-1 pt-0.5 text-right">
                                                         <span className="whitespace-nowrap text-[11px] leading-4 text-gray-500">
                                                             {formatMessageTime(
-                                                                conversation
-                                                                    .lastMessage
-                                                                    ?.createdAt,
+                                                                effectiveLastMessage
+                                                                    ?.createdAt ||
+                                                                    conversation.createdAt,
                                                             )}
                                                         </span>
                                                         {(onAISummarizeConversation ||
@@ -790,6 +832,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                                                               conversation,
                                                           )}
                                                 </p>
+                                                {isMuted && (
+                                                    <div className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                                                        <BellOff size={12} />
+                                                        <span className="truncate">
+                                                            Đã tắt thông báo
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         {openAiMenuId ===

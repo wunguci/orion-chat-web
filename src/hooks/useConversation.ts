@@ -67,6 +67,7 @@ export const useConversations = (): UseConversationsResult => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const autoDeleteRequestedGroupIdsRef = useRef<Set<string>>(new Set());
+    const hasFetchedConversationsRef = useRef(false);
 
     const requestGroupAutoDelete = useCallback(
         async (conversation: ConversationView) => {
@@ -101,12 +102,13 @@ export const useConversations = (): UseConversationsResult => {
 
     const fetchConversations = useCallback(async () => {
         try {
-            setLoading(true);
+            setLoading(!hasFetchedConversationsRef.current);
             setError(null);
             const data = await conversationApi.findAll();
 
             const visibleConversations = data.filter(isVisibleConversation);
             setConversations(visibleConversations);
+            hasFetchedConversationsRef.current = true;
 
             for (const conversation of data) {
                 if (shouldAutoDeleteGroup(conversation)) {
@@ -269,6 +271,10 @@ export const useConversationDetail = (
     useEffect(() => {
         if (conversationId) {
             fetchDetail();
+        } else {
+            setConversation(null);
+            setError(null);
+            setLoading(false);
         }
     }, [conversationId, fetchDetail]);
 
@@ -366,12 +372,22 @@ export const useConversationMessages = (
         }
     }, [conversationId, pageSize, isLoading]);
 
+    const clear = useCallback(() => {
+        setMessages([]);
+        setNextCursor(null);
+        setHasMore(true);
+        cursorRef.current = undefined;
+        setError(null);
+    }, []);
+
     // Load messages whenever conversation changes
     useEffect(() => {
         if (conversationId) {
             loadMessages();
+        } else {
+            clear();
         }
-    }, [conversationId, loadMessages]);
+    }, [clear, conversationId, loadMessages]);
 
     const addMessage = useCallback((message: MessageDetail) => {
         setMessages((prev) => [message, ...prev]);
@@ -392,14 +408,6 @@ export const useConversationMessages = (
 
     const deleteMessage = useCallback((messageId: string) => {
         setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
-    }, []);
-
-    const clear = useCallback(() => {
-        setMessages([]);
-        setNextCursor(null);
-        setHasMore(true);
-        cursorRef.current = undefined;
-        setError(null);
     }, []);
 
     return {

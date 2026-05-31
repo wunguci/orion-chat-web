@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { VideoMessage } from './VideoMessage';
+import { Reply, RotateCcw, SmilePlus, Trash2 } from 'lucide-react';
 import {
     FaFileArchive,
     FaFileExcel,
@@ -11,6 +12,7 @@ import {
     FaFileWord,
 } from 'react-icons/fa';
 import { FiFile, FiFileText, FiImage, FiMusic, FiVideo } from 'react-icons/fi';
+import { REACTION_OPTIONS, ReactionIcon } from './reactions';
 
 /**
  * Message interface matching MongoDB schema
@@ -65,22 +67,6 @@ interface MessageItemNewProps {
     onReply?: () => void;
     isLoading?: boolean;
 }
-
-// Emoji picker list
-const EMOJI_LIST = [
-    '👍',
-    '❤️',
-    '😂',
-    '😮',
-    '😢',
-    '😡',
-    '🔥',
-    '😎',
-    '🤔',
-    '✨',
-    '🎉',
-    '👏',
-];
 
 /**
  * Generate avatar URL from phone number or userId
@@ -285,26 +271,35 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                         setShowEmojiPicker(!showEmojiPicker)
                                     }
                                 >
-                                    😊 React
+                                    <SmilePlus className="mr-2 inline h-4 w-4" />
+                                    Cảm xúc
                                 </button>
 
                                 {/* Emoji Picker */}
                                 {showEmojiPicker && (
                                     <div className=" w-50 absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-lg shadow-xl p-2 z-50">
                                         <div className="w-40">
-                                            {EMOJI_LIST.map((emoji) => (
+                                            {REACTION_OPTIONS.map((reaction) => (
                                                 <button
-                                                    key={emoji}
-                                                    className="text-lg hover:scale-125 transition-transform p-1 hover:bg-gray-100 rounded"
+                                                    key={reaction.emoji}
+                                                    className="inline-flex h-8 w-8 items-center justify-center rounded hover:scale-110 hover:bg-gray-100 transition-transform"
                                                     onClick={() => {
-                                                        onReact?.(emoji);
+                                                        onReact?.(
+                                                            reaction.emoji,
+                                                        );
                                                         setShowEmojiPicker(
                                                             false,
                                                         );
                                                     }}
-                                                    title={emoji}
+                                                    title={reaction.label}
                                                 >
-                                                    {emoji}
+                                                    <ReactionIcon
+                                                        emoji={reaction.emoji}
+                                                        size={18}
+                                                        className={
+                                                            reaction.className
+                                                        }
+                                                    />
                                                 </button>
                                             ))}
                                         </div>
@@ -318,7 +313,8 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     className="text-sm hover:bg-gray-100 px-3 py-1 transition-colors text-left w-full"
                                     onClick={onReply}
                                 >
-                                    💬 Reply
+                                    <Reply className="mr-2 inline h-4 w-4" />
+                                    Trả lời
                                 </button>
                             )}
 
@@ -328,7 +324,8 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     className="text-sm hover:bg-red-100 px-3 py-1 transition-colors text-left w-full text-red-600"
                                     onClick={onRecall}
                                 >
-                                    🔄 Recall
+                                    <RotateCcw className="mr-2 inline h-4 w-4" />
+                                    Thu hồi
                                 </button>
                             )}
 
@@ -338,7 +335,8 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     className="text-sm hover:bg-red-100 px-3 py-1 transition-colors text-left w-full text-red-600"
                                     onClick={onDelete}
                                 >
-                                    🗑️ Delete
+                                    <Trash2 className="mr-2 inline h-4 w-4" />
+                                    Xóa
                                 </button>
                             )}
                         </div>
@@ -386,7 +384,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     className="flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-full text-xs transition-colors"
                                     title={`${count} people reacted`}
                                 >
-                                    <span>{emoji}</span>
+                                    <ReactionIcon emoji={emoji} size={14} />
                                     {count > 1 && (
                                         <span className="text-xs text-gray-600">
                                             {count}
