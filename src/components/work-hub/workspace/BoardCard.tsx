@@ -36,29 +36,32 @@ const BoardCard = ({
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-wh-green-border-light rounded-xl p-5 cursor-pointer transition-all hover:shadow-md hover:border-wh-green-primary group"
+      className="bg-white border border-wh-green-border-light rounded-xl p-4 cursor-pointer transition-all hover:shadow-md hover:border-wh-green-primary group flex flex-col min-h-[160px]"
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-white"
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0"
             style={{ backgroundColor: board.color }}
           >
-            <i className={`fas ${board.icon}`}></i>
+            <i className={`fas ${board.icon} text-sm`}></i>
           </div>
-          <div>
-            <h3 className="font-semibold text-gray-900 group-hover:text-wh-green-primary transition-colors">
+          <div className="min-w-0 flex-1">
+            <h3
+              className="font-semibold text-gray-900 group-hover:text-wh-green-primary transition-colors truncate text-sm leading-tight"
+              title={board.name}
+            >
               {board.name}
             </h3>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400 mt-0.5">
               {board.columns.length} columns
             </p>
           </div>
         </div>
 
         {/* Dropdown menu */}
-        <div className="relative" ref={menuRef}>
+        <div className="relative flex-shrink-0" ref={menuRef}>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -107,16 +110,19 @@ const BoardCard = ({
 
       {/* Description */}
       {board.description && (
-        <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+        <p className="text-xs text-gray-500 mb-3 line-clamp-1">
           {board.description}
         </p>
       )}
 
+      {/* Spacer to push progress to bottom */}
+      <div className="flex-1" />
+
       {/* Progress */}
-      <div className="mb-3">
+      <div className="mb-2">
         <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
           <span>
-            {taskCount.completed}/{taskCount.total} tasks completed
+            {taskCount.completed}/{taskCount.total} tasks
           </span>
           <span className="font-medium text-wh-green-text-primary">
             {Math.round(progress)}%
@@ -126,23 +132,25 @@ const BoardCard = ({
       </div>
 
       {/* Columns preview */}
-      <div className="flex gap-2 flex-wrap">
-        {board.columns.map((col) => (
+      <div className="flex gap-1.5 flex-wrap mt-2">
+        {board.columns.slice(0, 4).map((col) => (
           <span
             key={col.id}
-            className="flex items-center gap-1.5 text-[11px] text-gray-500"
+            className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 rounded-full px-2 py-0.5"
           >
             <span
-              className="w-1.5 h-1.5 rounded-full"
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
               style={{ backgroundColor: col.color }}
             ></span>
-            {col.name}
+            <span className="truncate max-w-[60px]">{col.name}</span>
           </span>
         ))}
+        {board.columns.length > 4 && (
+          <span className="text-[10px] text-gray-400">+{board.columns.length - 4}</span>
+        )}
       </div>
     </div>
   );
 };
 
 export default BoardCard;
-

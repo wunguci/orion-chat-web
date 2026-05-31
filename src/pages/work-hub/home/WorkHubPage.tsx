@@ -419,7 +419,7 @@ const WorkHubPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 auto-rows-fr">
                     {workspace.boards.map((board: Board) => (
                       <BoardCard
                         key={board.id}
@@ -452,11 +452,14 @@ const WorkHubPage = () => {
               <div className="space-y-5">
                 <div className="bg-white rounded-2xl border border-slate-200 p-5">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium text-slate-500">
                         Good day
                       </div>
-                      <h3 className="text-2xl font-bold text-slate-800 mt-1">
+                      <h3
+                        className="text-xl font-bold text-slate-800 mt-1 truncate"
+                        title={workspace.name}
+                      >
                         {workspace.name}
                       </h3>
                       <p className="text-sm text-slate-500 mt-1">
@@ -464,7 +467,7 @@ const WorkHubPage = () => {
                       </p>
                     </div>
                     <div
-                      className="w-24 h-24 rounded-full grid place-items-center"
+                      className="w-24 h-24 rounded-full grid place-items-center flex-shrink-0 ml-4"
                       style={{
                         background: `conic-gradient(#0d9488 ${completionRate * 3.6}deg, #e2e8f0 0deg)`,
                       }}

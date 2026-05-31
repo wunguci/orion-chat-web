@@ -484,19 +484,25 @@ export const ChatInput: React.FC<{
                             )}
                         </div>
 
-                        <input
-                            value={text}
-                            onChange={(e) => setText(e.target.value)}
-                            onBlur={() => onTypingChange?.(false)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend();
-                                }
-                            }}
-                            className="flex-1 bg-gray-border text-gray-primary rounded-full px-4 py-2 outline-none text-sm placeholder:text-slate-400"
-                            placeholder="Type your message"
-                        />
+                        {/* Input with Gemini animation when rewriting */}
+                        <div className={`flex-1 ${isRewriting ? 'rewriting-glow-wrapper' : ''}`}>
+                            <input
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
+                                onBlur={() => onTypingChange?.(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        void handleSend();
+                                    }
+                                }}
+                                className={`w-full bg-gray-border text-gray-primary rounded-full px-4 py-2 outline-none text-sm placeholder:text-slate-400 transition-all ${
+                                    isRewriting ? 'pointer-events-none' : ''
+                                }`}
+                                placeholder={isRewriting ? 'Đang viết lại...' : 'Type your message'}
+                                readOnly={isRewriting}
+                            />
+                        </div>
 
                         <div ref={emojiRef} className="relative shrink-0">
                             <button
@@ -531,31 +537,55 @@ export const ChatInput: React.FC<{
                             <button
                                 onClick={() => setRewriteOpen((open) => !open)}
                                 disabled={!text.trim() || isRewriting}
-                                className="p-1.5 border border-slate-200 rounded-full hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200 transition-colors text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                                title="Rewrite message"
+                                className={`p-1.5 border rounded-full transition-colors text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed ${
+                                    isRewriting
+                                        ? 'border-purple-300 bg-purple-50 text-purple-600 animate-pulse'
+                                        : 'border-slate-200 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200'
+                                }`}
+                                title={isRewriting ? 'Đang viết lại...' : 'Rewrite message'}
                             >
-                                <WandSparkles className="h-4 w-4" />
+                                {isRewriting ? (
+                                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
+                                        <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                    </svg>
+                                ) : (
+                                    <WandSparkles className="h-4 w-4" />
+                                )}
                             </button>
 
                             {rewriteOpen && (
-                                <div className="absolute bottom-full right-0 z-20 mb-2 min-w-44 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                                <div className="absolute bottom-full right-0 z-20 mb-2 min-w-52 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                                    {/* Header */}
+                                    <div className="px-3 pt-2.5 pb-1.5 border-b border-slate-100">
+                                        <div className="flex items-center gap-1.5">
+                                            <WandSparkles className="h-3 w-3 text-green-500" />
+                                            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">AI Rewrite</span>
+                                        </div>
+                                    </div>
                                     {(
                                         [
-                                            ['professional', 'Chuyên nghiệp hơn'],
-                                            ['polite', 'Lịch sự hơn'],
-                                            ['concise', 'Ngắn gọn hơn'],
-                                        ] as Array<[RewriteTone, string]>
-                                    ).map(([tone, label]) => (
+                                            ['professional', 'Chuyên nghiệp hơn', ''],
+                                            ['polite', 'Lịch sự hơn', ''],
+                                            ['concise', 'Ngắn gọn hơn', ''],
+                                        ] as Array<[RewriteTone, string, string]>
+                                    ).map(([tone, label, icon]) => (
                                         <button
                                             key={tone}
                                             type="button"
-                                            onClick={() => handleRewrite(tone)}
-                                            className="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+                                            onClick={() => void handleRewrite(tone)}
+                                            disabled={isRewriting}
+                                            className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                         >
-                                            {label}
+                                            <span className="text-sm">{icon}</span>
+                                            {isRewriting ? (
+                                                <span className="animate-shimmer text-green-600">Đang viết lại...</span>
+                                            ) : (
+                                                <span>{label}</span>
+                                            )}
                                         </button>
                                     ))}
-                                    {lastTextBeforeRewrite && (
+                                    {lastTextBeforeRewrite && !isRewriting && (
                                         <button
                                             type="button"
                                             onClick={() => {

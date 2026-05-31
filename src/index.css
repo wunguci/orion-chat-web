@@ -19,7 +19,7 @@
   --color-blue-dark: #0052cc;
 } */
 
-/* ==================== CUSTOM CSS VARIABLES ==================== */
+/*  CUSTOM CSS VARIABLES  */
 :root {
   /* Colors - Palette chính cho ứng dụng chat */
   --color-primary: #0068ff; /* Màu xanh chủ đạo (như Zalo) */
@@ -111,7 +111,7 @@
   --header-height: 64px;
   --message-input-height: auto;
 
-  /* ==================== WORKHUB TEAL THEME (unified with chat) ==================== */
+  /*  WORKHUB TEAL THEME (unified with chat)  */
   /* Primary teal */
   --wh-green-primary: #0d9488;
   --wh-green-primary-hover: #0f766e;
@@ -156,7 +156,7 @@
   --scrollbar-thumb-hover: #9ca3af;
 }
 
-/* ==================== HELPER CLASSES ==================== */
+/*  HELPER CLASSES  */
 .animate-fade-in {
   animation: fadeIn var(--transition-base);
 }
@@ -173,7 +173,7 @@
   animation: slideInUp var(--transition-base);
 }
 
-/* ==================== RESPONSIVE BREAKPOINTS ==================== */
+/*  RESPONSIVE BREAKPOINTS  */
 /* Tailwind already handles this, but document for reference:
   - sm: 640px
   - md: 768px
@@ -182,7 +182,7 @@
   - 2xl: 1536px
 }
 
-/* ==================== PRINT STYLES ==================== */
+/*  PRINT STYLES  */
 @media print {
   body {
     background: white;
@@ -301,4 +301,83 @@
 }
 .contact-list-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/*  GEMINI REWRITE ANIMATION  */
+/*  GEMINI BORDER SPIN  */
+
+.rewriting-glow-wrapper {
+  position: relative;
+  border-radius: 9999px;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Gradient ring */
+.rewriting-glow-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+
+  background: conic-gradient(
+    #4285f4,
+    #9b59b6,
+    #e74c3c,
+    #f39c12,
+    #2ecc71,
+    #4285f4
+  );
+
+  animation: gemini-spin 2s linear infinite;
+  z-index: -2;
+}
+
+/* Inner background */
+.rewriting-glow-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  background: white;
+  z-index: -1;
+}
+
+/* Rotate the whole gradient */
+@keyframes gemini-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*  GENERAL ANIMATIONS  */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/*  WORKHUB DRAG HANDLE  */
+.kanban-drag-handle {
+  cursor: grab;
+}
+.kanban-drag-handle:active {
+  cursor: grabbing;
 }

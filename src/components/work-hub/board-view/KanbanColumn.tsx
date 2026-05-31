@@ -75,7 +75,12 @@ const KanbanColumn = ({
         e.preventDefault();
         onDragEnter();
       }}
-      onDragLeave={onDragLeave}
+      onDragLeave={(e) => {
+        // Only fire leave if we're actually leaving the column container
+        const relatedTarget = e.relatedTarget as Node | null;
+        if (e.currentTarget.contains(relatedTarget)) return;
+        onDragLeave();
+      }}
       onDrop={(e) => {
         e.preventDefault();
         const taskId = e.dataTransfer.getData("text/plain");
