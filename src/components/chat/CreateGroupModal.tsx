@@ -140,8 +140,8 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             selectedFriendIds.includes(friend.id),
         );
 
-        if (selectedFriends.length === 0) {
-            setCreateGroupError('Không có thành viên để tạo nhóm mới.');
+        if (selectedFriends.length < 2) {
+            setCreateGroupError('Nhóm phải có ít nhất 3 thành viên (bao gồm cả bạn).');
             return;
         }
 
@@ -253,6 +253,9 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500"
                         disabled={isCreatingGroup || friendsLoading}
                     />
+                    <p className="mt-1 text-xs font-medium italic text-green-600">
+                        * Nhóm phải có từ 3 thành viên trở lên (bao gồm cả bạn)
+                    </p>
 
                     <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-slate-200 p-2">
                         {friendsLoading ? (
@@ -319,7 +322,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                         disabled={
                             isCreatingGroup ||
                             !groupName.trim() ||
-                            selectedFriendIds.length === 0
+                            selectedFriendIds.length < 2
                         }
                     >
                         {isCreatingGroup ? 'Đang tạo...' : 'Tạo nhóm'}

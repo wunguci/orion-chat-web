@@ -2,6 +2,23 @@ import type { User } from '../types/auth.types';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
+const AUTH_STORAGE_KEYS = [
+    TOKEN_KEY,
+    USER_KEY,
+    'token',
+    'authToken',
+    'jwt',
+    'access_token',
+    'refresh_token',
+    'auth',
+    'currentUser',
+    'profile',
+    'authUser',
+    'user',
+    'userId',
+    'auth_session_id',
+    'auth_device_id',
+];
 
 /**
  * lưu dữ liệu người dùng vào localStorage
@@ -28,6 +45,10 @@ export function saveUserData(data: Record<string, unknown>): void {
 export function setToken(token: string): void {
     try {
         const oldToken = localStorage.getItem(TOKEN_KEY);
+        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('access_token');
         localStorage.setItem(TOKEN_KEY, token);
 
         window.dispatchEvent(
@@ -60,7 +81,19 @@ export function getToken(): string | null {
  */
 export function removeToken(): void {
     try {
-        localStorage.removeItem(TOKEN_KEY);
+        for (const key of AUTH_STORAGE_KEYS) {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+        }
+
+        window.dispatchEvent(
+            new StorageEvent('storage', {
+                key: TOKEN_KEY,
+                oldValue: null,
+                newValue: null,
+                storageArea: localStorage,
+            }),
+        );
     } catch (error) {
         console.error('Error removing token:', error);
     }
@@ -73,6 +106,12 @@ export function setUser(user: User): void {
     try {
         const jsonStr = JSON.stringify(user);
         localStorage.setItem(USER_KEY, jsonStr);
+        const userId = user.userId || user.id;
+        if (userId) {
+            localStorage.setItem('userId', userId);
+        } else {
+            localStorage.removeItem('userId');
+        }
     } catch (error) {
         console.error('Error storing user data:', error);
     }
@@ -117,6 +156,7 @@ export function debugAuthStatus(): void {
 export function removeUser(): void {
     try {
         localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_KEY);
     } catch (error) {
         console.error('Error removing user data:', error);
     }
@@ -155,7 +195,6 @@ export function isTokenValid(): boolean {
  */
 export function logout(): void {
     removeToken();
-    removeUser();
 }
 
 /**

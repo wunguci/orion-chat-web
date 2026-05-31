@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../services/authService';
 import { getToken, removeToken } from '../../utils/token';
+import { chatSocketService } from '../../services/websocket/chatSocket';
+import { notificationSocketService } from '../../services/websocket/notificationSocket';
+import { presenceSocketService } from '../../services/websocket/presenceSocket';
 
 export default function LogoutPage() {
     const navigate = useNavigate();
@@ -18,10 +21,12 @@ export default function LogoutPage() {
             } catch (error) {
                 console.error('[LogoutPage] Error calling logout API:', error);
             } finally {
-                // Clear localStorage
+                chatSocketService.disconnect();
+                notificationSocketService.disconnect();
+                presenceSocketService.disconnect();
+
+                // Clear every local/session auth token.
                 removeToken();
-                localStorage.removeItem('auth_user');
-                localStorage.removeItem('rememberMe');
 
                 console.log('[LogoutPage] Local storage cleared');
 

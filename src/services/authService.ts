@@ -239,6 +239,63 @@ export async function login(
   }
 }
 
+export async function createQrLoginSession(): Promise<{
+  success: boolean;
+  data: {
+    sessionId: string;
+    qrToken: string;
+    qrData: string;
+    expiresAt: string;
+    expiresIn: number;
+  };
+  message?: string;
+}> {
+  const deviceMetadata = buildDeviceMetadata();
+  const response = await fetch(`${API_BASE_URL}/auth/qr/session`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Platform": "web",
+    },
+    credentials: "include",
+    body: JSON.stringify(deviceMetadata),
+  });
+
+  if (!response.ok) {
+    const errorData: ErrorResponse = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Không thể tạo mã QR đăng nhập");
+  }
+
+  return response.json();
+}
+
+export async function getQrLoginStatus(sessionId: string): Promise<{
+  success: boolean;
+  data: {
+    status: "pending" | "confirmed" | "expired";
+    expiresAt?: string;
+    confirmedAt?: string;
+    loginData?: LoginResponse["data"];
+  };
+}> {
+  const response = await fetch(`${API_BASE_URL}/auth/qr/status`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Platform": "web",
+    },
+    credentials: "include",
+    body: JSON.stringify({ sessionId }),
+  });
+
+  if (!response.ok) {
+    const errorData: ErrorResponse = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Không thể kiểm tra mã QR");
+  }
+
+  return response.json();
+}
+
 // Logout user
 export async function logout(token: string): Promise<{ message: string }> {
     try {

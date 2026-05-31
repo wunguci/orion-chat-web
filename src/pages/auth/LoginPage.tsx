@@ -1,13 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import {
+    createQrLoginSession,
+    getQrLoginStatus,
     login,
     validatePhoneNumber,
     validatePassword,
 } from '../../services/authService';
 import { setToken, setUser } from '../../utils/token';
 import { ROUTES } from '../../types/routes.types';
+import type { LoginResponse } from '../../types/auth.types';
+import { chatSocketService } from '../../services/websocket/chatSocket';
+import { notificationSocketService } from '../../services/websocket/notificationSocket';
+import { presenceSocketService } from '../../services/websocket/presenceSocket';
 
 export default function LoginPage() {
     const navigate = useNavigate();
@@ -19,6 +26,11 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
+    const [loginMode, setLoginMode] = useState<'password' | 'qr'>('password');
+    const [qrSessionId, setQrSessionId] = useState('');
+    const [qrData, setQrData] = useState('');
+    const [qrExpiresAt, setQrExpiresAt] = useState('');
+    const [qrLoading, setQrLoading] = useState(false);
 
     useEffect(() => {
         const savedPhone = localStorage.getItem('remembered_phone');
@@ -31,6 +43,112 @@ export default function LoginPage() {
             setRememberMe(true);
         }
     }, []);
+
+    const completeWebLogin = (data: NonNullable<LoginResponse['data']>) => {
+        const token = data.token;
+        if (!token) {
+            setError('Lỗi: Không nhận được token từ server');
+            return false;
+        }
+
+        chatSocketService.disconnect();
+        notificationSocketService.disconnect();
+        presenceSocketService.disconnect();
+
+        setToken(token);
+        setUser({
+            phoneNumber: data.phoneNumber || '',
+            fullName: data.fullName || '',
+            birthDate: data.birthDate || undefined,
+            gender: data.gender || undefined,
+            loginTime: data.loginTime || new Date().toISOString(),
+            userId: data.userId || '',
+            email: data.email || '',
+            avatarUrl: data.avatarUrl || undefined,
+            coverImage: data.coverImage || undefined,
+            isOnline: data.isOnline !== undefined ? data.isOnline : true,
+            showOnlineStatus:
+                data.showOnlineStatus !== undefined
+                    ? data.showOnlineStatus
+                    : true,
+            isActive: data.isActive !== undefined ? data.isActive : true,
+            isDeleted: data.isDeleted !== undefined ? data.isDeleted : false,
+            createdAt: data.createdAt || new Date().toISOString(),
+        });
+
+        return true;
+    };
+
+    const startQrLogin = async () => {
+        setError(null);
+        setMessage(null);
+        setQrLoading(true);
+        try {
+            const result = await createQrLoginSession();
+            setQrSessionId(result.data.sessionId);
+            setQrData(result.data.qrData);
+            setQrExpiresAt(result.data.expiresAt);
+        } catch (err) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : 'Không thể tạo mã QR đăng nhập',
+            );
+        } finally {
+            setQrLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (loginMode === 'qr') {
+            void startQrLogin();
+        }
+    }, [loginMode]);
+
+    useEffect(() => {
+        if (loginMode !== 'qr' || !qrSessionId) return;
+
+        let stopped = false;
+        const interval = window.setInterval(async () => {
+            try {
+                const result = await getQrLoginStatus(qrSessionId);
+                if (stopped) return;
+
+                if (result.data.status === 'expired') {
+                    setError('Mã QR đã hết hạn. Vui lòng tạo mã mới.');
+                    setQrData('');
+                    window.clearInterval(interval);
+                    return;
+                }
+
+                if (result.data.status === 'confirmed') {
+                    const loginData = result.data.loginData;
+                    if (!loginData) return;
+
+                    window.clearInterval(interval);
+                    if (completeWebLogin(loginData)) {
+                        setMessage('Đăng nhập QR thành công! Chuyển hướng...');
+                        setTimeout(() => {
+                            navigate(`${ROUTES.HOME}/${ROUTES.CHAT.ROOT}`);
+                        }, 800);
+                    }
+                }
+            } catch (err) {
+                if (!stopped) {
+                    setError(
+                        err instanceof Error
+                            ? err.message
+                            : 'Không thể kiểm tra mã QR',
+                    );
+                }
+            }
+        }, 1800);
+
+        return () => {
+            stopped = true;
+            window.clearInterval(interval);
+        };
+    }, [loginMode, navigate, qrSessionId]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -75,6 +193,9 @@ export default function LoginPage() {
                     setLoading(false);
                     return;
                 }
+                chatSocketService.disconnect();
+                notificationSocketService.disconnect();
+                presenceSocketService.disconnect();
                 setToken(token);
 
                 // Store user data with all available fields
@@ -162,7 +283,32 @@ export default function LoginPage() {
                         </div>
                     )}
 
-                    {/* Form - Responsive */}
+                    <div className="grid grid-cols-2 gap-2 rounded-full bg-gray-100 p-1">
+                        <button
+                            type="button"
+                            onClick={() => setLoginMode('password')}
+                            className={`rounded-full py-2 text-xs sm:text-sm font-semibold transition-colors ${
+                                loginMode === 'password'
+                                    ? 'bg-white text-green-primary shadow-sm'
+                                    : 'text-gray-500'
+                            }`}
+                        >
+                            Mật khẩu
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLoginMode('qr')}
+                            className={`rounded-full py-2 text-xs sm:text-sm font-semibold transition-colors ${
+                                loginMode === 'qr'
+                                    ? 'bg-white text-green-primary shadow-sm'
+                                    : 'text-gray-500'
+                            }`}
+                        >
+                            QR
+                        </button>
+                    </div>
+
+                    {loginMode === 'password' ? (
                     <form
                         className="space-y-3.5 sm:space-y-5"
                         onSubmit={handleLogin}
@@ -284,6 +430,45 @@ export default function LoginPage() {
                             {loading ? 'Đang đăng nhập...' : 'Log in'}
                         </button>
                     </form>
+                    ) : (
+                        <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-4 text-center">
+                            <div className="mx-auto flex h-56 w-56 items-center justify-center rounded-xl border border-gray-200 bg-white">
+                                {qrLoading ? (
+                                    <div className="text-sm font-semibold text-gray-500">
+                                        Đang tạo mã QR...
+                                    </div>
+                                ) : qrData ? (
+                                    <QRCodeSVG value={qrData} size={190} />
+                                ) : (
+                                    <div className="px-4 text-sm text-gray-500">
+                                        Mã QR chưa sẵn sàng
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <p className="text-sm font-semibold text-gray-800">
+                                    Quét bằng điện thoại đã đăng nhập
+                                </p>
+                                <p className="mt-1 text-xs leading-5 text-gray-500">
+                                    Mở camera trên điện thoại, quét mã này và xác nhận đăng nhập trong Orion Chat mobile.
+                                </p>
+                                {qrExpiresAt ? (
+                                    <p className="mt-2 text-xs text-gray-400">
+                                        Hết hạn lúc {new Date(qrExpiresAt).toLocaleTimeString()}
+                                    </p>
+                                ) : null}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={startQrLogin}
+                                disabled={qrLoading}
+                                className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-green-primary hover:text-green-primary disabled:opacity-60"
+                            >
+                                <RefreshCw size={16} />
+                                Tạo mã mới
+                            </button>
+                        </div>
+                    )}
 
                     {/* Register - Responsive */}
                     <p className="text-center text-gray-500 text-xs sm:text-sm">

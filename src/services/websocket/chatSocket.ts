@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { removeToken } from '../../utils/token';
 
 const RAW_SOCKET_URL =
     (import.meta.env['VITE_SOCKET_URL'] as string | undefined) ||
@@ -218,6 +219,7 @@ type ConversationDeletedPayload = {
 
 class ChatSocketService {
     private chatSocket: Socket | null = null;
+    private activeToken: string | null = null;
     private joinedConversationIds = new Set<string>();
     private listenersBound = false;
     private memberChangedHandlers = new Set<
@@ -237,11 +239,6 @@ class ChatSocketService {
      * Tự động handle authentication mà không cần userId parameter
      */
     connect(): Socket {
-        if (this.chatSocket?.connected) {
-            console.log('[ChatSocketService] Already connected');
-            return this.chatSocket;
-        }
-
         const token = localStorage.getItem('auth_token');
 
         if (!token) {
@@ -250,6 +247,18 @@ class ChatSocketService {
             );
             window.location.href = '/login';
             throw new Error('No auth token found');
+        }
+
+        if (this.chatSocket?.connected && this.activeToken === token) {
+            console.log('[ChatSocketService] Already connected');
+            return this.chatSocket;
+        }
+
+        if (this.chatSocket && this.activeToken !== token) {
+            console.log('[ChatSocketService] Auth token changed, reconnecting');
+            this.chatSocket.disconnect();
+            this.chatSocket = null;
+            this.listenersBound = false;
         }
 
         console.log(
@@ -267,6 +276,7 @@ class ChatSocketService {
             reconnectionDelayMax: 5000,
             reconnectionAttempts: 5,
         });
+        this.activeToken = token;
 
         this.bindLifecycleListeners();
 
@@ -307,7 +317,8 @@ class ChatSocketService {
                     console.error(
                         '[ChatSocketService] Auth failed - clearing token and redirecting',
                     );
-                    localStorage.removeItem('auth_token');
+                    removeToken();
+                    this.activeToken = null;
                     setTimeout(() => {
                         window.location.href = '/login';
                     }, 1000);
@@ -326,6 +337,7 @@ class ChatSocketService {
         console.log('[ChatSocketService] Disconnecting');
         this.chatSocket?.disconnect();
         this.chatSocket = null;
+        this.activeToken = null;
         this.joinedConversationIds.clear();
         this.listenersBound = false;
         this.memberChangedHandlers.clear();
