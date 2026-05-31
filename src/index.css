@@ -310,41 +310,40 @@
   position: relative;
   border-radius: 9999px;
   overflow: hidden;
-  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Gradient ring */
+.rewriting-glow-wrapper > input {
+  position: relative;
+  z-index: 1;
+  margin: 2px;
+  width: calc(100% - 4px);
+  background-color: var(--color-background);
+}
+
+/* Rotating "beam" */
 .rewriting-glow-wrapper::before {
   content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: inherit;
-
-  background: conic-gradient(
-    #4285f4,
-    #9b59b6,
-    #e74c3c,
-    #f39c12,
-    #2ecc71,
-    #4285f4
+  display: block;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    var(--wh-green-primary) 50%,
+    rgba(255, 255, 255, 0) 100%
   );
-
-  animation: gemini-spin 2s linear infinite;
-  z-index: -2;
-}
-
-/* Inner background */
-.rewriting-glow-wrapper::after {
-  content: "";
+  height: 800px; /* Made it taller to cover wide inputs */
+  width: 100px;
   position: absolute;
-  inset: 2px;
-  border-radius: inherit;
-  background: white;
-  z-index: -1;
+  top: 50%;
+  left: calc(50% - 50px); /* Exactly center horizontally without translate */
+  transform-origin: top center;
+  animation: glow-rotate 5s linear forwards infinite;
+  z-index: 0;
 }
 
-/* Rotate the whole gradient */
-@keyframes gemini-spin {
+@keyframes glow-rotate {
   from {
     transform: rotate(0deg);
   }
