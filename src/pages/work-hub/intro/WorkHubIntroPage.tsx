@@ -172,7 +172,7 @@ const WorkspaceSelector = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                {workspaces.map((ws) => (
+                {workspaces.filter(ws => ws != null).map((ws) => (
                     <button
                         key={ws.workspaceId}
                         onClick={() => onSelect(ws.workspaceId)}

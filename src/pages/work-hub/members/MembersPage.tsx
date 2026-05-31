@@ -17,41 +17,37 @@ import {
 import { getUser } from "../../../utils/token";
 import MemberList from "../../../components/work-hub/workspace/MemberList";
 import InviteMemberDialog from "../../../components/work-hub/workspace/InviteMemberDialog";
+import { useWorkspace } from "../../../contexts/WorkspaceContext";
 
 const MembersPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [inviteLinkData, setInviteLinkData] =
-    useState<WorkspaceInviteLinkResponse | null>(null);
+  const [inviteLinkData, setInviteLinkData] = useState<WorkspaceInviteLinkResponse | null>(null);
   const [joinRequests, setJoinRequests] = useState<
     WorkspaceJoinRequestResponse[]
   >([]);
 
   const [showInvite, setShowInvite] = useState(false);
+  const { workspace, isOwner, isAdmin, refreshWorkspace } = useWorkspace();
+  const members = workspace?.members ?? [];
 
   const reloadWorkspace = useCallback(async () => {
     if (!workspaceId) return;
-
-    const data = await workHubApi.getWorkspace(workspaceId);
-    const mapped = mapWorkspace(data);
-    setWorkspace(mapped);
-    setMembers(mapped.members);
+    await refreshWorkspace();
     workHubApi
       .getJoinRequests(workspaceId)
       .then(setJoinRequests)
       .catch(() => setJoinRequests([]));
-  }, [workspaceId]);
+  }, [workspaceId, refreshWorkspace]);
 
-  // Fetch workspace data từ API
   useEffect(() => {
     if (!workspaceId) return;
-    setLoading(true);
-    reloadWorkspace()
-      .catch(() => setWorkspace(null))
-      .finally(() => setLoading(false));
-  }, [workspaceId, reloadWorkspace]);
+    if (isOwner || isAdmin) {
+      workHubApi
+        .getJoinRequests(workspaceId)
+        .then(setJoinRequests)
+        .catch(() => setJoinRequests([]));
+    }
+  }, [workspaceId, isOwner, isAdmin]);
 
   const handleRemoveMember = async (userId: string) => {
     if (
@@ -129,9 +125,9 @@ const MembersPage = () => {
     }
   };
 
-  const currentUserId = getUser()?.userId ?? getUser()?.id ?? "";
-  const currentUserRole =
-    members.find((member) => member.user.id === currentUserId)?.role ?? "member";
+  const currentUser = getUser();
+  const currentUserId = currentUser?.userId ?? currentUser?.id ?? "";
+  const currentUserRole = workspace?.members.find((member) => member.user.id === currentUserId)?.role ?? "member";
 
   const handleGenerateLink = async () => {
     if (!workspaceId) return;
@@ -157,13 +153,15 @@ const MembersPage = () => {
               Manage workspace members and permissions
             </p>
           </div>
-          <button
-            onClick={() => setShowInvite(true)}
-            className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors flex items-center gap-2"
-          >
-            <i className="fas fa-user-plus"></i>
-            Invite Member
-          </button>
+          {(isOwner || isAdmin) && (
+            <button
+              onClick={() => setShowInvite(true)}
+              className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors flex items-center gap-2"
+            >
+              <i className="fas fa-user-plus"></i>
+              Invite Member
+            </button>
+          )}
         </div>
       </div>
 

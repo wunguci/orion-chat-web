@@ -9,10 +9,13 @@ import { getUser } from "../../../utils/token";
 import BoardCard from "../../../components/work-hub/workspace/BoardCard";
 import BoardFormDialog from "../../../components/work-hub/workspace/BoardFormDialog";
 
+import { useWorkspace } from "../../../contexts/WorkspaceContext";
+import { AlertTriangle } from "lucide-react";
+
 const WorkHubPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const { workspace } = useWorkspace();
   const [dashboardStats, setDashboardStats] =
     useState<WorkspaceDashboardStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,15 +28,9 @@ const WorkHubPage = () => {
     setLoading(true);
 
     try {
-      const [workspaceData, statsData] = await Promise.all([
-        workHubApi.getWorkspace(workspaceId),
-        workHubApi.getDashboardStats(workspaceId),
-      ]);
-
-      setWorkspace(mapWorkspace(workspaceData));
+      const statsData = await workHubApi.getDashboardStats(workspaceId);
       setDashboardStats(statsData);
     } catch {
-      setWorkspace(null);
       setDashboardStats(null);
     } finally {
       setLoading(false);
@@ -74,14 +71,10 @@ const WorkHubPage = () => {
   const recentActivities = dashboardStats?.recentActivities ?? [];
 
   const completionRate = stats.completionRate;
-  const currentUser = getUser();
-  const currentUserId = currentUser?.userId ?? currentUser?.id ?? "";
-  const currentUserRole =
-    workspace?.members.find((member) => member.user.id === currentUserId)
-      ?.role ?? "member";
-  const canManageWorkspace =
-    currentUserRole === "owner" || currentUserRole === "admin";
-  const canDisbandWorkspace = currentUserRole === "owner";
+  
+  const { isOwner, isAdmin } = useWorkspace();
+  const canManageWorkspace = isOwner || isAdmin;
+  const canDisbandWorkspace = isOwner;
 
   const trendSeries = useMemo(() => {
     const source = dashboardStats?.trendLast7Days ?? [];

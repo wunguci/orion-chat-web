@@ -7,6 +7,7 @@ import type {
   Label,
 } from "../../types/work-hub.types";
 import Modal from "../common/Modal";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -27,6 +28,9 @@ const TaskModal = ({
   users = [],
   labels = [],
 }: TaskModalProps) => {
+  const { isOwner, isAdmin } = useWorkspace();
+  const canEditCore = isOwner || isAdmin || !editData; // if creating new, allowed if they somehow reach here
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(initialStatus);
@@ -109,8 +113,9 @@ const TaskModal = ({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            disabled={!canEditCore}
             placeholder="Enter task name"
-            className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
+            className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary disabled:opacity-60 disabled:bg-gray-100"
           />
         </div>
 
@@ -122,9 +127,10 @@ const TaskModal = ({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            disabled={!canEditCore}
             placeholder="Enter task description"
             rows={3}
-            className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary resize-none"
+            className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary resize-none disabled:opacity-60 disabled:bg-gray-100"
           />
         </div>
 
@@ -152,7 +158,8 @@ const TaskModal = ({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
-              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
+              disabled={!canEditCore}
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary disabled:opacity-60 disabled:bg-gray-100"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -172,7 +179,8 @@ const TaskModal = ({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
+              disabled={!canEditCore}
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary disabled:opacity-60 disabled:bg-gray-100"
             />
           </div>
           <div>
@@ -183,7 +191,8 @@ const TaskModal = ({
               type="date"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary"
+              disabled={!canEditCore}
+              className="w-full px-4 py-2.5 bg-wh-green-bg-light border border-wh-green-border-light rounded-lg text-gray-900 focus:outline-none focus:border-wh-green-primary disabled:opacity-60 disabled:bg-gray-100"
             />
           </div>
         </div>

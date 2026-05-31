@@ -7,6 +7,8 @@ import type {
 import { useDragDrop } from "../../../hooks/useDragDrop";
 import KanbanColumn from "./KanbanColumn";
 
+import { useWorkspace } from "../../../contexts/WorkspaceContext";
+
 interface KanbanBoardProps {
   columns: BoardColumn[];
   tasks: Task[];
@@ -60,6 +62,7 @@ const KanbanBoard = ({
     handleDragEnter,
     handleDragLeave,
   } = useDragDrop();
+  const { isOwner, isAdmin } = useWorkspace();
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
   const [newColumnStatus, setNewColumnStatus] = useState("TODO");
@@ -122,7 +125,7 @@ const KanbanBoard = ({
         ))}
 
       {/* Add Column Button / Form */}
-      {onAddColumn && (
+      {onAddColumn && (isOwner || isAdmin) && (
         <div className="min-w-[300px] max-w-[350px] flex-shrink-0">
           {showAddColumn ? (
             <div className="bg-wh-green-bg-light border border-wh-green-border-light rounded-xl p-4">
