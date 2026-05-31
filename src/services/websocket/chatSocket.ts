@@ -514,9 +514,13 @@ class ChatSocketService {
         });
     }
 
-    offMessageNew() {
+    offMessageNew(cb?: (payload: unknown) => void) {
         if (!this.chatSocket) return;
-        this.chatSocket.off('chat:message_new');
+        if (cb) {
+            this.chatSocket.off('chat:message_new', cb);
+        } else {
+            this.chatSocket.off('chat:message_new');
+        }
     }
 
     onTyping(cb: (payload: ChatTypingPayload) => void) {
@@ -908,8 +912,8 @@ export const onMessageNew = (cb: (payload: unknown) => void) => {
     chatSocketService.onMessageNew(cb);
 };
 
-export const offMessageNew = () => {
-    chatSocketService.offMessageNew();
+export const offMessageNew = (cb?: (payload: unknown) => void) => {
+    chatSocketService.offMessageNew(cb);
 };
 
 export const onTyping = (cb: (payload: unknown) => void) => {
