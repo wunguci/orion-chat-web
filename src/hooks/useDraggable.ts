@@ -57,23 +57,33 @@ export const useDraggable = ({ initialPosition = { x: 0, y: 0 }, handleRef }: Us
         });
     }, [isDragging]);
 
-    const onPointerUp = useCallback(() => {
+    const onPointerUp = useCallback((e?: PointerEvent) => {
         setIsDragging(false);
         document.body.style.userSelect = '';
+        if (e && e.target && 'releasePointerCapture' in e.target && 'pointerId' in e) {
+            try {
+                (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+            } catch (err) {
+                // Ignore
+            }
+        }
     }, []);
 
     useEffect(() => {
         if (isDragging) {
-            window.addEventListener('pointermove', onPointerMove);
-            window.addEventListener('pointerup', onPointerUp);
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+            document.addEventListener('pointercancel', onPointerUp);
         } else {
-            window.removeEventListener('pointermove', onPointerMove);
-            window.removeEventListener('pointerup', onPointerUp);
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            document.removeEventListener('pointercancel', onPointerUp);
         }
 
         return () => {
-            window.removeEventListener('pointermove', onPointerMove);
-            window.removeEventListener('pointerup', onPointerUp);
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            document.removeEventListener('pointercancel', onPointerUp);
         };
     }, [isDragging, onPointerMove, onPointerUp]);
 

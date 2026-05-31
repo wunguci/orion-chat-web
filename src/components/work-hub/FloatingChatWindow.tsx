@@ -122,6 +122,56 @@ const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         });
     };
 
+    return (
+        <div
+            className="fixed z-[50] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            style={{
+                left: position.x,
+                top: position.y,
+                width: '400px',
+                height: '600px',
+                minWidth: '300px',
+                minHeight: '400px',
+                resize: 'both',
+            }}
+        >
+            <div
+                ref={headerRef}
+                className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 cursor-move hover:bg-slate-50 transition-colors"
+            >
+                <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="relative shrink-0">
+                        <ChatAvatar name={user.name} avatarUrl={user.avatar} sizeClassName="w-10 h-10" />
+                        {user.status === 'online' && (
+                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
+                        )}
+                    </div>
+                    <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900 truncate">
+                            {user.name}
+                        </div>
+                        <div className="text-xs text-slate-500 truncate">
+                            {user.status === 'online' ? 'Đang hoạt động' : 'Ngoại tuyến'}
+                        </div>
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); handleCall('audio'); }}
+                        className="h-8 w-8 rounded-full text-wh-green-primary hover:bg-emerald-50 flex items-center justify-center"
+                        title="Gọi thoại"
+                    >
+                        <Phone className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); handleCall('video'); }}
+                        className="h-8 w-8 rounded-full text-wh-green-primary hover:bg-emerald-50 flex items-center justify-center"
+                        title="Gọi video"
+                    >
+                        <Video className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-5 bg-slate-200 mx-1"></div>
                     <button
                         onClick={(e) => { e.stopPropagation(); onMinimize(); }}
                         className="h-8 w-8 rounded-full text-slate-500 hover:bg-slate-100 flex items-center justify-center"
