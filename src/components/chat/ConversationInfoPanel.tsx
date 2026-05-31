@@ -12,7 +12,6 @@ import {
     NotebookText,
     Clock7,
     EyeOff,
-    MessageSquareWarning,
     Trash2,
     ArrowLeft,
     HelpCircle,
@@ -22,6 +21,7 @@ import {
     MoreVertical,
     Ban,
     Unlock,
+    BarChart3,
 } from 'lucide-react';
 import {
     FaFileArchive,
@@ -206,6 +206,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         selectedConversation?.myIsPinned || false,
     );
     const [isPinLoading, setIsPinLoading] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
 
     // Derive isConversationHidden from selectedConversation to avoid setState cascade
     const isConversationHidden = selectedConversation?.myIsHidden || false;
@@ -356,6 +357,53 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     useEffect(() => {
         setIsPinned(selectedConversation?.myIsPinned || false);
     }, [selectedConversation?.myIsPinned]);
+
+    useEffect(() => {
+        const conversationId = selectedConversation?.conversationId;
+        if (!conversationId) {
+            setIsMuted(false);
+            return;
+        }
+
+        try {
+            const mutedIds = JSON.parse(
+                localStorage.getItem('chat_muted_conversation_ids') || '[]',
+            ) as string[];
+            setIsMuted(mutedIds.includes(conversationId));
+        } catch {
+            setIsMuted(false);
+        }
+    }, [selectedConversation?.conversationId]);
+
+    const handleToggleMuteConversation = () => {
+        const conversationId = selectedConversation?.conversationId;
+        if (!conversationId) return;
+
+        let mutedIds: string[] = [];
+        try {
+            mutedIds = JSON.parse(
+                localStorage.getItem('chat_muted_conversation_ids') || '[]',
+            ) as string[];
+        } catch {
+            mutedIds = [];
+        }
+
+        const nextMuted = !mutedIds.includes(conversationId);
+        const nextIds = nextMuted
+            ? [...new Set([...mutedIds, conversationId])]
+            : mutedIds.filter((id) => id !== conversationId);
+
+        localStorage.setItem(
+            'chat_muted_conversation_ids',
+            JSON.stringify(nextIds),
+        );
+        setIsMuted(nextMuted);
+        window.dispatchEvent(
+            new CustomEvent('chat:conversation_mute_changed', {
+                detail: { conversationId, muted: nextMuted },
+            }),
+        );
+    };
 
     // ✅ Handle pin/unpin conversation
     const handlePinConversation = async () => {
@@ -530,13 +578,27 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
 
                             {/* Action Buttons */}
                             <div className="p-4 flex gap-3 justify-center border-b  border-slate-200">
-                                <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
+                                <button
+                                    type="button"
+                                    onClick={handleToggleMuteConversation}
+                                    className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-colors flex-1 ${
+                                        isMuted
+                                            ? 'bg-slate-100 text-slate-700'
+                                            : 'hover:bg-white'
+                                    }`}
+                                >
                                     <Bell
                                         size={20}
-                                        className="text-green-primary"
+                                        className={
+                                            isMuted
+                                                ? 'text-slate-600'
+                                                : 'text-green-primary'
+                                        }
                                     />
                                     <span className="text-xs text-gray-primary">
-                                        Tắt thông báo
+                                        {isMuted
+                                            ? 'Bật thông báo'
+                                            : 'Tắt thông báo'}
                                     </span>
                                 </button>
                                 <button
@@ -881,7 +943,19 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                                         <NotebookText size={20} />
                                         <span className="text-[15px]">
-                                            Ghi chú, ghim, bình chọn
+                                            Ghi chú
+                                        </span>
+                                    </button>
+                                    <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                                        <Pin size={20} />
+                                        <span className="text-[15px]">
+                                            Ghim
+                                        </span>
+                                    </button>
+                                    <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
+                                        <BarChart3 size={20} />
+                                        <span className="text-[15px]">
+                                            Bình chọn
                                         </span>
                                     </button>
                                 </div>
@@ -944,10 +1018,6 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     </button>
                                 </div>
 
-                                <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-gray-primary">
-                                    <MessageSquareWarning size={20} />
-                                    <span className="text-[15px]">Báo xấu</span>
-                                </button>
                                 <button
                                     onClick={() =>
                                         setShowClearHistoryModal(true)

@@ -6,13 +6,13 @@ import { useAuth } from "../../hooks/useAuth";
 import { useGroupCallContext } from "../../hooks/useGroupCallContext";
 
 const statusText: Record<string, string> = {
-  idle: "Idle",
-  calling: "Calling...",
-  ringing: "Ringing...",
-  connected: "Connected",
-  ended: "Call ended",
-  rejected: "Call rejected",
-  failed: "Call failed",
+  idle: "Sẵn sàng",
+  calling: "Đang gọi...",
+  ringing: "Đang đổ chuông...",
+  connected: "Đang kết nối",
+  ended: "Cuộc gọi đã kết thúc",
+  rejected: "Cuộc gọi bị từ chối",
+  failed: "Cuộc gọi lỗi",
 };
 
 const getInitials = (name?: string) =>
@@ -31,7 +31,6 @@ function MediaTile({
   isVideoEnabled,
   isAudioEnabled,
   isHost,
-  callType,
   active,
   onClick,
 }: {
@@ -42,7 +41,6 @@ function MediaTile({
   isVideoEnabled: boolean;
   isAudioEnabled: boolean;
   isHost?: boolean;
-  callType: "audio" | "video";
   active?: boolean;
   onClick?: () => void;
 }) {
@@ -63,8 +61,8 @@ function MediaTile({
     <button
       type="button"
       onClick={onClick}
-      className={`relative min-h-0 overflow-hidden rounded-lg border bg-neutral-900 text-left ${
-        active ? "border-emerald-400" : "border-white/10"
+      className={`relative min-h-0 overflow-hidden rounded-lg border bg-slate-950 text-left shadow-sm ${
+        active ? "border-[var(--chat-primary)]" : "border-slate-200"
       }`}
     >
       {stream ? (
@@ -78,7 +76,7 @@ function MediaTile({
       ) : null}
 
       {!showVideo ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-neutral-900">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950">
           {avatar ? (
             <img
               src={avatar}
@@ -86,12 +84,12 @@ function MediaTile({
               className="h-20 w-20 rounded-full object-cover"
             />
           ) : (
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-emerald-500/15 text-xl font-semibold text-emerald-100">
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-[var(--chat-primary-bg)] text-xl font-semibold text-[var(--chat-primary)]">
               {getInitials(name)}
             </div>
           )}
           <div className="mt-3 text-sm text-white/60">
-            {stream ? "Camera off" : "Waiting for media"}
+            {stream ? "Đã tắt camera" : "Đang chờ tín hiệu"}
           </div>
         </div>
       ) : null}
@@ -100,7 +98,7 @@ function MediaTile({
         <div className="flex min-w-0 items-center gap-2 rounded-full bg-black/60 px-3 py-1.5">
           <span className="truncate text-sm font-medium text-white">{name}</span>
           {isHost ? (
-            <span className="text-xs font-medium text-emerald-300">Host</span>
+            <span className="text-xs font-medium text-emerald-300">Chủ phòng</span>
           ) : null}
         </div>
         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-black/60">
@@ -135,8 +133,8 @@ const GroupCallPage: React.FC = () => {
     const list = [
       {
         id: "local",
-        name: "You",
-        avatar: user?.avatarUrl || user?.avatar || "",
+        name: "Bạn",
+        avatar: user?.avatarUrl || "",
         stream: call.localStream,
         isLocal: true,
         isVideoEnabled: call.isVideoEnabled,
@@ -150,13 +148,13 @@ const GroupCallPage: React.FC = () => {
         seenIds.add(participant.id);
         list.push({
           id: participant.id,
-          name: participant.name,
-          avatar: participant.avatar,
-          stream: participant.stream,
+          name: participant.name || "Thành viên",
+          avatar: participant.avatar || "",
+          stream: participant.stream || null,
           isLocal: false,
-          isVideoEnabled: participant.isVideoEnabled,
-          isAudioEnabled: participant.isAudioEnabled,
-          isHost: participant.isHost,
+          isVideoEnabled: !!participant.isVideoEnabled,
+          isAudioEnabled: !!participant.isAudioEnabled,
+          isHost: !!participant.isHost,
         });
       }
     });
@@ -169,18 +167,19 @@ const GroupCallPage: React.FC = () => {
     call.isHost,
     call.participants,
     currentUserId,
+    user?.avatarUrl,
   ]);
 
   if (!conversationId) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-neutral-950 px-6 text-white">
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 px-6 text-slate-900">
         <div className="text-center">
-          <h1 className="mb-2 text-xl font-semibold">No active group call</h1>
+          <h1 className="mb-2 text-xl font-semibold">Không có cuộc gọi nhóm đang diễn ra</h1>
           <button
             onClick={() => navigate("/chat")}
-            className="mt-4 rounded-lg bg-emerald-500 px-4 py-2 font-medium text-white"
+            className="mt-4 rounded-lg bg-[var(--chat-primary)] px-4 py-2 font-medium text-white"
           >
-            Back to chat
+            Quay lại chat
           </button>
         </div>
       </div>
@@ -188,20 +187,20 @@ const GroupCallPage: React.FC = () => {
   }
 
   const fallback = (
-    <div className="flex h-screen w-screen flex-col bg-neutral-950 text-white">
-      <header className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+    <div className="flex h-screen w-screen flex-col bg-slate-50 text-slate-900">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <Users size={18} className="text-emerald-300" />
+            <Users size={18} className="text-[var(--chat-primary)]" />
             <h1 className="truncate text-lg font-semibold">
-              Group {call.callType === "video" ? "Video" : "Audio"} Call
+              Cuộc gọi {call.callType === "video" ? "video" : "thoại"} nhóm
             </h1>
           </div>
-          <p className="mt-1 text-sm text-white/60">
-            {statusText[call.status] || call.status} · {tiles.length} members
+          <p className="mt-1 text-sm text-slate-500">
+            {statusText[call.status] || call.status} · {tiles.length} thành viên
           </p>
           {call.error ? (
-            <p className="mt-1 text-sm text-red-300">{call.error}</p>
+            <p className="mt-1 text-sm text-red-600">{call.error}</p>
           ) : null}
         </div>
       </header>
@@ -211,21 +210,20 @@ const GroupCallPage: React.FC = () => {
           <MediaTile
             key={tile.id}
             {...tile}
-            callType={call.callType}
             active={call.activeParticipantId === tile.id}
             onClick={() => call.setActiveParticipant(tile.id)}
           />
         ))}
       </main>
 
-      <footer className="flex items-center justify-center gap-3 border-t border-white/10 px-5 py-5">
+      <footer className="flex items-center justify-center gap-3 border-t border-slate-200 bg-white px-5 py-5">
         <button
           type="button"
           onClick={call.toggleAudio}
           className={`grid h-12 w-12 place-items-center rounded-full ${
-            call.isAudioEnabled ? "bg-neutral-800" : "bg-amber-600"
+            call.isAudioEnabled ? "bg-slate-100 text-slate-700" : "bg-amber-500 text-white"
           }`}
-          title={call.isAudioEnabled ? "Mute" : "Unmute"}
+          title={call.isAudioEnabled ? "Tắt micro" : "Bật micro"}
         >
           {call.isAudioEnabled ? <Mic size={21} /> : <MicOff size={21} />}
         </button>
@@ -234,9 +232,9 @@ const GroupCallPage: React.FC = () => {
           type="button"
           onClick={call.toggleVideo}
           className={`grid h-12 w-12 place-items-center rounded-full ${
-            call.isVideoEnabled ? "bg-neutral-800" : "bg-amber-600"
+            call.isVideoEnabled ? "bg-slate-100 text-slate-700" : "bg-amber-500 text-white"
           }`}
-          title={call.isVideoEnabled ? "Stop video" : "Start video"}
+          title={call.isVideoEnabled ? "Tắt camera" : "Bật camera"}
         >
           {call.isVideoEnabled ? <Video size={21} /> : <VideoOff size={21} />}
         </button>
@@ -245,7 +243,7 @@ const GroupCallPage: React.FC = () => {
           type="button"
           onClick={call.leaveGroupCall}
           className="grid h-12 w-12 place-items-center rounded-full bg-red-600"
-          title="Leave call"
+          title="Rời cuộc gọi"
         >
           <PhoneOff size={21} />
         </button>
@@ -257,7 +255,7 @@ const GroupCallPage: React.FC = () => {
     <StreamCallView
       conversationId={conversationId}
       mode="group"
-      title="Group video call"
+      title="Cuộc gọi nhóm"
       memberIds={memberIds}
       custom={{
         signalingCallId: call.callId,

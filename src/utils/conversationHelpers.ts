@@ -91,22 +91,22 @@ export const getLastMessagePreview = (
     message: MessageDetail | null,
 ): string => {
     if (!message) {
-        return 'No messages yet';
+        return 'Chưa có tin nhắn';
     }
 
     const { content, messageType } = message;
 
     switch (messageType) {
         case 'FILE':
-            return '📎 File attached';
+            return 'Tệp đính kèm';
         case 'IMAGE':
-            return '🖼️ Image';
+            return 'Hình ảnh';
         case 'VIDEO':
-            return '🎥 Video';
+            return 'Video';
         case 'AUDIO':
-            return '🎵 Audio';
+            return 'Âm thanh';
         default:
-            return content || 'Message sent';
+            return content || 'Đã gửi tin nhắn';
     }
 };
 

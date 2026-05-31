@@ -1,28 +1,15 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { IoMdAdd, IoMdSend } from 'react-icons/io';
 import { FiImage, FiVideo, FiFile, FiX } from 'react-icons/fi';
-import { RotateCcw, WandSparkles } from 'lucide-react';
+import { Ban, LoaderCircle, RotateCcw, Smile, WandSparkles } from 'lucide-react';
+import EmojiPicker, { Theme, EmojiStyle } from 'emoji-picker-react';
+import type { EmojiClickData } from 'emoji-picker-react';
 import {
     validateOutgoingFiles,
     MAX_FILES_PER_BATCH,
 } from '../../utils/chatMedia';
 import { orionAiService } from '../../services/orionAiService';
 import type { RewriteTone } from '../../types/orion-ai';
-
-const INPUT_EMOJIS = [
-    '😀',
-    '😂',
-    '😍',
-    '😎',
-    '🤔',
-    '😭',
-    '👍',
-    '🎉',
-    '🔥',
-    '❤️',
-    '✨',
-    '👏',
-];
 
 type AttachFile = {
     file: File;
@@ -45,7 +32,7 @@ const MENU_ITEMS: {
 }[] = [
     {
         type: 'image',
-        label: 'Image',
+        label: 'Hình ảnh',
         icon: <FiImage className="w-4 h-4" />,
         color: 'text-emerald-500',
     },
@@ -57,7 +44,7 @@ const MENU_ITEMS: {
     },
     {
         type: 'file',
-        label: 'File',
+        label: 'Tệp tin',
         icon: <FiFile className="w-4 h-4" />,
         color: 'text-orange-400',
     },
@@ -184,7 +171,7 @@ export const ChatInput: React.FC<{
         const validation = validateOutgoingFiles(incomingFiles);
         if (!validation.isValid) {
             newItems.forEach((item) => URL.revokeObjectURL(item.url));
-            setValidationError(validation.error || 'Khong the them tep.');
+            setValidationError(validation.error || 'Không thể thêm tệp.');
             setMenuOpen(false);
             return;
         }
@@ -209,7 +196,7 @@ export const ChatInput: React.FC<{
         if (files.length > 0) {
             const validation = validateOutgoingFiles(files);
             if (!validation.isValid) {
-                setValidationError(validation.error || 'Khong the gui tep.');
+                setValidationError(validation.error || 'Không thể gửi tệp.');
                 return;
             }
         }
@@ -232,9 +219,9 @@ export const ChatInput: React.FC<{
                   ).then(() => undefined);
 
             void uploadTask.catch((err) => {
-                console.error('Upload loi:', err);
+                console.error('Upload lỗi:', err);
                 setValidationError(
-                    err instanceof Error ? err.message : 'Gui file that bai.',
+                    err instanceof Error ? err.message : 'Gửi file thất bại.',
                 );
             });
         }
@@ -253,8 +240,8 @@ export const ChatInput: React.FC<{
         inputRefs.current[type]?.click();
     };
 
-    const insertEmoji = (emoji: string) => {
-        setText((prev) => `${prev}${emoji}`);
+    const handleEmojiClick = (emojiData: EmojiClickData) => {
+        setText((prev) => `${prev}${emojiData.emoji}`);
         setEmojiOpen(false);
     };
 
@@ -295,20 +282,7 @@ export const ChatInput: React.FC<{
                 <div className="p-2 bg-rose-50 border-2 border-rose-300 rounded-2xl flex flex-col items-center justify-center text-center">
                     {/* Icon */}
                     <div className="p-1 bg-rose-200 rounded-full">
-                        <svg
-                            width="28"
-                            height="28"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="text-rose-700"
-                        >
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="m4.93 4.93 14.14 14.14" />
-                        </svg>
+                        <Ban size={28} className="text-rose-700" />
                     </div>
 
                     {/* Text content */}
@@ -362,7 +336,7 @@ export const ChatInput: React.FC<{
                         <div className="mb-3">
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs text-slate-500">
-                                    Da chon {attachments.length}/
+                                    Đã chọn {attachments.length}/
                                     {MAX_FILES_PER_BATCH} file
                                 </p>
                             </div>
@@ -499,40 +473,37 @@ export const ChatInput: React.FC<{
                                 className={`w-full bg-gray-border text-gray-primary rounded-full px-4 py-2 outline-none text-sm placeholder:text-slate-400 transition-all ${
                                     isRewriting ? 'pointer-events-none' : ''
                                 }`}
-                                placeholder={isRewriting ? 'Đang viết lại...' : 'Type your message'}
+                                placeholder={isRewriting ? 'Đang viết lại...' : 'Nhập tin nhắn...'}
                                 readOnly={isRewriting}
                             />
                         </div>
 
+                        {/* Emoji picker button */}
                         <div ref={emojiRef} className="relative shrink-0">
                             <button
                                 onClick={() => setEmojiOpen((o) => !o)}
                                 className="p-1.5 border border-slate-200 rounded-full hover:bg-[var(--chat-message-sent)] hover:text-white hover:border-[var(--chat-message-sent)] transition-colors text-slate-700"
-                                title="Emoji"
+                                title="Biểu cảm"
                             >
-                                😊
+                                <Smile className="h-4 w-4" />
                             </button>
 
                             {emojiOpen && (
-                                <div className="absolute bottom-full right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-xl p-2.5 z-20 w-36">
-                                    <div className="grid grid-cols-4 gap-1.5">
-                                        {INPUT_EMOJIS.map((emoji) => (
-                                            <button
-                                                key={emoji}
-                                                onClick={() =>
-                                                    insertEmoji(emoji)
-                                                }
-                                                className="text-lg hover:scale-125 transition-transform leading-none p-1"
-                                                title={emoji}
-                                            >
-                                                {emoji}
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div className="absolute bottom-full right-0 mb-2 z-30 shadow-2xl rounded-xl overflow-hidden">
+                                    <EmojiPicker
+                                        onEmojiClick={handleEmojiClick}
+                                        theme={Theme.LIGHT}
+                                        emojiStyle={EmojiStyle.NATIVE}
+                                        width={320}
+                                        height={380}
+                                        searchPlaceHolder="Tìm kiếm emoji..."
+                                        previewConfig={{ showPreview: false }}
+                                    />
                                 </div>
                             )}
                         </div>
 
+                        {/* AI Rewrite button */}
                         <div ref={rewriteRef} className="relative shrink-0">
                             <button
                                 onClick={() => setRewriteOpen((open) => !open)}
@@ -542,13 +513,10 @@ export const ChatInput: React.FC<{
                                         ? 'border-purple-300 bg-purple-50 text-purple-600 animate-pulse'
                                         : 'border-slate-200 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200'
                                 }`}
-                                title={isRewriting ? 'Đang viết lại...' : 'Rewrite message'}
+                                title={isRewriting ? 'Đang viết lại...' : 'Viết lại thông minh'}
                             >
                                 {isRewriting ? (
-                                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
-                                        <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                    </svg>
+                                    <LoaderCircle className="h-4 w-4 animate-spin" />
                                 ) : (
                                     <WandSparkles className="h-4 w-4" />
                                 )}
@@ -560,7 +528,7 @@ export const ChatInput: React.FC<{
                                     <div className="px-3 pt-2.5 pb-1.5 border-b border-slate-100">
                                         <div className="flex items-center gap-1.5">
                                             <WandSparkles className="h-3 w-3 text-green-500" />
-                                            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">AI Rewrite</span>
+                                            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">AI Viết lại</span>
                                         </div>
                                     </div>
                                     {(
@@ -596,7 +564,7 @@ export const ChatInput: React.FC<{
                                             className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-xs text-slate-600 hover:bg-slate-50"
                                         >
                                             <RotateCcw className="h-3.5 w-3.5" />
-                                            Undo rewrite
+                                            Hoàn tác viết lại
                                         </button>
                                     )}
                                 </div>

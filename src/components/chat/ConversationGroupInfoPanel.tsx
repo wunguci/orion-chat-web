@@ -11,7 +11,6 @@ import {
     Pin,
     ChevronRight,
     UserRound,
-    MessageSquareWarning,
     LogOut,
     NotebookText,
     AlarmClockCheck,
@@ -29,6 +28,7 @@ import {
     Trash2,
     MoreVertical,
     Pencil,
+    BarChart3,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import Checkbox from '../common/Checkbox';
@@ -78,7 +78,6 @@ import {
     offGroupJoinRequestUpdated,
     offGroupMemberChanged,
     offGroupMemberJoined,
-    offGroupMemberLeft,
     offGroupInfoUpdated,
     onConversationHiddenUpdated,
     onConversationHistoryCleared,
@@ -90,7 +89,6 @@ import {
     onGroupJoinRequestUpdated,
     onGroupMemberChanged,
     onGroupMemberJoined,
-    onGroupMemberLeft,
     onGroupInfoUpdated,
 } from '../../services/websocket/chatSocket';
 import ChatAvatar from '../common/ChatAvatar';
@@ -997,7 +995,6 @@ export const ConversationGroupInfoPanel: React.FC<
             setIsTransferAdminModalOpen(false);
             setIsLeaveGroupDialogOpen(false);
             onConversationRemoved?.(conversationId);
-            window.location.href = '/chat';
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : 'Rời nhóm thất bại';
@@ -1390,6 +1387,7 @@ export const ConversationGroupInfoPanel: React.FC<
         currentUserId,
         displayMessages,
         groupSettings.approveNewMembers,
+        isCurrentUserMember,
         onConversationRemoved,
         refreshGroupMembers,
         refreshGroupDetail,
@@ -2115,7 +2113,19 @@ export const ConversationGroupInfoPanel: React.FC<
                             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                                 <NotebookText size={20} />
                                 <span className="text-[15px]">
-                                    Ghi chú, ghim, bình chọn
+                                    Ghi chú
+                                </span>
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                                <Pin size={20} />
+                                <span className="text-[15px]">
+                                    Ghim
+                                </span>
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
+                                <BarChart3 size={20} />
+                                <span className="text-[15px]">
+                                    Bình chọn
                                 </span>
                             </button>
                         </div>
@@ -2152,10 +2162,6 @@ export const ConversationGroupInfoPanel: React.FC<
                             </button>
                         </div>
 
-                        <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
-                            <MessageSquareWarning size={20} />
-                            <span className="text-[15px]">Báo xấu</span>
-                        </button>
                         <button
                             onClick={handleOpenClearHistoryModal}
                             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors text-red-500"

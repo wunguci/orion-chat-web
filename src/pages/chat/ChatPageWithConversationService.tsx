@@ -19,6 +19,7 @@ import { SearchModal } from '../../components/chat/SearchModal';
 import { CreateGroupModal } from '../../components/chat/CreateGroupModal';
 import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
+import { Pin, ChevronDown } from 'lucide-react';
 import { notificationSocketService } from '../../services/websocket/notificationSocket';
 import {
     sendMessage,
@@ -405,6 +406,7 @@ export const ChatPage: React.FC = () => {
     >({});
     const [pinnedMessagesByConversation, setPinnedMessagesByConversation] =
         useState<Record<string, PinnedMessageItem[]>>({});
+    const [isPinnedBarExpanded, setIsPinnedBarExpanded] = useState(false);
     const messageListenerRef = useRef<
         ((payload: IncomingSocketPayload) => void) | null
     >(null);
@@ -569,10 +571,15 @@ export const ChatPage: React.FC = () => {
         };
     }, [selectedConversationId, refreshConversations, fetchDetail]);
 
-    // Lắng nghe sự kiện tạo nhóm mới để tự động refresh danh sách hội thoại
+    // Lắng nghe sự kiện tạo nhóm mới để tự động refresh danh sách hội thoại và chọn nhóm mới
     useEffect(() => {
-        const handleGroupCreated = () => {
+        const handleGroupCreated = (payload: { groupId: string }) => {
             void refreshConversations();
+            if (payload?.groupId) {
+                setSelectedConversationId(payload.groupId);
+                setIsInfoPanelOpen(true);
+                setIsSearchOpen(false);
+            }
         };
 
         onGroupCreated(handleGroupCreated);
@@ -682,12 +689,20 @@ export const ChatPage: React.FC = () => {
     }, [loadBlockStatus]);
 
     // Auto-select conversation from location state (e.g., from friend chat click)
+    const locationStateConsumedRef = useRef(false);
     useEffect(() => {
+        if (locationStateConsumedRef.current) return;
+        
         const state = location.state as {
             selectedConversationId?: string;
         } | null;
+        
         if (state?.selectedConversationId && !selectedConversationId) {
             setSelectedConversationId(state.selectedConversationId);
+            locationStateConsumedRef.current = true;
+            
+            // Xóa state khỏi history để tránh loop
+            window.history.replaceState({}, document.title);
         }
     }, [location.state, selectedConversationId]);
 
@@ -3167,8 +3182,8 @@ export const ChatPage: React.FC = () => {
                                 typingUserNames.length > 0
                                     ? `${typingUserNames.join(', ')} đang nhập...`
                                     : selectedConversation.type === 'GROUP'
-                                      ? 'Group conversation'
-                                      : 'Online'
+                                      ? `${selectedConversation.participants?.length || 0} thành viên`
+                                      : 'Vừa mới truy cập'
                             }
                             isGroupChat={selectedConversation.type === 'GROUP'}
                             groupMembers={
@@ -3230,43 +3245,70 @@ export const ChatPage: React.FC = () => {
                             }
                         />
 
-                        {/* Messages */}
+                        {/* Pinned messages bar – compact & collapsible */}
                         {currentPinnedMessages.length > 0 && (
-                            <div className="border-b border-slate-200 bg-amber-50/70 px-4 py-2">
-                                <div className="mb-1 text-xs font-semibold text-amber-700">
-                                    Pinned messages
-                                </div>
-                                <div className="space-y-1">
-                                    {currentPinnedMessages
-                                        .slice(0, 3)
-                                        .map((item) => (
-                                            <button
-                                                key={item.messageId}
-                                                type="button"
-                                                onClick={() =>
-                                                    jumpToMessage(
-                                                        item.messageId,
-                                                    )
-                                                }
-                                                className="flex w-full items-center justify-between rounded-md bg-white/80 px-2 py-1 text-left hover:bg-white"
+                            <div className="border-b border-amber-100 bg-amber-50">
+                                {/* Compact header row */}
+                                <div className="flex items-center gap-2 px-3 py-1.5">
+                                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-600">
+                                        <Pin size={12} />
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            jumpToMessage(
+                                                currentPinnedMessages[0].messageId,
+                                            )
+                                        }
+                                        className="min-w-0 flex-1 text-left"
+                                    >
+                                        <span className="block truncate text-xs text-slate-700">
+                                            <span className="font-semibold text-amber-700 mr-1">
+                                                Đã ghim
+                                                {currentPinnedMessages.length > 1 ? ` (${currentPinnedMessages.length})` : ''}:
+                                            </span>
+                                            {currentPinnedMessages[0].snippet ||
+                                                currentPinnedMessages[0].content ||
+                                                'Nội dung đã được ghim'}
+                                        </span>
+                                    </button>
+                                    {currentPinnedMessages.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsPinnedBarExpanded((v) => !v)}
+                                            className="shrink-0 rounded p-0.5 text-amber-600 hover:bg-amber-100 transition-colors"
+                                            title={isPinnedBarExpanded ? 'Thu gọn' : 'Xem tất cả'}
+                                        >
+                                            <svg
+                                                className={`h-4 w-4 transition-transform ${isPinnedBarExpanded ? 'rotate-180' : ''}`}
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                             >
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-xs font-medium text-slate-700">
-                                                        {item.senderName ||
-                                                            'Thành viên'}
-                                                    </p>
-                                                    <p className="truncate text-xs text-slate-500">
-                                                        {item.snippet ||
-                                                            item.content ||
-                                                            'Tin nhắn đã ghim'}
-                                                    </p>
-                                                </div>
-                                                <span className="ml-3 shrink-0 text-[11px] text-amber-600">
-                                                    Đi tới
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                                {/* Expanded list */}
+                                {isPinnedBarExpanded && (
+                                    <div className="px-3 pb-2 space-y-1">
+                                        {currentPinnedMessages.map((pinned, idx) => (
+                                            <button
+                                                key={pinned.messageId}
+                                                type="button"
+                                                onClick={() => {
+                                                    jumpToMessage(pinned.messageId);
+                                                    setIsPinnedBarExpanded(false);
+                                                }}
+                                                className="flex w-full items-center gap-2 rounded-md border border-amber-200 bg-white px-2 py-1.5 text-left hover:bg-amber-50 transition-colors"
+                                            >
+                                                <span className="shrink-0 text-[10px] font-bold text-amber-500 w-3">{idx + 1}</span>
+                                                <span className="truncate text-xs text-slate-700">
+                                                    {pinned.snippet || pinned.content || 'Nội dung đã được ghim'}
                                                 </span>
                                             </button>
                                         ))}
-                                </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 

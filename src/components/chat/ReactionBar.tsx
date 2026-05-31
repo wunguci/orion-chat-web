@@ -1,4 +1,5 @@
 import React from 'react';
+import { ReactionIcon } from './reactions';
 
 type ReactionItem = {
     emoji: string;
@@ -36,7 +37,7 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
                     }`}
                     type="button"
                 >
-                    <span>{reaction.emoji}</span>
+                    <ReactionIcon emoji={reaction.emoji} size={14} />
                     {reaction.count > 1 && <span>{reaction.count}</span>}
                 </button>
             ))}
