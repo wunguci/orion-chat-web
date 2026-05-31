@@ -115,7 +115,12 @@ export async function sendOtp(phoneNumber: string): Promise<SendOtpResponse> {
     throw new Error(errorMessage);
   }
 
-  return response.json();
+  const result = await response.json();
+  if (result && result.success === false) {
+    throw new Error(result.message || "Gửi OTP thất bại");
+  }
+
+  return result;
 }
 
 // Step 2: Verify OTP
@@ -355,7 +360,12 @@ export async function sendOtpForgetPassword(
     throw new Error(errorMessage);
   }
 
-  return response.json();
+  const result = await response.json();
+  if (result && result.success === false) {
+    throw new Error(result.message || "Gửi OTP thất bại");
+  }
+
+  return result;
 }
 
 // Step 2: xác minh OTP
