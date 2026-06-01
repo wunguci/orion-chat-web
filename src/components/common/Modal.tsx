@@ -49,7 +49,7 @@ const Modal = ({
             <h3 className="text-lg font-bold text-gray-900">{title}</h3>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors"
+              className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-500 transition-colors cursor-pointer"
             >
               <i className="fas fa-times"></i>
             </button>

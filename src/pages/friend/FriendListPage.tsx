@@ -107,6 +107,11 @@ const FriendListPage = () => {
 
   const authUser = getUser();
   const userId = authUser?.userId || authUser?.id || "";
+  const blockedFriendIds = useMemo(
+    () => new Set(blockedFriends.map((item) => item.id)),
+    [blockedFriends],
+  );
+  const isBlockedFriend = (friendId: string) => blockedFriendIds.has(friendId);
 
   useEffect(() => {
     if (!chatErrorMessage) return;
@@ -268,16 +273,19 @@ const FriendListPage = () => {
       ]);
 
       const blockedRes = await friendListService.getBlockedFriends(userId);
+      const blockedIds = new Set(blockedRes.map((item) => item.id));
 
       setFriends(
-        friendsRes.map((item) => ({
-          id: item.id,
-          name: item.fullName,
-          status: item.isOnline ? "online" : "offline",
-          isOnline: item.isOnline,
-          subtext: item.isOnline ? "Online" : "Offline",
-          avatar: item.avatarUrl || DEFAULT_AVATAR,
-        })),
+        friendsRes
+          .filter((item) => !blockedIds.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            name: item.fullName,
+            status: item.isOnline ? "online" : "offline",
+            isOnline: item.isOnline,
+            subtext: item.isOnline ? "Online" : "Offline",
+            avatar: item.avatarUrl || DEFAULT_AVATAR,
+          })),
       );
 
       setRequests(
@@ -311,23 +319,27 @@ const FriendListPage = () => {
       );
 
       setSuggestions(
-        suggestionsRes.map((item) => ({
-          id: item.id,
-          name: item.fullName,
-          avatar: item.avatarUrl || "",
-          mutualFriends: item.mutualGroupCount,
-          mutualGroupCount: item.mutualGroupCount,
-          mutualGroupNames: item.mutualGroupNames,
-        })),
+        suggestionsRes
+          .filter((item) => !blockedIds.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            name: item.fullName,
+            avatar: item.avatarUrl || "",
+            mutualFriends: item.mutualGroupCount,
+            mutualGroupCount: item.mutualGroupCount,
+            mutualGroupNames: item.mutualGroupNames,
+          })),
       );
 
       setRecentlyActive(
-        recentlyActiveRes.map((item) => ({
-          id: item.id,
-          name: item.fullName,
-          avatar: item.avatarUrl || "",
-          isActive: item.isOnline,
-        })),
+        recentlyActiveRes
+          .filter((item) => !blockedIds.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            name: item.fullName,
+            avatar: item.avatarUrl || "",
+            isActive: item.isOnline,
+          })),
       );
       setBlockedFriends(
         blockedRes.map((item) => ({
@@ -431,14 +443,16 @@ const FriendListPage = () => {
 
     const refreshed = await friendListService.getFriends(userId);
     setFriends(
-      refreshed.map((item) => ({
-        id: item.id,
-        name: item.fullName,
-        status: item.isOnline ? "online" : "offline",
-        isOnline: item.isOnline,
-        subtext: item.isOnline ? "Online" : "Offline",
-        avatar: item.avatarUrl || DEFAULT_AVATAR,
-      })),
+      refreshed
+        .filter((item) => !isBlockedFriend(item.id))
+        .map((item) => ({
+          id: item.id,
+          name: item.fullName,
+          status: item.isOnline ? "online" : "offline",
+          isOnline: item.isOnline,
+          subtext: item.isOnline ? "Online" : "Offline",
+          avatar: item.avatarUrl || DEFAULT_AVATAR,
+        })),
     );
   };
 
@@ -467,6 +481,7 @@ const FriendListPage = () => {
     const result = await friendListService.searchUsers(userId, phone);
     const found = result[0];
     if (!found) return null;
+    if (isBlockedFriend(found.id)) return null;
 
     return {
       id: found.id,
@@ -645,6 +660,11 @@ const FriendListPage = () => {
     } catch (error) {
       setFriends(action.friendsSnapshot);
       setRecentlyActive(action.recentlyActiveSnapshot);
+      if (action.kind === "block") {
+        setBlockedFriends((prev) =>
+          prev.filter((item) => item.id !== action.friendId),
+        );
+      }
       setPendingAction(null);
       setShowUndoToast(false);
       const message = error instanceof Error ? error.message : "Action failed";
@@ -687,6 +707,11 @@ const FriendListPage = () => {
   };
 
   const handleMessageFromProfile = async (friendId: string) => {
+    if (isBlockedFriend(friendId)) {
+      setChatErrorMessage("Cannot message a blocked user.");
+      return;
+    }
+
     setIsInfoModalOpen(false);
     setSelectedFriendProfile(null);
 
@@ -710,6 +735,11 @@ const FriendListPage = () => {
   };
 
   const handleDirectMessageSearch = async (friendId: string) => {
+    if (isBlockedFriend(friendId)) {
+      setChatErrorMessage("Cannot message a blocked user.");
+      return;
+    }
+
     try {
       const conversationId = await createOrOpenConversation(friendId);
       if (!conversationId) {
@@ -750,6 +780,11 @@ const FriendListPage = () => {
     const currentUserId = currentUser?.userId || currentUser?.id;
     const friend = friends.find((item) => item.id === friendId);
     if (!currentUserId || !friend) return;
+
+    if (isBlockedFriend(friendId)) {
+      window.alert("Cannot call a blocked user.");
+      return;
+    }
 
     if (callStatus !== "idle") {
       window.alert("I'm currently on another call. Please try again later.");
@@ -797,6 +832,11 @@ const FriendListPage = () => {
   };
 
   const handleChatClick = async (friendId: string) => {
+    if (isBlockedFriend(friendId)) {
+      setChatErrorMessage("Cannot message a blocked user.");
+      return;
+    }
+
     try {
       setChatLoadingFriendId(friendId);
       setChatErrorMessage("");

@@ -59,6 +59,8 @@ interface ConversationInfoPanelProps {
     onJumpToMessage?: (messageId: string) => void;
     onForwardMessage?: (message: SocketMessage) => void;
     onPinStatusChange?: () => Promise<void>;
+    onClearHistorySuccess?: () => void | Promise<void>;
+    onConversationHidden?: (conversationId: string) => void | Promise<void>;
     onConversationCreated?: (
         conversation: ConversationView,
     ) => void | Promise<void>;
@@ -74,6 +76,8 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
     onJumpToMessage,
     onForwardMessage,
     onPinStatusChange,
+    onClearHistorySuccess,
+    onConversationHidden,
     onConversationCreated,
     onConversationRemoved,
 }) => {
@@ -258,11 +262,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
             );
 
             setShowHideConversationModal(false);
-
-            // Redirect to /chat after 1 second
-            setTimeout(() => {
-                window.location.href = '/chat';
-            }, 1000);
+            await onConversationHidden?.(selectedConversation.conversationId);
         } catch (error) {
             console.error('Error hiding conversation:', error);
         }
@@ -294,6 +294,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
             );
 
             setShowClearHistoryModal(false);
+            await onClearHistorySuccess?.();
         } catch (error) {
             console.error('Error clearing history:', error);
         }
