@@ -690,6 +690,11 @@ export const ConversationGroupInfoPanel: React.FC<
         if (!conversationId) return;
 
         const normalizedName = groupNameInput.trim();
+        if (normalizedName.length <= 2) {
+            setGroupInfoError('Tên nhóm phải dài hơn 2 ký tự');
+            return;
+        }
+
         if (!normalizedName) {
             setGroupInfoError('Tên nhóm không được để trống');
             return;
@@ -2695,6 +2700,7 @@ export const ConversationGroupInfoPanel: React.FC<
                 groupAvatar={groupAvatar}
                 groupNameInput={groupNameInput}
                 isUpdatingGroupName={isUpdatingGroupName}
+                canSaveGroupName={groupNameInput.trim().length > 2}
                 isUpdatingGroupAvatar={isUpdatingGroupAvatar}
                 groupInfoError={groupInfoError}
                 participants={(selectedConversation?.participants || []).map(

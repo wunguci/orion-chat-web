@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Modal from '../common/Modal';
-import { friendListService, type FriendApiItem } from '../../services/friendListService';
+import {
+    friendListService,
+    type FriendApiItem,
+} from '../../services/friendListService';
 import { conversationApi } from '../../services/conversationApi';
 import type { ConversationView } from '../../types/conversation';
 
@@ -24,10 +27,16 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     const [friendsLoading, setFriendsLoading] = useState(false);
     const [friendOptions, setFriendOptions] = useState<FriendApiItem[]>([]);
     const [selectedFriendIds, setSelectedFriendIds] = useState<string[]>([]);
-    const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
-    const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+    const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(
+        null,
+    );
+    const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(
+        null,
+    );
     const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-    const [createGroupError, setCreateGroupError] = useState<string | null>(null);
+    const [createGroupError, setCreateGroupError] = useState<string | null>(
+        null,
+    );
     const initialSelectedFriendIdsKey = useMemo(
         () => initialSelectedFriendIds.join(','),
         [initialSelectedFriendIds],
@@ -37,7 +46,9 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         if (!isOpen) return;
 
         if (!currentUserId) {
-            setCreateGroupError('Không tìm thấy thông tin người dùng hiện tại.');
+            setCreateGroupError(
+                'Không tìm thấy thông tin người dùng hiện tại.',
+            );
             return;
         }
 
@@ -48,7 +59,8 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                 setFriendsLoading(true);
                 setCreateGroupError(null);
 
-                const response = await friendListService.getFriends(currentUserId);
+                const response =
+                    await friendListService.getFriends(currentUserId);
                 const friends = Array.isArray(response) ? response : [];
                 const sortedFriends = [...friends].sort((a, b) =>
                     (a.fullName || '').localeCompare(b.fullName || '', 'vi', {
@@ -60,13 +72,17 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
                 setFriendOptions(sortedFriends);
 
-                const validInitial = initialSelectedFriendIds.filter((friendId) =>
-                    sortedFriends.some((friend) => friend.id === friendId),
+                const validInitial = initialSelectedFriendIds.filter(
+                    (friendId) =>
+                        sortedFriends.some((friend) => friend.id === friendId),
                 );
                 setSelectedFriendIds(validInitial);
             } catch (error) {
                 if (isCancelled) return;
-                console.error('Error loading friends for group creation:', error);
+                console.error(
+                    'Error loading friends for group creation:',
+                    error,
+                );
                 setCreateGroupError('Không thể tải danh sách bạn bè.');
             } finally {
                 if (!isCancelled) {
@@ -131,8 +147,10 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     };
 
     const handleCreateGroup = async () => {
-        if (!groupName.trim()) {
-            setCreateGroupError('Vui lòng nhập tên nhóm.');
+        const trimmedName = groupName.trim();
+
+        if (!trimmedName || trimmedName.length <= 2) {
+            setCreateGroupError('Tên nhóm phải dài hơn 2 ký tự.');
             return;
         }
 
@@ -140,8 +158,8 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             selectedFriendIds.includes(friend.id),
         );
 
-        if (selectedFriends.length === 0) {
-            setCreateGroupError('Không có thành viên để tạo nhóm mới.');
+        if (selectedFriends.length < 2) {
+            setCreateGroupError('Phải chọn ít nhất 2 thành viên để tạo nhóm.');
             return;
         }
 
@@ -155,12 +173,13 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                 nickname: friend.fullName || 'Member',
             }));
 
-            const createdConversation = (await conversationApi.createConversation({
-                type: 'GROUP',
-                groupName: groupName.trim(),
-                memberIds,
-                memberNicknames,
-            })) as ConversationView;
+            const createdConversation =
+                (await conversationApi.createConversation({
+                    type: 'GROUP',
+                    groupName: groupName.trim(),
+                    memberIds,
+                    memberNicknames,
+                })) as ConversationView;
 
             if (selectedAvatarFile && createdConversation?.conversationId) {
                 try {
@@ -170,7 +189,10 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                     );
                 } catch (avatarError) {
                     // Do not block group creation when avatar upload fails.
-                    console.error('Failed to upload group avatar:', avatarError);
+                    console.error(
+                        'Failed to upload group avatar:',
+                        avatarError,
+                    );
                 }
             }
 
@@ -178,7 +200,9 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             handleClose();
         } catch (error) {
             setCreateGroupError(
-                error instanceof Error ? error.message : 'Không thể tạo nhóm mới',
+                error instanceof Error
+                    ? error.message
+                    : 'Không thể tạo nhóm mới',
             );
         } finally {
             setIsCreatingGroup(false);
@@ -186,7 +210,12 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Tạo nhóm mới" size="sm">
+        <Modal
+            isOpen={isOpen}
+            onClose={handleClose}
+            title="Tạo nhóm mới"
+            size="sm"
+        >
             <div className="p-4 space-y-4">
                 <div className="flex items-center gap-3">
                     <label
@@ -271,8 +300,12 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                                 >
                                     <input
                                         type="checkbox"
-                                        checked={selectedFriendIds.includes(friend.id)}
-                                        onChange={() => handleFriendToggle(friend.id)}
+                                        checked={selectedFriendIds.includes(
+                                            friend.id,
+                                        )}
+                                        onChange={() =>
+                                            handleFriendToggle(friend.id)
+                                        }
                                         disabled={isCreatingGroup}
                                     />
                                     {friend.avatarUrl ? (
@@ -318,8 +351,8 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                         onClick={handleCreateGroup}
                         disabled={
                             isCreatingGroup ||
-                            !groupName.trim() ||
-                            selectedFriendIds.length === 0
+                            groupName.trim().length <= 2 ||
+                            selectedFriendIds.length < 2
                         }
                     >
                         {isCreatingGroup ? 'Đang tạo...' : 'Tạo nhóm'}
