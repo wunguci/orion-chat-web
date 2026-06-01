@@ -400,7 +400,7 @@ export default function NotificationCenter({
             </h3>
             <button
               onClick={() => markAllAsRead()}
-              className="cursor-pointer text-xs font-medium text-teal-600 hover:text-teal-700"
+              className="cursor-pointer text-xs font-medium text-[var(--app-sidebar-primary,#0f766e)] hover:opacity-80"
             >
               Mark all as read
             </button>
@@ -435,7 +435,7 @@ export default function NotificationCenter({
                       }
                     }}
                     className={`w-full cursor-pointer border-b border-slate-100 px-4 py-3 text-left transition-colors hover:bg-slate-50 ${
-                      item.isRead ? "bg-white" : "bg-teal-50/70"
+                      item.isRead ? "bg-white" : "bg-[var(--app-sidebar-primary-bg,#f0fdfa)]"
                     }`}
                   >
                     <div className="flex gap-3">
