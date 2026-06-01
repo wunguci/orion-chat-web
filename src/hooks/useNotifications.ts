@@ -49,6 +49,8 @@ export function useNotifications(userId?: string) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [toastItems, setToastItems] = useState<NotificationToastItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [activeConversationId, setActiveConversationId] =
+    useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
@@ -230,6 +232,28 @@ export function useNotifications(userId?: string) {
     };
   }, [userId]);
 
+  useEffect(() => {
+    const handleActiveConversation = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        conversationId?: string | null;
+      }>;
+      const nextId = customEvent.detail?.conversationId || null;
+      setActiveConversationId(nextId);
+    };
+
+    window.addEventListener(
+      "chat:active_conversation",
+      handleActiveConversation,
+    );
+
+    return () => {
+      window.removeEventListener(
+        "chat:active_conversation",
+        handleActiveConversation,
+      );
+    };
+  }, []);
+
   const dismissToast = useCallback((id: string) => {
     setToastItems((prev) => prev.filter((item) => item.id !== id));
   }, []);
@@ -238,9 +262,11 @@ export function useNotifications(userId?: string) {
     () =>
       notifications.filter(
         (item) =>
-          !item.isRead && (item.type === "message" || item.type === "call"),
+          !item.isRead &&
+          (item.type === "message" || item.type === "call") &&
+          getNotificationConversationId(item) !== activeConversationId,
       ).length,
-    [notifications],
+    [activeConversationId, notifications],
   );
 
   const unreadFriendCount = useMemo(
@@ -278,14 +304,15 @@ export function useNotifications(userId?: string) {
       if (
         !item.isRead &&
         typeof conversationId === "string" &&
-        isConversationScopedNotification(item)
+        isConversationScopedNotification(item) &&
+        conversationId !== activeConversationId
       ) {
         result[conversationId] = (result[conversationId] || 0) + 1;
       }
     });
 
     return result;
-  }, [notifications]);
+  }, [activeConversationId, notifications]);
 
   const hasUnread = useMemo(() => unreadCount > 0, [unreadCount]);
 

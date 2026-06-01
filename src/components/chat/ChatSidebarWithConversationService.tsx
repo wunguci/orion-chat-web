@@ -13,9 +13,9 @@ import {
     Sparkles,
     UserPlus,
     UsersRound,
-    UserRoundPlus,
     Video,
 } from 'lucide-react';
+import { FaRegAddressBook } from "react-icons/fa";
 import { getCurrentUserId } from '../../utils/auth';
 import type { ConversationView } from '../../types/conversation';
 import { RevealConversationModal } from './RevealConversationModal';
@@ -29,6 +29,13 @@ import {
     chatSocketService,
 } from '../../services/websocket/chatSocket';
 import type { LastMessage } from '../../types/conversation';
+import { friendListService, type FriendApiItem } from '../../services/friendListService';
+import Modal from '../common/Modal';
+import ProfileModal from '../friend/ProfileModal';
+
+const RECENT_FRIEND_SEARCH_KEY = 'chat_recent_friend_searches';
+const MAX_RECENT_FRIENDS = 5;
+const INITIAL_SUGGESTED_LIMIT = 3;
 
 const MEDIA_BASE_URL =
     import.meta.env.VITE_MEDIA_BASE_URL ||
@@ -113,6 +120,33 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         return globalWindow.__unreadByConversation || {};
     });
     const [openAiMenuId, setOpenAiMenuId] = useState<string | null>(null);
+    const [addFriendModalOpen, setAddFriendModalOpen] = useState(false);
+    const [friendQuery, setFriendQuery] = useState('');
+    const [friendResults, setFriendResults] = useState<FriendApiItem[]>([]);
+    const [friendSearchLoading, setFriendSearchLoading] = useState(false);
+    const [friendActionMessage, setFriendActionMessage] = useState<string | null>(null);
+    const [sendingFriendRequestId, setSendingFriendRequestId] = useState<string | null>(null);
+    const [sentFriendRequestIds, setSentFriendRequestIds] = useState<Set<string>>(
+        new Set(),
+    );
+    const [selectedProfileFriend, setSelectedProfileFriend] =
+        useState<FriendApiItem | null>(null);
+    const [suggestedFriends, setSuggestedFriends] = useState<FriendApiItem[]>([]);
+    const [suggestedVisibleCount, setSuggestedVisibleCount] = useState(
+        INITIAL_SUGGESTED_LIMIT,
+    );
+    const [recentFriendSearches, setRecentFriendSearches] = useState<
+        FriendApiItem[]
+    >(() => {
+        try {
+            const raw = localStorage.getItem(RECENT_FRIEND_SEARCH_KEY);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw) as FriendApiItem[];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch {
+            return [];
+        }
+    });
     const [lastMessageOverrides, setLastMessageOverrides] = useState<
         Record<string, LastMessage>
     >({});
@@ -263,6 +297,118 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     }, []);
 
     useEffect(() => {
+        const socket = chatSocketService.getSocket();
+        if (!socket) return;
+
+        const handleMessageRecalled = (payload: {
+            conversationId?: string;
+            messageId?: string;
+            id?: string;
+            _id?: string;
+        }) => {
+            const recalledMessageId =
+                payload?.messageId || payload?.id || payload?._id;
+
+            if (!payload?.conversationId || !recalledMessageId) return;
+
+            setLastMessageOverrides((prev) => {
+                const conversation = conversations.find(
+                    (item) =>
+                        item.conversationId === payload.conversationId,
+                );
+                type LastMessageWithAliases = LastMessage & {
+                    id?: string;
+                    _id?: string;
+                    clientMessageId?: string;
+                };
+
+                const current = prev[
+                    payload.conversationId!
+                ] as LastMessageWithAliases | undefined;
+                const fallbackLast = conversation?.lastMessage as
+                    | LastMessageWithAliases
+                    | null
+                    | undefined;
+                const effectiveLast = (current || fallbackLast) as
+                    | LastMessageWithAliases
+                    | undefined;
+
+                const matchesMessageId =
+                    effectiveLast?.messageId === recalledMessageId ||
+                    effectiveLast?.id === recalledMessageId ||
+                    effectiveLast?._id === recalledMessageId ||
+                    effectiveLast?.clientMessageId === recalledMessageId;
+
+                const hasMessageId =
+                    !!effectiveLast?.messageId ||
+                    !!effectiveLast?.id ||
+                    !!effectiveLast?._id ||
+                    !!effectiveLast?.clientMessageId;
+
+                if (!matchesMessageId && hasMessageId) {
+                    return prev;
+                }
+
+                return {
+                    ...prev,
+                    [payload.conversationId!]: {
+                        ...(effectiveLast || {
+                            messageId: recalledMessageId,
+                            messageType: 'TEXT',
+                            createdAt: new Date().toISOString(),
+                        }),
+                        content: 'Tin nhắn đã được thu hồi',
+                        isRecalled: true,
+                    },
+                };
+            });
+        };
+
+        socket.on('chat:message_recalled', handleMessageRecalled);
+        return () => {
+            socket.off('chat:message_recalled', handleMessageRecalled);
+        };
+    }, [conversations]);
+
+    useEffect(() => {
+        const handleOverride = (event: Event) => {
+            const customEvent = event as CustomEvent<{
+                conversationId?: string;
+                lastMessage?: LastMessage;
+            }>;
+
+            const conversationId = customEvent.detail?.conversationId;
+            if (!conversationId) return;
+
+            setLastMessageOverrides((prev) => ({
+                ...prev,
+                [conversationId]:
+                    customEvent.detail.lastMessage || prev[conversationId],
+            }));
+        };
+
+        window.addEventListener(
+            'chat:conversation_last_message_override',
+            handleOverride,
+        );
+        return () => {
+            window.removeEventListener(
+                'chat:conversation_last_message_override',
+                handleOverride,
+            );
+        };
+    }, []);
+
+    const getEffectiveConversation = useCallback(
+        (conv: ConversationView): ConversationView => ({
+            ...conv,
+            lastMessage:
+                lastMessageOverrides[conv.conversationId] ?? conv.lastMessage,
+        }),
+        [lastMessageOverrides],
+    );
+
+    useEffect(() => {
         const handleMuteChanged = (event: Event) => {
             const customEvent = event as CustomEvent<{
                 conversationId?: string;
@@ -313,7 +459,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     const filteredConversations = useMemo(() => {
         const query = searchQuery.toLowerCase();
 
-        const filtered = conversations.filter((conv) => {
+        const filtered = conversations.map(getEffectiveConversation).filter((conv) => {
             const conversationName =
                 conv.type === 'GROUP'
                     ? getEffectiveGroupInfo(conv)?.groupName || 'Group Chat'
@@ -362,10 +508,10 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         });
     }, [
         conversations,
+        getEffectiveConversation,
         searchQuery,
         currentUserId,
         getEffectiveGroupInfo,
-        lastMessageOverrides,
     ]);
 
     const getConversationDisplayName = (conversation: ConversationView) => {
@@ -459,6 +605,161 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         const senderLabel = senderBy === currentUserId ? 'Bạn: ' : '';
         return `${senderLabel}${content || 'Đã gửi tin nhắn'}`.substring(0, 50);
     };
+
+    const normalizePhoneDisplay = (phone?: string) => {
+        const value = String(phone || '').replace(/\s+/g, '');
+        if (!value) return '';
+        if (value.startsWith('+84')) return value;
+        if (value.startsWith('0')) return `(+84) ${value.slice(1)}`;
+        return `(+84) ${value}`;
+    };
+
+    const persistRecentFriendSearches = useCallback(
+        (items: FriendApiItem[]) => {
+            setRecentFriendSearches(items);
+            localStorage.setItem(RECENT_FRIEND_SEARCH_KEY, JSON.stringify(items));
+        },
+        [],
+    );
+
+    const addRecentFriendSearch = useCallback(
+        (friend: FriendApiItem) => {
+            const next = [
+                friend,
+                ...recentFriendSearches.filter((item) => item.id !== friend.id),
+            ].slice(0, MAX_RECENT_FRIENDS);
+            persistRecentFriendSearches(next);
+        },
+        [persistRecentFriendSearches, recentFriendSearches],
+    );
+
+    const handleOpenAddFriendModal = useCallback(() => {
+        setAddFriendModalOpen(true);
+        setFriendQuery('');
+        setFriendResults([]);
+        setFriendActionMessage(null);
+        setSuggestedVisibleCount(INITIAL_SUGGESTED_LIMIT);
+        onAddFriendClick?.();
+    }, [onAddFriendClick]);
+
+    const handleSearchFriend = useCallback(async () => {
+        const keyword = friendQuery.trim();
+        if (!keyword || !currentUserId) {
+            setFriendResults([]);
+            return;
+        }
+        setFriendSearchLoading(true);
+        setFriendActionMessage(null);
+        try {
+            const results = await friendListService.searchUsers(
+                currentUserId,
+                keyword,
+            );
+            setFriendResults(Array.isArray(results) ? results : []);
+            if (Array.isArray(results) && results.length > 0) {
+                addRecentFriendSearch(results[0]);
+            }
+            if (!results.length) {
+                setFriendActionMessage('Không tìm thấy người dùng phù hợp.');
+            }
+        } catch (searchError) {
+            console.error('Search users error:', searchError);
+            setFriendActionMessage(
+                searchError instanceof Error
+                    ? searchError.message
+                    : 'Không thể tìm kiếm lúc này.',
+            );
+            setFriendResults([]);
+        } finally {
+            setFriendSearchLoading(false);
+        }
+    }, [addRecentFriendSearch, currentUserId, friendQuery]);
+
+    const handleSendFriendRequest = useCallback(
+        async (receiverId: string) => {
+            if (!currentUserId) return;
+            setSendingFriendRequestId(receiverId);
+            setFriendActionMessage(null);
+            try {
+                await friendListService.sendFriendRequest(currentUserId, receiverId);
+                setFriendActionMessage('Đã gửi lời mời kết bạn.');
+                setSentFriendRequestIds((prev) => {
+                    const next = new Set(prev);
+                    next.add(receiverId);
+                    return next;
+                });
+                const selectedRecent = [
+                    ...friendResults,
+                    ...suggestedFriends,
+                    ...recentFriendSearches,
+                ].find((item) => item.id === receiverId);
+                if (selectedRecent) {
+                    addRecentFriendSearch(selectedRecent);
+                }
+            } catch (requestError) {
+                console.error('Send friend request error:', requestError);
+                setFriendActionMessage(
+                    requestError instanceof Error
+                        ? requestError.message
+                        : 'Không thể gửi lời mời kết bạn.',
+                );
+            } finally {
+                setSendingFriendRequestId(null);
+            }
+        },
+        [
+            addRecentFriendSearch,
+            currentUserId,
+            friendResults,
+            recentFriendSearches,
+            suggestedFriends,
+        ],
+    );
+
+    useEffect(() => {
+        if (!addFriendModalOpen || !currentUserId) return;
+
+        let isCancelled = false;
+        void friendListService
+            .getSuggestionsByMutualGroups(currentUserId)
+            .then((items) => {
+                if (isCancelled) return;
+                const mapped: FriendApiItem[] = (items || []).map((item) => ({
+                    id: item.id,
+                    fullName: item.fullName,
+                    avatarUrl: item.avatarUrl || null,
+                    phoneNumber: '',
+                    isOnline: item.isOnline,
+                }));
+                setSuggestedFriends(mapped);
+            })
+            .catch((error) => {
+                console.error('Load friend suggestions error:', error);
+                if (!isCancelled) {
+                    setSuggestedFriends([]);
+                }
+            });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [addFriendModalOpen, currentUserId]);
+
+    useEffect(() => {
+        if (!addFriendModalOpen || !currentUserId) return;
+
+        void friendListService
+            .getOutgoingFriendRequests(currentUserId)
+            .then((items) => {
+                const next = new Set(
+                    (items || []).map((item) => item.receiver.userId),
+                );
+                setSentFriendRequestIds(next);
+            })
+            .catch(() => {
+                setSentFriendRequestIds(new Set());
+            });
+    }, [addFriendModalOpen, currentUserId]);
 
     const formatMessageTime = (date: Date | string | undefined) => {
         if (!date) return '';
@@ -558,384 +859,552 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     };
 
     return (
-        <div className="flex w-80 flex-col gap-4 rounded-lg bg-white p-4 shadow-sm">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">Tin nhắn</h2>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={onAddFriendClick}
-                        className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
-                        title="Thêm bạn bè"
-                    >
-                        <UserPlus size={16} />
-                    </button>
+      <div className="flex w-80 flex-col gap-4 rounded-lg bg-white p-4 shadow-sm">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">Tin nhắn</h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenAddFriendModal}
+              className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
+              title="Thêm bạn bè"
+            >
+              <FaRegAddressBook size={16} />
+            </button>
 
-                    <button
-                        type="button"
-                        onClick={onCreateGroupClick}
-                        className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
-                        title="Tạo nhóm"
-                    >
-                        <UsersRound size={16} />
-                    </button>
+            <button
+              type="button"
+              onClick={onCreateGroupClick}
+              className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
+              title="Tạo nhóm"
+            >
+              <UsersRound size={16} />
+            </button>
 
-                    {onNewConversation && (
-                        <button
-                            onClick={onNewConversation}
-                            className="cursor-pointer rounded-lg bg-[var(--chat-primary)] p-2 text-white hover:bg-[var(--chat-primary-hover)]"
-                            title="New conversation"
-                        >
-                            ✎
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            {/* Search box + join group button */}
-            <div className="flex items-center gap-2">
-                <input
-                    type="text"
-                    placeholder="Search conversations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--chat-primary)] focus:outline-none"
-                />
-                <button
-                    type="button"
-                    onClick={() => {
-                        setShowJoinGroupBox((prev) => !prev);
-                        setJoinGroupError(null);
-                        setJoinGroupSuccess(null);
-                    }}
-                    className="rounded-lg border border-gray-300 p-2 text-gray-700 hover:bg-gray-100"
-                    title="Tham gia group"
-                >
-                    <UserRoundPlus size={18} />
-                </button>
-            </div>
-
-            {showJoinGroupBox && (
-                <div className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col gap-3">
-                    <span className="font-semibold text-gray-primary">
-                        Tham gia group bằng mã
-                    </span>
-
-                    <input
-                        type="text"
-                        value={joinGroupCode}
-                        onChange={(e) => setJoinGroupCode(e.target.value)}
-                        placeholder="Nhập mã group (vd: 9fbcd750-cab0-4fca-8b0e-22be6f017dea)"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)]"
-                        disabled={isJoinGroupSubmitting}
-                    />
-
-                    <textarea
-                        value={joinGroupMessage}
-                        onChange={(e) => setJoinGroupMessage(e.target.value)}
-                        placeholder="Lời nhắn (tùy chọn)"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)] resize-none"
-                        rows={3}
-                        disabled={isJoinGroupSubmitting}
-                    />
-
-                    {joinGroupError && (
-                        <p className="text-sm text-red-500">{joinGroupError}</p>
-                    )}
-
-                    {joinGroupSuccess && (
-                        <p className="text-sm text-[var(--chat-primary)]">
-                            {joinGroupSuccess}
-                        </p>
-                    )}
-
-                    <button
-                        type="button"
-                        onClick={handleRequestJoinGroupByCode}
-                        disabled={isJoinGroupSubmitting}
-                        className="rounded-lg bg-[var(--chat-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-60"
-                    >
-                        {isJoinGroupSubmitting
-                            ? 'Đang gửi...'
-                            : 'Yêu cầu tham gia group'}
-                    </button>
-                </div>
+            {onNewConversation && (
+              <button
+                onClick={onNewConversation}
+                className="cursor-pointer rounded-lg bg-[var(--chat-primary)] p-2 text-white hover:bg-[var(--chat-primary-hover)]"
+                title="New conversation"
+              >
+                ✎
+              </button>
             )}
-
-            {/* Error message */}
-            {error && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                    {error}
-                </div>
-            )}
-
-            {/* Loading state */}
-            {loading && (
-                <div className="flex justify-center py-8">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-[var(--chat-primary)]" />
-                </div>
-            )}
-
-            {/* Conversations list */}
-            {!loading && (
-                <div className="flex-1 overflow-y-auto">
-                    {filteredConversations.length === 0 ? (
-                        <div className="flex items-center justify-center py-8 text-center text-gray-400">
-                            {conversations.length === 0
-                                ? 'No conversations yet'
-                                : 'No results found'}
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {filteredConversations.map((conversation) => {
-                                const unreadCount =
-                                    unreadByConversation[
-                                        conversation.conversationId
-                                    ] || 0;
-                                const effectiveLastMessage =
-                                    lastMessageOverrides[
-                                        conversation.conversationId
-                                    ] ?? conversation.lastMessage;
-                                const isMuted = mutedConversationIds.has(
-                                    conversation.conversationId,
-                                );
-
-                                return (
-                                    <div
-                                        key={conversation.conversationId}
-                                        onClick={() =>
-                                            handleConversationSelect(
-                                                conversation,
-                                            )
-                                        }
-                                        className={`w-full rounded-lg px-3 py-2 text-left transition-colors relative ${
-                                            selectedConversationId ===
-                                            conversation.conversationId
-                                                ? 'bg-[var(--chat-primary-bg)] text-[var(--chat-primary)]'
-                                                : 'hover:bg-gray-100'
-                                        }`}
-                                    >
-                                        <div className="flex items-start gap-3">
-                                            {/* Avatar */}
-                                            <div className="relative">
-                                                {conversation.type ===
-                                                'GROUP' ? (
-                                                    <GroupAvatar
-                                                        name={getConversationDisplayName(
-                                                            conversation,
-                                                        )}
-                                                        avatarUrl={getConversationAvatar(
-                                                            conversation,
-                                                        )}
-                                                        members={
-                                                            conversation.participants
-                                                        }
-                                                        size={40}
-                                                    />
-                                                ) : (
-                                                    <ChatAvatar
-                                                        name={getConversationDisplayName(
-                                                            conversation,
-                                                        )}
-                                                        avatarUrl={getConversationAvatar(
-                                                            conversation,
-                                                        )}
-                                                        sizeClassName="h-10 w-10"
-                                                    />
-                                                )}
-                                                {/* ✅ Pin indicator */}
-                                                {conversation.myIsPinned && (
-                                                    <div className="absolute -right-1 -bottom-1 bg-[var(--chat-primary)] rounded-full p-1 shadow-sm border border-white">
-                                                        <Pin
-                                                            size={12}
-                                                            className="text-white fill-current"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {/* Hidden indicator */}
-                                                {conversation.myIsHidden &&
-                                                    !conversation.myIsPinned && (
-                                                        <div className="absolute -right-1 -bottom-1 bg-yellow-400 rounded-full p-1 shadow-sm">
-                                                            <Lock
-                                                                size={12}
-                                                                className="text-gray-700"
-                                                            />
-                                                        </div>
-                                                    )}
-                                            </div>
-
-                                            {/* Content */}
-                                            <div className="min-w-0 flex-1 overflow-hidden cursor-pointer">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <h3 className="truncate font-semibold text-gray-900">
-                                                        {getConversationDisplayName(
-                                                            conversation,
-                                                        )}
-                                                    </h3>
-                                                    <div className="relative ml-2 flex w-16 shrink-0 items-start justify-end gap-1 pt-0.5 text-right">
-                                                        <span className="whitespace-nowrap text-[11px] leading-4 text-gray-500">
-                                                            {formatMessageTime(
-                                                                effectiveLastMessage
-                                                                    ?.createdAt ||
-                                                                    conversation.createdAt,
-                                                            )}
-                                                        </span>
-                                                        {(onAISummarizeConversation ||
-                                                            onAIReplySuggestions) && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(
-                                                                    e,
-                                                                ) => {
-                                                                    e.stopPropagation();
-                                                                    setOpenAiMenuId(
-                                                                        (
-                                                                            prev,
-                                                                        ) =>
-                                                                            prev ===
-                                                                            conversation.conversationId
-                                                                                ? null
-                                                                                : conversation.conversationId,
-                                                                    );
-                                                                }}
-                                                                className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-slate-700"
-                                                                title="AI actions"
-                                                            >
-                                                                <MoreVertical
-                                                                    size={14}
-                                                                />
-                                                            </button>
-                                                        )}
-                                                        <span
-                                                            className={`absolute right-0 top-7 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-opacity ${
-                                                                unreadCount > 0
-                                                                    ? 'bg-red-500 text-white opacity-100'
-                                                                    : 'opacity-0'
-                                                            }`}
-                                                            aria-hidden={
-                                                                unreadCount ===
-                                                                0
-                                                            }
-                                                        >
-                                                            {unreadCount > 99
-                                                                ? '99+'
-                                                                : unreadCount ||
-                                                                  '0'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <p className="truncate text-sm text-gray-600">
-                                                    {conversation.myIsHidden
-                                                        ? '🔒 Trò chuyện đã ẩn'
-                                                        : getLastMessagePreview(
-                                                              conversation,
-                                                          )}
-                                                </p>
-                                                {isMuted && (
-                                                    <div className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
-                                                        <BellOff size={12} />
-                                                        <span className="truncate">
-                                                            Đã tắt thông báo
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {openAiMenuId ===
-                                            conversation.conversationId && (
-                                            <div
-                                                className="absolute right-2 top-12 z-30 min-w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <button
-                                                    type="button"
-                                                    disabled={
-                                                        unreadCount === 0 ||
-                                                        !onAISummarizeConversation
-                                                    }
-                                                    onClick={() => {
-                                                        onAISummarizeConversation?.(
-                                                            conversation.conversationId,
-                                                            'unread',
-                                                        );
-                                                        setOpenAiMenuId(null);
-                                                    }}
-                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    <Bot size={14} />
-                                                    Tóm tắt tin chưa đọc
-                                                </button>
-                                                {[1, 2, 3].map((month) => (
-                                                    <button
-                                                        key={month}
-                                                        type="button"
-                                                        disabled={
-                                                            !onAISummarizeConversation
-                                                        }
-                                                        onClick={() => {
-                                                            onAISummarizeConversation?.(
-                                                                conversation.conversationId,
-                                                                'range',
-                                                                month as
-                                                                    | 1
-                                                                    | 2
-                                                                    | 3,
-                                                            );
-                                                            setOpenAiMenuId(
-                                                                null,
-                                                            );
-                                                        }}
-                                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    >
-                                                        <Sparkles size={14} />
-                                                        Tóm tắt {month} tháng
-                                                    </button>
-                                                ))}
-                                                <div className="my-1 border-t border-slate-100" />
-                                                <button
-                                                    type="button"
-                                                    disabled={
-                                                        !onAIReplySuggestions
-                                                    }
-                                                    onClick={() => {
-                                                        onAIReplySuggestions?.(
-                                                            conversation.conversationId,
-                                                        );
-                                                        setOpenAiMenuId(null);
-                                                    }}
-                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                                >
-                                                    <SmilePlus size={14} />
-                                                    Gợi ý trả lời
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Reveal conversation modal */}
-            <RevealConversationModal
-                isOpen={revealModalOpen}
-                onClose={() => {
-                    setRevealModalOpen(false);
-                    setSelectedHiddenConversation(null);
-                }}
-                onConfirm={handleRevealConversation}
-                conversationName={
-                    selectedHiddenConversation
-                        ? getConversationDisplayName(selectedHiddenConversation)
-                        : 'Trò chuyện'
-                }
-            />
+          </div>
         </div>
+
+        {/* Search box + join group button */}
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[var(--chat-primary)] focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setShowJoinGroupBox((prev) => !prev);
+              setJoinGroupError(null);
+              setJoinGroupSuccess(null);
+            }}
+            className="rounded-lg border border-gray-300 p-2 text-gray-700 hover:bg-gray-100 cursor-pointer"
+            title="Tham gia group"
+          >
+            <UserPlus size={18} />
+          </button>
+        </div>
+
+        {showJoinGroupBox && (
+          <div className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col gap-3">
+            <span className="font-semibold text-gray-primary">
+              Tham gia group bằng mã
+            </span>
+
+            <input
+              type="text"
+              value={joinGroupCode}
+              onChange={(e) => setJoinGroupCode(e.target.value)}
+              placeholder="Nhập mã group (vd: 9fbcd750-cab0-4fca-8b0e-22be6f017dea)"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)]"
+              disabled={isJoinGroupSubmitting}
+            />
+
+            <textarea
+              value={joinGroupMessage}
+              onChange={(e) => setJoinGroupMessage(e.target.value)}
+              placeholder="Lời nhắn (tùy chọn)"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)] resize-none"
+              rows={3}
+              disabled={isJoinGroupSubmitting}
+            />
+
+            {joinGroupError && (
+              <p className="text-sm text-red-500">{joinGroupError}</p>
+            )}
+
+            {joinGroupSuccess && (
+              <p className="text-sm text-[var(--chat-primary)]">
+                {joinGroupSuccess}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleRequestJoinGroupByCode}
+              disabled={isJoinGroupSubmitting}
+              className="rounded-lg bg-[var(--chat-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-60"
+            >
+              {isJoinGroupSubmitting ? "Đang gửi..." : "Yêu cầu tham gia group"}
+            </button>
+          </div>
+        )}
+
+        {/* Error message */}
+        {error && (
+          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
+        {/* Loading state */}
+        {loading && (
+          <div className="flex justify-center py-8">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-[var(--chat-primary)]" />
+          </div>
+        )}
+
+        {/* Conversations list */}
+        {!loading && (
+          <div className="flex-1 overflow-y-auto">
+            {filteredConversations.length === 0 ? (
+              <div className="flex items-center justify-center py-8 text-center text-gray-400">
+                {conversations.length === 0
+                  ? "No conversations yet"
+                  : "No results found"}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredConversations.map((conversation) => {
+                  const unreadCount =
+                    unreadByConversation[conversation.conversationId] || 0;
+                  const effectiveUnreadCount =
+                    selectedConversationId === conversation.conversationId
+                      ? 0
+                      : unreadCount;
+                  const effectiveLastMessage =
+                    lastMessageOverrides[conversation.conversationId] ??
+                    conversation.lastMessage;
+                  const isMuted = mutedConversationIds.has(
+                    conversation.conversationId,
+                  );
+
+                  return (
+                    <div
+                      key={conversation.conversationId}
+                      onClick={() => handleConversationSelect(conversation)}
+                      className={`w-full rounded-lg px-3 py-2 text-left transition-colors relative ${
+                        selectedConversationId === conversation.conversationId
+                          ? "bg-[var(--chat-primary-bg)] text-[var(--chat-primary)]"
+                          : "hover:bg-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        <div className="relative">
+                          {conversation.type === "GROUP" ? (
+                            <GroupAvatar
+                              name={getConversationDisplayName(conversation)}
+                              avatarUrl={getConversationAvatar(conversation)}
+                              members={conversation.participants}
+                              size={40}
+                            />
+                          ) : (
+                            <ChatAvatar
+                              name={getConversationDisplayName(conversation)}
+                              avatarUrl={getConversationAvatar(conversation)}
+                              sizeClassName="h-10 w-10"
+                            />
+                          )}
+                          {/* ✅ Pin indicator */}
+                          {conversation.myIsPinned && (
+                            <div className="absolute -right-1 -bottom-1 bg-[var(--chat-primary)] rounded-full p-1 shadow-sm border border-white">
+                              <Pin
+                                size={12}
+                                className="text-white fill-current"
+                              />
+                            </div>
+                          )}
+                          {/* Hidden indicator */}
+                          {conversation.myIsHidden &&
+                            !conversation.myIsPinned && (
+                              <div className="absolute -right-1 -bottom-1 bg-yellow-400 rounded-full p-1 shadow-sm">
+                                <Lock size={12} className="text-gray-700" />
+                              </div>
+                            )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="min-w-0 flex-1 overflow-hidden cursor-pointer">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="truncate font-semibold text-gray-900">
+                              {getConversationDisplayName(conversation)}
+                            </h3>
+                            <div className="relative ml-2 flex w-16 shrink-0 items-start justify-end gap-1 pt-0.5 text-right">
+                              <span className="whitespace-nowrap text-[11px] leading-4 text-gray-500">
+                                {formatMessageTime(
+                                  effectiveLastMessage?.createdAt ||
+                                    conversation.createdAt,
+                                )}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenAiMenuId((prev) =>
+                                    prev === conversation.conversationId
+                                      ? null
+                                      : conversation.conversationId,
+                                  );
+                                }}
+                                className="rounded p-0.5 text-slate-400 hover:bg-white hover:text-slate-700"
+                                title="Conversation actions"
+                              >
+                                <MoreVertical size={14} />
+                              </button>
+                              <span
+                                className={`absolute right-0 top-7 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold transition-opacity ${
+                                  effectiveUnreadCount > 0
+                                    ? "bg-red-500 text-white opacity-100"
+                                    : "opacity-0"
+                                }`}
+                                aria-hidden={effectiveUnreadCount === 0}
+                              >
+                                {effectiveUnreadCount > 99
+                                  ? "99+"
+                                  : effectiveUnreadCount || "0"}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="truncate text-sm text-gray-600">
+                            {conversation.myIsHidden
+                              ? "🔒 Trò chuyện đã ẩn"
+                              : getLastMessagePreview(conversation)}
+                          </p>
+                          {isMuted && (
+                            <div className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
+                              <BellOff size={12} />
+                              <span className="truncate">Đã tắt thông báo</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {openAiMenuId === conversation.conversationId && (
+                        <div
+                          className="absolute right-2 top-12 z-30 min-w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            type="button"
+                            disabled={
+                              effectiveUnreadCount === 0 ||
+                              !onAISummarizeConversation
+                            }
+                            onClick={() => {
+                              onAISummarizeConversation?.(
+                                conversation.conversationId,
+                                "unread",
+                              );
+                              setOpenAiMenuId(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Bot size={14} />
+                            Tóm tắt tin chưa đọc
+                          </button>
+                          {[1, 2, 3].map((month) => (
+                            <button
+                              key={month}
+                              type="button"
+                              disabled={!onAISummarizeConversation}
+                              onClick={() => {
+                                onAISummarizeConversation?.(
+                                  conversation.conversationId,
+                                  "range",
+                                  month as 1 | 2 | 3,
+                                );
+                                setOpenAiMenuId(null);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Sparkles size={14} />
+                              Tóm tắt {month} tháng
+                            </button>
+                          ))}
+                          <div className="my-1 border-t border-slate-100" />
+                          <button
+                            type="button"
+                            disabled={!onAIReplySuggestions}
+                            onClick={() => {
+                              onAIReplySuggestions?.(
+                                conversation.conversationId,
+                              );
+                              setOpenAiMenuId(null);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <SmilePlus size={14} />
+                            Gợi ý trả lời
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Reveal conversation modal */}
+        <RevealConversationModal
+          isOpen={revealModalOpen}
+          onClose={() => {
+            setRevealModalOpen(false);
+            setSelectedHiddenConversation(null);
+          }}
+          onConfirm={handleRevealConversation}
+          conversationName={
+            selectedHiddenConversation
+              ? getConversationDisplayName(selectedHiddenConversation)
+              : "Trò chuyện"
+          }
+        />
+        <Modal
+          isOpen={addFriendModalOpen}
+          onClose={() => setAddFriendModalOpen(false)}
+          title="Thêm bạn"
+          size="sm"
+        >
+          <div className="space-y-4 p-4">
+            <div className="border-b border-slate-200 pb-2">
+                <div className="text-sm text-slate-500">Số điện thoại</div>
+                <input
+                  type="text"
+                  value={friendQuery}
+                  onChange={(event) =>
+                    setFriendQuery(event.target.value.replace(/\D/g, ""))
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void handleSearchFriend();
+                    }
+                  }}
+                  placeholder="Nhập số điện thoại"
+                  className="mt-2 w-full bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400"
+                />
+            </div>
+
+            {friendActionMessage && (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                {friendActionMessage}
+              </div>
+            )}
+
+            <div className="max-h-80 space-y-4 overflow-y-auto">
+              {recentFriendSearches.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-base font-semibold text-slate-700">
+                    Kết quả gần đây
+                  </h4>
+                  <div className="space-y-2">
+                    {recentFriendSearches.map((friend) => (
+                      <div
+                        key={`recent-${friend.id}`}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-1 hover:bg-slate-50"
+                        onClick={() => setSelectedProfileFriend(friend)}
+                      >
+                        <ChatAvatar
+                          name={friend.fullName}
+                          avatarUrl={friend.avatarUrl || undefined}
+                          sizeClassName="h-10 w-10"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[17px] font-semibold text-slate-800">
+                            {friend.fullName}
+                          </p>
+                          <p className="truncate text-sm text-slate-500">
+                            {normalizePhoneDisplay(friend.phoneNumber)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {friendResults.map((friend) => (
+                <div
+                  key={friend.id}
+                  className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                >
+                  <ChatAvatar
+                    name={friend.fullName}
+                    avatarUrl={friend.avatarUrl || undefined}
+                    sizeClassName="h-9 w-9"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[17px] font-semibold text-slate-800">
+                      {friend.fullName}
+                    </p>
+                    <p className="truncate text-sm text-slate-500">
+                      {normalizePhoneDisplay(friend.phoneNumber) || friend.id}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="mr-2 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedProfileFriend(friend);
+                    }}
+                  >
+                    Xem
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md border border-[var(--chat-primary)] px-3 py-1 text-sm font-semibold text-[var(--chat-primary)] hover:bg-[var(--chat-primary-bg)] disabled:opacity-60"
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        void handleSendFriendRequest(friend.id);
+                    }}
+                    disabled={
+                        sendingFriendRequestId === friend.id ||
+                        sentFriendRequestIds.has(friend.id)
+                    }
+                  >
+                    {sendingFriendRequestId === friend.id
+                      ? "Đang gửi..."
+                      : sentFriendRequestIds.has(friend.id)
+                        ? "Đã gửi"
+                        : "Kết bạn"}
+                  </button>
+                </div>
+              ))}
+
+              {suggestedFriends.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-base font-semibold text-slate-700">
+                    Có thể bạn quen
+                  </h4>
+                  <div className="space-y-2">
+                    {suggestedFriends
+                      .slice(0, suggestedVisibleCount)
+                      .map((friend) => (
+                        <div
+                          key={`suggest-${friend.id}`}
+                          className="flex cursor-pointer items-center gap-3 rounded-lg px-1 py-1 hover:bg-slate-50"
+                          onClick={() => setSelectedProfileFriend(friend)}
+                        >
+                          <ChatAvatar
+                            name={friend.fullName}
+                            avatarUrl={friend.avatarUrl || undefined}
+                            sizeClassName="h-10 w-10"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[17px] font-semibold text-slate-800">
+                              {friend.fullName}
+                            </p>
+                            <p className="truncate text-sm text-slate-500">
+                              Từ gợi ý kết bạn
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="rounded-md cursor-pointer border border-[var(--chat-primary)] px-3 py-1 text-sm font-semibold text-[var(--chat-primary)] hover:bg-[var(--chat-primary-bg)] disabled:opacity-60"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleSendFriendRequest(friend.id);
+                            }}
+                            disabled={
+                                sendingFriendRequestId === friend.id ||
+                                sentFriendRequestIds.has(friend.id)
+                            }
+                          >
+                            {sendingFriendRequestId === friend.id
+                              ? "Đang gửi..."
+                              : sentFriendRequestIds.has(friend.id)
+                                ? "Đã gửi"
+                                : "Kết bạn"}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                  {suggestedVisibleCount < suggestedFriends.length && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSuggestedVisibleCount((value) => value + 3)
+                      }
+                      className="mt-2 text-sm font-semibold text-[var(--chat-primary)] hover:text-[var(--chat-primary-hover)]"
+                    >
+                      Xem thêm
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-slate-200 pt-3">
+              <button
+                type="button"
+                onClick={() => setAddFriendModalOpen(false)}
+                className="rounded-md bg-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300 cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSearchFriend()}
+                className="rounded-md bg-[var(--chat-primary)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-60 cursor-pointer"
+                disabled={friendSearchLoading}
+              >
+                {friendSearchLoading ? "Đang tìm..." : "Tìm kiếm"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+        <ProfileModal
+            isOpen={!!selectedProfileFriend}
+            onClose={() => setSelectedProfileFriend(null)}
+            user={
+                selectedProfileFriend
+                    ? {
+                          name: selectedProfileFriend.fullName,
+                          email: 'Not updated',
+                          bio: 'Thông tin hồ sơ người dùng',
+                          coverImage:
+                              'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=1200',
+                          avatar:
+                              selectedProfileFriend.avatarUrl ||
+                              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
+                          address: 'Not updated',
+                          birthdate: 'Not updated',
+                          joined: 'Member',
+                          interests: ['Chat', 'Connect'],
+                          stats: {
+                              friends: '0',
+                              photos: '0',
+                              videos: '0',
+                          },
+                      }
+                    : undefined
+            }
+        />
+      </div>
     );
 };
 

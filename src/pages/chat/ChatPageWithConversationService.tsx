@@ -19,7 +19,7 @@ import { SearchModal } from '../../components/chat/SearchModal';
 import { CreateGroupModal } from '../../components/chat/CreateGroupModal';
 import Modal from '../../components/common/Modal';
 import { Dialog } from '../../components/common/Dialog';
-import { Pin, ChevronDown } from 'lucide-react';
+import { Pin, PinOff, ChevronDown } from 'lucide-react';
 import { notificationSocketService } from '../../services/websocket/notificationSocket';
 import {
     sendMessage,
@@ -347,6 +347,7 @@ export const ChatPage: React.FC = () => {
     const wasInitiatorRef = useRef(false);
     const [isConnecting, setIsConnecting] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [actionNotice, setActionNotice] = useState<string | null>(null);
     const [selectedConversationId, setSelectedConversationId] = useState<
         string | null
     >(null);
@@ -468,7 +469,8 @@ export const ChatPage: React.FC = () => {
 
     // Fetch messages for selected conversation
     // No need to pass USER_ID - JWT token from localStorage is used
-    const { messages: paginatedMessages } = useConversationMessages(
+    const { messages: paginatedMessages, clear: clearPaginatedMessages } =
+        useConversationMessages(
         selectedConversationId || '',
         30,
     );
@@ -683,10 +685,48 @@ export const ChatPage: React.FC = () => {
         [selectedConversation?.conversationId],
     );
 
+    const showActionNotice = useCallback((message: string) => {
+        setActionNotice(message);
+        window.setTimeout(() => {
+            setActionNotice((current) =>
+                current === message ? null : current,
+            );
+        }, 3000);
+    }, []);
+
     // Load block status when conversation changes
     useEffect(() => {
         loadBlockStatus();
     }, [loadBlockStatus]);
+
+    const isConversationBlockedForMessaging = useCallback(
+        async (conversationId: string) => {
+            const conversation = conversations.find(
+                (item) => item.conversationId === conversationId,
+            );
+
+            if (conversation?.type !== 'PRIVATE') return false;
+
+            if (conversationId === selectedConversationId) {
+                return iAmBlocked || iAmTheBlocker;
+            }
+
+            const response =
+                await conversationApi.getBlockStatus(conversationId);
+
+            return Boolean(
+                response?.isBlocked ||
+                    response?.iAmBlocked ||
+                    response?.iAmTheBlocker,
+            );
+        },
+        [
+            conversations,
+            iAmBlocked,
+            iAmTheBlocker,
+            selectedConversationId,
+        ],
+    );
 
     // Auto-select conversation from location state (e.g., from friend chat click)
     const locationStateConsumedRef = useRef(false);
@@ -705,6 +745,22 @@ export const ChatPage: React.FC = () => {
             window.history.replaceState({}, document.title);
         }
     }, [location.state, selectedConversationId]);
+
+    useEffect(() => {
+        window.dispatchEvent(
+            new CustomEvent('chat:active_conversation', {
+                detail: { conversationId: selectedConversationId || null },
+            }),
+        );
+
+        return () => {
+            window.dispatchEvent(
+                new CustomEvent('chat:active_conversation', {
+                    detail: { conversationId: null },
+                }),
+            );
+        };
+    }, [selectedConversationId]);
 
     // Poll block status every 5 seconds to detect when other user blocks/unblocks
     useEffect(() => {
@@ -778,7 +834,17 @@ export const ChatPage: React.FC = () => {
         };
     }, [USER_ID, refreshConversations]);
 
-    const handleGroupConversationRemoved = useCallback(
+    const handleConversationRemoved = useCallback(
+        async (conversationId: string) => {
+            setSelectedConversationId((prev) =>
+                prev === conversationId ? null : prev,
+            );
+            await refreshConversations();
+        },
+        [refreshConversations],
+    );
+
+    const handleConversationHidden = useCallback(
         async (conversationId: string) => {
             setSelectedConversationId((prev) =>
                 prev === conversationId ? null : prev,
@@ -797,7 +863,7 @@ export const ChatPage: React.FC = () => {
 
             if (!forbiddenConversationId) return;
 
-            void handleGroupConversationRemoved(forbiddenConversationId);
+            void handleConversationRemoved(forbiddenConversationId);
         };
 
         window.addEventListener(
@@ -811,7 +877,7 @@ export const ChatPage: React.FC = () => {
                 handleForbiddenConversation,
             );
         };
-    }, [handleGroupConversationRemoved]);
+    }, [handleConversationRemoved]);
 
     // Handle unblock user - chỉ người chặn mới có thể mở chặn
     const handleUnblockUser = async () => {
@@ -1336,25 +1402,90 @@ export const ChatPage: React.FC = () => {
 
         const recallHandler = (payload: {
             conversationId: string;
-            messageId: string;
+            messageId?: string;
+            id?: string;
+            _id?: string;
             revokedBy: string;
             revokedAt: string;
             isRevoked?: boolean;
         }) => {
+            const recalledMessageId =
+                payload.messageId || payload.id || payload._id;
+
+            if (!recalledMessageId) return;
+
             markConversationLastMessageRecalled(
                 payload.conversationId,
-                payload.messageId,
+                recalledMessageId,
             );
 
             if (payload.conversationId !== selectedConversationId) return;
 
-            markMessageAsRecalled(payload.messageId);
+            markMessageAsRecalled(recalledMessageId);
 
             setSocketMessages((prev) => {
+                const paginatedCandidates = paginatedMessages.map((msg) => ({
+                    id: msg.messageId || msg._id,
+                    clientMessageId: msg.clientMessageId,
+                    createdAt: msg.createdAt,
+                    isDeleted: msg.isDeleted,
+                }));
+                const socketCandidates = prev.map((msg) => ({
+                    id: msg.id,
+                    clientMessageId: msg.clientMessageId,
+                    createdAt: msg.timestamp,
+                    isDeleted: msg.isDeleted,
+                }));
+                const latestMessage = [
+                    ...paginatedCandidates,
+                    ...socketCandidates,
+                ]
+                    .filter((msg) => !msg.isDeleted)
+                    .sort((a, b) => {
+                        const timeA = new Date(
+                            a.createdAt || 0,
+                        ).getTime();
+                        const timeB = new Date(
+                            b.createdAt || 0,
+                        ).getTime();
+
+                        return timeB - timeA;
+                    })[0];
+                const recalledIsLatest =
+                    latestMessage?.id === recalledMessageId ||
+                    latestMessage?.clientMessageId === recalledMessageId;
+
+                if (recalledIsLatest) {
+                    const lastMessageOverride = {
+                        messageId: recalledMessageId,
+                        content: 'Tin nhắn đã được thu hồi',
+                        messageType: 'TEXT' as const,
+                        senderBy: payload.revokedBy,
+                        createdAt: payload.revokedAt,
+                        isRecalled: true,
+                    };
+
+                    updateConversationLastMessage(
+                        payload.conversationId,
+                        lastMessageOverride,
+                    );
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            'chat:conversation_last_message_override',
+                            {
+                                detail: {
+                                    conversationId: payload.conversationId,
+                                    lastMessage: lastMessageOverride,
+                                },
+                            },
+                        ),
+                    );
+                }
+
                 const updated = prev.map((msg) => {
                     if (
-                        msg.id === payload.messageId ||
-                        msg.clientMessageId === payload.messageId
+                        msg.id === recalledMessageId ||
+                        msg.clientMessageId === recalledMessageId
                     ) {
                         return {
                             ...msg,
@@ -1541,6 +1672,7 @@ export const ChatPage: React.FC = () => {
         applyPinStateToMessage,
         refreshPinnedMessages,
         refreshConversationsThrottled,
+        paginatedMessages,
         selectedConversationId,
         markMessageAsRecalled,
         markConversationLastMessageRecalled,
@@ -1645,6 +1777,51 @@ export const ChatPage: React.FC = () => {
                         message.clientMessageId,
                     );
                 }
+
+                const currentLastMessage = selectedConversation?.lastMessage as
+                    | {
+                          messageId?: string;
+                          id?: string;
+                          _id?: string;
+                          clientMessageId?: string;
+                      }
+                    | null
+                    | undefined;
+                const currentLastMessageId =
+                    currentLastMessage?.messageId ||
+                    currentLastMessage?.id ||
+                    currentLastMessage?._id ||
+                    currentLastMessage?.clientMessageId;
+                const shouldUpdateSidebarPreview =
+                    !currentLastMessageId ||
+                    currentLastMessageId === message.id ||
+                    currentLastMessageId === message.clientMessageId;
+
+                if (shouldUpdateSidebarPreview) {
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            'chat:conversation_last_message_override',
+                            {
+                                detail: {
+                                    conversationId: selectedConversationId,
+                                    lastMessage: {
+                                        messageId: message.id,
+                                        clientMessageId:
+                                            message.clientMessageId,
+                                        content:
+                                            'Tin nhắn đã được thu hồi',
+                                        messageType: 'TEXT',
+                                        senderBy: message.senderId,
+                                        createdAt:
+                                            message.timestamp ||
+                                            new Date().toISOString(),
+                                        isRecalled: true,
+                                    },
+                                },
+                            },
+                        ),
+                    );
+                }
             }
 
             setSocketMessages((prev) =>
@@ -1672,6 +1849,7 @@ export const ChatPage: React.FC = () => {
             getMessageKey,
             markConversationLastMessageRecalled,
             markMessageAsRecalled,
+            selectedConversation?.lastMessage,
             selectedConversationId,
         ],
     );
@@ -2050,6 +2228,12 @@ export const ChatPage: React.FC = () => {
         [selectedConversationId],
     );
 
+    const otherParticipant = selectedConversation?.participants?.find(
+        (p) => p.userId !== USER_ID,
+    );
+
+    const isPrivateConversation = selectedConversation?.type === 'PRIVATE';
+
     const handleTogglePinMessage = useCallback(
         async (message: SocketMessage, shouldPin: boolean) => {
             if (!selectedConversationId) return;
@@ -2132,11 +2316,20 @@ export const ChatPage: React.FC = () => {
         ],
     );
 
-    const handleOpenForwardModal = useCallback((message: SocketMessage) => {
-        setForwardingMessage(message);
-        setForwardTargetConversationId('');
-        setIsForwardModalOpen(true);
-    }, []);
+    const handleOpenForwardModal = useCallback(
+        (message: SocketMessage) => {
+            if (isPrivateConversation && (iAmBlocked || iAmTheBlocker)) {
+                showActionNotice(
+                    'Không thể chuyển tiếp tin nhắn khi cuộc trò chuyện đã bị chặn.',
+                );
+                return;
+            }
+            setForwardingMessage(message);
+            setForwardTargetConversationId('');
+            setIsForwardModalOpen(true);
+        },
+        [iAmBlocked, iAmTheBlocker, isPrivateConversation, showActionNotice],
+    );
 
     const handleForwardMessage = useCallback(async () => {
         if (joinStatus === 'error') {
@@ -2145,6 +2338,24 @@ export const ChatPage: React.FC = () => {
         }
 
         if (!forwardingMessage || !forwardTargetConversationId) return;
+
+        if (isPrivateConversation && (iAmBlocked || iAmTheBlocker)) {
+            showActionNotice(
+                'Không thể chuyển tiếp tin nhắn khi cuộc trò chuyện đã bị chặn.',
+            );
+            return;
+        }
+
+        if (
+            await isConversationBlockedForMessaging(
+                forwardTargetConversationId,
+            )
+        ) {
+            showActionNotice(
+                'Không thể chuyển tiếp tin nhắn vào cuộc trò chuyện đã bị chặn.',
+            );
+            return;
+        }
 
         if (forwardingMessage.fileUrl?.startsWith('blob:')) {
             setError('Không thể chuyển tiếp tệp khi chưa upload xong.');
@@ -2161,26 +2372,140 @@ export const ChatPage: React.FC = () => {
             }
 
             // Note: userId should be included in request headers via API interceptor
-            await conversationApi.forwardMessage(
+            const forwardResponse = await conversationApi.forwardMessage(
                 forwardingMessage.id,
                 forwardTargetConversationId,
                 clientMessageId,
             );
+
+            const normalizedType = String(
+                forwardingMessage.messageType ||
+                    forwardingMessage.type ||
+                    (forwardingMessage.isFile ? 'FILE' : 'TEXT'),
+            ).toUpperCase();
+            const forwardContent =
+                forwardingMessage.isFile && forwardingMessage.fileName
+                    ? forwardingMessage.fileName
+                    : forwardingMessage.content;
+            const forwardTimestamp = new Date().toISOString();
+
+            const forwardLastMessage = {
+                messageId:
+                    forwardResponse?.messageId ||
+                    forwardResponse?.id ||
+                    forwardResponse?._id ||
+                    clientMessageId,
+                clientMessageId,
+                content: forwardContent,
+                messageType: normalizedType as
+                    | 'TEXT'
+                    | 'IMAGE'
+                    | 'FILE'
+                    | 'VIDEO'
+                    | 'AUDIO'
+                    | 'CALL'
+                    | 'SYSTEM',
+                senderBy: USER_ID,
+                createdAt: forwardResponse?.createdAt || forwardTimestamp,
+                isRecalled: false,
+            };
+
+            updateConversationLastMessage(
+                forwardTargetConversationId,
+                forwardLastMessage,
+            );
+
+            window.dispatchEvent(
+                new CustomEvent('chat:conversation_last_message_override', {
+                    detail: {
+                        conversationId: forwardTargetConversationId,
+                        lastMessage: forwardLastMessage,
+                    },
+                }),
+            );
+
+            refreshConversationsThrottled();
 
             setIsForwardModalOpen(false);
             setForwardingMessage(null);
             setForwardTargetConversationId('');
         } catch (err) {
             console.error('Error forwarding message:', err);
-            setError(
+            showActionNotice(
                 err instanceof Error
                     ? err.message
-                    : 'Failed to forward message',
+                    : 'Không thể chuyển tiếp tin nhắn.',
             );
         } finally {
             setIsForwarding(false);
         }
-    }, [forwardingMessage, forwardTargetConversationId, joinStatus]);
+    }, [
+        forwardTargetConversationId,
+        forwardingMessage,
+        iAmBlocked,
+        iAmTheBlocker,
+        isConversationBlockedForMessaging,
+        isPrivateConversation,
+        joinStatus,
+        refreshConversationsThrottled,
+        showActionNotice,
+        updateConversationLastMessage,
+        USER_ID,
+    ]);
+
+    const handleClearHistorySuccess = useCallback(
+        async (_messages?: SocketMessage[]) => {
+            void _messages;
+        if (!selectedConversationId) return;
+
+        clearPaginatedMessages();
+        setSocketMessages([]);
+        setHiddenMessageKeys(new Set());
+        setRecalledMessageKeys(new Set());
+        setPinnedMessagesByConversation((prev) => ({
+            ...prev,
+            [selectedConversationId]: [],
+        }));
+        await refreshConversations();
+        },
+        [
+            clearPaginatedMessages,
+            refreshConversations,
+            selectedConversationId,
+        ],
+    );
+
+    const handleUnpinPinnedMessage = useCallback(
+        async (messageId: string) => {
+            if (!selectedConversationId) return;
+
+            applyPinStateToMessage(messageId, false);
+            setPinnedMessagesByConversation((prev) => ({
+                ...prev,
+                [selectedConversationId]: (prev[selectedConversationId] || []).filter(
+                    (item) => item.messageId !== messageId,
+                ),
+            }));
+
+            try {
+                await conversationApi.unpinMessage(
+                    selectedConversationId,
+                    messageId,
+                );
+                await refreshPinnedMessages(selectedConversationId);
+            } catch (err) {
+                applyPinStateToMessage(messageId, true, new Date().toISOString());
+                await refreshPinnedMessages(selectedConversationId);
+                setError(mapChatActionError(err, 'unpin'));
+            }
+        },
+        [
+            applyPinStateToMessage,
+            mapChatActionError,
+            refreshPinnedMessages,
+            selectedConversationId,
+        ],
+    );
 
     const maybeSuggestWorkflowFromMessage = useCallback(
         async (messageText: string) => {
@@ -2222,6 +2547,15 @@ export const ChatPage: React.FC = () => {
             }
 
             if (!text.trim() || !selectedConversationId) return;
+
+            if (
+                await isConversationBlockedForMessaging(
+                    selectedConversationId,
+                )
+            ) {
+                setError('Khong the gui tin nhan trong cuoc tro chuyen da chan.');
+                return;
+            }
 
             try {
                 const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -2312,6 +2646,7 @@ export const ChatPage: React.FC = () => {
         },
         [
             joinStatus,
+            isConversationBlockedForMessaging,
             selectedConversation,
             selectedConversationId,
             getReceiverId,
@@ -2334,6 +2669,15 @@ export const ChatPage: React.FC = () => {
             }
 
             if (!selectedConversationId) return;
+
+            if (
+                await isConversationBlockedForMessaging(
+                    selectedConversationId,
+                )
+            ) {
+                setError('Khong the gui tep trong cuoc tro chuyen da chan.');
+                return;
+            }
 
             try {
                 const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -2455,6 +2799,7 @@ export const ChatPage: React.FC = () => {
         },
         [
             joinStatus,
+            isConversationBlockedForMessaging,
             selectedConversation,
             selectedConversationId,
             getReceiverId,
@@ -2466,11 +2811,6 @@ export const ChatPage: React.FC = () => {
     );
 
     // Kết hợp các thông báo phân trang và thông báo socket
-    const otherParticipant = selectedConversation?.participants?.find(
-        (p) => p.userId !== USER_ID,
-    );
-
-    const isPrivateConversation = selectedConversation?.type === 'PRIVATE';
     const disableCallButtons = isPrivateConversation
         ? iAmBlocked || iAmTheBlocker
         : false;
@@ -3113,6 +3453,12 @@ export const ChatPage: React.FC = () => {
             className="flex h-screen gap-4 bg-gray-50 p-4"
             style={chatThemeVars}
         >
+            {actionNotice && (
+                <div className="fixed right-6 top-6 z-[70] max-w-sm rounded-lg border border-red-200 bg-white px-4 py-3 text-sm text-red-700 shadow-lg">
+                    {actionNotice}
+                </div>
+            )}
+
             {/* Sidebar */}
             <ChatSidebarWithConversationService
                 conversations={conversations}
@@ -3268,6 +3614,19 @@ export const ChatPage: React.FC = () => {
                                                 'Nội dung đã được ghim'}
                                         </span>
                                     </button>
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            void handleUnpinPinnedMessage(
+                                                currentPinnedMessages[0].messageId,
+                                            );
+                                        }}
+                                        className="shrink-0 rounded p-0.5 text-amber-600 hover:bg-amber-100 transition-colors"
+                                        title="Bỏ ghim"
+                                    >
+                                        <PinOff size={14} />
+                                    </button>
                                     {currentPinnedMessages.length > 1 && (
                                         <button
                                             type="button"
@@ -3301,6 +3660,18 @@ export const ChatPage: React.FC = () => {
                                                 <span className="truncate text-xs text-slate-700">
                                                     {pinned.snippet || pinned.content || 'Nội dung đã được ghim'}
                                                 </span>
+                                                <span className="ml-auto flex items-center">
+                                                    <PinOff
+                                                        size={12}
+                                                        className="text-amber-500"
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            void handleUnpinPinnedMessage(
+                                                                pinned.messageId,
+                                                            );
+                                                        }}
+                                                    />
+                                                </span>
                                             </button>
                                         ))}
                                     </div>
@@ -3315,7 +3686,18 @@ export const ChatPage: React.FC = () => {
                             onCallBackMessage={handleCallBackMessage}
                             onRecallMessage={handleRequestRecallMessage}
                             onDeleteMessage={handleRequestDeleteMessage}
-                            onForwardMessage={handleOpenForwardModal}
+                            onForwardMessage={
+                                isPrivateConversation &&
+                                (iAmBlocked || iAmTheBlocker)
+                                    ? undefined
+                                    : handleOpenForwardModal
+                            }
+                            canForwardMessage={
+                                !(
+                                    isPrivateConversation &&
+                                    (iAmBlocked || iAmTheBlocker)
+                                )
+                            }
                             onReactMessage={handleReactMessage}
                             onReplyMessage={handleReplyMessage}
                             onTogglePinMessage={handleTogglePinMessage}
@@ -3373,9 +3755,17 @@ export const ChatPage: React.FC = () => {
                         selectedConversation={selectedConversation}
                         displayMessages={displayMessages}
                         openEditAvatarTick={openGroupInfoEditTick}
-                        onConversationRemoved={handleGroupConversationRemoved}
+                        onConversationRemoved={handleConversationRemoved}
+                        onConversationHidden={handleConversationHidden}
+                        onClearHistorySuccess={handleClearHistorySuccess}
+                        onPinStatusChange={refreshConversations}
                         onJumpToMessage={jumpToMessage}
-                        onForwardMessage={handleOpenForwardModal}
+                        onForwardMessage={
+                            isPrivateConversation &&
+                            (iAmBlocked || iAmTheBlocker)
+                                ? undefined
+                                : handleOpenForwardModal
+                        }
                     />
                 ) : (
                     <ConversationInfoPanel
@@ -3385,8 +3775,16 @@ export const ChatPage: React.FC = () => {
                         currentUserId={USER_ID}
                         onBlockStatusChange={loadBlockStatus}
                         onJumpToMessage={jumpToMessage}
-                        onForwardMessage={handleOpenForwardModal}
+                        onForwardMessage={
+                            isPrivateConversation &&
+                            (iAmBlocked || iAmTheBlocker)
+                                ? undefined
+                                : handleOpenForwardModal
+                        }
                         onPinStatusChange={refreshConversations}
+                        onClearHistorySuccess={handleClearHistorySuccess}
+                        onConversationHidden={handleConversationHidden}
+                        onConversationRemoved={handleConversationRemoved}
                         onConversationCreated={async (conversation) => {
                             if (conversation?.conversationId) {
                                 setSelectedConversationId(
@@ -3480,6 +3878,8 @@ export const ChatPage: React.FC = () => {
                             disabled={
                                 !forwardTargetConversationId ||
                                 isForwarding ||
+                                (isPrivateConversation &&
+                                    (iAmBlocked || iAmTheBlocker)) ||
                                 forwardableConversations.length === 0
                             }
                             className="rounded-lg bg-[var(--chat-primary)] px-3 py-2 text-sm text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-50"

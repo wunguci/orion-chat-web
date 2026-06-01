@@ -94,7 +94,11 @@ export const getLastMessagePreview = (
         return 'Chưa có tin nhắn';
     }
 
-    const { content, messageType } = message;
+    const { content, messageType, isRevoked, isDeleted } = message;
+
+    if (isRevoked || isDeleted) {
+        return 'Tin nhắn đã được thu hồi';
+    }
 
     switch (messageType) {
         case 'FILE':

@@ -9,6 +9,7 @@ import {
     Settings,
     Bell,
     Pin,
+    PinOff,
     ChevronRight,
     UserRound,
     LogOut,
@@ -105,6 +106,8 @@ interface ConversationGroupInfoPanelProps {
     onClearHistorySuccess?: (messages: SocketMessage[]) => void;
     onAddMember?: () => void;
     onConversationRemoved?: (conversationId: string) => void;
+    onConversationHidden?: (conversationId: string) => void | Promise<void>;
+    onPinStatusChange?: () => Promise<void> | void;
     openEditAvatarTick?: number;
 }
 
@@ -170,6 +173,8 @@ export const ConversationGroupInfoPanel: React.FC<
     onClearHistorySuccess,
     onAddMember,
     onConversationRemoved,
+    onConversationHidden,
+    onPinStatusChange,
     openEditAvatarTick = 0,
 }) => {
     const [isGroupManagement, setIsGroupManagement] = useState(false);
@@ -254,6 +259,10 @@ export const ConversationGroupInfoPanel: React.FC<
     const [groupNameInput, setGroupNameInput] = useState('');
     const [isUpdatingGroupName, setIsUpdatingGroupName] = useState(false);
     const [isUpdatingGroupAvatar, setIsUpdatingGroupAvatar] = useState(false);
+    const [isPinned, setIsPinned] = useState(
+        selectedConversation?.myIsPinned || false,
+    );
+    const [isPinLoading, setIsPinLoading] = useState(false);
     const [groupInfoError, setGroupInfoError] = useState<string | null>(null);
     const [groupNameOverride, setGroupNameOverride] = useState<string | null>(
         null,
@@ -279,6 +288,32 @@ export const ConversationGroupInfoPanel: React.FC<
         effectiveMyRole === 'deputy';
     const isGroupOwner =
         effectiveMyRole === 'admin' || effectiveMyRole === 'leader';
+
+    useEffect(() => {
+        setIsPinned(selectedConversation?.myIsPinned || false);
+    }, [selectedConversation?.myIsPinned, selectedConversation?.conversationId]);
+
+    const handleToggleConversationPin = async () => {
+        if (!conversationId || isPinLoading) return;
+
+        const nextPinned = !isPinned;
+        setIsPinned(nextPinned);
+        setIsPinLoading(true);
+
+        try {
+            if (nextPinned) {
+                await conversationApi.pinConversation(conversationId);
+            } else {
+                await conversationApi.unpinConversation(conversationId);
+            }
+            await onPinStatusChange?.();
+        } catch (error) {
+            setIsPinned(!nextPinned);
+            console.error('Error toggling group conversation pin:', error);
+        } finally {
+            setIsPinLoading(false);
+        }
+    };
     const isCurrentUserMemberFromConversation = useMemo(
         () =>
             (selectedConversation?.participants || []).some(
@@ -615,6 +650,7 @@ export const ConversationGroupInfoPanel: React.FC<
             localStorage.setItem(`hidden_conv_${conversationId}`, password);
             setIsConversationHidden(true);
             setMediaActionError(null);
+            await onConversationHidden?.(conversationId);
         } catch (error) {
             const errorMessage =
                 error instanceof Error
@@ -637,6 +673,7 @@ export const ConversationGroupInfoPanel: React.FC<
             );
             setIsConversationHidden(false);
             setMediaActionError(null);
+            await onConversationHidden?.(conversationId);
         } catch (error) {
             const errorMessage =
                 error instanceof Error
@@ -1130,6 +1167,7 @@ export const ConversationGroupInfoPanel: React.FC<
         }) => {
             if (payload.conversationId !== conversationId) return;
             setIsConversationHidden(payload.hidden);
+            void onConversationHidden?.(conversationId);
         };
 
         const handleHistoryClearedRealtime = (payload: {
@@ -1137,6 +1175,7 @@ export const ConversationGroupInfoPanel: React.FC<
         }) => {
             if (payload.conversationId !== conversationId) return;
             setDeletedMessageIds(new Set(displayMessages.map((msg) => msg.id)));
+            onClearHistorySuccess?.(displayMessages);
         };
 
         const handleGroupDissolvedRealtime = (payload: { groupId: string }) => {
@@ -1784,12 +1823,31 @@ export const ConversationGroupInfoPanel: React.FC<
                                         Tắt thông báo
                                     </span>
                                 </button>
-                                <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1">
-                                    <Pin
-                                        size={20}
-                                        className="text-green-primary"
-                                    />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        void handleToggleConversationPin();
+                                    }}
+                                    disabled={isPinLoading}
+                                    className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-slate-50 transition-colors flex-1 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {isPinned ? (
+                                        <PinOff
+                                            size={20}
+                                            className="text-green-primary"
+                                        />
+                                    ) : (
+                                        <Pin
+                                            size={20}
+                                            className="text-green-primary"
+                                        />
+                                    )}
                                     <span className="text-xs text-gray-primary">
+                                        {isPinned
+                                            ? 'Bo ghim'
+                                            : 'Ghim hoi thoai'}
+                                    </span>
+                                    <span className="hidden">
                                         Ghi hội thoại
                                     </span>
                                 </button>

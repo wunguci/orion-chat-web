@@ -165,7 +165,8 @@ export const useConversations = (): UseConversationsResult => {
 
                     const last = conversation.lastMessage as
                         | (typeof conversation.lastMessage & {
-                              messageId?: string;
+                          messageId?: string;
+                              id?: string;
                               _id?: string;
                               clientMessageId?: string;
                           })
@@ -173,11 +174,13 @@ export const useConversations = (): UseConversationsResult => {
 
                     const isSameLastMessage =
                         last?.messageId === messageId ||
+                        last?.id === messageId ||
                         last?._id === messageId ||
                         last?.clientMessageId === messageId;
 
                     const hasAnyLastMessageId =
                         !!last?.messageId ||
+                        !!last?.id ||
                         !!last?._id ||
                         !!last?.clientMessageId;
 

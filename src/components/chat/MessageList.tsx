@@ -158,6 +158,7 @@ export const MessageList: React.FC<{
     onReactMessage?: (message: SocketMessage, emoji: string) => void;
     onReplyMessage?: (message: SocketMessage) => void;
     onTogglePinMessage?: (message: SocketMessage, shouldPin: boolean) => void;
+    canForwardMessage?: boolean;
     onAISummarize?: (mode: 'range' | 'unread', rangeMonths?: 1 | 2 | 3) => void;
     onAIReplySuggestions?: () => void;
     emotionByMessageId?: Record<
@@ -176,6 +177,7 @@ export const MessageList: React.FC<{
     onReactMessage,
     onReplyMessage,
     onTogglePinMessage,
+    canForwardMessage = true,
     onAISummarize,
     onAIReplySuggestions,
     emotionByMessageId = {},
@@ -336,66 +338,8 @@ export const MessageList: React.FC<{
     }, [socketMessages]);
 
     const groupedItems = useMemo(() => {
-        const items: Array<
-            | { kind: 'imageGroup'; msgs: SocketMessage[]; isMe: boolean }
-            | { kind: 'single'; msg: SocketMessage }
-        > = [];
-
-        let currentImageGroup: SocketMessage[] = [];
-        let lastImageSenderId: string | null = null;
-
-        for (const msg of socketMessages) {
-            const isImage =
-                msg.isFile &&
-                (msg.fileType?.startsWith('image/') === true ||
-                    msg.fileCategory === 'image' ||
-                    msg.type === 'image' ||
-                    /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                        `${msg.fileName || ''} ${msg.fileUrl || ''} ${msg.content || ''}`,
-                    ));
-
-            if (isImage && msg.senderId === lastImageSenderId) {
-                // Continue the image group
-                currentImageGroup.push(msg);
-            } else {
-                // Finish previous image group if it exists
-                if (currentImageGroup.length > 0) {
-                    const isMe =
-                        !!currentUserId &&
-                        currentImageGroup[0].senderId === currentUserId;
-                    items.push({
-                        kind: 'imageGroup',
-                        msgs: currentImageGroup,
-                        isMe,
-                    });
-                }
-
-                // Start new image group or add single message
-                if (isImage) {
-                    currentImageGroup = [msg];
-                    lastImageSenderId = msg.senderId;
-                } else {
-                    currentImageGroup = [];
-                    lastImageSenderId = null;
-                    items.push({ kind: 'single', msg });
-                }
-            }
-        }
-
-        // Finish any remaining image group
-        if (currentImageGroup.length > 0) {
-            const isMe =
-                !!currentUserId &&
-                currentImageGroup[0].senderId === currentUserId;
-            items.push({
-                kind: 'imageGroup',
-                msgs: currentImageGroup,
-                isMe,
-            });
-        }
-
-        return items;
-    }, [socketMessages, currentUserId]);
+        return socketMessages.map((msg) => ({ kind: 'single' as const, msg }));
+    }, [socketMessages]);
 
     const renderImageGrid = (msgs: SocketMessage[]): React.ReactNode => {
         if (msgs.length === 1) {
@@ -1163,81 +1107,30 @@ export const MessageList: React.FC<{
                                                         Xóa
                                                     </button>
 
-                                                    <button
-                                                        onClick={() => {
-                                                            onForwardMessage?.(
-                                                                msg,
-                                                            );
-                                                            setOpenActionMenuKey(
-                                                                null,
-                                                            );
-                                                        }}
-                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
-                                                    >
-                                                        <ArrowRight
-                                                            size={16}
-                                                            className="inline mr-2"
-                                                        />
-                                                        Chuyển tiếp
-                                                    </button>
+                                                    {canForwardMessage && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onForwardMessage?.(
+                                                                    msg,
+                                                                );
+                                                                setOpenActionMenuKey(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
+                                                        >
+                                                            <ArrowRight
+                                                                size={16}
+                                                                className="inline mr-2"
+                                                            />
+                                                            Chuyển tiếp
+                                                        </button>
+                                                    )}
                                                     {(onAISummarize ||
                                                         onAIReplySuggestions) && (
                                                         <div className="my-1 border-t border-slate-100" />
                                                     )}
 
-                                                    {onAISummarize && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => {
-                                                                    onAISummarize(
-                                                                        'unread',
-                                                                    );
-                                                                    setOpenActionMenuKey(
-                                                                        null,
-                                                                    );
-                                                                }}
-                                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-sky-50"
-                                                            >
-                                                                <Bot
-                                                                    size={16}
-                                                                    className="inline mr-2"
-                                                                />
-                                                                Summarize unread
-                                                            </button>
-                                                            {[1, 2, 3].map(
-                                                                (month) => (
-                                                                    <button
-                                                                        key={
-                                                                            month
-                                                                        }
-                                                                        onClick={() => {
-                                                                            onAISummarize(
-                                                                                'range',
-                                                                                month as
-                                                                                    | 1
-                                                                                    | 2
-                                                                                    | 3,
-                                                                            );
-                                                                            setOpenActionMenuKey(
-                                                                                null,
-                                                                            );
-                                                                        }}
-                                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-sky-50"
-                                                                    >
-                                                                        <Sparkles
-                                                                            size={
-                                                                                16
-                                                                            }
-                                                                            className="inline mr-2"
-                                                                        />
-                                                                        Summary{' '}
-                                                                        {month}{' '}
-                                                                        month
-                                                                    </button>
-                                                                ),
-                                                            )}
-                                                        </>
-                                                    )}
 
                                                     {onAIReplySuggestions && (
                                                         <button
