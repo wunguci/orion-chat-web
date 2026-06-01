@@ -1944,7 +1944,17 @@ export const ConversationGroupInfoPanel: React.FC<
                                 </div>
                                 <button
                                     onClick={() => setShowMediaStorage(true)}
-                                    className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
+                                    className="py-2 rounded-lg font-semibold bg-white border transition-colors text-[14px] my-1 w-full select-none cursor-pointer"
+                                    style={{
+                                        borderColor: 'var(--app-primary, #226262)',
+                                        color: 'var(--app-primary, #226262)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'var(--app-primary-bg, rgba(34, 98, 98, 0.08))';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
                                 >
                                     Xem tất cả
                                 </button>
@@ -2002,7 +2012,17 @@ export const ConversationGroupInfoPanel: React.FC<
                                 </div>
                                 <button
                                     onClick={() => setShowMediaStorage(true)}
-                                    className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
+                                    className="py-2 rounded-lg font-semibold bg-white border transition-colors text-[14px] my-1 w-full select-none cursor-pointer"
+                                    style={{
+                                        borderColor: 'var(--app-primary, #226262)',
+                                        color: 'var(--app-primary, #226262)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'var(--app-primary-bg, rgba(34, 98, 98, 0.08))';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
                                 >
                                     Xem tất cả
                                 </button>
@@ -2072,7 +2092,17 @@ export const ConversationGroupInfoPanel: React.FC<
                                 </div>
                                 <button
                                     onClick={() => setShowMediaStorage(true)}
-                                    className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-green-50 transition-colors text-green-primary text-[14px] my-1"
+                                    className="py-2 rounded-lg font-semibold bg-white border transition-colors text-[14px] my-1 w-full select-none cursor-pointer"
+                                    style={{
+                                        borderColor: 'var(--app-primary, #226262)',
+                                        color: 'var(--app-primary, #226262)'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'var(--app-primary-bg, rgba(34, 98, 98, 0.08))';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = 'transparent';
+                                    }}
                                 >
                                     Xem tất cả
                                 </button>

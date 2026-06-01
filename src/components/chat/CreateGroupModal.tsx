@@ -231,7 +231,13 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                             value={groupName}
                             onChange={(e) => setGroupName(e.target.value)}
                             placeholder="Nhập tên nhóm"
-                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500"
+                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors"
+                            onFocus={(e) => {
+                                e.currentTarget.style.borderColor = 'var(--app-primary, #226262)';
+                            }}
+                            onBlur={(e) => {
+                                e.currentTarget.style.borderColor = '#e2e8f0';
+                            }}
                             disabled={isCreatingGroup}
                         />
                     </div>
@@ -250,10 +256,16 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                         value={friendSearch}
                         onChange={(e) => setFriendSearch(e.target.value)}
                         placeholder="Tìm theo tên"
-                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-green-500"
+                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors"
+                        onFocus={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--app-primary, #226262)';
+                        }}
+                        onBlur={(e) => {
+                            e.currentTarget.style.borderColor = '#e2e8f0';
+                        }}
                         disabled={isCreatingGroup || friendsLoading}
                     />
-                    <p className="mt-1 text-xs font-medium italic text-green-600">
+                    <p className="mt-1 text-xs font-medium italic" style={{ color: 'var(--app-primary, #226262)' }}>
                         * Nhóm phải có từ 3 thành viên trở lên (bao gồm cả bạn)
                     </p>
 
@@ -317,7 +329,18 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                     </button>
                     <button
                         type="button"
-                        className="cursor-pointer rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+                        className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-60 transition-all select-none"
+                        style={{
+                            backgroundColor: 'var(--app-primary, #226262)'
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!e.currentTarget.disabled) {
+                                e.currentTarget.style.filter = 'brightness(0.9)';
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.filter = 'none';
+                        }}
                         onClick={handleCreateGroup}
                         disabled={
                             isCreatingGroup ||

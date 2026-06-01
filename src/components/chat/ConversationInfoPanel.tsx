@@ -607,20 +607,36 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     disabled={isPinLoading}
                                     className={`flex flex-col items-center gap-2 p-3 rounded-lg transition-colors flex-1 ${
                                         isPinned
-                                            ? 'bg-green-50 hover:bg-green-100'
+                                            ? ''
                                             : 'hover:bg-white'
                                     } ${isPinLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    style={isPinned ? {
+                                        backgroundColor: 'var(--app-primary-bg, rgba(34, 98, 98, 0.08))',
+                                    } : undefined}
+                                    onMouseEnter={(e) => {
+                                        if (isPinned) {
+                                            e.currentTarget.style.filter = 'brightness(0.95)';
+                                        }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        if (isPinned) {
+                                            e.currentTarget.style.filter = 'none';
+                                        }
+                                    }}
                                 >
                                     <Pin
                                         size={20}
-                                        className={
-                                            isPinned
-                                                ? 'text-green-600 fill-current'
-                                                : 'text-green-primary'
-                                        }
+                                        className={isPinned ? 'fill-current' : ''}
+                                        style={{
+                                            color: 'var(--app-primary, #226262)'
+                                        }}
                                     />
                                     <span
-                                        className={`text-xs ${isPinned ? 'text-green-600 font-medium' : 'text-gray-primary'}`}
+                                        className="text-xs"
+                                        style={{
+                                            color: isPinned ? 'var(--app-primary, #226262)' : 'var(--wh-green-text-primary, #505050)',
+                                            fontWeight: isPinned ? '600' : '400'
+                                        }}
                                     >
                                         {isPinned
                                             ? 'Bỏ ghim'
@@ -918,7 +934,17 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                 onClick={() =>
                                                     setShowMediaStorage(true)
                                                 }
-                                                className="w-full py-2 text-sm text-green-600 font-medium hover:text-green-700 transition-colors hover:bg-slate-50 rounded-lg"
+                                                className="w-full py-2 rounded-lg font-semibold bg-white border transition-colors text-[14px] my-1 select-none cursor-pointer"
+                                                style={{
+                                                    borderColor: 'var(--app-primary, #226262)',
+                                                    color: 'var(--app-primary, #226262)'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'var(--app-primary-bg, rgba(34, 98, 98, 0.08))';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                                }}
                                             >
                                                 Xem tất cả
                                             </button>
