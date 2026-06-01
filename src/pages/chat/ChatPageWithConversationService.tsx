@@ -1462,9 +1462,7 @@ export const ChatPage: React.FC = () => {
                 ),
             );
 
-            if (payload.conversationId === selectedConversationId) {
-                void refreshPinnedMessages(payload.conversationId);
-            }
+            void refreshPinnedMessages(payload.conversationId);
         };
 
         const unpinnedHandler = (payload: {
@@ -1486,9 +1484,7 @@ export const ChatPage: React.FC = () => {
                 ),
             );
 
-            if (payload.conversationId === selectedConversationId) {
-                void refreshPinnedMessages(payload.conversationId);
-            }
+            void refreshPinnedMessages(payload.conversationId);
         };
 
         messageListenerRef.current = messageHandler;
