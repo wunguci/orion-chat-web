@@ -24,7 +24,7 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
         <div
             className={`flex flex-wrap gap-1 ${
                 align === 'right' ? 'justify-end' : 'justify-start'
-            }`}
+               }`}
         >
             {reactions.map((reaction) => (
                 <button
@@ -34,7 +34,7 @@ export const ReactionBar: React.FC<ReactionBarProps> = ({
                         reaction.reactedByMe
                             ? 'border-emerald-400 bg-emerald-100 text-emerald-700'
                             : 'border-slate-200 bg-white text-slate-600'
-                    }`}
+                        }`}
                     type="button"
                 >
                     <ReactionIcon emoji={reaction.emoji} size={14} />

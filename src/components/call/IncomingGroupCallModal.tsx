@@ -92,22 +92,22 @@ export const IncomingGroupCallModal: React.FC = () => {
 
           {/* Header text */}
           <h3 className="text-xl font-bold text-slate-900 mb-2">
-            Cuộc gọi nhóm đến
+            Incoming group call
           </h3>
 
           {/* Caller info */}
           <p className="text-slate-700 mb-2 font-semibold">
-            {incomingCall.initiatorName || incomingCall.callerName || "Ai đó"} đang gọi...
+            {incomingCall.initiatorName || incomingCall.callerName || "Unknown"} is calling...
           </p>
 
           {/* Participant count */}
           <p className="text-sm text-slate-500 mb-6">
-            {incomingCall.participantCount} thành viên
+            {incomingCall.participantCount} members
           </p>
 
           {/* Call type badge */}
           <div className="inline-block px-4 py-2 bg-slate-100 rounded-full text-slate-700 text-sm font-semibold mb-6 border border-slate-200">
-            {incomingCall.callType === "video" ? "Gọi video" : "Gọi thoại"}
+            {incomingCall.callType === "video" ? "Video call" : "Voice call"}
           </div>
 
           {/* Action buttons */}
@@ -118,7 +118,7 @@ export const IncomingGroupCallModal: React.FC = () => {
               className="flex-1 px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700 transition-all duration-200 flex items-center justify-center gap-2 font-semibold"
             >
               <BsFillTelephoneXFill className="text-lg" />
-              Từ chối
+              Decline
             </button>
 
             {/* Accept button */}
@@ -127,7 +127,7 @@ export const IncomingGroupCallModal: React.FC = () => {
               className="flex-1 px-6 py-3 bg-[var(--chat-primary)] text-white rounded-full hover:bg-[var(--chat-primary-hover)] transition-all duration-200 flex items-center justify-center gap-2 font-semibold"
             >
               <BsFillTelephoneOutboundFill className="text-lg" />
-              Nghe máy
+              Answer
             </button>
           </div>
         </div>

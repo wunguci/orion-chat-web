@@ -54,29 +54,28 @@ export const PromoteToAdminDialog: React.FC<PromoteToAdminDialogProps> = ({
                         <AlertCircle size={24} className="text-blue-600" />
                     </div>
                     <h2 className="text-lg font-semibold text-gray-primary">
-                        Gán quyền Phó nhóm
+                        Promote to co-admin
                     </h2>
                 </div>
 
                 {/* Content */}
                 <div className="mb-4">
                     <p className="text-sm text-gray-secondary mb-4">
-                        Bạn có chắc muốn gán quyền phó nhóm cho{' '}
-                        <strong>{memberName}</strong>?
+                        Are you sure you want to promote{' '}
+                        <strong>{memberName}</strong> to co-admin?
                     </p>
 
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
                         <p className="text-xs text-blue-700">
-                            Phó nhóm có thể:
+                            Co-admin can:
                         </p>
                         <ul className="text-xs text-blue-700 mt-2 space-y-1">
-                            <li>✓ Chấp nhận/từ chối yêu cầu tham gia</li>
-                            <li>✓ Xóa thành viên khỏi nhóm</li>
-                            <li>✓ Thay đổi cài đặt nhóm</li>
+                            <li>✓ Accept/reject join requests</li>
+                            <li>✓ Remove members from group</li>
+                            <li>✓ Change group settings</li>
                         </ul>
                         <p className="mt-2 text-[11px] text-blue-700">
-                            Lưu ý: Quyền admin chỉ được chuyển khi admin rời
-                            nhóm.
+                            Note: Admin permission can only be transferred when the admin leaves the group.
                         </p>
                     </div>
 
@@ -94,7 +93,7 @@ export const PromoteToAdminDialog: React.FC<PromoteToAdminDialogProps> = ({
                         disabled={isLoading}
                         className="px-4 py-2 rounded-lg border border-slate-200 text-gray-primary hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
@@ -104,10 +103,10 @@ export const PromoteToAdminDialog: React.FC<PromoteToAdminDialogProps> = ({
                         {isLoading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang xử lý...
+                                Loading...
                             </>
                         ) : (
-                            'Xác nhận'
+                            'Confirm'
                         )}
                     </button>
                 </div>

@@ -27,7 +27,7 @@ export const DisbandGroupDialog: React.FC<DisbandGroupDialogProps> = ({
 
     const handleConfirm = async () => {
         if (!isConfirmed) {
-            setError('Vui lòng nhập tên nhóm chính xác để xác nhận');
+            setError('Please enter the exact group name to confirm');
             return;
         }
 
@@ -63,7 +63,7 @@ export const DisbandGroupDialog: React.FC<DisbandGroupDialogProps> = ({
                         <AlertTriangle size={24} className="text-red-600" />
                     </div>
                     <h2 className="text-lg font-semibold text-red-600">
-                        Giải tán nhóm
+                        Disband group
                     </h2>
                 </div>
 
@@ -71,32 +71,30 @@ export const DisbandGroupDialog: React.FC<DisbandGroupDialogProps> = ({
                 <div className="mb-4 space-y-3">
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                         <p className="text-xs text-red-700">
-                            <strong>⚠️ Cảnh báo:</strong> Hành động này
-                            <strong> không thể hoàn tác</strong>. Tất cả dữ liệu
-                            trong nhóm sẽ bị xóa vĩnh viễn.
+                            <strong>Warning:</strong> This action cannot be undone. All data in the group will be permanently deleted.
                         </p>
                     </div>
 
                     <div className="text-sm text-gray-secondary">
-                        <p className="mb-2">Khi bạn giải tán nhóm:</p>
+                        <p className="mb-2">When you disband the group:</p>
                         <ul className="space-y-1 text-xs text-gray-500">
-                            <li>✗ Tất cả {memberCount} thành viên sẽ bị xóa</li>
-                            <li>✗ Tất cả tin nhắn sẽ bị xóa</li>
-                            <li>✗ Tất cả ảnh/file sẽ bị xóa</li>
-                            <li>✗ Tất cả thành viên sẽ nhận thông báo</li>
+                            <li>All {memberCount} members will be removed</li>
+                            <li>All messages will be deleted</li>
+                            <li>All images/files will be deleted</li>
+                            <li>All members will receive a notification</li>
                         </ul>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-primary mb-2">
-                            Nhập tên nhóm để xác nhận:{' '}
+                            Enter the group name to confirm:{' '}
                             <strong>{groupName}</strong>
                         </label>
                         <input
                             type="text"
                             value={confirmText}
                             onChange={(e) => setConfirmText(e.target.value)}
-                            placeholder="Gõ tên nhóm tại đây"
+                            placeholder="Type group name here"
                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
                             disabled={isLoading}
                         />
@@ -116,20 +114,20 @@ export const DisbandGroupDialog: React.FC<DisbandGroupDialogProps> = ({
                         disabled={isLoading}
                         className="px-4 py-2 rounded-lg border border-slate-200 text-gray-primary hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
                         disabled={isLoading || !isConfirmed}
-                        className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
                     >
                         {isLoading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang xử lý...
+                                Disbanding group...
                             </>
                         ) : (
-                            'Giải tán nhóm'
+                            'Disband group'
                         )}
                     </button>
                 </div>

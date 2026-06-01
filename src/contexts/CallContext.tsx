@@ -240,7 +240,7 @@ export const CallProvider: React.FC<CallProviderProps> = ({
         setCallState((prev) => ({
           ...prev,
           error:
-            "Không thể truy cập camera/mic. Bạn vẫn có thể nghe/thấy người kia.",
+            "Could not access camera/microphone. You can still hear/see the other person.",
         }));
       }
 

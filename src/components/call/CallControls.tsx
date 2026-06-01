@@ -60,8 +60,8 @@ export const CallControls: React.FC = () => {
           className="w-14 h-14 rounded-full bg-wh-green-primary-light hover:bg-wh-green-primary disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center transition"
           title={
             isRequestingVideoUpgrade
-              ? "Đang gửi yêu cầu video..."
-              : "Yêu cầu chuyển sang video call"
+              ? "Sending a video request..."
+              : "Request upgrade to video call"
           }
         >
           <HiOutlineVideoCamera className="text-white text-xl" />

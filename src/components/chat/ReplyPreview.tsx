@@ -15,7 +15,7 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
         <div className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
             <div className="min-w-0">
                 <p className="font-semibold text-slate-700 truncate">
-                    Trả lời {senderName || 'tin nhắn'}
+                    Reply to {senderName || 'message'}
                 </p>
                 <p className="text-slate-500 truncate">{content || '...'}</p>
             </div>

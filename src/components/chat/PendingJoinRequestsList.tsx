@@ -112,7 +112,7 @@ export const PendingJoinRequestsList: React.FC<
                     </button>
                     <div>
                         <h2 className="text-lg font-semibold text-gray-primary">
-                            Yêu cầu tham gia
+                            Join requests
                         </h2>
                         <p className="text-xs text-gray-400">{groupName}</p>
                     </div>
@@ -124,7 +124,7 @@ export const PendingJoinRequestsList: React.FC<
                         <div className="p-8 text-center">
                             <div className="inline-block w-6 h-6 border-2 border-green-primary border-t-transparent rounded-full animate-spin" />
                             <p className="text-sm text-gray-500 mt-2">
-                                Đang tải...
+                                Loading...
                             </p>
                         </div>
                     ) : error ? (
@@ -134,7 +134,7 @@ export const PendingJoinRequestsList: React.FC<
                     ) : requests.length === 0 ? (
                         <div className="p-8 text-center text-gray-500">
                             <p className="text-sm">
-                                Không có yêu cầu chờ xử lý
+                                No pending join requests
                             </p>
                         </div>
                     ) : (
@@ -197,7 +197,7 @@ export const PendingJoinRequestsList: React.FC<
                                             ) : (
                                                 <X size={16} />
                                             )}
-                                            Từ chối
+                                            Reject
                                         </button>
                                         <button
                                             onClick={() =>
@@ -217,7 +217,7 @@ export const PendingJoinRequestsList: React.FC<
                                             ) : (
                                                 <Check size={16} />
                                             )}
-                                            Chấp nhận
+                                            Approve
                                         </button>
                                     </div>
                                 </div>

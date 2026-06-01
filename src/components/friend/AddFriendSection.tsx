@@ -30,7 +30,7 @@ const AddFriendSection: React.FC<AddFriendSectionProps> = ({
     setTimeout(() => {
       const foundFriend: Friend = {
         id: "found-" + Date.now(),
-        name: phone.includes("88") ? "Linh Nguyễn" : "Trần Minh Tuấn",
+        name: phone.includes("88") ? "Linh Nguyen" : "Tran Minh Tuan",
         status: "online",
         subtext: phone.includes("88")
           ? "Working at Design Lab"

@@ -55,7 +55,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
         ) {
             logout();
             throw new Error(
-                'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+                'Session has expired. Please log in again.',
             );
         }
 

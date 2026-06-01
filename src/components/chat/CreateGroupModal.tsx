@@ -37,7 +37,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         if (!isOpen) return;
 
         if (!currentUserId) {
-            setCreateGroupError('Không tìm thấy thông tin người dùng hiện tại.');
+            setCreateGroupError('No information about the current user was found.');
             return;
         }
 
@@ -67,7 +67,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             } catch (error) {
                 if (isCancelled) return;
                 console.error('Error loading friends for group creation:', error);
-                setCreateGroupError('Không thể tải danh sách bạn bè.');
+                setCreateGroupError('Could not load friend list.');
             } finally {
                 if (!isCancelled) {
                     setFriendsLoading(false);
@@ -132,7 +132,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
 
     const handleCreateGroup = async () => {
         if (!groupName.trim()) {
-            setCreateGroupError('Vui lòng nhập tên nhóm.');
+            setCreateGroupError('Please enter a group name.');
             return;
         }
 
@@ -141,7 +141,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
         );
 
         if (selectedFriends.length < 2) {
-            setCreateGroupError('Nhóm phải có ít nhất 3 thành viên (bao gồm cả bạn).');
+            setCreateGroupError('The group must have at least 3 members (including you).');
             return;
         }
 
@@ -178,7 +178,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
             handleClose();
         } catch (error) {
             setCreateGroupError(
-                error instanceof Error ? error.message : 'Không thể tạo nhóm mới',
+                error instanceof Error ? error.message : 'Could not create new group',
             );
         } finally {
             setIsCreatingGroup(false);
@@ -186,13 +186,13 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Tạo nhóm mới" size="sm">
+        <Modal isOpen={isOpen} onClose={handleClose} title="Create new group" size="sm">
             <div className="p-4 space-y-4">
                 <div className="flex items-center gap-3">
                     <label
                         htmlFor="create-group-avatar-input"
                         className="group relative h-14 w-14 shrink-0 cursor-pointer overflow-hidden rounded-full border border-slate-200 bg-slate-100"
-                        title="Chọn ảnh nhóm"
+                        title="Select group avatar"
                     >
                         {avatarPreviewUrl ? (
                             <img
@@ -202,7 +202,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                             />
                         ) : (
                             <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">
-                                Ảnh
+                                Group avatar
                             </div>
                         )}
                         <input
@@ -223,14 +223,14 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                             htmlFor="newGroupName"
                             className="mb-1 block text-sm font-medium text-slate-700"
                         >
-                            Tên nhóm
+                            Group name
                         </label>
                         <input
                             id="newGroupName"
                             type="text"
                             value={groupName}
                             onChange={(e) => setGroupName(e.target.value)}
-                            placeholder="Nhập tên nhóm"
+                            placeholder="Enter group name"
                             className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors"
                             onFocus={(e) => {
                                 e.currentTarget.style.borderColor = 'var(--app-primary, #226262)';
@@ -248,14 +248,14 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                         htmlFor="friendSearch"
                         className="mb-2 block text-sm font-medium text-slate-700"
                     >
-                        Chọn thành viên
+                        Select members
                     </label>
                     <input
                         id="friendSearch"
                         type="text"
                         value={friendSearch}
                         onChange={(e) => setFriendSearch(e.target.value)}
-                        placeholder="Tìm theo tên"
+                        placeholder="Search by name"
                         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition-colors"
                         onFocus={(e) => {
                             e.currentTarget.style.borderColor = 'var(--app-primary, #226262)';
@@ -266,17 +266,17 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                         disabled={isCreatingGroup || friendsLoading}
                     />
                     <p className="mt-1 text-xs font-medium italic" style={{ color: 'var(--app-primary, #226262)' }}>
-                        * Nhóm phải có từ 3 thành viên trở lên (bao gồm cả bạn)
+                        * The group must have at least 3 members (including you)
                     </p>
 
                     <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-slate-200 p-2">
                         {friendsLoading ? (
                             <p className="py-3 text-center text-sm text-slate-500">
-                                Đang tải danh sách bạn bè...
+                                Loading friend list...
                             </p>
                         ) : filteredFriendOptions.length === 0 ? (
                             <p className="py-3 text-center text-sm text-slate-500">
-                                Không có bạn bè phù hợp
+                                No matching friends found
                             </p>
                         ) : (
                             filteredFriendOptions.map((friend) => (
@@ -308,7 +308,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                     </div>
 
                     <p className="mt-1 text-xs text-slate-500">
-                        Đã chọn {selectedFriendIds.length} thành viên
+                        Selected {selectedFriendIds.length} members
                     </p>
                 </div>
 
@@ -325,7 +325,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                         onClick={handleClose}
                         disabled={isCreatingGroup}
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         type="button"
@@ -348,7 +348,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
                             selectedFriendIds.length < 2
                         }
                     >
-                        {isCreatingGroup ? 'Đang tạo...' : 'Tạo nhóm'}
+                        {isCreatingGroup ? 'Creating...' : 'Create group'}
                     </button>
                 </div>
             </div>

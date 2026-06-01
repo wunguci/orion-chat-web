@@ -8,18 +8,18 @@ type GroupAction =
     | 'add_member';
 
 const ACTION_LABELS: Record<GroupAction, string> = {
-    join: 'tham gia nhóm',
-    approve: 'duyệt yêu cầu',
-    reject: 'từ chối yêu cầu',
-    toggle_join_approval: 'cập nhật chế độ duyệt',
-    add_member: 'thêm thành viên',
+    join: 'join group',
+    approve: 'approve request',
+    reject: 'reject request',
+    toggle_join_approval: 'update approval mode',
+    add_member: 'add member',
 };
 
 export const mapGroupManagementError = (
     error: unknown,
     action: GroupAction,
 ): string => {
-    const fallback = `Không thể ${ACTION_LABELS[action]}`;
+    const fallback = `Failed to ${ACTION_LABELS[action]}`;
 
     if (!isAxiosError(error)) {
         if (error instanceof Error && error.message) return error.message;
@@ -32,18 +32,18 @@ export const mapGroupManagementError = (
     ).toLowerCase();
 
     if (serverMessage.includes('already') && serverMessage.includes('member')) {
-        return 'Bạn đã là thành viên của nhóm';
+        return 'You are already a member of this group';
     }
 
     if (
         serverMessage.includes('pending') &&
         serverMessage.includes('request')
     ) {
-        return 'Bạn đang chờ duyệt yêu cầu tham gia';
+        return 'Your request to join is pending approval';
     }
 
     if (serverMessage.includes('dissolved')) {
-        return 'Nhóm đã giải tán';
+        return 'This group has been disbanded';
     }
 
     if (
@@ -52,19 +52,19 @@ export const mapGroupManagementError = (
         serverMessage.includes('max') ||
         serverMessage.includes('10')
     ) {
-        return 'Nhóm đã đủ 10 thành viên';
+        return 'The group has reached the limit of 10 members';
     }
 
     if (status === 403 || serverMessage.includes('forbidden')) {
-        return 'Bạn không có quyền thực hiện thao tác này';
+        return 'You do not have permission to perform this action';
     }
 
     if (status === 404) {
-        return 'Không tìm thấy nhóm hoặc yêu cầu tham gia';
+        return 'Group or join request not found';
     }
 
     if (status === 409) {
-        return 'Dữ liệu đã thay đổi, vui lòng thử lại';
+        return 'Data has changed, please try again';
     }
 
     return (

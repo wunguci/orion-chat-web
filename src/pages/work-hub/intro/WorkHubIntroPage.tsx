@@ -164,10 +164,10 @@ const WorkspaceSelector = ({
                     <MdOutlineWork className="w-8 h-8 text-white" />
                 </div>
                 <h1 className="text-3xl font-bold text-slate-800 mb-2">
-                    Chọn Workspace
+                    Select Workspace
                 </h1>
                 <p className="text-slate-500">
-                    Chọn workspace để tiếp tục hoặc tạo workspace mới
+                    Select a workspace to continue or create a new one
                 </p>
             </div>
 
@@ -189,7 +189,7 @@ const WorkspaceSelector = ({
                                 {ws.workspaceName}
                             </h3>
                             <p className="text-sm text-slate-400 truncate">
-                                {ws.members?.length || 0} thành viên · {ws.type}
+                                {ws.members?.length || 0} members · {ws.type}
                             </p>
                         </div>
                     </button>
@@ -202,7 +202,7 @@ const WorkspaceSelector = ({
                     className="inline-flex items-center gap-2 px-6 py-3 bg-teal-500 text-white font-medium rounded-xl hover:bg-teal-600 transition-all hover:-translate-y-0.5 shadow-sm cursor-pointer"
                 >
                     <MdAdd className="w-5 h-5" />
-                    Tạo Workspace mới
+                    Create new Workspace
                 </button>
             </div>
         </div>

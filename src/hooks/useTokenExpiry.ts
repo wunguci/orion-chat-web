@@ -64,12 +64,16 @@ export function useTokenExpiry() {
                         errorMsg.includes('hoặc bạn đã đăng nhập') ||
                         errorMsg.includes('web khác') ||
                         errorMsg.includes('mobile khác') ||
-                        errorMsg.includes('xung đột')
+                        errorMsg.includes('xung đột') ||
+                        errorMsg.includes('logged in elsewhere') ||
+                        errorMsg.includes('logged in from another') ||
+                        errorMsg.includes('conflict') ||
+                        errorMsg.includes('another device')
                     ) {
                         // Show alert to user
                         alert(
-                            'Phát hiện tài khoản của bạn vừa đăng nhập ở nơi khác.\n\n' +
-                                'Phiên hiện tại sẽ kết thúc. Vui lòng đăng nhập lại.',
+                            'Your account has been logged in from another location.\n\n' +
+                                'The current session will end. Please log in again.',
                         );
                         // Logout immediately
                         logout();

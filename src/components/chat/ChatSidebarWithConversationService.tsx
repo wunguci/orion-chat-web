@@ -14,6 +14,7 @@ import {
     UserPlus,
     UsersRound,
     Video,
+    Plus,
 } from 'lucide-react';
 import { FaRegAddressBook } from "react-icons/fa";
 import { getCurrentUserId } from '../../utils/auth';
@@ -357,7 +358,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                             messageType: 'TEXT',
                             createdAt: new Date().toISOString(),
                         }),
-                        content: 'Tin nhắn đã được thu hồi',
+                        content: 'The message has been recalled.',
                         isRecalled: true,
                     },
                 };
@@ -453,7 +454,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     //     [lastMessageOverrides],
     // );
 
-    // ✅ Filter and sort conversations
+    // Filter and sort conversations
     // 1. Filter by search query and hidden status
     // 2. Sort by: pinned status (descending) -> pinnedAt (newer first) -> lastMessage.createdAt (newer first)
     const filteredConversations = useMemo(() => {
@@ -479,7 +480,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             return !conv.myIsHidden && matchesSearch;
         });
 
-        // ✅ Sort by: pinned status -> pinnedAt (newer first) -> lastMessage.createdAt (newer first)
+        // Sort by: pinned status -> pinnedAt (newer first) -> lastMessage.createdAt (newer first)
         return filtered.sort((a, b) => {
             // First, sort by pinned status (pinned conversations first)
             if (a.myIsPinned !== b.myIsPinned) {
@@ -547,25 +548,25 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             conversation.lastMessage;
 
         if (!lastMessage) {
-            return 'Chưa có tin nhắn';
+            return 'No messages';
         }
 
         const { content, senderBy, messageType, isRecalled, callData } =
             lastMessage;
 
-        if (isRecalled || content === 'Tin nhắn đã được thu hồi') {
-            return 'Tin nhắn đã được thu hồi';
+        if (isRecalled || content === 'The message has been recalled.') {
+            return 'The message has been recalled.';
         }
 
         if (messageType === 'FILE' || messageType === 'file') {
-            return 'Tệp đính kèm';
+            return 'Attachment';
         }
 
         if (messageType?.toLowerCase() === 'image') {
             return (
                 <span className="inline-flex items-center gap-1">
                     <Image className="w-4 h-4" />
-                    Hình ảnh
+                    Image
                 </span>
             );
         }
@@ -578,18 +579,18 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             const preview =
                 callStatus === 'completed'
                     ? {
-                          text: `Cuộc gọi ${callType === 'video' ? 'video' : 'thoại'} ${isMe ? 'đi' : 'đến'}`,
+                          text: `${callType} call`,
                           Icon: callType === 'video' ? Video : Phone,
                           colorClass: 'text-[var(--chat-primary)]',
                       }
                     : callStatus === 'missed'
                       ? {
-                            text: isMe ? 'Bạn đã hủy' : 'Bạn bị nhỡ',
+                            text: isMe ? 'You cancelled' : 'You missed',
                             Icon: PhoneOff,
                             colorClass: 'text-red-500',
                         }
                       : {
-                            text: isMe ? 'Người nhận từ chối' : 'Bạn đã từ chối',
+                            text: isMe ? 'The other person declined' : 'You declined',
                             Icon: PhoneOff,
                             colorClass: 'text-orange-500',
                         };
@@ -602,8 +603,8 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             );
         }
 
-        const senderLabel = senderBy === currentUserId ? 'Bạn: ' : '';
-        return `${senderLabel}${content || 'Đã gửi tin nhắn'}`.substring(0, 50);
+        const senderLabel = senderBy === currentUserId ? 'You: ' : '';
+        return `${senderLabel}${content || 'Sent a message'}`.substring(0, 50);
     };
 
     const normalizePhoneDisplay = (phone?: string) => {
@@ -660,14 +661,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 addRecentFriendSearch(results[0]);
             }
             if (!results.length) {
-                setFriendActionMessage('Không tìm thấy người dùng phù hợp.');
+                setFriendActionMessage('No matching user found.');
             }
         } catch (searchError) {
             console.error('Search users error:', searchError);
             setFriendActionMessage(
                 searchError instanceof Error
                     ? searchError.message
-                    : 'Không thể tìm kiếm lúc này.',
+                    : 'Unable to search at this time.',
             );
             setFriendResults([]);
         } finally {
@@ -682,7 +683,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             setFriendActionMessage(null);
             try {
                 await friendListService.sendFriendRequest(currentUserId, receiverId);
-                setFriendActionMessage('Đã gửi lời mời kết bạn.');
+                setFriendActionMessage('Friend request sent successfully.');
                 setSentFriendRequestIds((prev) => {
                     const next = new Set(prev);
                     next.add(receiverId);
@@ -701,7 +702,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 setFriendActionMessage(
                     requestError instanceof Error
                         ? requestError.message
-                        : 'Không thể gửi lời mời kết bạn.',
+                        : 'Unable to send friend request at this time.',
                 );
             } finally {
                 setSendingFriendRequestId(null);
@@ -771,12 +772,12 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         const diffHours = Math.floor(diffMs / 3600000);
         const diffDays = Math.floor(diffMs / 86400000);
 
-        if (diffMins < 1) return 'Vừa xong';
-        if (diffMins < 60) return `${diffMins} phút`;
-        if (diffHours < 24) return `${diffHours} giờ`;
-        if (diffDays < 7) return `${diffDays} ngày`;
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins} minutes ago`;
+        if (diffHours < 24) return `${diffHours} hours ago`;
+        if (diffDays < 7) return `${diffDays} days ago`;
 
-        return messageDate.toLocaleDateString('vi-VN', {
+        return messageDate.toLocaleDateString('en-US', {
             month: '2-digit',
             day: 'numeric',
         });
@@ -831,7 +832,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
     const handleRequestJoinGroupByCode = async () => {
         const groupId = joinGroupCode.trim();
         if (!groupId) {
-            setJoinGroupError('Vui lòng nhập mã group hợp lệ');
+            setJoinGroupError('Please enter a valid group code');
             return;
         }
 
@@ -845,13 +846,13 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 joinGroupMessage.trim() || undefined,
             );
 
-            setJoinGroupSuccess('Đã gửi yêu cầu tham gia group thành công');
+            setJoinGroupSuccess('Join group request sent successfully');
             setJoinGroupMessage('');
         } catch (error) {
             setJoinGroupError(
                 error instanceof Error
                     ? error.message
-                    : 'Không thể gửi yêu cầu tham gia group',
+                    : 'Unable to send join group request at this time.',
             );
         } finally {
             setIsJoinGroupSubmitting(false);
@@ -862,13 +863,13 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
       <div className="flex w-80 flex-col gap-4 rounded-lg bg-white p-4 shadow-sm">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">Tin nhắn</h2>
+          <h2 className="text-xl font-bold text-gray-900">Messages</h2>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleOpenAddFriendModal}
               className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
-              title="Thêm bạn bè"
+              title="Add friends"
             >
               <FaRegAddressBook size={16} />
             </button>
@@ -877,7 +878,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
               type="button"
               onClick={onCreateGroupClick}
               className="cursor-pointer rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-100"
-              title="Tạo nhóm"
+              title="Create group"
             >
               <UsersRound size={16} />
             </button>
@@ -888,7 +889,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 className="cursor-pointer rounded-lg bg-[var(--chat-primary)] p-2 text-white hover:bg-[var(--chat-primary-hover)]"
                 title="New conversation"
               >
-                ✎
+                <Plus size={16} />
               </button>
             )}
           </div>
@@ -911,7 +912,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
               setJoinGroupSuccess(null);
             }}
             className="rounded-lg border border-gray-300 p-2 text-gray-700 hover:bg-gray-100 cursor-pointer"
-            title="Tham gia group"
+            title="Join group"
           >
             <UserPlus size={18} />
           </button>
@@ -920,14 +921,14 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
         {showJoinGroupBox && (
           <div className="rounded-lg border border-slate-200 bg-white p-4 flex flex-col gap-3">
             <span className="font-semibold text-gray-primary">
-              Tham gia group bằng mã
+              Join group by code
             </span>
 
             <input
               type="text"
               value={joinGroupCode}
               onChange={(e) => setJoinGroupCode(e.target.value)}
-              placeholder="Nhập mã group (vd: 9fbcd750-cab0-4fca-8b0e-22be6f017dea)"
+              placeholder="Enter group code (e.g., 9fbcd750-cab0-4fca-8b0e-22be6f017dea)"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)]"
               disabled={isJoinGroupSubmitting}
             />
@@ -935,7 +936,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
             <textarea
               value={joinGroupMessage}
               onChange={(e) => setJoinGroupMessage(e.target.value)}
-              placeholder="Lời nhắn (tùy chọn)"
+              placeholder="Message (optional)"
               className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[var(--chat-primary)] resize-none"
               rows={3}
               disabled={isJoinGroupSubmitting}
@@ -957,7 +958,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
               disabled={isJoinGroupSubmitting}
               className="rounded-lg bg-[var(--chat-primary)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-60"
             >
-              {isJoinGroupSubmitting ? "Đang gửi..." : "Yêu cầu tham gia group"}
+              {isJoinGroupSubmitting ? "Sending..." : "Request to join group"}
             </button>
           </div>
         )}
@@ -1028,7 +1029,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                               sizeClassName="h-10 w-10"
                             />
                           )}
-                          {/* ✅ Pin indicator */}
+                          {/* Pin indicator */}
                           {conversation.myIsPinned && (
                             <div className="absolute -right-1 -bottom-1 bg-[var(--chat-primary)] rounded-full p-1 shadow-sm border border-white">
                               <Pin
@@ -1090,13 +1091,13 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                           </div>
                           <p className="truncate text-sm text-gray-600">
                             {conversation.myIsHidden
-                              ? "🔒 Trò chuyện đã ẩn"
+                              ? "Conversation hidden"
                               : getLastMessagePreview(conversation)}
                           </p>
                           {isMuted && (
                             <div className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-500">
                               <BellOff size={12} />
-                              <span className="truncate">Đã tắt thông báo</span>
+                              <span className="truncate">Muted</span>
                             </div>
                           )}
                         </div>
@@ -1122,7 +1123,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                             className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Bot size={14} />
-                            Tóm tắt tin chưa đọc
+                            Summary of unread news
                           </button>
                           {[1, 2, 3].map((month) => (
                             <button
@@ -1140,7 +1141,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                               className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <Sparkles size={14} />
-                              Tóm tắt {month} tháng
+                              Summary of {month} months
                             </button>
                           ))}
                           <div className="my-1 border-t border-slate-100" />
@@ -1156,7 +1157,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                             className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <SmilePlus size={14} />
-                            Gợi ý trả lời
+                            Suggested reply
                           </button>
                         </div>
                       )}
@@ -1179,18 +1180,18 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
           conversationName={
             selectedHiddenConversation
               ? getConversationDisplayName(selectedHiddenConversation)
-              : "Trò chuyện"
+              : "Conversation"
           }
         />
         <Modal
           isOpen={addFriendModalOpen}
           onClose={() => setAddFriendModalOpen(false)}
-          title="Thêm bạn"
+          title="Add friend"
           size="sm"
         >
           <div className="space-y-4 p-4">
             <div className="border-b border-slate-200 pb-2">
-                <div className="text-sm text-slate-500">Số điện thoại</div>
+                <div className="text-sm text-slate-500">Phone number</div>
                 <input
                   type="text"
                   value={friendQuery}
@@ -1203,7 +1204,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                       void handleSearchFriend();
                     }
                   }}
-                  placeholder="Nhập số điện thoại"
+                  placeholder="Enter phone number"
                   className="mt-2 w-full bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400"
                 />
             </div>
@@ -1218,7 +1219,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
               {recentFriendSearches.length > 0 && (
                 <div>
                   <h4 className="mb-2 text-base font-semibold text-slate-700">
-                    Kết quả gần đây
+                    Recent search results
                   </h4>
                   <div className="space-y-2">
                     {recentFriendSearches.map((friend) => (
@@ -1272,7 +1273,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                         setSelectedProfileFriend(friend);
                     }}
                   >
-                    Xem
+                    View
                   </button>
                   <button
                     type="button"
@@ -1287,10 +1288,10 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     }
                   >
                     {sendingFriendRequestId === friend.id
-                      ? "Đang gửi..."
+                      ? "Sending..."
                       : sentFriendRequestIds.has(friend.id)
-                        ? "Đã gửi"
-                        : "Kết bạn"}
+                        ? "Sent"
+                        : "Add friend"}
                   </button>
                 </div>
               ))}
@@ -1298,7 +1299,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
               {suggestedFriends.length > 0 && (
                 <div>
                   <h4 className="mb-2 text-base font-semibold text-slate-700">
-                    Có thể bạn quen
+                    You may know
                   </h4>
                   <div className="space-y-2">
                     {suggestedFriends
@@ -1319,7 +1320,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                               {friend.fullName}
                             </p>
                             <p className="truncate text-sm text-slate-500">
-                              Từ gợi ý kết bạn
+                              Suggested friend
                             </p>
                           </div>
                           <button
@@ -1335,10 +1336,10 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                             }
                           >
                             {sendingFriendRequestId === friend.id
-                              ? "Đang gửi..."
+                              ? "Sending..."
                               : sentFriendRequestIds.has(friend.id)
-                                ? "Đã gửi"
-                                : "Kết bạn"}
+                                ? "Sent"
+                                : "Add friend"}
                           </button>
                         </div>
                       ))}
@@ -1351,7 +1352,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                       }
                       className="mt-2 text-sm font-semibold text-[var(--chat-primary)] hover:text-[var(--chat-primary-hover)]"
                     >
-                      Xem thêm
+                      View more
                     </button>
                   )}
                 </div>
@@ -1364,7 +1365,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 onClick={() => setAddFriendModalOpen(false)}
                 className="rounded-md bg-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300 cursor-pointer"
               >
-                Hủy
+                Cancel
               </button>
               <button
                 type="button"
@@ -1372,7 +1373,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                 className="rounded-md bg-[var(--chat-primary)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-60 cursor-pointer"
                 disabled={friendSearchLoading}
               >
-                {friendSearchLoading ? "Đang tìm..." : "Tìm kiếm"}
+                {friendSearchLoading ? "Searching..." : "Search"}
               </button>
             </div>
           </div>
@@ -1385,7 +1386,7 @@ export const ChatSidebarWithConversationService: React.FC<ChatSidebarProps> = ({
                     ? {
                           name: selectedProfileFriend.fullName,
                           email: 'Not updated',
-                          bio: 'Thông tin hồ sơ người dùng',
+                          bio: 'User profile info',
                           coverImage:
                               'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=1200',
                           avatar:

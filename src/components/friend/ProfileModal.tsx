@@ -177,7 +177,7 @@ export default function ProfileModal({
                 {/* Details */}
                 <div className="px-6 py-5">
                     <h2 className="font-bold text-gray-500 mb-4 text-xs tracking-widest">
-                        CHI TIẾT
+                        DETAILS
                     </h2>
                     <div className="space-y-4">
                         <div className="flex items-center gap-3">

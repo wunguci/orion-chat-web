@@ -69,7 +69,8 @@ export function usePeriodicSessionCheck(intervalMs: number = 30000) {
                     const data = await response.json();
                     if (
                         data.message &&
-                        data.message.includes('Phiên làm việc đã hết hạn')
+                        (data.message.includes('Session expired') ||
+                         data.message.includes('Phiên làm việc đã hết hạn'))
                     ) {
                         console.warn(
                             '[usePeriodicSessionCheck] Session expired detected',

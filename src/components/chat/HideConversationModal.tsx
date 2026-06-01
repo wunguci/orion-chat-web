@@ -24,17 +24,17 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
         try {
             // Validation
             if (!password.trim()) {
-                setError('Vui lòng nhập mật khẩu');
+                setError('Please enter password');
                 return;
             }
 
             if (password.length < 4) {
-                setError('Mật khẩu phải có ít nhất 4 ký tự');
+                setError('Password must be at least 4 characters');
                 return;
             }
 
             if (password !== confirmPassword) {
-                setError('Mật khẩu xác nhận không khớp');
+                setError('Confirm password not match');
                 return;
             }
 
@@ -45,7 +45,7 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
             resetForm();
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : 'Lỗi khi ẩn trò chuyện',
+                err instanceof Error ? err.message : 'Error when hiding chat',
             );
         } finally {
             setLoading(false);
@@ -69,7 +69,7 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="Ẩn trò chuyện"
+            title="Hide chat"
             size="sm"
         >
             <div className="p-6 space-y-4">
@@ -80,29 +80,28 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
                         className="text-green-primary mt-1 shrink-0"
                     />
                     <p className="text-sm text-gray-600">
-                        Trò chuyện này sẽ bị ẩn. Bạn cần nhập đúng mật khẩu để
-                        xem lại.
+                        This chat will be hidden. You need to enter the correct password to view it.
                     </p>
                 </div>
 
                 {/* Password input */}
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-primary">
-                        Mật khẩu
+                        Password
                     </label>
                     <div className="relative">
                         <input
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Nhập mật khẩu (tối thiểu 4 ký tự)"
+                            placeholder="Enter password (at least 4 characters)"
                             disabled={loading}
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-green-primary bg-slate-50 disabled:opacity-50"
                         />
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-600 cursor-pointer"
                         >
                             {showPassword ? (
                                 <EyeOff size={18} />
@@ -116,14 +115,14 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
                 {/* Confirm password input */}
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-primary">
-                        Xác nhận mật khẩu
+                        Confirm Password
                     </label>
                     <div className="relative">
                         <input
                             type={showConfirmPassword ? 'text' : 'password'}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder="Nhập lại mật khẩu"
+                            placeholder="Confirm password"
                             disabled={loading}
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-green-primary bg-slate-50 disabled:opacity-50"
                         />
@@ -146,8 +145,7 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
                 {/* Password strength hint */}
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs text-blue-600">
-                        💡 <strong>Mẹo:</strong> Sử dụng mật khẩu mạnh để bảo vệ
-                        quyền riêng tư của bạn.
+                        <strong>Tip:</strong> Use a strong password to protect your privacy.
                     </p>
                 </div>
 
@@ -165,7 +163,7 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
                         disabled={loading}
                         className="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-gray-primary font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
@@ -175,10 +173,10 @@ export const HideConversationModal: React.FC<HideConversationModalProps> = ({
                         {loading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang ẩn...
+                                Hiding...
                             </>
                         ) : (
-                            'Xác nhận'
+                            'Confirm'
                         )}
                     </button>
                 </div>

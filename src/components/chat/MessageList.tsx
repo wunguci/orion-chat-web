@@ -415,11 +415,11 @@ export const MessageList: React.FC<{
         if (directPreview) {
             return {
                 messageId: directPreview.messageId || message.replyToMessageId,
-                senderName: directPreview.senderName || 'Tin nhắn gốc',
+                senderName: directPreview.senderName || 'Original message',
                 content:
                     directPreview.snippet ||
                     directPreview.content ||
-                    'Tin nhắn gốc không còn khả dụng',
+                    'Original message is not available',
                 createdAt: directPreview.createdAt,
             };
         }
@@ -428,19 +428,19 @@ export const MessageList: React.FC<{
         if (replied) {
             return {
                 messageId: replied.id || message.replyToMessageId,
-                senderName: replied.senderName || 'Tin nhắn gốc',
+                senderName: replied.senderName || 'Original message',
                 content:
                     replied.content ||
                     replied.fileName ||
-                    'Tin nhắn gốc không còn khả dụng',
+                    'Original message is not available',
                 createdAt: replied.timestamp,
             };
         }
 
         return {
             messageId: message.replyToMessageId,
-            senderName: 'Tin nhắn gốc',
-            content: 'Tin nhắn gốc không còn khả dụng',
+            senderName: 'Original message',
+            content: 'Original message is not available',
             createdAt: undefined,
         };
     };
@@ -477,18 +477,17 @@ export const MessageList: React.FC<{
                             </div>
                             <div>
                                 <p className="font-medium text-gray-700">
-                                    Trò chuyện đã bị ẩn
+                                    Chat has been hidden
                                 </p>
                                 <p className="text-sm text-gray-500 mt-2">
-                                    Hãy nhập mật khẩu chính xác để xem lại lịch
-                                    sử tin nhắn
+                                    Please enter the correct password to view the message history
                                 </p>
                             </div>
                         </div>
                     </div>
                 ) : socketMessages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-slate-400">
-                        <p>Không có tin nhắn nào. Bắt đầu cuộc trò chuyện!</p>
+                        <p>No messages yet. Start the conversation!</p>
                     </div>
                 ) : (
                     groupedItems.map((item) => {
@@ -725,7 +724,7 @@ export const MessageList: React.FC<{
                                                             );
                                                         }
                                                     }}
-                                                    title="Đi tới tin nhắn gốc"
+                                                    title="Go to original message"
                                                     className={`mb-2 max-w-full rounded-xl border px-3 py-2 text-xs ${
                                                         isMe
                                                             ? 'border-white/40 bg-white text-[var(--chat-message-sent)]'
@@ -735,14 +734,14 @@ export const MessageList: React.FC<{
                                                     <div className="font-semibold">
                                                         {getReplyPreview(msg)
                                                             ?.senderName ||
-                                                            'Tin nhắn gốc'}
+                                                            'Original message'}
                                                     </div>
                                                     <div
                                                         className={`truncate ${isMe ? 'opacity-95' : 'opacity-90'}`}
                                                     >
                                                         {getReplyPreview(msg)
                                                             ?.content ||
-                                                            'Tin nhắn gốc không còn khả dụng'}
+                                                            'Original message is not available'}
                                                     </div>
                                                     {getReplyPreview(msg)
                                                         ?.createdAt && (
@@ -773,7 +772,7 @@ export const MessageList: React.FC<{
                                                             : 'border-slate-200 bg-slate-50 text-slate-500'
                                                     }`}
                                                 >
-                                                    Tin nhắn được chuyển tiếp
+                                                    Forwarded message
                                                 </div>
                                             )}
 
@@ -798,14 +797,13 @@ export const MessageList: React.FC<{
                                                             size={12}
                                                             className="inline mr-1"
                                                         />
-                                                        Đã ghim
+                                                        Pinned
                                                     </div>
                                                 )}
                                                 {msg.isRecalled ? (
                                                     <div className="rounded-2xl">
                                                         <p className="italic text-gray-500">
-                                                            Tin nhắn đã được thu
-                                                            hồi
+                                                            Message has been recalled
                                                         </p>
                                                     </div>
                                                 ) : msg.isFile &&
@@ -879,7 +877,7 @@ export const MessageList: React.FC<{
                                                         getSeenCount(msg) >
                                                             0 && (
                                                             <span className="ml-2 text-emerald-200 font-medium">
-                                                                Đã xem{' '}
+                                                                Seen{' '}
                                                                 {getSeenCount(
                                                                     msg,
                                                                 )}
@@ -952,7 +950,7 @@ export const MessageList: React.FC<{
                                             <div className="relative group/emoji">
                                                 <button
                                                     className="w-7 h-7 rounded-full bg-white border border-slate-300 shadow-md text-lg flex items-center justify-center hover:scale-110 transition-transform"
-                                                    title="Thêm cảm xúc"
+                                                    title="Add reaction"
                                                 >
                                                     <SmilePlus size={16} />
                                                 </button>
@@ -1006,7 +1004,7 @@ export const MessageList: React.FC<{
                                                     )
                                                 }
                                                 className="w-7 h-7 rounded-full bg-white border border-slate-300 shadow text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors font-bold text-lg flex items-center justify-center"
-                                                title="Tùy chọn"
+                                                title="More options"
                                             >
                                                 ⋮
                                             </button>
@@ -1036,7 +1034,7 @@ export const MessageList: React.FC<{
                                                                 size={16}
                                                                 className="inline mr-2"
                                                             />
-                                                            Thu hồi
+                                                            Recall
                                                         </button>
                                                     )}
 
@@ -1055,7 +1053,7 @@ export const MessageList: React.FC<{
                                                             size={16}
                                                             className="inline mr-2"
                                                         />
-                                                        Trả lời
+                                                        Reply
                                                     </button>
 
                                                     <button
@@ -1076,7 +1074,7 @@ export const MessageList: React.FC<{
                                                                     size={16}
                                                                     className="inline mr-2"
                                                                 />
-                                                                Bỏ ghim
+                                                                Unpin
                                                             </>
                                                         ) : (
                                                             <>
@@ -1084,7 +1082,7 @@ export const MessageList: React.FC<{
                                                                     size={16}
                                                                     className="inline mr-2"
                                                                 />
-                                                                Ghim tin nhắn
+                                                                Pin message
                                                             </>
                                                         )}
                                                     </button>
@@ -1104,7 +1102,7 @@ export const MessageList: React.FC<{
                                                             size={16}
                                                             className="inline mr-2"
                                                         />
-                                                        Xóa
+                                                        Delete
                                                     </button>
 
                                                     {canForwardMessage && (
@@ -1123,7 +1121,7 @@ export const MessageList: React.FC<{
                                                                 size={16}
                                                                 className="inline mr-2"
                                                             />
-                                                            Chuyển tiếp
+                                                            Forward
                                                         </button>
                                                     )}
                                                     {(onAISummarize ||

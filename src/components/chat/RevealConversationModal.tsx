@@ -11,7 +11,7 @@ interface RevealConversationModalProps {
 
 export const RevealConversationModal: React.FC<
     RevealConversationModalProps
-> = ({ isOpen, onClose, onConfirm, conversationName = 'Trò chuyện' }) => {
+> = ({ isOpen, onClose, onConfirm, conversationName = 'Conversation' }) => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -21,7 +21,7 @@ export const RevealConversationModal: React.FC<
         try {
             // Validation
             if (!password.trim()) {
-                setError('Vui lòng nhập mật khẩu');
+                setError('Please enter password');
                 return;
             }
 
@@ -32,7 +32,7 @@ export const RevealConversationModal: React.FC<
             resetForm();
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : 'Mật khẩu không chính xác',
+                err instanceof Error ? err.message : 'Password is not correct',
             );
         } finally {
             setLoading(false);
@@ -60,7 +60,7 @@ export const RevealConversationModal: React.FC<
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="Tiết lộ trò chuyện"
+            title="Revealing conversations"
             size="sm"
         >
             <div className="p-6 space-y-4">
@@ -71,15 +71,14 @@ export const RevealConversationModal: React.FC<
                         className="text-green-primary mt-1 shrink-0"
                     />
                     <p className="text-sm text-gray-600">
-                        Trò chuyện <strong>"{conversationName}"</strong> đã bị
-                        ẩn. Nhập mật khẩu để xem lại.
+                        Conversation <strong>"{conversationName}"</strong> has been hidden. Please enter password to reveal it.
                     </p>
                 </div>
 
                 {/* Password input */}
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-primary">
-                        Mật khẩu
+                        Password
                     </label>
                     <div className="relative">
                         <input
@@ -87,7 +86,7 @@ export const RevealConversationModal: React.FC<
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            placeholder="Nhập mật khẩu để tiết lộ"
+                            placeholder="Enter password to reveal"
                             disabled={loading}
                             autoFocus
                             className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-green-primary bg-slate-50 disabled:opacity-50"
@@ -120,7 +119,7 @@ export const RevealConversationModal: React.FC<
                         disabled={loading}
                         className="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-gray-primary font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
@@ -130,10 +129,10 @@ export const RevealConversationModal: React.FC<
                         {loading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang kiểm tra...
+                                Checking...
                             </>
                         ) : (
-                            'Xác nhận'
+                            'Confirm'
                         )}
                     </button>
                 </div>

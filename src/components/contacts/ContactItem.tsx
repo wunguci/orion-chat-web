@@ -51,19 +51,19 @@ export default function FriendItem({ friend }: { friend: Friend }) {
                 {open && (
                     <div className="absolute right-0 mt-2 w-40 bg-(--color-background) shadow-(--shadow-lg) rounded-md border border-(--color-border)">
                         <button className="w-full text-left px-3 py-2 hover:bg-(--color-success) hover:text-white rounded-t-md">
-                            Xem thông tin
+                            View profile
                         </button>
                         <button className="w-full text-left px-3 py-2 hover:bg-(--color-success) hover:text-white">
-                            Phân loại
+                            Categorize
                         </button>
                         <button className="w-full text-left px-3 py-2 hover:bg-(--color-success) hover:text-white">
-                            Đặt tên gợi nhớ
+                            Set alias
                         </button>
                         <button className="w-full text-left px-3 py-2 hover:bg-(--color-success) hover:text-white">
-                            Chặn người này
+                            Block this user
                         </button>
                         <button className="w-full text-left px-3 py-2 text-red-500 hover:bg-(--color-danger) hover:text-white rounded-b-md">
-                            Xóa bạn
+                            Unfriend
                         </button>
                     </div>
                 )}

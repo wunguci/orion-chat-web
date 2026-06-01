@@ -118,12 +118,12 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         }
     };
 
-    // ✅ Get other participant (for PRIVATE chat)
+    // Get other participant (for PRIVATE chat)
     const otherParticipant = selectedConversation?.participants?.find(
         (p) => p.userId !== currentUserId,
     );
 
-    // ✅ Get conversation name
+    // Get conversation name
     const conversationName =
         selectedConversation?.groupInfo?.groupName ||
         otherParticipant?.fullName ||
@@ -302,7 +302,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
 
     const handleDeleteConversation = async () => {
         if (!selectedConversation?.conversationId) {
-            throw new Error('Không tìm thấy cuộc hội thoại');
+            throw new Error('Conversation not found');
         }
 
         await conversationApi.deleteConversation(
@@ -328,7 +328,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         }
     };
 
-    // ✅ Load block status when conversation changes
+    // Load block status when conversation changes
     useEffect(() => {
         const loadBlockStatus = async () => {
             if (!selectedConversation?.conversationId) {
@@ -354,7 +354,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         loadBlockStatus();
     }, [selectedConversation?.conversationId]);
 
-    // ✅ Update isPinned when selectedConversation changes
+    // Update isPinned when selectedConversation changes
     useEffect(() => {
         setIsPinned(selectedConversation?.myIsPinned || false);
     }, [selectedConversation?.myIsPinned]);
@@ -406,7 +406,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
         );
     };
 
-    // ✅ Handle pin/unpin conversation
+    // Handle pin/unpin conversation
     const handlePinConversation = async () => {
         if (!selectedConversation?.conversationId) return;
 
@@ -422,7 +422,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 );
             }
             setIsPinned(!isPinned);
-            // ✅ Trigger parent to refresh conversations list (for real-time reorder in sidebar)
+            // Trigger parent to refresh conversations list (for real-time reorder in sidebar)
             if (onPinStatusChange) {
                 await onPinStatusChange();
             }
@@ -561,7 +561,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                             {/* Header */}
                             <div className="p-6 flex flex-col gap-3">
                                 <span className="text-lg font-semibold text-gray-primary text-center">
-                                    Thông tin hội thoại
+                                    Conversation Information
                                 </span>
 
                                 <div className="flex flex-col gap-3 items-center">
@@ -598,8 +598,8 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     />
                                     <span className="text-xs text-gray-primary">
                                         {isMuted
-                                            ? 'Bật thông báo'
-                                            : 'Tắt thông báo'}
+                                            ? 'Turn off notifications'
+                                            : 'Turn on notifications'}
                                     </span>
                                 </button>
                                 <button
@@ -639,8 +639,8 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                         }}
                                     >
                                         {isPinned
-                                            ? 'Bỏ ghim'
-                                            : 'Ghim hội thoại'}
+                                            ? 'Unpin conversation'
+                                            : 'Pin conversation'}
                                     </span>
                                 </button>
                                 <button
@@ -654,7 +654,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                         className="text-green-primary"
                                     />
                                     <span className="text-xs text-gray-primary">
-                                        Tạo nhóm
+                                        Create group
                                     </span>
                                 </button>
                             </div>
@@ -787,7 +787,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                     ))
                                                 ) : (
                                                     <div className="col-span-4 text-center py-4 text-slate-400 text-sm">
-                                                        Không có hình ảnh
+                                                        No images
                                                     </div>
                                                 )}
                                             </div>
@@ -855,7 +855,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                     ))
                                                 ) : (
                                                     <div className="text-center py-4 text-slate-400 text-sm">
-                                                        Không có tệp
+                                                        No files
                                                     </div>
                                                 )}
                                             </div>
@@ -920,7 +920,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                     ))
                                                 ) : (
                                                     <div className="text-center py-4 text-slate-400 text-sm">
-                                                        Không có đường dẫn
+                                                        No links
                                                     </div>
                                                 )}
                                             </div>
@@ -946,7 +946,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                     e.currentTarget.style.backgroundColor = 'transparent';
                                                 }}
                                             >
-                                                Xem tất cả
+                                                View all
                                             </button>
                                         )}
                                     </>
@@ -959,30 +959,30 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 {/* Group News */}
                                 <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b  border-slate-200">
                                     <span className="font-semibold text-gray-primary">
-                                        Bảng tin
+                                        Group News
                                     </span>
                                     <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                                         <AlarmClockCheck size={20} />
                                         <span className="text-[15px]">
-                                            Danh sách nhắc hẹn
+                                            Reminders list
                                         </span>
                                     </button>
                                     <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                                         <NotebookText size={20} />
                                         <span className="text-[15px]">
-                                            Ghi chú
+                                            Notes
                                         </span>
                                     </button>
                                     <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                                         <Pin size={20} />
                                         <span className="text-[15px]">
-                                            Ghim
+                                            Pinned messages
                                         </span>
                                     </button>
                                     <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                                         <BarChart3 size={20} />
                                         <span className="text-[15px]">
-                                            Bình chọn
+                                            Polls
                                         </span>
                                     </button>
                                 </div>
@@ -990,7 +990,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 {/* Auto Delete Messages */}
                                 <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b  border-slate-200">
                                     <span className="font-semibold text-gray-primary">
-                                        Thiết lập bảo mật
+                                        Privacy Settings
                                     </span>
                                     <button
                                         onClick={() =>
@@ -1001,12 +1001,12 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                         <Clock7 size={20} />
                                         <div className="flex flex-col items-start">
                                             <span className="text-[15px]">
-                                                Tin nhắn tự xóa
+                                                Auto-delete messages
                                             </span>
                                             <span className="text-[12px] text-gray-secondary">
                                                 {autoDeleteDuration === 0
-                                                    ? 'Không bao giờ'
-                                                    : `Sau ${autoDeleteDuration} ngày`}
+                                                    ? 'Never'
+                                                    : `After ${autoDeleteDuration} days`}
                                             </span>
                                         </div>
                                     </button>
@@ -1031,14 +1031,14 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                                     className="text-green-primary"
                                                 />
                                                 <span className="text-[15px]">
-                                                    Tiết lộ trò chuyện
+                                                    Reveal conversation
                                                 </span>
                                             </>
                                         ) : (
                                             <>
                                                 <EyeOff size={20} />
                                                 <span className="text-[15px]">
-                                                    Ẩn trò chuyện
+                                                    Hide conversation
                                                 </span>
                                             </>
                                         )}
@@ -1053,7 +1053,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 >
                                     <Trash2 size={20} />
                                     <span className="text-[15px]">
-                                        Xóa lịch sử trò chuyện
+                                        Clear chat history
                                     </span>
                                 </button>
                                 <button
@@ -1064,7 +1064,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 >
                                     <Trash2 size={20} />
                                     <span className="text-[15px]">
-                                        Xóa cuộc hội thoại
+                                        Delete conversation
                                     </span>
                                 </button>
                                 <button
@@ -1079,8 +1079,8 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <Ban size={20} />
                                     <span className="text-[15px]">
                                         {iAmTheBlocker
-                                            ? 'Đã chặn'
-                                            : 'Chặn người dùng'}
+                                            ? 'Blocked'
+                                            : 'Block user'}
                                     </span>
                                 </button>
                             </div>
@@ -1103,21 +1103,20 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                         />
                                     </button>
                                     <span className="text-lg font-semibold text-gray-primary">
-                                        Quản lý nhóm
+                                        Group management
                                     </span>
                                 </div>
 
                                 {/* Permissions Section */}
                                 <div className="p-4 border-b  border-slate-200 flex flex-col gap-4">
                                     <span className="font-semibold text-gray-primary">
-                                        Cho phép các thành viên trong nhóm:
+                                        Allow members to:
                                     </span>
 
                                     <div className="flex flex-col gap-3">
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-gray-primary">
-                                                Thay đổi tên & ảnh đại diện của
-                                                nhóm
+                                                Change group name & avatar
                                             </span>
                                             <Checkbox
                                                 checked={
@@ -1135,8 +1134,8 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
 
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-gray-primary">
-                                                Ghim tin nhắn, ghi chú, bình
-                                                chọn lên đầu hội thoại
+                                                Pin messages, notes, polls to
+                                                conversation
                                             </span>
                                             <Checkbox
                                                 checked={
@@ -1154,7 +1153,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
 
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-gray-primary">
-                                                Tạo mới ghi chú, nhắc hẹn
+                                                Create new notes, reminders
                                             </span>
                                             <Checkbox
                                                 checked={
@@ -1172,7 +1171,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
 
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-gray-primary">
-                                                Tạo mới bình chọn
+                                                Create polls
                                             </span>
                                             <Checkbox
                                                 checked={
@@ -1190,7 +1189,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
 
                                         <div className="flex items-center justify-between">
                                             <span className="text-sm text-gray-primary">
-                                                Gửi tin nhắn
+                                                Send messages
                                             </span>
                                             <Checkbox
                                                 checked={
@@ -1213,7 +1212,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-gray-primary">
-                                                Chế độ phê duyệt thành viên mới
+                                                New member approval mode
                                             </span>
                                             <HelpCircle
                                                 size={16}
@@ -1239,8 +1238,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-gray-primary">
-                                                Đánh dấu tin nhắn từ trưởng/phó
-                                                nhóm
+                                                Mark messages from admins
                                             </span>
                                             <HelpCircle
                                                 size={16}
@@ -1266,8 +1264,8 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-gray-primary">
-                                                Cho phép thành viên mới đọc tin
-                                                nhắn gần nhất
+                                                Allow new members read recent
+                                                messages
                                             </span>
                                             <HelpCircle
                                                 size={16}
@@ -1293,7 +1291,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <span className="text-sm text-gray-primary">
-                                                Cho phép dùng link tham gia nhóm
+                                                Allow using group invite links
                                             </span>
                                             <HelpCircle
                                                 size={16}
@@ -1349,13 +1347,13 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                     <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                                         <Users size={20} />
                                         <span className="text-[15px]">
-                                            Chặn khỏi nhóm
+                                            Block from group
                                         </span>
                                     </button>
                                     <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                                         <KeyRound size={20} />
                                         <span className="text-[15px]">
-                                            Trưởng & phó nhóm
+                                            Admin & co-admin
                                         </span>
                                     </button>
                                 </div>
@@ -1364,7 +1362,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                                 <div className="p-4 mt-auto mb-2">
                                     <div className="flex items-center justify-center p-2 bg-[#FDECEC] rounded-md">
                                         <span className="text-[16px] text-[#DC264C] font-semibold">
-                                            Giải tán nhóm
+                                            Disband group
                                         </span>
                                     </div>
                                 </div>
@@ -1374,7 +1372,7 @@ export const ConversationInfoPanel: React.FC<ConversationInfoPanelProps> = ({
                 </div>
             )}
 
-            {/* ✅ Media Context Menu Handlers */}
+            {/* Media Context Menu Handlers */}
             {/* Get message from messageId */}
             {(() => {
                 const getMessageById = (messageId?: string) => {

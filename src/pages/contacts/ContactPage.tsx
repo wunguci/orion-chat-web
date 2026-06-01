@@ -8,67 +8,67 @@ export default function FriendPage() {
     const [friends] = useState([
         {
             id: '1',
-            name: 'Nguyễn Thị Minh Anh',
+            name: 'Alice Johnson',
             avatar: '/avatars/1.jpg',
             tags: ['ban-be'],
         },
         {
             id: '2',
-            name: 'Trần Văn Hoàng',
+            name: 'Bob Smith',
             avatar: '/avatars/2.jpg',
             tags: ['khach-hang'],
         },
         {
             id: '3',
-            name: 'Lê Thị Thu Hà',
+            name: 'Charlie Brown',
             avatar: '/avatars/3.jpg',
             tags: ['dong-nghiep'],
         },
         {
             id: '4',
-            name: 'Phạm Gia Huy',
+            name: 'David Miller',
             avatar: '/avatars/4.jpg',
             tags: ['gia-dinh'],
         },
         {
             id: '5',
-            name: 'Đỗ Ngọc Trâm',
+            name: 'Eva Davis',
             avatar: '/avatars/5.jpg',
             tags: ['cong-viec'],
         },
         {
             id: '6',
-            name: 'Hoàng Minh Quân',
+            name: 'Frank Wilson',
             avatar: '/avatars/6.jpg',
             tags: ['tra-loi-sau'],
         },
         {
             id: '7',
-            name: 'Bùi Thanh Tùng',
+            name: 'Grace Taylor',
             avatar: '/avatars/7.jpg',
             tags: ['ban-be'],
         },
         {
             id: '8',
-            name: 'Võ Khánh Linh',
+            name: 'Hannah Anderson',
             avatar: '/avatars/8.jpg',
             tags: [],
         },
         {
             id: '9',
-            name: 'Ngô Tuấn Kiệt',
+            name: 'Ian Thomas',
             avatar: '/avatars/9.jpg',
             tags: ['ban-be'],
         },
         {
             id: '10',
-            name: 'Trịnh Thư Kỳ',
+            name: 'Jack Jackson',
             avatar: '/avatars/10.jpg',
             tags: ['ban-be'],
         },
         {
             id: '11',
-            name: 'Phan Quốc Bảo',
+            name: 'Kate White',
             avatar: '/avatars/11.jpg',
             tags: ['ban-be'],
         },
@@ -119,7 +119,7 @@ export default function FriendPage() {
                         color: 'var(--color-text-primary)',
                     }}
                 >
-                    Danh sách bạn bè
+                    Friend List
                 </h1>
                 <TopControls
                     query={query}

@@ -19,25 +19,25 @@ export default function Sidebar() {
                 {/* Danh sách bạn bè */}
                 <button className="w-full flex items-center gap-3 px-3 py-2 rounded transition-all hover:bg-(--color-success) hover:text-white group text-(--color-text-secondary)">
                     <MdPeople className="text-xl group-hover:text-white" />
-                    <span className="font-medium">Danh sách bạn bè</span>
+                    <span className="font-medium">Friend list</span>
                 </button>
 
                 {/* Danh sách nhóm */}
                 <button className="w-full flex items-center gap-3 px-3 py-2 rounded transition-all hover:bg-(--color-success) hover:text-white group text-(--color-text-secondary)">
                     <MdGroups className="text-xl group-hover:text-white" />
-                    <span className="font-medium">Nhóm và cộng đồng</span>
+                    <span className="font-medium">Groups and communities</span>
                 </button>
 
                 {/* Lời mời kết bạn */}
                 <button className="w-full flex items-center gap-3 px-3 py-2 rounded transition-all hover:bg-(--color-success) hover:text-white group text-(--color-text-secondary)">
                     <MdPersonAdd className="text-xl group-hover:text-white" />
-                    <span className="font-medium">Lời mời kết bạn</span>
+                    <span className="font-medium">Friend requests</span>
                 </button>
 
                 {/* Thông báo nhóm */}
                 <button className="w-full flex items-center gap-3 px-3 py-2 rounded transition-all hover:bg-(--color-success) hover:text-white group text-(--color-text-secondary)">
                     <MdNotificationsActive className="text-xl group-hover:text-white" />
-                    <span className="font-medium">Lời mời vào nhóm</span>
+                    <span className="font-medium">Group invites</span>
                 </button>
             </nav>
         </aside>

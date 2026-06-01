@@ -19,57 +19,57 @@ interface AddMemberModalProps {
 const mockContacts: Contact[] = [
   {
     id: "1",
-    name: "Duyên",
+    name: "Duyen",
     avatar:
       "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
   },
   {
     id: "2",
-    name: "Nhân",
+    name: "Nhan",
     avatar:
       "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
   },
   {
     id: "3",
-    name: "Dũ",
+    name: "Du",
     avatar:
       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
   },
   {
     id: "4",
-    name: "Trần Văn Lồ",
+    name: "Tran Van Lo",
     avatar:
       "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=100&h=100&fit=crop",
   },
   {
     id: "5",
-    name: "Hịp",
+    name: "Hiep",
     avatar:
       "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
-    category: "Đã tham gia",
+    category: "Joined",
     isParticipant: true,
   },
   {
     id: "6",
-    name: "Hằng",
+    name: "Hang",
     avatar:
       "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
   },
   {
     id: "7",
-    name: "Nguyễn Thị Nựng",
+    name: "Nguyen Thi Nung",
     avatar:
       "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop",
   },
 ];
 
 const categories = [
-  "Tất cả",
-  "Khách hàng",
-  "Gia đình",
-  "Công việc",
-  "Bạn bè",
-  "Trả lời sau",
+  "All",
+  "Customer",
+  "Family",
+  "Work",
+  "Friends",
+  "Reply later",
 ];
 
 export default function AddMemberModal({
@@ -79,7 +79,7 @@ export default function AddMemberModal({
   onConfirm,
 }: AddMemberModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
 
   if (!isOpen) return null;
@@ -136,7 +136,7 @@ export default function AddMemberModal({
         {/* Header */}
         <div className="p-6 border-b border-green-border-light flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-primary">
-            {isCreateGroup ? "Tạo nhóm mới" : "Thêm thành viên"}
+            {isCreateGroup ? "Create new group" : "Add members"}
           </h2>
           <button
             onClick={handleCancel}
@@ -155,7 +155,7 @@ export default function AddMemberModal({
             />
             <input
               type="text"
-              placeholder="Nhập tên, số điện thoại, hoặc danh sách số điện thoại"
+              placeholder="Enter name, phone number, or phone number list"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-white rounded-lg border border-gray-300 text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-green-primary"
@@ -185,7 +185,7 @@ export default function AddMemberModal({
         {/* Contact List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <h3 className="text-sm font-semibold text-gray-primary mb-4">
-            Trò chuyện gần đây
+            Recent chats
           </h3>
 
           {sortedGroups.map(([letter, contacts]) => (
@@ -238,14 +238,14 @@ export default function AddMemberModal({
             onClick={handleCancel}
             className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium transition-colors"
           >
-            Hủy
+            Cancel
           </button>
           <button
             onClick={handleConfirm}
             disabled={selectedMembers.length === 0}
             className="px-6 py-3 bg-green-primary text-white rounded-lg hover:green-primary font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Xác nhận
+            Confirm
           </button>
         </div>
       </div>

@@ -16,7 +16,7 @@ describe('mapGroupManagementError', () => {
             'join',
         );
 
-        expect(result).toBe('Bạn đã là thành viên của nhóm');
+        expect(result).toBe('You are already a member of this group');
     });
 
     it('maps member limit/full errors to 10-members message', () => {
@@ -25,7 +25,7 @@ describe('mapGroupManagementError', () => {
             'join',
         );
 
-        expect(result).toBe('Nhóm đã đủ 10 thành viên');
+        expect(result).toBe('The group has reached the limit of 10 members');
     });
 
     it('maps 403 to permission message', () => {
@@ -34,6 +34,6 @@ describe('mapGroupManagementError', () => {
             'toggle_join_approval',
         );
 
-        expect(result).toBe('Bạn không có quyền thực hiện thao tác này');
+        expect(result).toBe('You do not have permission to perform this action');
     });
 });

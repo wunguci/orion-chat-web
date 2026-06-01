@@ -3,18 +3,18 @@ import { isAxiosError } from 'axios';
 type ChatAction = 'reply' | 'pin' | 'unpin' | 'send' | 'recall';
 
 const ACTION_LABELS: Record<ChatAction, string> = {
-    reply: 'trả lời tin nhắn',
-    pin: 'ghim tin nhắn',
-    unpin: 'gỡ ghim tin nhắn',
-    send: 'gửi tin nhắn',
-    recall: 'thu hồi tin nhắn',
+    reply: 'reply to message',
+    pin: 'pin message',
+    unpin: 'unpin message',
+    send: 'send message',
+    recall: 'recall message',
 };
 
 export const mapChatActionError = (
     error: unknown,
     action: ChatAction,
 ): string => {
-    const fallback = `Không thể ${ACTION_LABELS[action]}`;
+    const fallback = `Failed to ${ACTION_LABELS[action]}`;
 
     if (!isAxiosError(error)) {
         if (error instanceof Error && error.message) return error.message;
@@ -33,32 +33,32 @@ export const mapChatActionError = (
                 serverMessage.includes('24h') ||
                 serverMessage.includes('24 hours'))
         ) {
-            return 'Tin nhắn đã qua 24h, không thể thu hồi';
+            return 'Message older than 24h cannot be recalled';
         }
         if (serverMessage.includes('max') || serverMessage.includes('3')) {
-            return 'Mỗi cuộc trò chuyện chỉ pin tối đa 3 tin nhắn';
+            return 'Each conversation can only have up to 3 pinned messages';
         }
         if (
             serverMessage.includes('already') &&
             serverMessage.includes('pin')
         ) {
-            return 'Tin nhắn này đã được ghim';
+            return 'This message has already been pinned';
         }
         if (serverMessage.includes('not') && serverMessage.includes('pin')) {
-            return 'Tin nhắn này chưa được ghim';
+            return 'This message has not been pinned';
         }
-        return `Yêu cầu không hợp lệ khi ${ACTION_LABELS[action]}`;
+        return `Invalid request while trying to ${ACTION_LABELS[action]}`;
     }
 
     if (status === 403) {
-        return 'Bạn không phải thành viên của cuộc trò chuyện này';
+        return 'You are not a member of this conversation';
     }
 
     if (status === 404) {
         if (action === 'reply') {
-            return 'Không tìm thấy tin nhắn gốc trong cuộc trò chuyện';
+            return 'Original message not found in the conversation';
         }
-        return 'Không tìm thấy cuộc trò chuyện hoặc tin nhắn';
+        return 'Conversation or message not found';
     }
 
     return (

@@ -123,7 +123,7 @@ const MainContent: React.FC<MainContentProps> = ({
       const message =
         error instanceof Error
           ? error.message
-          : "Khong the gui loi moi ket ban";
+          : "Failed to send friend request";
       window.alert(message);
     } finally {
       setSendingSuggestionIds((prev) => {

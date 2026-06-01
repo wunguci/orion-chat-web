@@ -29,7 +29,7 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
     const handleConfirm = async () => {
         if (!canLeave) {
             setError(
-                'Bạn là trưởng nhóm. Vui lòng nâng cấp một quản lý khác trước khi rời nhóm.',
+                'You are the group leader. Please upgrade another admin before leaving the group.',
             );
             return;
         }
@@ -65,22 +65,21 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
                         <LogOut size={24} className="text-orange-600" />
                     </div>
                     <h2 className="text-lg font-semibold text-gray-primary">
-                        Rời nhóm
+                        Leave group
                     </h2>
                 </div>
 
                 {/* Content */}
                 <div className="mb-4">
                     <p className="text-sm text-gray-secondary mb-4">
-                        Bạn có chắc muốn rời nhóm <strong>{groupName}</strong>?
+                        Are you sure you want to leave the group <strong>{groupName}</strong>?
                     </p>
 
                     {isOwner && !hasOtherAdmin && (
                         <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
                             <p className="text-xs text-red-700">
-                                ⚠️ <strong>Cảnh báo:</strong> Bạn là trưởng nhóm
-                                và là admin duy nhất. Vui lòng nâng cấp một quản
-                                lý khác trước khi rời nhóm.
+                                <strong>Warning:</strong> You are the group leader
+                                and the only admin. Please upgrade another admin before leaving the group.
                             </p>
                         </div>
                     )}
@@ -88,9 +87,8 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
                     {isOwner && (
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
                             <p className="text-xs text-blue-700">
-                                ℹ️ Vì có quản lý khác, bạn có thể rời nhóm.
-                                Quyền trưởng nhóm sẽ được chuyển sang quản lý
-                                khác.
+                                Because there is another admin, you can leave the group.
+                                The group leader's rights will be transferred to another admin.
                             </p>
                         </div>
                     )}
@@ -98,8 +96,7 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
                     {!isOwner && (
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
                             <p className="text-xs text-blue-700">
-                                ℹ️ Bạn sẽ bị xóa khỏi nhóm và sẽ không nhìn thấy
-                                các tin nhắn từ nhóm này nữa.
+                                You will be removed from the group and will not see any more messages from this group.
                             </p>
                         </div>
                     )}
@@ -118,7 +115,7 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
                         disabled={isLoading}
                         className="px-4 py-2 rounded-lg border border-slate-200 text-gray-primary hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
@@ -128,10 +125,10 @@ export const LeaveGroupDialog: React.FC<LeaveGroupDialogProps> = ({
                         {isLoading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang xử lý...
+                                Processing...
                             </>
                         ) : (
-                            'Rời nhóm'
+                            'Leave group'
                         )}
                     </button>
                 </div>

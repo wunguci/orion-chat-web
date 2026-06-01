@@ -32,7 +32,7 @@ type ChatHeaderProps = {
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
     name = 'Olivia Isabella',
     avatarUrl,
-    subtitle = 'Vừa mới truy cập',
+    subtitle = 'Just accessed',
     isBlocked = false,
     isGroupChat = false,
     disableCallButtons = false,
@@ -93,7 +93,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                         type="button"
                         onClick={onEditGroupClick || onIdentityClick}
                         className="cursor-pointer rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                        title="Chỉnh sửa nhóm"
+                        title="Edit group info"
                     >
                         <Pencil className="h-4 w-4" />
                     </button>
@@ -112,8 +112,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                         onClick={onGroupAudioCall || onGroupCall}
                         title={
                             isCallDisabled
-                                ? 'Không thể gọi trong hội thoại này.'
-                                : 'Gọi thoại nhóm'
+                                ? 'Cannot call in this conversation.'
+                                : 'Group voice call'
                         }
                     >
                         <Phone className="w-5 h-5" />
@@ -131,8 +131,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                             onClick={onAudioCall}
                             title={
                                 isCallDisabled
-                                    ? 'Không thể gọi trong hội thoại này.'
-                                    : 'Gọi thoại'
+                                    ? 'Cannot call in this conversation.'
+                                    : 'Voice call'
                             }
                         >
                             <Phone className="w-5 h-5" />
@@ -142,7 +142,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <button
                     onClick={onSearchClick}
                     className="cursor-pointer p-1 hover:bg-slate-200 rounded text-gray-primary"
-                    title="Tìm kiếm tin nhắn"
+                    title="Search messages"
                 >
                     <Search className="w-5 h-5" />
                 </button>
@@ -157,10 +157,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     onClick={isGroupChat ? onGroupVideoCall : onVideoCall}
                     title={
                         isCallDisabled
-                            ? 'Không thể gọi video trong hội thoại này.'
+                            ? 'Cannot video call in this conversation.'
                             : isGroupChat
-                              ? 'Gọi video nhóm'
-                              : 'Gọi video'
+                              ? 'Group video call'
+                              : 'Video call'
                     }
                 >
                     <Video className="w-5 h-5" />
@@ -168,7 +168,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 <button
                     onClick={onPanelToggle}
                     className="cursor-pointer p-1 hover:bg-slate-200 rounded text-gray-primary"
-                    title="Thông tin hội thoại"
+                    title="Conversation details"
                 >
                     <Info className="w-5 h-5" />
                 </button>

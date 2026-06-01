@@ -526,7 +526,7 @@ const FriendListPage = () => {
       return;
     } catch {
       if (!fallback) {
-        window.alert("Khong the tai thong tin");
+        window.alert("Failed to load details");
         return;
       }
     }
@@ -585,7 +585,7 @@ const FriendListPage = () => {
       const message =
         error instanceof Error
           ? error.message
-          : "Khong the gui loi moi ket ban";
+          : "Failed to send friend request";
       window.alert(message);
     } finally {
       setIsSendingAddFriend(false);
@@ -794,7 +794,7 @@ const FriendListPage = () => {
     try {
       const conversationId = await createOrOpenConversation(friend.id);
       if (!conversationId) {
-        window.alert("Không thể tạo hoặc mở cuộc trò chuyện để gọi.");
+        window.alert("Failed to create or open conversation for calling.");
         return;
       }
 

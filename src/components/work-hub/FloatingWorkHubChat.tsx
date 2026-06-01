@@ -211,7 +211,7 @@ const FloatingWorkHubChat = ({ workspaceId }: FloatingWorkHubChatProps) => {
                       {member.name}
                     </span>
                     <span className={`block text-xs ${member.status === 'online' ? 'text-emerald-500' : 'text-slate-500'}`}>
-                        {member.status === 'online' ? 'Đang hoạt động' : 'Ngoại tuyến'}
+                        {member.status === 'online' ? 'Active' : 'Offline'}
                     </span>
                 </div>
               </button>
