@@ -24,11 +24,14 @@ export async function apiFetch(
                 // nếu phiên làm việc đã hết hạn
                 if (data.message) {
                     const messageText = String(data.message);
-                    const isExpired = messageText.includes('hết hạn');
-                    const isInactive = messageText.includes('không hoạt động');
+                    const isExpired = messageText.includes('hết hạn') || messageText.toLowerCase().includes('expired');
+                    const isInactive = messageText.includes('không hoạt động') || messageText.toLowerCase().includes('inactivity') || messageText.toLowerCase().includes('inactive');
                     const isOtherLogin =
                         messageText.includes('đăng nhập') ||
-                        messageText.includes('thiết bị');
+                        messageText.includes('thiết bị') ||
+                        messageText.toLowerCase().includes('logged in') ||
+                        messageText.toLowerCase().includes('device') ||
+                        messageText.toLowerCase().includes('conflict');
 
                     if (isExpired || isInactive || isOtherLogin) {
                         console.warn(
@@ -37,7 +40,7 @@ export async function apiFetch(
                         );
 
                         void handleSessionExpired(
-                            `Phiên đăng nhập đã hết hoặc bị thay thế.\n\n${messageText}\n\nVui lòng đăng nhập lại.`,
+                            `Your session has expired or has been replaced.\n\n${messageText}\n\nPlease log in again.`,
                         );
 
                         throw new Error(messageText);
@@ -46,7 +49,8 @@ export async function apiFetch(
             } catch (error) {
                 if (
                     error instanceof Error &&
-                    error.message.includes('Phiên làm việc')
+                    (error.message.includes('Phiên làm việc') ||
+                     error.message.toLowerCase().includes('session'))
                 ) {
                     throw error;
                 }

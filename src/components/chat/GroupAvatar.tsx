@@ -146,7 +146,7 @@ export const GroupAvatar: React.FC<GroupAvatarProps> = ({
                 onClick={onClick}
                 className={commonClassName}
                 style={defaultSizeClass(size)}
-                title="Chỉnh sửa ảnh nhóm"
+                title="Change group avatar"
             >
                 {content}
                 <div

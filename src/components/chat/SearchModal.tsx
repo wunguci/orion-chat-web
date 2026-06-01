@@ -139,7 +139,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     <ArrowLeft size={20} className="text-gray-600" />
                 </button>
                 <h2 className="text-lg font-semibold text-gray-primary">
-                    Tìm kiếm
+                    Search
                 </h2>
             </div>
 
@@ -148,7 +148,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 <div className="relative">
                     <input
                         type="text"
-                        placeholder="Nhập từ khóa"
+                        placeholder="Enter keyword"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full px-3 py-2 pr-8 border border-blue-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -165,7 +165,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     {/* Date Filter */}
                     <div className="flex items-center gap-2">
                         <label className="text-xs font-medium text-gray-600">
-                            Lọc:
+                            Filter:
                         </label>
                         <select
                             value={filterType}
@@ -174,17 +174,17 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                             }
                             className="px-2 py-1 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="all">Tất cả</option>
-                            <option value="today">Hôm nay</option>
-                            <option value="week">Tuần</option>
-                            <option value="month">Tháng</option>
+                            <option value="all">All</option>
+                            <option value="today">Today</option>
+                            <option value="week">Week</option>
+                            <option value="month">Month</option>
                         </select>
                     </div>
 
                     {/* Content Type Filter */}
                     <div className="flex items-center gap-2">
                         <label className="text-xs font-medium text-gray-600">
-                            Loại:
+                            Type:
                         </label>
                         <select
                             value={contentType}
@@ -193,9 +193,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                             }
                             className="px-2 py-1 border border-slate-300 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="all">Tất cả</option>
-                            <option value="messages">Tin nhắn</option>
-                            <option value="files">File</option>
+                            <option value="all">All</option>
+                            <option value="messages">Messages</option>
+                            <option value="files">Files</option>
                         </select>
                     </div>
                 </div>
@@ -210,7 +210,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                                 size={40}
                                 className="mx-auto mb-2 opacity-50"
                             />
-                            <p className="text-sm">Nhập từ khóa để tìm kiếm</p>
+                            <p className="text-sm">Enter keyword to search</p>
                         </div>
                     </div>
                 ) : displayResults.length === 0 ? (
@@ -220,7 +220,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                                 size={40}
                                 className="mx-auto mb-2 opacity-50"
                             />
-                            <p className="text-sm">Không tìm thấy kết quả</p>
+                            <p className="text-sm">No result found</p>
                         </div>
                     </div>
                 ) : (
@@ -245,7 +245,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                                             />
                                         )}
                                         <span className="text-xs font-medium text-gray-900">
-                                            {isSelf ? 'Bạn' : msg.senderName}
+                                            {isSelf ? 'You' : msg.senderName}
                                         </span>
                                         <span className="text-xs text-gray-500">
                                             {format(
@@ -284,11 +284,11 @@ export const SearchModal: React.FC<SearchModalProps> = ({
             {/* Footer - Result count */}
             {searchQuery.trim() && displayResults.length > 0 && (
                 <div className="p-3 border-t border-slate-200 bg-slate-50 text-xs text-gray-600">
-                    Tìm thấy{' '}
+                    Found{' '}
                     <span className="font-semibold">
                         {displayResults.length}
                     </span>{' '}
-                    kết quả
+                    results
                 </div>
             )}
         </div>

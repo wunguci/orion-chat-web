@@ -174,7 +174,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
 
     const renderMessageContent = () => {
         if (isMessageDeleted) {
-            return <p className="italic text-gray-400">Tin nhắn đã bị xóa</p>;
+            return <p className="italic text-gray-400">Message has been deleted</p>;
         }
 
         if (message.messageType === 'IMAGE' && message.mediaUrl) {
@@ -272,7 +272,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     }
                                 >
                                     <SmilePlus className="mr-2 inline h-4 w-4" />
-                                    Cảm xúc
+                                    Emotion
                                 </button>
 
                                 {/* Emoji Picker */}
@@ -314,7 +314,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     onClick={onReply}
                                 >
                                     <Reply className="mr-2 inline h-4 w-4" />
-                                    Trả lời
+                                    Reply
                                 </button>
                             )}
 
@@ -325,7 +325,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     onClick={onRecall}
                                 >
                                     <RotateCcw className="mr-2 inline h-4 w-4" />
-                                    Thu hồi
+                                    Recall
                                 </button>
                             )}
 
@@ -336,7 +336,7 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                                     onClick={onDelete}
                                 >
                                     <Trash2 className="mr-2 inline h-4 w-4" />
-                                    Xóa
+                                    Delete
                                 </button>
                             )}
                         </div>

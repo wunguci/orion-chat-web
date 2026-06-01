@@ -32,7 +32,7 @@ const MENU_ITEMS: {
 }[] = [
     {
         type: 'image',
-        label: 'Hình ảnh',
+        label: 'Image',
         icon: <FiImage className="w-4 h-4" />,
         color: 'text-emerald-500',
     },
@@ -44,7 +44,7 @@ const MENU_ITEMS: {
     },
     {
         type: 'file',
-        label: 'Tệp tin',
+        label: 'File',
         icon: <FiFile className="w-4 h-4" />,
         color: 'text-orange-400',
     },
@@ -171,7 +171,7 @@ export const ChatInput: React.FC<{
         const validation = validateOutgoingFiles(incomingFiles);
         if (!validation.isValid) {
             newItems.forEach((item) => URL.revokeObjectURL(item.url));
-            setValidationError(validation.error || 'Không thể thêm tệp.');
+            setValidationError(validation.error || 'Cannot add file.');
             setMenuOpen(false);
             return;
         }
@@ -196,7 +196,7 @@ export const ChatInput: React.FC<{
         if (files.length > 0) {
             const validation = validateOutgoingFiles(files);
             if (!validation.isValid) {
-                setValidationError(validation.error || 'Không thể gửi tệp.');
+                setValidationError(validation.error || 'Cannot send file.');
                 return;
             }
         }
@@ -219,9 +219,9 @@ export const ChatInput: React.FC<{
                   ).then(() => undefined);
 
             void uploadTask.catch((err) => {
-                console.error('Upload lỗi:', err);
+                console.error('Upload file error:', err);
                 setValidationError(
-                    err instanceof Error ? err.message : 'Gửi file thất bại.',
+                    err instanceof Error ? err.message : 'Failed to send file.',
                 );
             });
         }
@@ -289,13 +289,13 @@ export const ChatInput: React.FC<{
                     <div className="space-y-2">
                         <p className="text-base font-bold text-rose-900">
                             {canUnblock
-                                ? 'Bạn đã chặn tin nhắn'
-                                : 'Bạn bị chặn'}
+                                ? 'You blocked this conversation.'
+                                : 'You are blocked.'}
                         </p>
                         <p className="text-sm text-rose-800 ">
                             {canUnblock
-                                ? 'Các bạn sẽ không thể nhắn tin hay gọi điện cho nhau trong đoạn chat này, cũng như không nhận được tin nhắn từ tài khoản của họ.'
-                                : 'Bạn không thể nhắn tin hay gọi điện với người này trong đoạn chat này.'}
+                                ? 'You will not be able to message or call each other in this chat, nor will you receive messages from their account.'
+                                : 'You cannot message or call this person in this chat.'}
                         </p>
                     </div>
 
@@ -305,7 +305,7 @@ export const ChatInput: React.FC<{
                             onClick={onUnblock}
                             className="w-full max-w-xs mt-4 px-2 py-2 bg-rose-500 text-white font-bold rounded-xl hover:bg-rose-600 transition-all active:scale-95 shadow-md hover:shadow-lg border-2 border-rose-600"
                         >
-                            Bỏ chặn
+                            Unblock
                         </button>
                     )}
                 </div>
@@ -336,7 +336,7 @@ export const ChatInput: React.FC<{
                         <div className="mb-3">
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-xs text-slate-500">
-                                    Đã chọn {attachments.length}/
+                                    Selected {attachments.length}/
                                     {MAX_FILES_PER_BATCH} file
                                 </p>
                             </div>
@@ -404,19 +404,19 @@ export const ChatInput: React.FC<{
                             <div className="flex items-start justify-between gap-3">
                                 <div className="min-w-0">
                                     <p className="text-xs font-semibold text-sky-800">
-                                        Trả lời{' '}
-                                        {replyDraft.senderName || 'tin nhắn'}
+                                        Reply to{' '}
+                                        {replyDraft.senderName || 'message'}
                                     </p>
                                     <p className="truncate text-xs text-slate-700">
                                         {replyDraft.snippet ||
-                                            'Tin nhắn gốc không còn khả dụng'}
+                                            'Original message is not available'}
                                     </p>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={onCancelReply}
                                     className="shrink-0 text-sky-500 hover:text-sky-700"
-                                    title="Hủy trả lời"
+                                    title="Cancel reply"
                                 >
                                     <FiX className="h-4 w-4" />
                                 </button>
@@ -473,7 +473,7 @@ export const ChatInput: React.FC<{
                                 className={`w-full bg-gray-border text-gray-primary rounded-full px-4 py-2 outline-none text-sm placeholder:text-slate-400 transition-all ${
                                     isRewriting ? 'pointer-events-none' : ''
                                 }`}
-                                placeholder={isRewriting ? 'Đang viết lại...' : 'Nhập tin nhắn...'}
+                                placeholder={isRewriting ? 'Rewriting...' : 'Type a message...'}
                                 readOnly={isRewriting}
                             />
                         </div>
@@ -483,7 +483,7 @@ export const ChatInput: React.FC<{
                             <button
                                 onClick={() => setEmojiOpen((o) => !o)}
                                 className="p-1.5 border border-slate-200 rounded-full hover:bg-[var(--chat-message-sent)] hover:text-white hover:border-[var(--chat-message-sent)] transition-colors text-slate-700"
-                                title="Biểu cảm"
+                                title="Emoji"
                             >
                                 <Smile className="h-4 w-4" />
                             </button>
@@ -496,7 +496,7 @@ export const ChatInput: React.FC<{
                                         emojiStyle={EmojiStyle.NATIVE}
                                         width={320}
                                         height={380}
-                                        searchPlaceHolder="Tìm kiếm emoji..."
+                                        searchPlaceHolder="Search emoji..."
                                         previewConfig={{ showPreview: false }}
                                     />
                                 </div>
@@ -513,7 +513,7 @@ export const ChatInput: React.FC<{
                                         ? 'border-purple-300 bg-purple-50 text-purple-600 animate-pulse'
                                         : 'border-slate-200 hover:bg-sky-50 hover:text-sky-600 hover:border-sky-200'
                                 }`}
-                                title={isRewriting ? 'Đang viết lại...' : 'Viết lại thông minh'}
+                                title={isRewriting ? 'Rewriting...' : 'Smart rewrite'}
                             >
                                 {isRewriting ? (
                                     <LoaderCircle className="h-4 w-4 animate-spin" />
@@ -528,14 +528,14 @@ export const ChatInput: React.FC<{
                                     <div className="px-3 pt-2.5 pb-1.5 border-b border-slate-100">
                                         <div className="flex items-center gap-1.5">
                                             <WandSparkles className="h-3 w-3 text-green-500" />
-                                            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">AI Viết lại</span>
+                                            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">AI Rewrite</span>
                                         </div>
                                     </div>
                                     {(
                                         [
-                                            ['professional', 'Chuyên nghiệp hơn', ''],
-                                            ['polite', 'Lịch sự hơn', ''],
-                                            ['concise', 'Ngắn gọn hơn', ''],
+                                            ['professional', 'More professional', ''],
+                                            ['polite', 'More polite', ''],
+                                            ['concise', 'More concise', ''],
                                         ] as Array<[RewriteTone, string, string]>
                                     ).map(([tone, label, icon]) => (
                                         <button
@@ -547,7 +547,7 @@ export const ChatInput: React.FC<{
                                         >
                                             <span className="text-sm">{icon}</span>
                                             {isRewriting ? (
-                                                <span className="animate-shimmer text-green-600">Đang viết lại...</span>
+                                                <span className="animate-shimmer text-green-600">Rewriting...</span>
                                             ) : (
                                                 <span>{label}</span>
                                             )}
@@ -564,7 +564,7 @@ export const ChatInput: React.FC<{
                                             className="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-xs text-slate-600 hover:bg-slate-50"
                                         >
                                             <RotateCcw className="h-3.5 w-3.5" />
-                                            Hoàn tác viết lại
+                                            Undo Rewrite
                                         </button>
                                     )}
                                 </div>

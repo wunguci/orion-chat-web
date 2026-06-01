@@ -184,7 +184,7 @@ const FriendSidebar: React.FC<FriendSidebarProps> = ({
 
             {activeCategory !== 'friends' && (
                 <div className="flex-1 p-4 text-sm text-slate-500">
-                    Chọn nội dung ở vùng bên phải.
+                    Select content from the area on the right.
                 </div>
             )}
         </section>

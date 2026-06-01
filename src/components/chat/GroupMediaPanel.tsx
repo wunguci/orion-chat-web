@@ -106,7 +106,7 @@ export const GroupMediaPanel: React.FC<GroupMediaPanelProps> = ({
     if (loading) {
         return (
             <div className="h-full flex items-center justify-center text-slate-500 text-sm">
-                Đang tải media...
+                Loading media...
             </div>
         );
     }
@@ -119,7 +119,7 @@ export const GroupMediaPanel: React.FC<GroupMediaPanelProps> = ({
                     className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200"
                     onClick={onBack}
                 >
-                    Quay lại
+                    Back
                 </button>
             </div>
         );

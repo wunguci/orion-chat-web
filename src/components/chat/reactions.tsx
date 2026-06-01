@@ -10,32 +10,32 @@ export type ReactionOption = {
 export const REACTION_OPTIONS: ReactionOption[] = [
     {
         emoji: '👍',
-        label: 'Thích',
+        label: 'Like',
         className: 'text-sky-600',
     },
     {
         emoji: '❤️',
-        label: 'Yêu thích',
+        label: 'Love',
         className: 'text-rose-500',
     },
     {
         emoji: '😂',
-        label: 'Vui',
+        label: 'Haha',
         className: 'text-amber-500',
     },
     {
         emoji: '😮',
-        label: 'Ngạc nhiên',
+        label: 'Wow',
         className: 'text-violet-500',
     },
     {
         emoji: '😢',
-        label: 'Buồn',
+        label: 'Sad',
         className: 'text-blue-500',
     },
     {
         emoji: '😡',
-        label: 'Giận',
+        label: 'Angry',
         className: 'text-red-500',
     },
 ];

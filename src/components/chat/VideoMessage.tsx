@@ -45,7 +45,7 @@ const VideoMessageComponent: React.FC<VideoMessageProps> = ({
 
         const handleLoadedMetadata = () => {
             if (!isMounted) return;
-            console.log('✅ Video metadata loaded for:', fileName);
+            console.log('Video metadata loaded for:', fileName);
             // Set video to first frame
             video.currentTime = 0.1; // Use 0.1 instead of 0 to ensure frame is loaded
         };
@@ -64,7 +64,7 @@ const VideoMessageComponent: React.FC<VideoMessageProps> = ({
                 ctx.drawImage(video, 0, 0, 320, 180);
                 const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
                 setThumbnail(thumbnailUrl);
-                console.log('✅ Thumbnail generated for:', fileName);
+                console.log('Thumbnail generated for:', fileName);
             } catch (error) {
                 console.error('Error generating video thumbnail:', error);
                 setThumbnailError(true);
@@ -73,7 +73,7 @@ const VideoMessageComponent: React.FC<VideoMessageProps> = ({
 
         const handleError = (e: Event) => {
             if (!isMounted) return;
-            console.error('❌ Error loading video for thumbnail:', videoUrl, e);
+            console.error('Error loading video for thumbnail:', videoUrl, e);
             setThumbnailError(true);
         };
 
@@ -82,7 +82,7 @@ const VideoMessageComponent: React.FC<VideoMessageProps> = ({
         video.addEventListener('error', handleError);
 
         // Trigger load
-        console.log('🎬 Loading video thumbnail for:', videoUrl);
+        console.log('Loading video thumbnail for:', videoUrl);
         video.load();
 
         return () => {
@@ -94,7 +94,7 @@ const VideoMessageComponent: React.FC<VideoMessageProps> = ({
     }, [videoUrl, fileName]);
 
     const handlePlayClick = useCallback(() => {
-        console.log('▶️ Play clicked for:', fileName);
+        console.log('Play clicked for:', fileName);
         setIsPlaying(true);
         setTimeout(() => {
             if (videoRef.current) {
@@ -106,17 +106,14 @@ const VideoMessageComponent: React.FC<VideoMessageProps> = ({
                     if (playPromise !== undefined) {
                         playPromise
                             .then(() => {
-                                console.log('✅ Video playing');
+                                console.log('Video playing');
                             })
                             .catch((error: any) => {
                                 // Ignore AbortError (interrupted by pause)
                                 if (error.name === 'AbortError') {
-                                    console.log('⏸️ Video play interrupted');
+                                    console.log('Video play interrupted');
                                 } else {
-                                    console.error(
-                                        '❌ Error playing video:',
-                                        error,
-                                    );
+                                    console.error('Error playing video:', error);
                                 }
                             });
                     }
@@ -127,7 +124,7 @@ const VideoMessageComponent: React.FC<VideoMessageProps> = ({
     }, [onClick, fileName]);
 
     const handleCloseVideo = useCallback(() => {
-        console.log('⏹️ Close video clicked');
+        console.log('Close video clicked');
         setIsPlaying(false);
         if (videoRef.current) {
             videoRef.current.pause();

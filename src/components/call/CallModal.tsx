@@ -133,7 +133,7 @@ export const CallModal: React.FC = () => {
           incomingVideoUpgradeRequest && (
             <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-wh-green-text-primary/80 border border-wh-green-border-dark rounded-xl px-4 py-3 text-white backdrop-blur-sm">
               <p className="text-sm mb-3">
-                {otherUser?.name || "Đối phương"} muốn chuyển sang video call
+                {otherUser?.name || "Unknown"} wants to upgrade to video call
               </p>
               <div className="flex items-center justify-end gap-2">
                 <button
@@ -142,7 +142,7 @@ export const CallModal: React.FC = () => {
                   }}
                   className="px-3 py-1.5 rounded-md bg-wh-priority-critical hover:bg-wh-priority-high text-sm"
                 >
-                  Từ chối
+                  Decline
                 </button>
                 <button
                   onClick={() => {
@@ -150,7 +150,7 @@ export const CallModal: React.FC = () => {
                   }}
                   className="px-3 py-1.5 rounded-md bg-wh-green-primary hover:bg-wh-green-primary-hover text-sm"
                 >
-                  Đồng ý
+                  Accept
                 </button>
               </div>
             </div>

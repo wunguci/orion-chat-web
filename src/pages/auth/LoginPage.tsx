@@ -47,7 +47,7 @@ export default function LoginPage() {
     const completeWebLogin = (data: NonNullable<LoginResponse['data']>) => {
         const token = data.token;
         if (!token) {
-            setError('Lỗi: Không nhận được token từ server');
+            setError('Error: Did not receive token from server');
             return false;
         }
 
@@ -92,7 +92,7 @@ export default function LoginPage() {
             setError(
                 err instanceof Error
                     ? err.message
-                    : 'Không thể tạo mã QR đăng nhập',
+                    : 'Failed to create QR code for login',
             );
         } finally {
             setQrLoading(false);
@@ -115,7 +115,7 @@ export default function LoginPage() {
                 if (stopped) return;
 
                 if (result.data.status === 'expired') {
-                    setError('Mã QR đã hết hạn. Vui lòng tạo mã mới.');
+                    setError('QR code expired. Please generate a new one.');
                     setQrData('');
                     window.clearInterval(interval);
                     return;
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
                     window.clearInterval(interval);
                     if (completeWebLogin(loginData)) {
-                        setMessage('Đăng nhập QR thành công! Chuyển hướng...');
+                        setMessage('QR login successful! Redirecting...');
                         setTimeout(() => {
                             navigate(`${ROUTES.HOME}/${ROUTES.CHAT.ROOT}`);
                         }, 800);
@@ -138,7 +138,7 @@ export default function LoginPage() {
                     setError(
                         err instanceof Error
                             ? err.message
-                            : 'Không thể kiểm tra mã QR',
+                            : 'Failed to check QR code status',
                     );
                 }
             }
@@ -156,12 +156,12 @@ export default function LoginPage() {
         setMessage(null);
 
         if (!validatePhoneNumber(phone)) {
-            setError('Số điện thoại gồm 10 ký tự số');
+            setError('Phone number must be a 10-digit number');
             return;
         }
 
         if (!validatePassword(password)) {
-            setError('Mật khẩu phải có ít nhất 8 ký tự');
+            setError('Password must be at least 8 characters long');
             return;
         }
 
@@ -178,18 +178,18 @@ export default function LoginPage() {
             if (result.success) {
                 if (!result.data) {
                     setError(
-                        'Lỗi: Không nhận được dữ liệu người dùng từ server',
+                        'Error: Did not receive user data from server',
                     );
                     setLoading(false);
                     return;
                 }
 
-                setMessage('Đăng nhập thành công! Chuyển hướng...');
+                setMessage('Login successful! Redirecting...');
 
                 // Store JWT token
                 const token = result.data.token;
                 if (!token) {
-                    setError('Lỗi: Không nhận được token từ server');
+                    setError('Error: Did not receive token from server');
                     setLoading(false);
                     return;
                 }
@@ -249,7 +249,7 @@ export default function LoginPage() {
             setError(
                 err instanceof Error
                     ? err.message
-                    : 'Lỗi khi đăng nhập. Vui lòng thử lại',
+                    : 'Failed to log in. Please try again',
             );
         } finally {
             setLoading(false);
@@ -293,7 +293,7 @@ export default function LoginPage() {
                                     : 'text-gray-500'
                             }`}
                         >
-                            Mật khẩu
+                            Password
                         </button>
                         <button
                             type="button"
@@ -304,7 +304,7 @@ export default function LoginPage() {
                                     : 'text-gray-500'
                             }`}
                         >
-                            QR
+                            QR Code
                         </button>
                     </div>
 
@@ -427,7 +427,7 @@ export default function LoginPage() {
                             disabled={loading}
                             className="w-full py-2.5 sm:py-3 px-4 bg-green-primary hover:bg-green-primary/90 disabled:bg-gray-400 text-white rounded-full font-semibold transition-colors text-sm sm:text-base mt-2 sm:mt-4"
                         >
-                            {loading ? 'Đang đăng nhập...' : 'Log in'}
+                            {loading ? 'Logging in...' : 'Log in'}
                         </button>
                     </form>
                     ) : (
@@ -435,26 +435,26 @@ export default function LoginPage() {
                             <div className="mx-auto flex h-56 w-56 items-center justify-center rounded-xl border border-gray-200 bg-white">
                                 {qrLoading ? (
                                     <div className="text-sm font-semibold text-gray-500">
-                                        Đang tạo mã QR...
+                                        Generating QR Code...
                                     </div>
                                 ) : qrData ? (
                                     <QRCodeSVG value={qrData} size={190} />
                                 ) : (
                                     <div className="px-4 text-sm text-gray-500">
-                                        Mã QR chưa sẵn sàng
+                                        QR Code not ready
                                     </div>
                                 )}
                             </div>
                             <div>
                                 <p className="text-sm font-semibold text-gray-800">
-                                    Quét bằng điện thoại đã đăng nhập
+                                    Scan with logged-in phone
                                 </p>
                                 <p className="mt-1 text-xs leading-5 text-gray-500">
-                                    Mở camera trên điện thoại, quét mã này và xác nhận đăng nhập trong Orion Chat mobile.
+                                    Open camera on your phone, scan this code, and confirm login in Orion Chat mobile.
                                 </p>
                                 {qrExpiresAt ? (
                                     <p className="mt-2 text-xs text-gray-400">
-                                        Hết hạn lúc {new Date(qrExpiresAt).toLocaleTimeString()}
+                                        Expires at {new Date(qrExpiresAt).toLocaleTimeString()}
                                     </p>
                                 ) : null}
                             </div>
@@ -465,7 +465,7 @@ export default function LoginPage() {
                                 className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:border-green-primary hover:text-green-primary disabled:opacity-60"
                             >
                                 <RefreshCw size={16} />
-                                Tạo mã mới
+                                Generate new code
                             </button>
                         </div>
                     )}

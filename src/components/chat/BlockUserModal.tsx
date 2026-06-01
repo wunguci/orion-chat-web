@@ -13,7 +13,7 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
     isOpen,
     onClose,
     onConfirm,
-    userName = 'người dùng',
+    userName = 'user',
 }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
             onClose();
         } catch (err) {
             setError(
-                err instanceof Error ? err.message : 'Lỗi khi chặn người dùng',
+                err instanceof Error ? err.message : 'Error blocking user',
             );
         } finally {
             setLoading(false);
@@ -37,7 +37,7 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Chặn người dùng"
+            title="Block user"
             size="sm"
         >
             <div className="p-6 space-y-4">
@@ -48,11 +48,10 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
                     </div>
                     <div>
                         <p className="text-sm font-medium text-rose-900">
-                            Chặn <strong>{userName}</strong>?
+                            Block <strong>{userName}</strong>?
                         </p>
                         <p className="text-xs text-rose-700 mt-1">
-                            Sau khi chặn, bạn sẽ không thể nhắn tin hay xem hoạt
-                            động của người dùng này.
+                            After blocking, you will not be able to message or view activities of this user.
                         </p>
                     </div>
                 </div>
@@ -61,13 +60,13 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
                 <div className="space-y-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs font-medium text-blue-900 flex items-center gap-2">
                         <AlertCircle size={14} />
-                        Khi bạn chặn người dùng:
+                        When you block a user:
                     </p>
                     <ul className="text-xs text-blue-800 space-y-1 ml-6">
-                        <li>• Người này không thể nhắn tin cho bạn</li>
-                        <li>• Bạn không thể gửi tin nhắn cho họ</li>
-                        <li>• ChatInput sẽ bị vô hiệu hóa</li>
-                        <li>• Bạn có thể mở chặn bất kỳ lúc nào</li>
+                        <li>• This person cannot message you</li>
+                        <li>• You cannot send messages to them</li>
+                        <li>• ChatInput will be disabled</li>
+                        <li>• You can unblock at any time</li>
                     </ul>
                 </div>
 
@@ -85,7 +84,7 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
                         disabled={loading}
                         className="flex-1 px-4 py-2 rounded-lg border border-slate-200 text-gray-primary font-medium hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
@@ -95,12 +94,12 @@ export const BlockUserModal: React.FC<BlockUserModalProps> = ({
                         {loading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang chặn...
+                                Blocking...
                             </>
                         ) : (
                             <>
                                 <Ban size={16} />
-                                Chặn người dùng
+                                Block user
                             </>
                         )}
                     </button>

@@ -306,7 +306,7 @@ export default function GroupChat() {
               />
               <input
                 type="text"
-                placeholder="Tìm kiếm..."
+                placeholder="Search..."
                 className="w-full pl-10 pr-4 py-2 bg-white rounded-lg border border-green-border-light text-sm text-gray-primary placeholder-gray-400 focus:outline-none focus:border-green-primary"
               />
             </div>
@@ -513,7 +513,7 @@ export default function GroupChat() {
               {/* Header */}
               <div className="p-6 border-b border-green-border-light flex flex-col gap-3">
                 <span className="text-lg font-semibold text-gray-primary">
-                  Thông tin nhóm
+                  Group Information
                 </span>
 
                 <div className="flex flex-col gap-3 items-center">
@@ -533,13 +533,13 @@ export default function GroupChat() {
                 <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
                   <Bell size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
-                    Tắt thông báo
+                    Turn off notifications
                   </span>
                 </button>
                 <button className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-white transition-colors flex-1">
                   <Pin size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
-                    Ghi hội thoại
+                    Pin conversation
                   </span>
                 </button>
                 <button
@@ -548,7 +548,7 @@ export default function GroupChat() {
                 >
                   <UserRoundPlus size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
-                    Thêm thành viên
+                    Add members
                   </span>
                 </button>
                 <button
@@ -557,7 +557,7 @@ export default function GroupChat() {
                 >
                   <Settings size={20} className="text-green-primary" />
                   <span className="text-xs text-gray-primary">
-                    Quản lý nhóm
+                    Group Settings
                   </span>
                 </button>
               </div>
@@ -597,7 +597,7 @@ export default function GroupChat() {
                       )}
                     </div>
                     <button className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-white transition-colors text-green-primary text-[14px] my-1">
-                      Xem tất cả
+                      View All
                     </button>
                   </>
                 )}
@@ -638,7 +638,7 @@ export default function GroupChat() {
                       )}
                     </div>
                     <button className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-white transition-colors text-green-primary text-[14px] my-1">
-                      Xem tất cả
+                      View All
                     </button>
                   </>
                 )}
@@ -677,7 +677,7 @@ export default function GroupChat() {
                       )}
                     </div>
                     <button className="py-2 rounded-lg font-semibold bg-white border border-green-primary hover:bg-white transition-colors text-green-primary text-[14px] my-1">
-                      Xem tất cả
+                      View all
                     </button>
                   </>
                 )}
@@ -686,15 +686,15 @@ export default function GroupChat() {
               <div className="flex flex-col gap-2">
                 {/* Member Section Left Bar */}
                 <div className="p-3 flex flex-col gap-1 bg-green-bg-light border-b border-green-border-light">
-                  <span className="font-semibold">Thành viên</span>
+                  <span className="font-semibold">Members</span>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <UserRound size={20} />
-                    <span className="text-[15px]">5 thành viên</span>
+                    <span className="text-[15px]">5 members</span>
                   </button>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <Link size={20} />
                     <div className="flex flex-col items-start">
-                      <span className="text-[15px]">Link tham gia nhóm</span>
+                      <span className="text-[15px]">Group join link</span>
                       <span className="text-[12px] text-blue-dark text-left">
                         orionchat.com/groupchat-test
                       </span>
@@ -708,50 +708,50 @@ export default function GroupChat() {
 
                 {/* Group News */}
                 <div className="p-3 flex flex-col gap-1 bg-green-bg-light border-b border-green-border-light">
-                  <span className="font-semibold">Bảng tin nhóm</span>
+                  <span className="font-semibold">Group board</span>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <AlarmClockCheck size={20} />
-                    <span className="text-[15px]">Danh sách nhắc hẹn</span>
+                    <span className="text-[15px]">Reminders list</span>
                   </button>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <NotebookText size={20} />
-                    <span className="text-[15px]">Ghi chú</span>
+                    <span className="text-[15px]">Notes</span>
                   </button>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <Pin size={20} />
-                    <span className="text-[15px]">Ghim</span>
+                    <span className="text-[15px]">Pin</span>
                   </button>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <BarChart3 size={20} />
-                    <span className="text-[15px]">Bình chọn</span>
+                    <span className="text-[15px]">Polls</span>
                   </button>
                 </div>
 
                 {/* Auto Delete Messages */}
                 <div className="p-3 flex flex-col gap-1 bg-green-bg-light border-b border-green-border-light">
-                  <span className="font-semibold">Thiết lập bảo mật</span>
+                  <span className="font-semibold">Security Settings</span>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <Clock7 size={20} />
                     <div className="flex flex-col items-start">
-                      <span className="text-[15px]">Tin nhắn tự xóa</span>
+                      <span className="text-[15px]">Auto-delete messages</span>
                       <span className="text-[12px] text-gray-secondary">
-                        Không bao giờ
+                        Never
                       </span>
                     </div>
                   </button>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <EyeOff size={20} />
-                    <span className="text-[15px]">Ẩn trò chuyện</span>
+                    <span className="text-[15px]">Hide chat</span>
                   </button>
                 </div>
 
                 <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-500">
                   <Trash2 size={20} />
-                  <span className="text-[15px]">Xóa lịch sử trò chuyện</span>
+                  <span className="text-[15px]">Clear chat history</span>
                 </button>
                 <button className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-white transition-colors text-red-500">
                   <LogOut size={20} />
-                  <span className="text-[15px]">Rời nhóm</span>
+                  <span className="text-[15px]">Leave group</span>
                 </button>
               </div>
             </>
@@ -768,20 +768,20 @@ export default function GroupChat() {
                     <ArrowLeft size={20} className="text-gray-primary" />
                   </button>
                   <span className="text-lg font-semibold text-gray-primary">
-                    Quản lý nhóm
+                    Group management
                   </span>
                 </div>
 
                 {/* Permissions Section */}
                 <div className="p-4 border-b border-green-border-light flex flex-col gap-4">
                   <span className="font-semibold text-gray-primary">
-                    Cho phép các thành viên trong nhóm:
+                    Allow group members to:
                   </span>
 
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-primary">
-                        Thay đổi tên & ảnh đại diện của nhóm
+                        Change group name & avatar
                       </span>
                       <Checkbox
                         checked={groupPermissions.changeNameAvatar}
@@ -797,7 +797,7 @@ export default function GroupChat() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-primary">
-                        Ghim tin nhắn, ghi chú, bình chọn lên đầu hội thoại
+                        Pin messages, notes, polls to top of chat
                       </span>
                       <Checkbox
                         checked={groupPermissions.pinMessages}
@@ -812,7 +812,7 @@ export default function GroupChat() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-primary">
-                        Tạo mới ghi chú, nhắc hẹn
+                        Create new notes, reminders
                       </span>
                       <Checkbox
                         checked={groupPermissions.createNotes}
@@ -827,7 +827,7 @@ export default function GroupChat() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-primary">
-                        Tạo mới bình chọn
+                        Create new polls
                       </span>
                       <Checkbox
                         checked={groupPermissions.createPolls}
@@ -842,7 +842,7 @@ export default function GroupChat() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-primary">
-                        Gửi tin nhắn
+                        Send messages
                       </span>
                       <Checkbox
                         checked={groupPermissions.sendMessages}
@@ -862,7 +862,7 @@ export default function GroupChat() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-primary">
-                        Chế độ phê duyệt thành viên mới
+                        New member approval mode
                       </span>
                       <HelpCircle size={16} className="text-gray-400" />
                     </div>
@@ -882,7 +882,7 @@ export default function GroupChat() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-primary">
-                        Đánh dấu tin nhắn từ trưởng/phó nhóm
+                        Highlight messages from leaders/co-leaders
                       </span>
                       <HelpCircle size={16} className="text-gray-400" />
                     </div>
@@ -903,7 +903,7 @@ export default function GroupChat() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-primary">
-                        Cho phép thành viên mới đọc tin nhắn gần nhất
+                        Allow new members to read recent messages
                       </span>
                       <HelpCircle size={16} className="text-gray-400" />
                     </div>
@@ -924,7 +924,7 @@ export default function GroupChat() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-primary">
-                        Cho phép dùng link tham gia nhóm
+                        Allow using link to join group
                       </span>
                       <HelpCircle size={16} className="text-gray-400" />
                     </div>
@@ -964,11 +964,11 @@ export default function GroupChat() {
                 <div className="p-4 border-b border-green-border-light flex flex-col gap-2">
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <Users size={20} />
-                    <span className="text-[15px]">Chặn khỏi nhóm</span>
+                    <span className="text-[15px]">Block from group</span>
                   </button>
                   <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-white transition-colors text-gray-primary">
                     <KeyRound size={20} />
-                    <span className="text-[15px]">Trưởng & phó nhóm</span>
+                    <span className="text-[15px]">Leaders & co-leaders</span>
                   </button>
                 </div>
 
@@ -976,7 +976,7 @@ export default function GroupChat() {
                 <div className="p-4 mt-auto mb-2">
                   <div className="flex items-center justify-center p-2 bg-[#FDECEC] rounded-md">
                     <span className="text-[16px] text-[#DC264C] font-semibold">
-                      Giải tán nhóm
+                      Disband group
                     </span>
                   </div>
                 </div>

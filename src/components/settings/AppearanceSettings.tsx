@@ -49,17 +49,17 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
     <div className="flex flex-col gap-8">
       <div>
         <span className="text-[28px] font-bold text-[var(--settings-text)]">
-          Hình nền & Chủ đề
+          Wallpaper & Theme
         </span>
         <p className="text-[var(--settings-text)]">
-          Tùy chỉnh cách giao diện trò chuyện của bạn trông như thế nào
+          Customize how your chat interface looks
         </p>
       </div>
 
       {/* Chế độ chủ đề */}
       <div className="flex flex-col gap-3">
         <span className="text-[22px] font-bold text-[var(--settings-text)]">
-          Chế độ chủ đề
+          Theme mode
         </span>
         <div className="grid grid-cols-3 gap-4">
           {[
@@ -103,17 +103,17 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       {/* Chọn hình nền */}
       <div className="flex flex-col gap-3">
         <span className="text-[22px] font-bold text-[var(--settings-text)]">
-          Hình nền trò chuyện
+          Chat wallpaper
         </span>
         <div className="grid grid-cols-7 gap-4">
           {[
-            { value: "teal", name: "Xanh lơ", color: "#2ab3b3" },
-            { value: "orange", name: "Cam", color: "#ee652b" },
-            { value: "purple", name: "Tím", color: "#6366f1" },
-            { value: "green", name: "Xanh lá", color: "#a1f258" },
-            { value: "red", name: "Đỏ", color: "#ab2346" },
-            { value: "gray", name: "Xám", color: "#c1cad8" },
-            { value: "light-gray", name: "Xám nhạt", color: "#dfdddd" },
+            { value: "teal", name: "Teal", color: "#2ab3b3" },
+            { value: "orange", name: "Orange", color: "#ee652b" },
+            { value: "purple", name: "Purple", color: "#6366f1" },
+            { value: "green", name: "Green", color: "#a1f258" },
+            { value: "red", name: "Red", color: "#ab2346" },
+            { value: "gray", name: "Gray", color: "#c1cad8" },
+            { value: "light-gray", name: "Light Gray", color: "#dfdddd" },
           ].map(({ value, name, color }) => (
             <button
               key={value}
@@ -139,7 +139,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       {/* Xem trước màu hình nền */}
       <div className="flex flex-col gap-3">
         <span className="text-[22px] font-bold text-[var(--settings-text)]">
-          Xem trước hình nền
+          Wallpaper preview
         </span>
         <div
           className="rounded-2xl p-8 border-2 border-[var(--settings-primary-border)] transition-all"
@@ -147,11 +147,11 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
         >
           <div className="text-center">
             <p className="text-white font-semibold mb-4 drop-shadow">
-              Xem trước trò chuyện
+              Chat preview
             </p>
             <div className="bg-white/90 rounded-lg p-4 text-[var(--settings-text)]">
               <p className="text-sm">
-                Đây là cách hình nền sẽ trông như thế nào với màu đã chọn
+                This is how the wallpaper will look with the selected color
               </p>
             </div>
           </div>
@@ -161,7 +161,7 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
       {/* Kích thước phông chữ */}
       <div className="flex flex-col gap-3">
         <span className="text-[22px] font-bold text-[var(--settings-text)]">
-          Kích thước phông chữ
+          Font size
         </span>
         <div className="flex items-center gap-4">
           <input
@@ -179,14 +179,14 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
           </span>
         </div>
         <p className="text-sm text-[var(--settings-text)]">
-          Văn bản xem trước sẽ xuất hiện ở kích thước được chọn
+          Preview text will appear in the selected size
         </p>
       </div>
 
       {/* Màu nhấn */}
       <div className="flex flex-col gap-3">
         <span className="text-[22px] font-bold text-[var(--settings-text)]">
-          Màu nhấn
+          Accent color
         </span>
         <div className="flex items-center gap-4">
           <div
@@ -218,13 +218,13 @@ const AppearanceSettings: React.FC<AppearanceSettingsProps> = ({
         )}
         <div className="flex justify-end gap-3">
           <Button
-            label="Hủy thay đổi"
+            label="Cancel changes"
             onClick={handleDiscardSettings}
             type="cancel"
             disabled={isSaving}
           />
           <Button
-            label={isSaving ? "Đang lưu..." : "Lưu thay đổi"}
+            label={isSaving ? "Saving..." : "Save changes"}
             onClick={handleSaveSettings}
             disabled={isSaving || !hasSettingsChanges}
           />

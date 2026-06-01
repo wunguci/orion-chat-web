@@ -14,12 +14,12 @@ type Props = {
 };
 
 const TAGS = [
-    { id: 'khach-hang', label: 'Khách hàng', color: 'bg-red-500' },
-    { id: 'gia-dinh', label: 'Gia đình', color: 'bg-pink-500' },
-    { id: 'cong-viec', label: 'Công việc', color: 'bg-orange-400' },
-    { id: 'ban-be', label: 'Bạn bè', color: 'bg-yellow-400' },
-    { id: 'tra-loi-sau', label: 'Trả lời sau', color: 'bg-emerald-400' },
-    { id: 'dong-nghiep', label: 'Đồng nghiệp', color: 'bg-sky-500' },
+    { id: 'khach-hang', label: 'Customer', color: 'bg-red-500' },
+    { id: 'gia-dinh', label: 'Family', color: 'bg-pink-500' },
+    { id: 'cong-viec', label: 'Work', color: 'bg-orange-400' },
+    { id: 'ban-be', label: 'Friends', color: 'bg-yellow-400' },
+    { id: 'tra-loi-sau', label: 'Reply later', color: 'bg-emerald-400' },
+    { id: 'dong-nghiep', label: 'Colleague', color: 'bg-sky-500' },
 ];
 
 export default function TopControls({
@@ -68,7 +68,7 @@ export default function TopControls({
             <div className="flex-1 min-w-[200px]">
                 <InputTextWithLabel
                     label=""
-                    placeholder="Tìm kiếm bạn bè..."
+                    placeholder="Search friends..."
                     value={query}
                     fieldName="query"
                     handleInputChange={(_, v) => onQueryChange(v)}
@@ -81,10 +81,10 @@ export default function TopControls({
                 <DropdownButton
                     label={
                         sort === 'name-asc'
-                            ? 'Tên (A-Z)'
+                            ? 'Name (A-Z)'
                             : sort === 'name-desc'
-                            ? 'Tên (Z-A)'
-                            : 'Gần đây'
+                            ? 'Name (Z-A)'
+                            : 'Recent'
                     }
                     isOpen={sortOpen}
                     onClick={() => setSortOpen((s) => !s)}
@@ -111,7 +111,7 @@ export default function TopControls({
                                 ) : (
                                     <span className="w-4" />
                                 )}
-                                <span>Tên (A-Z)</span>
+                                <span>Name (A-Z)</span>
                             </button>
 
                             <button
@@ -126,7 +126,7 @@ export default function TopControls({
                                 ) : (
                                     <span className="w-4" />
                                 )}
-                                <span>Tên (Z-A)</span>
+                                <span>Name (Z-A)</span>
                             </button>
 
                             <div className="border-t border-(--color-border) my-1" />
@@ -143,6 +143,7 @@ export default function TopControls({
                                 ) : (
                                     <span className="w-4" />
                                 )}
+                                <span>Recent</span>
                             </button>
                         </div>
                     </div>
@@ -154,11 +155,11 @@ export default function TopControls({
                 <DropdownButton
                     label={
                         filter === 'all'
-                            ? 'Tất cả'
+                            ? 'All'
                             : selectedTag
                             ? TAGS.find((t) => t.id === selectedTag)?.label ||
-                              'Phân loại'
-                            : 'Phân loại'
+                              'Category'
+                            : 'Category'
                     }
                     isOpen={filterOpen}
                     onClick={() => setFilterOpen((s) => !s)}
@@ -184,13 +185,13 @@ export default function TopControls({
                                 ) : (
                                     <span className="w-4" />
                                 )}
-                                <span>Tất cả</span>
+                                <span>All</span>
                             </button>
 
                             <div className="border-t border-[var(--color-border)] my-1" />
 
                             <div className="px-4 py-1 text-xs text-[var(--color-text-secondary)]">
-                                Phân loại
+                                Category
                             </div>
 
                             {TAGS.map((t) => (
@@ -222,7 +223,7 @@ export default function TopControls({
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-[var(--color-primary)] hover:bg-[var(--color-message-hover)]"
                             >
-                                Quản lý thẻ phân loại
+                                Manage categories
                             </button>
                         </div>
                     </div>

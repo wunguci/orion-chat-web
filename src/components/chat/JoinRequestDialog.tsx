@@ -63,24 +63,24 @@ export const JoinRequestDialog: React.FC<JoinRequestDialogProps> = ({
                 <div className="flex items-center gap-3 mb-4">
                     <MessageSquare size={24} className="text-green-primary" />
                     <h2 className="text-lg font-semibold text-gray-primary">
-                        Yêu cầu tham gia nhóm
+                        Request to join group
                     </h2>
                 </div>
 
                 {/* Content */}
                 <div className="mb-4">
                     <p className="text-sm text-gray-secondary mb-4">
-                        Yêu cầu tham gia nhóm <strong>{groupName}</strong>
+                        Request to join group <strong>{groupName}</strong>
                     </p>
 
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-primary mb-2">
-                            Lời nhắn (tùy chọn)
+                            Message (optional)
                         </label>
                         <textarea
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
-                            placeholder="Tôi muốn tham gia nhóm này vì..."
+                            placeholder="I want to join this group because..."
                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-primary focus:border-transparent text-sm resize-none"
                             rows={4}
                             disabled={isLoading}
@@ -113,7 +113,7 @@ export const JoinRequestDialog: React.FC<JoinRequestDialogProps> = ({
                         disabled={isLoading}
                         className="px-4 py-2 rounded-lg border border-slate-200 text-gray-primary hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleSubmit}
@@ -123,10 +123,10 @@ export const JoinRequestDialog: React.FC<JoinRequestDialogProps> = ({
                         {isLoading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang gửi...
+                                Sending...
                             </>
                         ) : (
-                            'Gửi yêu cầu'
+                            'Send Request'
                         )}
                     </button>
                 </div>

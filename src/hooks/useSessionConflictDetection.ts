@@ -13,7 +13,7 @@ export function useSessionConflictDetection() {
         const presenceSocket = presenceSocketService.getSocket();
 
         if (!presenceSocket) {
-            console.log('[useSessionConflictDetection] socket chưa kết nối');
+            console.log('[useSessionConflictDetection] socket not connected');
             return;
         }
 
@@ -24,14 +24,14 @@ export function useSessionConflictDetection() {
             timestamp: string;
         }) => {
             console.log(
-                '[useSessionConflictDetection] Nhận sự kiện xung đột phiên:',
+                '[useSessionConflictDetection] Received session conflict event:',
                 data,
             );
 
             // chỉ xử lý xung đột từ nền tảng web
             if (data.oldPlatform !== 'web') {
                 console.log(
-                    '[useSessionConflictDetection] Bỏ qua xung đột không phải web:',
+                    '[useSessionConflictDetection] Ignore non-web conflict:',
                     data.oldPlatform,
                 );
                 return;
@@ -40,13 +40,13 @@ export function useSessionConflictDetection() {
             try {
                 handleSessionExpired(undefined, false).catch((error) => {
                     console.error(
-                        '[useSessionConflictDetection] Lỗi khi logout:',
+                        '[useSessionConflictDetection] Error logging out:',
                         error,
                     );
                 });
             } catch (error) {
                 console.error(
-                    '[useSessionConflictDetection] Lỗi khi xử lý xung đột:',
+                    '[useSessionConflictDetection] Error handling conflict:',
                     error,
                 );
                 navigate('/auth/login', { replace: true });

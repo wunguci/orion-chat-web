@@ -33,12 +33,12 @@ export default function RegisterPage() {
         setMessage(null);
 
         if (!validatePhoneNumber(phone)) {
-            setError('Số điện thoại gồm 10 ký tự số');
+            setError('Phone number must be a 10-digit number');
             return;
         }
 
         if (!validatePassword(password)) {
-            setError('Mật khẩu phải có ít nhất 8 ký tự');
+            setError('Password must be at least 8 characters long');
             return;
         }
 
@@ -53,7 +53,7 @@ export default function RegisterPage() {
             setError(
                 err instanceof Error
                     ? err.message
-                    : 'Lỗi khi gửi OTP. Vui lòng thử lại',
+                    : 'Failed to send OTP. Please try again',
             );
         } finally {
             setLoading(false);
@@ -67,7 +67,7 @@ export default function RegisterPage() {
 
         const otpCode = otp.join('');
         if (!validateOtp(otpCode)) {
-            setError('Vui lòng nhập mã OTP 6 ký tự');
+            setError('Please enter a 6-digit OTP code');
             return;
         }
 
@@ -83,7 +83,7 @@ export default function RegisterPage() {
             setError(
                 err instanceof Error
                     ? err.message
-                    : 'Lỗi khi xác thực OTP. Vui lòng thử lại',
+                    : 'Failed to verify OTP. Please try again',
             );
         } finally {
             setLoading(false);
@@ -96,17 +96,17 @@ export default function RegisterPage() {
         setMessage(null);
 
         if (!otpVerified) {
-            setError('Vui lòng xác thực OTP trước khi tiếp tục');
+            setError('Please verify OTP before continuing');
             return;
         }
 
         if (!fullName.trim()) {
-            setError('Vui lòng nhập họ và tên');
+            setError('Please enter your full name');
             return;
         }
 
         if (!dob) {
-            setError('Vui lòng chọn ngày sinh');
+            setError('Please select your date of birth');
             return;
         }
 
@@ -123,7 +123,7 @@ export default function RegisterPage() {
         }
 
         if (age < 15) {
-            setError('Bạn phải ít nhất 15 tuổi để đăng ký');
+            setError('You must be at least 15 years old to register');
             return;
         }
 
@@ -157,7 +157,7 @@ export default function RegisterPage() {
             setError(
                 err instanceof Error
                     ? err.message
-                    : 'Lỗi khi đăng ký. Vui lòng thử lại',
+                    : 'Failed to register. Please try again',
             );
         } finally {
             setLoading(false);
@@ -389,7 +389,7 @@ export default function RegisterPage() {
                                 disabled={loading}
                                 className="w-full py-3 bg-[#006275] hover:bg-[#004d5e] disabled:opacity-50 text-white rounded-full transition-colors"
                             >
-                                {loading ? 'Đang gửi...' : 'Send OTP →'}
+                                {loading ? 'Sending...' : 'Send OTP →'}
                             </button>
                         </>
                     )}
@@ -479,7 +479,7 @@ export default function RegisterPage() {
                                 disabled={loading}
                                 className="w-full py-3 bg-[#006275] hover:bg-[#004d5e] disabled:opacity-50 text-white rounded-full transition-colors"
                             >
-                                {loading ? 'Đang xác thực...' : 'Next →'}
+                                {loading ? 'Verifying...' : 'Next →'}
                             </button>
                             {/* Back */}
                             <button
@@ -605,7 +605,7 @@ export default function RegisterPage() {
                                 disabled={loading}
                                 className="w-full py-3 bg-[#006275] hover:bg-[#004d5e] disabled:opacity-50 text-white rounded-full transition-colors"
                             >
-                                {loading ? 'Đang đăng ký...' : 'Complete'}
+                                {loading ? 'Registering...' : 'Complete'}
                             </button>
                             <p className="text-center text-gray-400">
                                 By tapping "Complete", you agree to our Terms of

@@ -187,7 +187,7 @@ const AIChatPage: React.FC = () => {
         id: (Date.now() + 1).toString(),
         role: Role.MODEL,
         content:
-          "Xin lỗi, hệ thống AI tạm thời lỗi. Bạn thử lại sau ít phút nhé.",
+          "Sorry, the AI system is temporarily down. Please try again in a few minutes.",
         timestamp: Date.now(),
       };
 

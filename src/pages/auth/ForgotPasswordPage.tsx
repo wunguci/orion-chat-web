@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
         setError(null);
 
         if (!phone || phone.replace(/\D/g, '').length < 10) {
-            setError('Số điện thoại phải có ít nhất 10 ký tự');
+            setError('Phone number must be at least 10 characters long');
             return;
         }
 
@@ -91,7 +91,7 @@ export default function ForgotPasswordPage() {
             setOtp(Array(6).fill(''));
             console.log('[handleSendOtp] OTP sent successfully');
         } catch (err: any) {
-            setError(err.message || 'Lỗi gửi OTP');
+            setError(err.message || 'Failed to send OTP');
             console.error('[handleSendOtp] Error:', err);
         } finally {
             setLoading(false);
@@ -104,7 +104,7 @@ export default function ForgotPasswordPage() {
 
         const otpCode = otp.join('');
         if (otpCode.length !== 6) {
-            setError('OTP phải có 6 ký tự');
+            setError('OTP must be 6 characters long');
             return;
         }
 
@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
             setStep(3);
             console.log('[handleVerifyOtp] OTP verified successfully');
         } catch (err: any) {
-            setError(err.message || 'Lỗi xác thực OTP');
+            setError(err.message || 'Failed to verify OTP');
             console.error('[handleVerifyOtp] Error:', err);
         } finally {
             setLoading(false);
@@ -127,22 +127,22 @@ export default function ForgotPasswordPage() {
 
         // Validation
         if (newPassword.length < 8) {
-            setError('Mật khẩu phải có ít nhất 8 ký tự');
+            setError('Password must be at least 8 characters long');
             return;
         }
 
         if (!/[!@#$%^&*(),.?"':{}|<>\[\]\\/~`_+=;-]/.test(newPassword)) {
-            setError('Mật khẩu phải chứa ít nhất một ký tự đặc biệt');
+            setError('Password must contain at least one special character');
             return;
         }
 
         if (!/\d/.test(newPassword)) {
-            setError('Mật khẩu phải chứa ít nhất một số');
+            setError('Password must contain at least one number');
             return;
         }
 
         if (newPassword !== password) {
-            setError('Mật khẩu không khớp');
+            setError('Passwords do not match');
             return;
         }
 
@@ -156,11 +156,11 @@ export default function ForgotPasswordPage() {
                 confirmPassword: password,
             });
 
-            alert('Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.');
+            alert('Password reset successful! Please log in again.');
             navigate('/login');
             console.log('[handleResetPassword] Password reset successfully');
         } catch (err: any) {
-            setError(err.message || 'Lỗi đặt lại mật khẩu');
+            setError(err.message || 'Failed to reset password');
             console.error('[handleResetPassword] Error:', err);
         } finally {
             setLoading(false);
@@ -177,7 +177,7 @@ export default function ForgotPasswordPage() {
             setOtp(Array(6).fill(''));
             console.log('[handleResendOtp] OTP resent successfully');
         } catch (err: any) {
-            setError(err.message || 'Lỗi gửi lại OTP');
+            setError(err.message || 'Failed to resend OTP');
             console.error('[handleResendOtp] Error:', err);
         } finally {
             setLoading(false);

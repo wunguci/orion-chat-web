@@ -51,7 +51,7 @@ export const GroupInfoEditModal: React.FC<GroupInfoEditModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Thông tin nhóm"
+            title="Group Info"
             size="sm"
         >
             <div className="p-4 space-y-4">
@@ -65,7 +65,7 @@ export const GroupInfoEditModal: React.FC<GroupInfoEditModalProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                    <label className="block text-sm text-gray-600">Tên nhóm</label>
+                    <label className="block text-sm text-gray-600">Group name</label>
                     <div className="flex items-center gap-2">
                         <input
                             type="text"
@@ -82,12 +82,12 @@ export const GroupInfoEditModal: React.FC<GroupInfoEditModalProps> = ({
                             disabled={isUpdatingGroupName}
                             className="cursor-pointer rounded-lg bg-green-primary px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            {isUpdatingGroupName ? '...' : 'Lưu'}
+                            {isUpdatingGroupName ? '...' : 'Save'}
                         </button>
                     </div>
                 </div>
 
-                <label className="block text-sm text-gray-600">Tải ảnh từ máy</label>
+                <label className="block text-sm text-gray-600">Upload image from computer</label>
                 <input
                     type="file"
                     accept="image/*"
@@ -97,7 +97,7 @@ export const GroupInfoEditModal: React.FC<GroupInfoEditModalProps> = ({
                 />
 
                 <div className="space-y-2">
-                    <p className="text-sm text-gray-600">Hoặc chọn ảnh mẫu</p>
+                    <p className="text-sm text-gray-600">Or choose a preset image</p>
                     <div className="grid grid-cols-3 gap-2">
                         {presetAvatarUrls.map((presetUrl) => (
                             <button
@@ -119,7 +119,7 @@ export const GroupInfoEditModal: React.FC<GroupInfoEditModalProps> = ({
 
                 <div className="space-y-2 border-t border-slate-200 pt-3">
                     <p className="text-sm font-semibold text-gray-primary">
-                        Thành viên ({participants.length})
+                        Members ({participants.length})
                     </p>
                     <div className="flex items-center">
                         <div className="flex items-center">
@@ -142,7 +142,7 @@ export const GroupInfoEditModal: React.FC<GroupInfoEditModalProps> = ({
                             {participants.length > modalMembers.length && (
                                 <div
                                     className="-ml-2.5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border-2 border-slate-700 bg-slate-600 text-xs font-semibold text-white"
-                                    title="Xem thêm thành viên"
+                                    title="See more members"
                                 >
                                     ...
                                 </div>
@@ -161,7 +161,7 @@ export const GroupInfoEditModal: React.FC<GroupInfoEditModalProps> = ({
                         className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm disabled:cursor-not-allowed"
                         disabled={isUpdatingGroupAvatar}
                     >
-                        Đóng
+                        Close
                     </button>
                 </div>
             </div>
@@ -200,7 +200,7 @@ export const AddGroupMemberModal: React.FC<AddGroupMemberModalProps> = ({
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Thêm thành viên"
+            title="Add member"
             size="sm"
         >
             <div className="p-4 space-y-3">
@@ -208,7 +208,7 @@ export const AddGroupMemberModal: React.FC<AddGroupMemberModalProps> = ({
                     type="text"
                     value={friendSearch}
                     onChange={(event) => onSearchChange(event.target.value)}
-                    placeholder="Tìm theo tên hoặc số điện thoại"
+                    placeholder="Search by name or phone number"
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-green-primary focus:outline-none"
                     disabled={isAddingMembers}
                 />
@@ -216,11 +216,11 @@ export const AddGroupMemberModal: React.FC<AddGroupMemberModalProps> = ({
                 <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
                     {isLoadingFriends ? (
                         <div className="p-3 text-sm text-gray-500">
-                            Đang tải danh sách bạn bè...
+                            Loading friends list...
                         </div>
                     ) : filteredFriendOptions.length === 0 ? (
                         <div className="p-3 text-sm text-gray-500">
-                            Không còn bạn bè nào để thêm.
+                            No more friends to add.
                         </div>
                     ) : (
                         filteredFriendOptions.map((friend) => (
@@ -259,14 +259,14 @@ export const AddGroupMemberModal: React.FC<AddGroupMemberModalProps> = ({
                         disabled={isAddingMembers}
                         className="rounded-lg border border-slate-200 px-4 py-2 text-sm"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={onConfirm}
                         disabled={isAddingMembers || selectedFriendIds.length === 0}
                         className="rounded-lg bg-green-primary px-4 py-2 text-sm text-white disabled:opacity-50"
                     >
-                        {isAddingMembers ? 'Đang thêm...' : 'Thêm thành viên'}
+                        {isAddingMembers ? 'Adding...' : 'Add members'}
                     </button>
                 </div>
             </div>

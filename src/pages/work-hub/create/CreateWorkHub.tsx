@@ -238,7 +238,7 @@ function getRandomAvatarColor(): string {
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const TEST_OWNER_FULL_NAME = "PHan phước HIệp";
+const TEST_OWNER_FULL_NAME = "Phan Phuoc Hiep";
 
 function getStorageItem(key: string): string | null {
   try {

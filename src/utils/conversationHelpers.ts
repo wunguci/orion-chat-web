@@ -91,26 +91,26 @@ export const getLastMessagePreview = (
     message: MessageDetail | null,
 ): string => {
     if (!message) {
-        return 'Chưa có tin nhắn';
+        return 'No messages yet';
     }
 
     const { content, messageType, isRevoked, isDeleted } = message;
 
     if (isRevoked || isDeleted) {
-        return 'Tin nhắn đã được thu hồi';
+        return 'Message has been recalled';
     }
 
     switch (messageType) {
         case 'FILE':
-            return 'Tệp đính kèm';
+            return 'Attachment';
         case 'IMAGE':
-            return 'Hình ảnh';
+            return 'Image';
         case 'VIDEO':
             return 'Video';
         case 'AUDIO':
-            return 'Âm thanh';
+            return 'Audio';
         default:
-            return content || 'Đã gửi tin nhắn';
+            return content || 'Sent a message';
     }
 };
 

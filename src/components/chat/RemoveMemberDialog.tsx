@@ -54,21 +54,19 @@ export const RemoveMemberDialog: React.FC<RemoveMemberDialogProps> = ({
                         <Trash2 size={24} className="text-red-600" />
                     </div>
                     <h2 className="text-lg font-semibold text-gray-primary">
-                        Xóa thành viên
+                        Remove member
                     </h2>
                 </div>
 
                 {/* Content */}
                 <div className="mb-4">
                     <p className="text-sm text-gray-secondary mb-4">
-                        Bạn có chắc muốn xóa <strong>{memberName}</strong> khỏi
-                        nhóm?
+                        Are you sure you want to remove <strong>{memberName}</strong> from the group?
                     </p>
 
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
                         <p className="text-xs text-red-700">
-                            ⚠️ Hành động này không thể hoàn tác. Thành viên sẽ
-                            bị xóa khỏi nhóm và sẽ nhận được thông báo.
+                            This action cannot be undone. The member will be removed from the group and will receive a notification.
                         </p>
                     </div>
 
@@ -86,7 +84,7 @@ export const RemoveMemberDialog: React.FC<RemoveMemberDialogProps> = ({
                         disabled={isLoading}
                         className="px-4 py-2 rounded-lg border border-slate-200 text-gray-primary hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                        Hủy
+                        Cancel
                     </button>
                     <button
                         onClick={handleConfirm}
@@ -96,10 +94,10 @@ export const RemoveMemberDialog: React.FC<RemoveMemberDialogProps> = ({
                         {isLoading ? (
                             <>
                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                Đang xử lý...
+                                Processing...
                             </>
                         ) : (
-                            'Xóa thành viên'
+                            'Remove member'
                         )}
                     </button>
                 </div>

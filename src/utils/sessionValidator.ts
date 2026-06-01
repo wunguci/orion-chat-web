@@ -15,7 +15,7 @@ export async function checkSessionValidity(): Promise<CheckSessionResponse> {
         if (!token) {
             return {
                 isValid: false,
-                message: 'Không tìm thấy token',
+                message: 'Token not found',
             };
         }
 
@@ -31,22 +31,25 @@ export async function checkSessionValidity(): Promise<CheckSessionResponse> {
             const data = await response.json();
             if (data.message) {
                 const messageText = String(data.message);
-                const isExpired = messageText.includes('hết hạn');
-                const isInactive = messageText.includes('không hoạt động');
+                const isExpired = messageText.includes('hết hạn') || messageText.toLowerCase().includes('expired');
+                const isInactive = messageText.includes('không hoạt động') || messageText.toLowerCase().includes('inactivity') || messageText.toLowerCase().includes('inactive');
                 const isOtherLogin =
                     messageText.includes('đăng nhập') ||
-                    messageText.includes('thiết bị');
+                    messageText.includes('thiết bị') ||
+                    messageText.toLowerCase().includes('logged in') ||
+                    messageText.toLowerCase().includes('device') ||
+                    messageText.toLowerCase().includes('conflict');
 
                 if (isExpired || isInactive || isOtherLogin) {
                     const reason = isInactive
-                        ? 'do không hoạt động'
+                        ? 'due to inactivity'
                         : isOtherLogin
-                          ? 'do đăng nhập ở thiết bị khác'
-                          : 'do phiên đã hết hạn';
+                          ? 'due to login from another device'
+                          : 'due to session expiration';
 
                     return {
                         isValid: false,
-                        message: `Phiên làm việc đã hết hạn ${reason}.`,
+                        message: `Your session has expired ${reason}.`,
                     };
                 }
             }
@@ -60,7 +63,7 @@ export async function checkSessionValidity(): Promise<CheckSessionResponse> {
         console.error('[Session Check] Error:', error);
         return {
             isValid: false,
-            message: 'Lỗi kiểm tra phiên làm việc',
+            message: 'Error verifying session',
         };
     }
 }
@@ -75,7 +78,7 @@ export async function handleSessionExpired(
     if (showAlert) {
         alert(
             message ||
-                'Phiên đăng nhập của bạn đã hết hạn.\n\nVui lòng đăng nhập lại.',
+                'Your session has expired.\n\nPlease log in again.',
         );
     }
 

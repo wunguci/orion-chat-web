@@ -354,9 +354,9 @@ export const ConversationGroupInfoPanel: React.FC<
     }, [effectiveMyRole]);
 
     const getMemberRoleLabel = useCallback((role: GroupMemberItem['role']) => {
-        if (role === 'admin') return 'Trưởng nhóm';
-        if (role === 'co-admin') return 'Phó nhóm';
-        return 'Thành viên';
+        if (role === 'admin') return 'Leader';
+        if (role === 'co-admin') return 'Co-admin';
+        return 'Member';
     }, []);
 
     const isSameLevelTransferRole = useCallback(
@@ -476,7 +476,7 @@ export const ConversationGroupInfoPanel: React.FC<
         const message = getContextMessage();
 
         if (!message) {
-            setMediaActionError('Không tìm thấy tin nhắn');
+            setMediaActionError('Cannot find message');
             return;
         }
 
@@ -491,7 +491,7 @@ export const ConversationGroupInfoPanel: React.FC<
                     break;
                 }
                 if (!message.fileUrl) {
-                    setMediaActionError('Không thể mở tài liệu');
+                    setMediaActionError('Cannot open file');
                     return;
                 }
                 window.open(message.fileUrl, '_blank');
@@ -517,7 +517,7 @@ export const ConversationGroupInfoPanel: React.FC<
         const message = getContextMessage();
 
         if (!conversationId || !message?.id) {
-            setMediaActionError('Thiếu thông tin để xóa tin nhắn');
+            setMediaActionError('Missing information to delete message');
             return;
         }
 
@@ -538,7 +538,7 @@ export const ConversationGroupInfoPanel: React.FC<
             const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : 'Xóa tin nhắn thất bại';
+                    : 'Delete message failed';
             setMediaActionError(errorMessage);
         }
     };
@@ -547,7 +547,7 @@ export const ConversationGroupInfoPanel: React.FC<
         const message = getContextMessage();
 
         if (!conversationId || !message?.id) {
-            setMediaActionError('Thiếu thông tin để thu hồi tin nhắn');
+            setMediaActionError('Missing information to recall message');
             return;
         }
 
@@ -559,7 +559,7 @@ export const ConversationGroupInfoPanel: React.FC<
             Date.now() - createdAt <= 24 * 60 * 60 * 1000;
 
         if (!within24Hours) {
-            setMediaActionError('Tin nhắn đã qua 24h, không thể thu hồi');
+            setMediaActionError('Message has expired 24h, cannot recall');
             return;
         }
 
@@ -574,7 +574,7 @@ export const ConversationGroupInfoPanel: React.FC<
             } else {
                 if (!isAdmin) {
                     setMediaActionError(
-                        'Chỉ admin mới có thể xóa tin nhắn người khác',
+                        'Only admin can delete other people\'s messages',
                     );
                     return;
                 }
@@ -594,22 +594,22 @@ export const ConversationGroupInfoPanel: React.FC<
             const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : 'Thu hồi tin nhắn thất bại';
+                    : 'Recall message failed';
             setMediaActionError(errorMessage);
         }
     };
 
     const getDurationLabel = (duration: number) => {
-        if (duration === 0) return 'Không bao giờ';
-        if (duration === 3600) return 'Sau 1 giờ';
-        if (duration === 86400) return 'Sau 24 giờ';
+        if (duration === 0) return 'Never';
+        if (duration === 3600) return 'After 1 hour';
+        if (duration === 86400) return 'After 24 hours';
         return `${duration}s`;
     };
 
     const handleAutoDeleteChange = async (duration: number) => {
         if (!conversationId) return;
         if (!isAdmin) {
-            const error = 'Chỉ admin mới được chỉnh tin nhắn tự xóa';
+            const error = 'Only admin can edit auto-delete messages';
             setMediaActionError(error);
             throw new Error(error);
         }
@@ -625,7 +625,7 @@ export const ConversationGroupInfoPanel: React.FC<
             const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : 'Cập nhật tin nhắn tự xóa thất bại';
+                    : 'Update auto-delete messages failed';
             setMediaActionError(errorMessage);
             throw new Error(errorMessage);
         }
@@ -633,7 +633,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
     const handleOpenAutoDeleteModal = () => {
         if (!isAdmin) {
-            setMediaActionError('Chỉ admin mới được chỉnh tin nhắn tự xóa');
+            setMediaActionError('Only admin can edit auto-delete messages');
             return;
         }
         setIsAutoDeleteModalOpen(true);
@@ -642,7 +642,7 @@ export const ConversationGroupInfoPanel: React.FC<
     const handleHideConversation = async (password: string) => {
         if (!conversationId) return;
         if (!password.trim()) {
-            throw new Error('Vui lòng nhập mật khẩu hợp lệ');
+            throw new Error('Please enter a valid password');
         }
 
         try {
@@ -655,7 +655,7 @@ export const ConversationGroupInfoPanel: React.FC<
             const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : 'Cập nhật trạng thái ẩn trò chuyện thất bại';
+                    : 'Update conversation hidden failed';
             setMediaActionError(errorMessage);
             throw new Error(errorMessage);
         }
@@ -678,7 +678,7 @@ export const ConversationGroupInfoPanel: React.FC<
             const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : 'Cập nhật trạng thái ẩn trò chuyện thất bại';
+                    : 'Update conversation hidden failed';
             setMediaActionError(errorMessage);
         }
     };
@@ -726,7 +726,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
         const normalizedName = groupNameInput.trim();
         if (!normalizedName) {
-            setGroupInfoError('Tên nhóm không được để trống');
+            setGroupInfoError('Group name cannot be empty');
             return;
         }
 
@@ -745,7 +745,7 @@ export const ConversationGroupInfoPanel: React.FC<
             setGroupInfoError(
                 error instanceof Error
                     ? error.message
-                    : 'Đổi tên nhóm thất bại',
+                    : 'Update group name failed',
             );
         } finally {
             setIsUpdatingGroupName(false);
@@ -775,7 +775,7 @@ export const ConversationGroupInfoPanel: React.FC<
             setGroupInfoError(
                 error instanceof Error
                     ? error.message
-                    : 'Cập nhật ảnh nhóm thất bại',
+                    : 'Update group avatar failed',
             );
         } finally {
             setIsUpdatingGroupAvatar(false);
@@ -807,7 +807,7 @@ export const ConversationGroupInfoPanel: React.FC<
             setGroupInfoError(
                 error instanceof Error
                     ? error.message
-                    : 'Không thể chọn ảnh mẫu',
+                    : 'Cannot select preset avatar',
             );
         } finally {
             setIsUpdatingGroupAvatar(false);
@@ -824,7 +824,7 @@ export const ConversationGroupInfoPanel: React.FC<
         if (!conversationId) return;
 
         if (selectedFriendIds.length === 0) {
-            setAddMemberError('Vui lòng chọn ít nhất một thành viên');
+            setAddMemberError('Please select at least one member');
             return;
         }
 
@@ -836,7 +836,7 @@ export const ConversationGroupInfoPanel: React.FC<
             0;
         if (currentCount + selectedFriendIds.length > memberLimit) {
             setAddMemberError(
-                `Nhóm chỉ cho phép tối đa ${memberLimit} thành viên`,
+                `Group only allows a maximum of ${memberLimit} members`,
             );
             return;
         }
@@ -895,7 +895,7 @@ export const ConversationGroupInfoPanel: React.FC<
             const errorMessage =
                 error instanceof Error
                     ? error.message
-                    : 'Xóa lịch sử trò chuyện thất bại';
+                    : 'Clear conversation history failed';
             setMediaActionError(errorMessage);
             throw new Error(errorMessage);
         }
@@ -936,7 +936,7 @@ export const ConversationGroupInfoPanel: React.FC<
     const handleToggleApproveNewMembers = async () => {
         if (!canReviewJoinRequests) {
             setMediaActionError(
-                'Chỉ trưởng nhóm hoặc phó nhóm mới được bật/tắt duyệt thành viên mới',
+                'Only group leader or vice group leader can turn on/off approve new members',
             );
             return;
         }
@@ -983,15 +983,15 @@ export const ConversationGroupInfoPanel: React.FC<
 
     const handleCopyConversationId = async () => {
         if (!conversationId) {
-            setMediaActionError('Không tìm thấy ID nhóm');
+            setMediaActionError('Group ID not found');
             return;
         }
 
         try {
             await navigator.clipboard.writeText(conversationId);
-            setMediaActionError('Đã sao chép ID nhóm');
+            setMediaActionError('Group ID copied successfully');
         } catch {
-            setMediaActionError('Không thể sao chép ID nhóm');
+            setMediaActionError('Failed to copy group ID');
         }
     };
 
@@ -1004,7 +1004,7 @@ export const ConversationGroupInfoPanel: React.FC<
             if (isGroupOwner) {
                 if (!newAdminUserId) {
                     setMediaActionError(
-                        'Vui lòng chọn thành viên để chuyển quyền quản trị trước khi rời nhóm',
+                        'Please select a member to transfer ownership before leaving the group',
                     );
                     return;
                 }
@@ -1017,7 +1017,7 @@ export const ConversationGroupInfoPanel: React.FC<
                     isSameLevelTransferRole(selectedMember.role)
                 ) {
                     setMediaActionError(
-                        'Không thể chuyển quyền cho thành viên cùng cấp với bạn',
+                        'Cannot transfer ownership to a member of the same level',
                     );
                     return;
                 }
@@ -1034,7 +1034,7 @@ export const ConversationGroupInfoPanel: React.FC<
             onConversationRemoved?.(conversationId);
         } catch (error) {
             const errorMessage =
-                error instanceof Error ? error.message : 'Rời nhóm thất bại';
+                error instanceof Error ? error.message : 'Leave group failed';
             setMediaActionError(errorMessage);
         } finally {
             setIsLeavingGroup(false);
@@ -1262,7 +1262,7 @@ export const ConversationGroupInfoPanel: React.FC<
         }) => {
             if (payload.groupId !== conversationId) return;
             if (payload.newAdminUserId === currentUserId) {
-                setMediaActionError('Bạn đã được chuyển quyền quản trị nhóm');
+                setMediaActionError('You have been transferred group ownership');
             }
         };
 
@@ -1311,7 +1311,7 @@ export const ConversationGroupInfoPanel: React.FC<
                 if (payload.status === 'approved') {
                     setHasJustJoinedGroup(true);
                     setMediaActionError(
-                        'Yêu cầu tham gia nhóm đã được chấp nhận',
+                        'Your group join request has been accepted',
                     );
                     setGroupDetail((prev) =>
                         prev
@@ -1326,7 +1326,7 @@ export const ConversationGroupInfoPanel: React.FC<
                 }
 
                 if (payload.status === 'rejected') {
-                    setMediaActionError('Yêu cầu tham gia nhóm đã bị từ chối');
+                    setMediaActionError('Your group join request has been rejected');
                     setGroupDetail((prev) =>
                         prev
                             ? {
@@ -1468,7 +1468,7 @@ export const ConversationGroupInfoPanel: React.FC<
                 setAddMemberError(
                     error instanceof Error
                         ? error.message
-                        : 'Không thể tải danh sách bạn bè',
+                        : 'Failed to load friend list',
                 );
             } finally {
                 setIsLoadingFriends(false);
@@ -1553,7 +1553,7 @@ export const ConversationGroupInfoPanel: React.FC<
                           }
                         : prev,
                 );
-                setMediaActionError('Yêu cầu tham gia nhóm đã được chấp nhận');
+                setMediaActionError('Your group join request has been accepted');
             }
 
             if (type === 'group_join_rejected') {
@@ -1565,7 +1565,7 @@ export const ConversationGroupInfoPanel: React.FC<
                           }
                         : prev,
                 );
-                setMediaActionError('Yêu cầu tham gia nhóm đã bị từ chối');
+                setMediaActionError('Your group join request has been rejected');
             }
         };
 
@@ -1601,7 +1601,7 @@ export const ConversationGroupInfoPanel: React.FC<
     const groupName =
         groupNameOverride ||
         selectedConversation?.groupInfo?.groupName ||
-        'Thông tin nhóm';
+        'Group Info';
     const groupAvatar =
         groupAvatarOverride ||
         toAbsoluteMediaUrl(selectedConversation?.groupInfo?.groupAvatar) ||
@@ -1613,12 +1613,12 @@ export const ConversationGroupInfoPanel: React.FC<
             : selectedConversation?.participants?.length || 0);
     const memberLimit = groupDetail?.memberLimit || 10;
     const joinButtonLabel = hasPendingJoinRequest
-        ? 'Đang chờ duyệt yêu cầu'
+        ? 'Waiting for join request approval'
         : isGroupFull
-          ? 'Nhóm đã đủ 10 thành viên'
+          ? 'Group is full'
           : groupSettings.approveNewMembers
-            ? 'Yêu cầu tham gia nhóm'
-            : 'Tham gia nhóm ngay';
+            ? 'Request to join group'
+            : 'Join group now';
 
     if (showMediaStorage) {
         return (
@@ -1653,17 +1653,17 @@ export const ConversationGroupInfoPanel: React.FC<
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
                     <div className="w-full max-w-md bg-white rounded-xl p-5 flex flex-col gap-4">
                         <h3 className="text-lg font-semibold text-gray-primary">
-                            Chuyển quyền quản trị
+                            Transfer group ownership
                         </h3>
                         <p className="text-sm text-gray-500">
-                            Bạn là quản trị viên. Vui lòng chọn quản trị viên
-                            mới trước khi rời nhóm.
+                            You are the group leader. Please select a new group
+                            leader before leaving the group.
                         </p>
 
                         <div className="max-h-56 overflow-y-auto flex flex-col gap-2">
                             {transferableMembers.length === 0 ? (
                                 <div className="rounded-lg border border-slate-200 p-3 text-sm text-gray-500">
-                                    Chưa có thành viên nào khác để chuyển quyền.
+                                    No other members to transfer ownership to.
                                 </div>
                             ) : (
                                 transferableMembers.map((member) =>
@@ -1722,9 +1722,8 @@ export const ConversationGroupInfoPanel: React.FC<
                                                     </div>
                                                     {isSameLevel && (
                                                         <span className="text-[11px] text-red-500">
-                                                            Không thể chuyển
-                                                            quyền cho người cùng
-                                                            cấp với bạn
+                                                            Cannot transfer
+                                                            ownership to a member of the same level
                                                         </span>
                                                     )}
                                                 </div>
@@ -1743,7 +1742,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                 }}
                                 className="px-4 py-2 rounded-lg border border-slate-200"
                             >
-                                Hủy
+                                Cancel
                             </button>
                             <button
                                 disabled={
@@ -1756,7 +1755,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                 }
                                 className="px-4 py-2 rounded-lg bg-green-primary text-white disabled:opacity-50"
                             >
-                                Chuyển quyền và rời nhóm
+                                Transfer ownership and leave group
                             </button>
                         </div>
                     </div>
@@ -1767,7 +1766,7 @@ export const ConversationGroupInfoPanel: React.FC<
                 <>
                     <div className="p-6 border-b border-slate-200 flex flex-col gap-3">
                         <span className="text-lg font-semibold text-gray-primary">
-                            Thông tin nhóm
+                            Group Information
                         </span>
 
                         <div className="flex flex-col gap-3 items-center">
@@ -1802,7 +1801,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         type="button"
                                         onClick={handleOpenEditGroupInfoModal}
                                         className="rounded-full p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                                        title="Chỉnh sửa thông tin nhóm"
+                                        title="Edit group info"
                                     >
                                         <Pencil className="h-4 w-4" />
                                     </button>
@@ -1820,7 +1819,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         className="text-green-primary"
                                     />
                                     <span className="text-xs text-gray-primary">
-                                        Tắt thông báo
+                                        Turn off notifications
                                     </span>
                                 </button>
                                 <button
@@ -1844,11 +1843,11 @@ export const ConversationGroupInfoPanel: React.FC<
                                     )}
                                     <span className="text-xs text-gray-primary">
                                         {isPinned
-                                            ? 'Bo ghim'
-                                            : 'Ghim hoi thoai'}
+                                            ? 'Unpin chat'
+                                            : 'Pin chat'}
                                     </span>
                                     <span className="hidden">
-                                        Ghi hội thoại
+                                        Pin chat
                                     </span>
                                 </button>
                                 <button
@@ -1860,7 +1859,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         className="text-green-primary"
                                     />
                                     <span className="text-xs text-gray-primary">
-                                        Thêm thành viên
+                                        Add members
                                     </span>
                                 </button>
                                 <button
@@ -1872,7 +1871,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         className="text-green-primary"
                                     />
                                     <span className="text-xs text-gray-primary">
-                                        Quản lý nhóm
+                                        Manage group
                                     </span>
                                 </button>
                             </>
@@ -1938,7 +1937,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                     ))}
                                     {imageMessages.length === 0 && (
                                         <div className="col-span-4 text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
-                                            Chưa có ảnh/video
+                                            No images/videos yet
                                         </div>
                                     )}
                                 </div>
@@ -1956,7 +1955,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         e.currentTarget.style.backgroundColor = 'transparent';
                                     }}
                                 >
-                                    Xem tất cả
+                                    View all
                                 </button>
                             </>
                         )}
@@ -1988,7 +1987,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         >
                                             <span className="text-xs text-gray-700 truncate flex-1">
                                                 {file.fileName ||
-                                                    'Tệp đính kèm'}
+                                                    'Attachment'}
                                             </span>
                                             <button
                                                 onClick={(e) =>
@@ -2006,7 +2005,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                     ))}
                                     {fileMessages.length === 0 && (
                                         <div className="text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
-                                            Chưa có file
+                                            No files yet
                                         </div>
                                     )}
                                 </div>
@@ -2024,7 +2023,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         e.currentTarget.style.backgroundColor = 'transparent';
                                     }}
                                 >
-                                    Xem tất cả
+                                    View all
                                 </button>
                             </>
                         )}
@@ -2086,7 +2085,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         ))}
                                     {linkMessages.length === 0 && (
                                         <div className="text-sm text-gray-500 py-2 text-center bg-slate-50 rounded-lg">
-                                            Chưa có link
+                                            No links yet
                                         </div>
                                     )}
                                 </div>
@@ -2104,7 +2103,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                         e.currentTarget.style.backgroundColor = 'transparent';
                                     }}
                                 >
-                                    Xem tất cả
+                                    View all
                                 </button>
                             </>
                         )}
@@ -2112,14 +2111,14 @@ export const ConversationGroupInfoPanel: React.FC<
 
                     <div className="flex flex-col gap-2">
                         <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
-                            <span className="font-semibold">Thành viên</span>
+                            <span className="font-semibold">Members</span>
                             <div className="mt-1 mb-1 flex items-center justify-between rounded-lg bg-white px-2 py-2 border border-slate-200">
                                 <div className="flex flex-col">
                                     <span className="text-[14px] text-gray-primary">
-                                        Duyệt thành viên mới
+                                        Review new members
                                     </span>
                                     <span className="text-[11px] text-gray-secondary">
-                                        Chỉ trưởng/phó nhóm có quyền bật tắt
+                                        Only group admins can enable/disable
                                     </span>
                                 </div>
                                 <ToggleSwitch
@@ -2144,7 +2143,7 @@ export const ConversationGroupInfoPanel: React.FC<
                             >
                                 <UserRound size={20} />
                                 <span className="text-[15px]">
-                                    {memberCount}/{memberLimit} thành viên
+                                    {memberCount}/{memberLimit} members
                                 </span>
                             </button>
                             {canReviewJoinRequests &&
@@ -2158,7 +2157,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                     >
                                         <Users size={20} />
                                         <span className="text-[15px]">
-                                            Yêu cầu tham gia
+                                            Join requests
                                         </span>
                                         {pendingJoinRequestCount > 0 && (
                                             <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[11px] text-white">
@@ -2174,13 +2173,13 @@ export const ConversationGroupInfoPanel: React.FC<
                                 <Link size={20} />
                                 <div className="flex flex-col items-start">
                                     <span className="text-[15px]">
-                                        Link tham gia nhóm
+                                        Join link
                                     </span>
                                     <span className="text-[12px] text-blue-dark text-left">
                                         {conversationId}
                                     </span>
                                     <span className="text-[11px] text-green-primary text-left underline">
-                                        Phát sinh mã QR
+                                        Generate QR code
                                     </span>
                                 </div>
                                 <div className="ml-auto flex items-center gap-3">
@@ -2191,36 +2190,36 @@ export const ConversationGroupInfoPanel: React.FC<
                         </div>
 
                         <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
-                            <span className="font-semibold">Bảng tin nhóm</span>
+                            <span className="font-semibold">Group info</span>
                             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                                 <AlarmClockCheck size={20} />
                                 <span className="text-[15px]">
-                                    Danh sách nhắc hẹn
+                                    Schedule list
                                 </span>
                             </button>
                             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                                 <NotebookText size={20} />
                                 <span className="text-[15px]">
-                                    Ghi chú
+                                    Notes
                                 </span>
                             </button>
                             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                                 <Pin size={20} />
                                 <span className="text-[15px]">
-                                    Ghim
+                                    Pinned messages
                                 </span>
                             </button>
                             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                                 <BarChart3 size={20} />
                                 <span className="text-[15px]">
-                                    Bình chọn
+                                    Polls
                                 </span>
                             </button>
                         </div>
 
                         <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
                             <span className="font-semibold">
-                                Thiết lập bảo mật
+                                Privacy & Support
                             </span>
                             <button
                                 onClick={handleOpenAutoDeleteModal}
@@ -2229,7 +2228,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                 <Clock7 size={20} />
                                 <div className="flex flex-col items-start">
                                     <span className="text-[15px]">
-                                        Tin nhắn tự xóa
+                                        Auto delete message
                                     </span>
                                     <span className="text-[12px] text-gray-secondary">
                                         {getDurationLabel(autoDeleteDuration)}
@@ -2244,8 +2243,8 @@ export const ConversationGroupInfoPanel: React.FC<
                                 <EyeOff size={20} />
                                 <span className="text-[15px]">
                                     {isConversationHidden
-                                        ? 'Bỏ ẩn trò chuyện'
-                                        : 'Ẩn trò chuyện'}
+                                        ? 'Unhide chat'
+                                        : 'Hide chat'}
                                 </span>
                             </button>
                         </div>
@@ -2256,7 +2255,7 @@ export const ConversationGroupInfoPanel: React.FC<
                         >
                             <Trash2 size={20} />
                             <span className="text-[15px]">
-                                Xóa lịch sử trò chuyện
+                                Clear history
                             </span>
                         </button>
                         <button
@@ -2264,7 +2263,7 @@ export const ConversationGroupInfoPanel: React.FC<
                             className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 transition-colors text-red-500"
                         >
                             <LogOut size={20} />
-                            <span className="text-[15px]">Rời nhóm</span>
+                            <span className="text-[15px]">Leave group</span>
                         </button>
                     </div>
                 </>
@@ -2281,19 +2280,19 @@ export const ConversationGroupInfoPanel: React.FC<
                             />
                         </button>
                         <span className="text-lg font-semibold text-gray-primary">
-                            Quản lý nhóm
+                            Group Management
                         </span>
                     </div>
 
                     <div className="p-4 border-b border-slate-200 flex flex-col gap-4">
                         <span className="font-semibold text-gray-primary">
-                            Cho phép các thành viên trong nhóm:
+                            Allow members to:
                         </span>
 
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-primary">
-                                    Thay đổi tên & ảnh đại diện của nhóm
+                                    Change group name & avatar
                                 </span>
                                 <Checkbox
                                     checked={groupPermissions.changeNameAvatar}
@@ -2309,8 +2308,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-primary">
-                                    Ghim tin nhắn, ghi chú, bình chọn lên đầu
-                                    hội thoại
+                                    Pin messages
                                 </span>
                                 <Checkbox
                                     checked={groupPermissions.pinMessages}
@@ -2326,7 +2324,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-primary">
-                                    Tạo mới ghi chú, nhắc hẹn
+                                    Create notes
                                 </span>
                                 <Checkbox
                                     checked={groupPermissions.createNotes}
@@ -2342,7 +2340,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-primary">
-                                    Tạo mới bình chọn
+                                    Create polls
                                 </span>
                                 <Checkbox
                                     checked={groupPermissions.createPolls}
@@ -2358,7 +2356,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-primary">
-                                    Gửi tin nhắn
+                                    Send messages
                                 </span>
                                 <Checkbox
                                     checked={groupPermissions.sendMessages}
@@ -2378,7 +2376,7 @@ export const ConversationGroupInfoPanel: React.FC<
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-primary">
-                                    Chế độ phê duyệt thành viên mới
+                                    New member approval mode
                                 </span>
                                 <HelpCircle
                                     size={16}
@@ -2398,15 +2396,14 @@ export const ConversationGroupInfoPanel: React.FC<
                         </div>
                         {!canReviewJoinRequests && (
                             <p className="text-xs text-gray-500 -mt-2">
-                                Chỉ trưởng nhóm hoặc phó nhóm có quyền chỉnh chế
-                                độ này.
+                                Only group admins or vice admins can edit this mode.
                             </p>
                         )}
 
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-primary">
-                                    Đánh dấu tin nhắn từ trưởng/phó nhóm
+                                    Mark messages from admins
                                 </span>
                                 <HelpCircle
                                     size={16}
@@ -2430,8 +2427,7 @@ export const ConversationGroupInfoPanel: React.FC<
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-primary">
-                                    Cho phép thành viên mới đọc tin nhắn gần
-                                    nhất
+                                    Allow new members to read recent messages
                                 </span>
                                 <HelpCircle
                                     size={16}
@@ -2457,7 +2453,7 @@ export const ConversationGroupInfoPanel: React.FC<
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm text-gray-primary">
-                                    Cho phép dùng link tham gia nhóm
+                                    Allow use group join link
                                 </span>
                                 <HelpCircle
                                     size={16}
@@ -2505,7 +2501,7 @@ export const ConversationGroupInfoPanel: React.FC<
                     <div className="p-4 border-b border-slate-200 flex flex-col gap-2">
                         <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                             <Users size={20} />
-                            <span className="text-[15px]">Chặn khỏi nhóm</span>
+                            <span className="text-[15px]">Block from group</span>
                         </button>
                         <button
                             onClick={() => {
@@ -2517,7 +2513,7 @@ export const ConversationGroupInfoPanel: React.FC<
                         >
                             <KeyRound size={20} />
                             <span className="text-[15px]">
-                                Trưởng & phó nhóm
+                                Group admins and vice admins
                             </span>
                         </button>
                     </div>
@@ -2532,17 +2528,17 @@ export const ConversationGroupInfoPanel: React.FC<
                             }`}
                         >
                             <span className="text-[16px] text-[#DC264C] font-semibold">
-                                Giải tán nhóm
+                                Disband group
                             </span>
                         </div>
                         {!isAdmin && (
                             <p className="text-xs text-gray-500 mt-2 text-center">
-                                Chỉ admin mới có thể giải tán nhóm.
+                                Only admins can disband the group.
                             </p>
                         )}
                         {isGroupDissolved && (
                             <p className="text-xs text-red-500 mt-2 text-center">
-                                Nhóm đã được giải tán.
+                                The group has been disbanded.
                             </p>
                         )}
                     </div>
@@ -2556,7 +2552,7 @@ export const ConversationGroupInfoPanel: React.FC<
                         onClick={() => setMediaActionError(null)}
                         className="mt-2 text-xs text-red-100 hover:text-white"
                     >
-                        Đóng
+                        Close
                     </button>
                 </div>
             )}
@@ -2599,7 +2595,7 @@ export const ConversationGroupInfoPanel: React.FC<
             <Modal
                 isOpen={isQrModalOpen}
                 onClose={() => setIsQrModalOpen(false)}
-                title="Mã QR tham gia nhóm"
+                title="Group join QR code"
                 size="sm"
             >
                 <div className="p-4 space-y-4">
@@ -2613,13 +2609,13 @@ export const ConversationGroupInfoPanel: React.FC<
                             includeMargin
                         />
                         <p className="text-xs text-gray-500 text-center">
-                            Quét mã QR để lấy ID nhóm và gửi yêu cầu tham gia.
+                            Scan QR code to get group ID and send join request.
                         </p>
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-primary">
-                            ID nhóm hiện tại
+                            Current group ID
                         </label>
                         <div className="flex items-center gap-2">
                             <input
@@ -2645,7 +2641,7 @@ export const ConversationGroupInfoPanel: React.FC<
                 groupId={conversationId}
                 canSubmit={!isGroupFull}
                 blockedMessage={
-                    isGroupFull ? 'Nhóm đã đủ 10 thành viên' : undefined
+                    isGroupFull ? 'Group is full' : undefined
                 }
                 onClose={() => setIsJoinRequestDialogOpen(false)}
                 onSuccess={(result) => {
@@ -2661,7 +2657,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                 : prev,
                         );
                         setMediaActionError(
-                            'Đã tham gia nhóm thành công (không cần duyệt)',
+                            'Successfully joined group (no approval needed)',
                         );
                         void refreshGroupMembers();
                         void refreshGroupDetail();
@@ -2676,7 +2672,7 @@ export const ConversationGroupInfoPanel: React.FC<
                               }
                             : prev,
                     );
-                    setMediaActionError('Đã gửi yêu cầu tham gia nhóm');
+                    setMediaActionError('Join request sent successfully');
                 }}
             />
 
@@ -2703,7 +2699,7 @@ export const ConversationGroupInfoPanel: React.FC<
                 onSuccess={() => {
                     setIsPromoteDialogOpen(false);
                     setIsViewParticipantsModalOpen(false);
-                    setMediaActionError('Đã gán quyền phó nhóm thành công');
+                    setMediaActionError('Promoted to admin successfully');
                 }}
             />
 
@@ -2716,13 +2712,13 @@ export const ConversationGroupInfoPanel: React.FC<
                 onSuccess={() => {
                     setIsRemoveDialogOpen(false);
                     setIsViewParticipantsModalOpen(false);
-                    setMediaActionError('Xóa thành viên thành công');
+                    setMediaActionError('Removed member successfully');
                 }}
             />
 
             <LeaveGroupDialog
                 isOpen={isLeaveGroupDialogOpen}
-                groupName={selectedConversation?.groupInfo?.groupName || 'Nhóm'}
+                groupName={selectedConversation?.groupInfo?.groupName || 'Group'}
                 groupId={conversationId}
                 isOwner={selectedConversation?.myRole === 'admin'}
                 hasOtherAdmin={groupMembers.some(
@@ -2737,7 +2733,7 @@ export const ConversationGroupInfoPanel: React.FC<
 
             <DisbandGroupDialog
                 isOpen={isDisbandGroupDialogOpen}
-                groupName={selectedConversation?.groupInfo?.groupName || 'Nhóm'}
+                groupName={selectedConversation?.groupInfo?.groupName || 'Group'}
                 groupId={conversationId}
                 memberCount={groupMembers.length}
                 onClose={() => setIsDisbandGroupDialogOpen(false)}
@@ -2750,18 +2746,18 @@ export const ConversationGroupInfoPanel: React.FC<
             <PendingJoinRequestsList
                 isOpen={isPendingJoinRequestsOpen}
                 groupId={conversationId}
-                groupName={selectedConversation?.groupInfo?.groupName || 'Nhóm'}
+                groupName={selectedConversation?.groupInfo?.groupName || 'Group'}
                 onClose={() => setIsPendingJoinRequestsOpen(false)}
                 refreshSignal={pendingJoinRequestCount}
                 onCountChange={setPendingJoinRequestCount}
                 onRequestApproved={() => {
-                    setMediaActionError('Chấp nhận yêu cầu thành công');
+                    setMediaActionError('Accepted join request successfully');
                     void refreshGroupMembers();
                     void refreshGroupDetail();
                     void refreshPendingJoinRequestsCount();
                 }}
                 onRequestRejected={() => {
-                    setMediaActionError('Từ chối yêu cầu thành công');
+                    setMediaActionError('Rejected join request successfully');
                     void refreshGroupDetail();
                     void refreshPendingJoinRequestsCount();
                 }}

@@ -40,7 +40,7 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
       const message =
         error instanceof Error
           ? error.message
-          : "Khong the gui loi moi ket ban";
+          : "Failed to send friend request";
       window.alert(message);
     } finally {
       setIsSending(false);

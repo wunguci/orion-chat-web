@@ -38,7 +38,7 @@ export const GroupMessageItem: React.FC<GroupMessageItemProps> = ({
 
             {message.forwardedFromMessageId && (
                 <p className="text-[11px] italic text-slate-500">
-                    Tin nhắn được chuyển tiếp
+                    Forwarded message
                 </p>
             )}
 
@@ -52,7 +52,7 @@ export const GroupMessageItem: React.FC<GroupMessageItemProps> = ({
             ) : (
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-800">
                     {message.isRecalled
-                        ? 'Tin nhắn đã được thu hồi'
+                        ? 'Message recalled'
                         : message.content}
                 </div>
             )}

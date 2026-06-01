@@ -45,7 +45,7 @@ export function useActivityTimeout(timeoutMinutes: number = 15) {
 
                 // Show confirmation dialog before logout
                 const shouldLogout = window.confirm(
-                    `Phiên làm việc sẽ hết hạn do không hoạt động. Nhấn OK để tiếp tục, hoặc Hủy để đăng xuất.`,
+                    `Your session is about to expire due to inactivity. Click OK to continue, or Cancel to log out.`,
                 );
 
                 if (!shouldLogout) {

@@ -40,7 +40,7 @@ export const ChatSidebar: React.FC = () => {
                     placeholder="Search chat ..."
                 />
             </div>
-            <div className="px-3 py-2 text-sm text-slate-400">Tất cả</div>
+            <div className="px-3 py-2 text-sm text-slate-400">All</div>
             <div className="flex-1 overflow-y-auto">
                 {chats.map((c, i) => (
                     <div

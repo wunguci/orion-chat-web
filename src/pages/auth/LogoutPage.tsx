@@ -49,9 +49,9 @@ export default function LogoutPage() {
                     </div>
                 </div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                    Đang đăng xuất...
+                    Logging out...
                 </h2>
-                <p className="text-gray-600">Vui lòng chờ</p>
+                <p className="text-gray-600">Please wait</p>
             </div>
         </div>
     );

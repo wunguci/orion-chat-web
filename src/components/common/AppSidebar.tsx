@@ -131,10 +131,10 @@ const AppSidebar: React.FC<SidebarProps> = ({
                 isOpen={isLogoutConfirmOpen}
                 onClose={() => setIsLogoutConfirmOpen(false)}
                 onConfirm={logout}
-                title="Xác nhận đăng xuất"
-                message="Phiên đăng nhập hiện tại sẽ bị hủy bỏ. Bạn sẽ cần nhập lại thông tin để đăng nhập lại."
-                confirmText="Đăng xuất"
-                cancelText="Hủy bỏ"
+                title="Confirm Logout"
+                message="Your current session will be terminated. You will need to re-enter your information to log in again."
+                confirmText="Logout"
+                cancelText="Cancel"
                 variant="danger"
             />
             <aside

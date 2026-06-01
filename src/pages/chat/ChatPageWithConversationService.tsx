@@ -993,7 +993,7 @@ export const ChatPage: React.FC = () => {
                           payload.replyToMessageId,
                       senderName:
                           payload.replyToMessagePreview.senderName ||
-                          'Tin nhắn gốc',
+                          'Original message',
                       content:
                           payload.replyToMessagePreview.content ||
                           payload.replyToMessagePreview.snippet ||
@@ -1458,7 +1458,7 @@ export const ChatPage: React.FC = () => {
                 if (recalledIsLatest) {
                     const lastMessageOverride = {
                         messageId: recalledMessageId,
-                        content: 'Tin nhắn đã được thu hồi',
+                        content: 'Message has been recalled',
                         messageType: 'TEXT' as const,
                         senderBy: payload.revokedBy,
                         createdAt: payload.revokedAt,
@@ -1813,7 +1813,7 @@ export const ChatPage: React.FC = () => {
                                         clientMessageId:
                                             message.clientMessageId,
                                         content:
-                                            'Tin nhắn đã được thu hồi',
+                                            'Message has been recalled',
                                         messageType: 'TEXT',
                                         senderBy: message.senderId,
                                         createdAt:
@@ -1862,7 +1862,7 @@ export const ChatPage: React.FC = () => {
         async (message: SocketMessage) => {
             if (joinStatus === 'error') {
                 setError(
-                    'Bạn không có quyền thu hồi tin nhắn trong cuộc trò chuyện này.',
+                    'You do not have permission to recall messages in this conversation.',
                 );
                 return;
             }
@@ -1872,13 +1872,13 @@ export const ChatPage: React.FC = () => {
             console.log('[ChatPage] Recall request message:', message);
 
             if (message.id.startsWith('msg_')) {
-                setError('Không thể thu hồi: tin nhắn chưa gửi xong.');
+                setError('Cannot recall: message has not been fully sent.');
                 return;
             }
 
             if (!isPersistedMessageId(message.id)) {
                 setError(
-                    'Không thể thu hồi: tin nhắn chưa có ID máy chủ hợp lệ.',
+                    'Cannot recall: message does not have a valid server ID.',
                 );
                 return;
             }
@@ -1898,7 +1898,7 @@ export const ChatPage: React.FC = () => {
                 console.error('Error recalling message:', err);
                 const errorMessage = mapChatActionError(err, 'recall');
 
-                if (errorMessage === 'Tin nhắn đã qua 24h, không thể thu hồi') {
+                if (errorMessage === 'Message older than 24h cannot be recalled' || errorMessage === 'Tin nhắn đã qua 24h, không thể thu hồi') {
                     setIsRecallExpiredDialogOpen(true);
                     setError(null);
                     return;
@@ -1920,7 +1920,7 @@ export const ChatPage: React.FC = () => {
         async (message: SocketMessage) => {
             if (joinStatus === 'error') {
                 setError(
-                    'Bạn không có quyền xóa tin nhắn trong cuộc trò chuyện này.',
+                    'You do not have permission to delete messages in this conversation.',
                 );
                 return;
             }
@@ -2131,7 +2131,7 @@ export const ChatPage: React.FC = () => {
         async (message: SocketMessage, emoji: string) => {
             if (joinStatus === 'error') {
                 setError(
-                    'Bạn không có quyền thao tác trong cuộc trò chuyện này.',
+                    'You do not have permission to perform actions in this conversation.',
                 );
                 return;
             }
@@ -2141,7 +2141,7 @@ export const ChatPage: React.FC = () => {
             const persistedMessageId = resolvePersistedMessageId(message);
             if (!persistedMessageId) {
                 setError(
-                    'Không thể bày tỏ cảm xúc: tin nhắn chưa có ID máy chủ hợp lệ.',
+                    'Cannot react: message does not have a valid server ID.',
                 );
                 return;
             }
@@ -2226,7 +2226,7 @@ export const ChatPage: React.FC = () => {
                 snippet:
                     message.content ||
                     message.fileName ||
-                    'Tin nhắn gốc không còn khả dụng',
+                    'Original message is no longer available',
             });
         },
         [selectedConversationId],
@@ -2244,7 +2244,7 @@ export const ChatPage: React.FC = () => {
 
             const messageId = resolvePersistedMessageId(message);
             if (!messageId) {
-                setError('Không thể ghim: tin nhắn chưa có ID máy chủ hợp lệ');
+                setError('Cannot pin: message does not have a valid server ID');
                 return;
             }
 
@@ -2324,7 +2324,7 @@ export const ChatPage: React.FC = () => {
         (message: SocketMessage) => {
             if (isPrivateConversation && (iAmBlocked || iAmTheBlocker)) {
                 showActionNotice(
-                    'Không thể chuyển tiếp tin nhắn khi cuộc trò chuyện đã bị chặn.',
+                    'Cannot forward message when the conversation has been blocked.',
                 );
                 return;
             }
@@ -2337,7 +2337,7 @@ export const ChatPage: React.FC = () => {
 
     const handleForwardMessage = useCallback(async () => {
         if (joinStatus === 'error') {
-            setError('Bạn không có quyền thao tác trong cuộc trò chuyện này.');
+            setError('You do not have permission to perform actions in this conversation.');
             return;
         }
 
@@ -2345,7 +2345,7 @@ export const ChatPage: React.FC = () => {
 
         if (isPrivateConversation && (iAmBlocked || iAmTheBlocker)) {
             showActionNotice(
-                'Không thể chuyển tiếp tin nhắn khi cuộc trò chuyện đã bị chặn.',
+                'Cannot forward message when the conversation has been blocked.',
             );
             return;
         }
@@ -2356,13 +2356,13 @@ export const ChatPage: React.FC = () => {
             )
         ) {
             showActionNotice(
-                'Không thể chuyển tiếp tin nhắn vào cuộc trò chuyện đã bị chặn.',
+                'Cannot forward message to a blocked conversation.',
             );
             return;
         }
 
         if (forwardingMessage.fileUrl?.startsWith('blob:')) {
-            setError('Không thể chuyển tiếp tệp khi chưa upload xong.');
+            setError('Cannot forward file before upload completes.');
             return;
         }
 
@@ -2371,7 +2371,7 @@ export const ChatPage: React.FC = () => {
             const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
             if (forwardingMessage.id.startsWith('msg_')) {
-                setError('Không thể chuyển tiếp tin nhắn chưa gửi xong.');
+                setError('Cannot forward message before sending completes.');
                 return;
             }
 
@@ -2438,7 +2438,7 @@ export const ChatPage: React.FC = () => {
             showActionNotice(
                 err instanceof Error
                     ? err.message
-                    : 'Không thể chuyển tiếp tin nhắn.',
+                    : 'Cannot forward message.',
             );
         } finally {
             setIsForwarding(false);
@@ -2516,7 +2516,7 @@ export const ChatPage: React.FC = () => {
             if (!autoWorkflowEnabled || !selectedConversationId) return;
 
             const actionablePattern =
-                /deadline|task|todo|fix|bug|deploy|release|meeting|call|sync|asap|urgent|gấp|họp|lịch|việc|xử lý|ngày mai|hôm nay|tuần sau|trễ/i;
+                /deadline|task|todo|fix|bug|deploy|release|meeting|call|sync|asap|urgent|gấp|họp|lịch|việc|xử lý|ngày mai|hôm nay|tuần sau|trễ|tomorrow|today|next week|late|delayed/i;
             if (!actionablePattern.test(messageText)) return;
 
             try {
@@ -2545,7 +2545,7 @@ export const ChatPage: React.FC = () => {
         ) => {
             if (joinStatus === 'error') {
                 setError(
-                    'Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này.',
+                    'You do not have permission to send messages in this conversation.',
                 );
                 return;
             }
@@ -2667,7 +2667,7 @@ export const ChatPage: React.FC = () => {
         async (file: File) => {
             if (joinStatus === 'error') {
                 setError(
-                    'Bạn không có quyền gửi tệp trong cuộc trò chuyện này.',
+                    'You do not have permission to send files in this conversation.',
                 );
                 return;
             }
@@ -3526,10 +3526,10 @@ export const ChatPage: React.FC = () => {
                             }
                             subtitle={
                                 typingUserNames.length > 0
-                                    ? `${typingUserNames.join(', ')} đang nhập...`
+                                    ? `${typingUserNames.join(', ')} is typing...`
                                     : selectedConversation.type === 'GROUP'
-                                      ? `${selectedConversation.participants?.length || 0} thành viên`
-                                      : 'Vừa mới truy cập'
+                                      ? `${selectedConversation.participants?.length || 0} members`
+                                      : 'Recently active'
                             }
                             isGroupChat={selectedConversation.type === 'GROUP'}
                             groupMembers={
@@ -3610,12 +3610,12 @@ export const ChatPage: React.FC = () => {
                                     >
                                         <span className="block truncate text-xs text-slate-700">
                                             <span className="font-semibold text-amber-700 mr-1">
-                                                Đã ghim
+                                                Pinned
                                                 {currentPinnedMessages.length > 1 ? ` (${currentPinnedMessages.length})` : ''}:
                                             </span>
                                             {currentPinnedMessages[0].snippet ||
                                                 currentPinnedMessages[0].content ||
-                                                'Nội dung đã được ghim'}
+                                                'Content pinned'}
                                         </span>
                                     </button>
                                     <button
@@ -3627,7 +3627,7 @@ export const ChatPage: React.FC = () => {
                                             );
                                         }}
                                         className="shrink-0 rounded p-0.5 text-amber-600 hover:bg-amber-100 transition-colors"
-                                        title="Bỏ ghim"
+                                        title="Unpin"
                                     >
                                         <PinOff size={14} />
                                     </button>
@@ -3636,7 +3636,7 @@ export const ChatPage: React.FC = () => {
                                             type="button"
                                             onClick={() => setIsPinnedBarExpanded((v) => !v)}
                                             className="shrink-0 rounded p-0.5 text-amber-600 hover:bg-amber-100 transition-colors"
-                                            title={isPinnedBarExpanded ? 'Thu gọn' : 'Xem tất cả'}
+                                            title={isPinnedBarExpanded ? 'Collapse' : 'View all'}
                                         >
                                             <svg
                                                 className={`h-4 w-4 transition-transform ${isPinnedBarExpanded ? 'rotate-180' : ''}`}
@@ -3662,7 +3662,7 @@ export const ChatPage: React.FC = () => {
                                             >
                                                 <span className="shrink-0 text-[10px] font-bold text-amber-500 w-3">{idx + 1}</span>
                                                 <span className="truncate text-xs text-slate-700">
-                                                    {pinned.snippet || pinned.content || 'Nội dung đã được ghim'}
+                                                    {pinned.snippet || pinned.content || 'Content pinned'}
                                                 </span>
                                                 <span className="ml-auto flex items-center">
                                                     <PinOff
@@ -3827,21 +3827,21 @@ export const ChatPage: React.FC = () => {
                     setForwardingMessage(null);
                     setForwardTargetConversationId('');
                 }}
-                title="Chuyển tiếp tin nhắn"
+                title="Forward message"
                 size="sm"
             >
                 <div className="p-4 space-y-4">
                     {forwardingMessage && (
                         <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                             {forwardingMessage.isFile
-                                ? `File: ${forwardingMessage.fileName || 'Đính kèm'}`
+                                ? `File: ${forwardingMessage.fileName || 'Attachment'}`
                                 : forwardingMessage.content}
                         </div>
                     )}
 
                     <div>
                         <label className="mb-2 block text-sm font-medium text-slate-700">
-                            Chọn cuộc trò chuyện riêng
+                            Select direct conversation
                         </label>
                         <select
                             value={forwardTargetConversationId}
@@ -3850,7 +3850,7 @@ export const ChatPage: React.FC = () => {
                             }
                             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[var(--chat-primary)] focus:outline-none"
                         >
-                            <option value="">-- Chọn cuộc trò chuyện --</option>
+                            <option value="">-- Select conversation --</option>
                             {forwardableConversations.map((conversation) => (
                                 <option
                                     key={conversation.conversationId}
@@ -3874,7 +3874,7 @@ export const ChatPage: React.FC = () => {
                             }}
                             className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-100"
                         >
-                            Hủy
+                            Cancel
                         </button>
                         <button
                             type="button"
@@ -3888,7 +3888,7 @@ export const ChatPage: React.FC = () => {
                             }
                             className="rounded-lg bg-[var(--chat-primary)] px-3 py-2 text-sm text-white hover:bg-[var(--chat-primary-hover)] disabled:opacity-50"
                         >
-                            {isForwarding ? 'Đang chuyển...' : 'Chuyển tiếp'}
+                            {isForwarding ? 'Forwarding...' : 'Forward'}
                         </button>
                     </div>
                 </div>
@@ -3916,10 +3916,10 @@ export const ChatPage: React.FC = () => {
                     setPendingRecallMessage(null);
                 }}
                 onConfirm={handleConfirmRecallMessage}
-                title="Thu hồi tin nhắn?"
-                message="Tin nhắn sẽ hiển thị là đã thu hồi với cả hai bên."
-                confirmText="Thu hồi"
-                cancelText="Hủy"
+                title="Recall message?"
+                message="This message will be recalled for both parties."
+                confirmText="Recall"
+                cancelText="Cancel"
                 type="warning"
             />
 
@@ -3930,10 +3930,10 @@ export const ChatPage: React.FC = () => {
                     setPendingDeleteMessage(null);
                 }}
                 onConfirm={handleConfirmDeleteMessage}
-                title="Xóa tin nhắn ở phía bạn?"
-                message="Tin nhắn sẽ chỉ bị ẩn ở thiết bị của bạn."
-                confirmText="Xóa"
-                cancelText="Hủy"
+                title="Delete message on your side?"
+                message="The message will only be hidden on your device."
+                confirmText="Delete"
+                cancelText="Cancel"
                 type="danger"
             />
 
@@ -3941,8 +3941,8 @@ export const ChatPage: React.FC = () => {
                 isOpen={isRecallExpiredDialogOpen}
                 onClose={() => setIsRecallExpiredDialogOpen(false)}
                 onConfirm={() => setIsRecallExpiredDialogOpen(false)}
-                title="Không thể thu hồi"
-                message="Tin nhắn đã qua 24h, không thể thu hồi"
+                title="Cannot recall"
+                message="Message older than 24h cannot be recalled"
                 type="info"
             />
         </div>

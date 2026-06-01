@@ -18,7 +18,7 @@ export default function FriendList({ friends }: { friends: Friend[] }) {
         <div className="bg-(--color-surface) rounded p-2">
             {grouped.length === 0 && (
                 <div className="p-6 text-center text-gray-400">
-                    Không có kết quả
+                    No results
                 </div>
             )}
             <div className="contact-list-scroll">

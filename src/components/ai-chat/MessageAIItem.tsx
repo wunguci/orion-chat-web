@@ -17,7 +17,7 @@ export const MessageAIItem: React.FC<MessageAIItemProps> = ({ message }) => {
         isUser ? 'bg-slate-200' : 'bg-green-primary text-white'
       }`}>
         {isUser ? (
-          <Avatar alt="Trần Vũ"/>
+          <Avatar alt="Tran Vu"/>
         ) : (
           <MdOutlineSmartToy className="text-xl" />
         )}

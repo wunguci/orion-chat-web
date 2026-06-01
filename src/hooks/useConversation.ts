@@ -193,7 +193,7 @@ export const useConversations = (): UseConversationsResult => {
                         ...conversation,
                         lastMessage: {
                             ...conversation.lastMessage,
-                            content: 'Tin nhắn đã được thu hồi',
+                            content: 'Message has been recalled',
                             isRecalled: true,
                             // Giữ nguyên metadata còn lại để sidebar vẫn sort theo thời gian cũ.
                         },

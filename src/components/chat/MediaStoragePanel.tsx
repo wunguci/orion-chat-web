@@ -838,7 +838,7 @@ export const MediaStoragePanel: React.FC<MediaStoragePanelProps> = ({
                 )}
             </div>
 
-            {/* ✅ Error Notification */}
+            {/* Error Notification */}
             {mediaActionError && (
                 <div className="fixed bottom-4 right-4 bg-red-500 text-white p-3 rounded-lg shadow-lg z-50 animate-slideUp">
                     <p className="text-sm font-medium">{mediaActionError}</p>

@@ -110,7 +110,7 @@ const AIInsightsPage = () => {
                 void handleAskWorkspace();
               }
             }}
-            placeholder="Hỏi AI workspace: Task nào priority cao nhất tuần này?"
+            placeholder="Ask Workspace AI: Which task has the highest priority this week?"
             className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-wh-green-primary"
           />
           <div className="flex shrink-0 gap-2">
@@ -120,7 +120,7 @@ const AIInsightsPage = () => {
               disabled={!aiQuestion.trim() || asking !== null}
               className="rounded-lg bg-wh-green-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
-              {asking === "workspace" ? "Đang hỏi..." : "Ask Workspace AI"}
+              {asking === "workspace" ? "Asking..." : "Ask Workspace AI"}
             </button>
             <button
               type="button"
@@ -128,7 +128,7 @@ const AIInsightsPage = () => {
               disabled={!aiQuestion.trim() || asking !== null}
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
-              {asking === "knowledge" ? "Đang tìm..." : "Knowledge Search"}
+              {asking === "knowledge" ? "Searching..." : "Knowledge Search"}
             </button>
           </div>
         </div>

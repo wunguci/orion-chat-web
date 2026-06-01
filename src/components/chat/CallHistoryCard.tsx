@@ -26,10 +26,10 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
 
-    if (mins === 0 && secs === 0) return "0 phút";
-    if (mins === 0) return `${secs} giây`;
-    if (secs === 0) return `${mins} phút`;
-    return `${mins} phút ${secs} giây`;
+    if (mins === 0 && secs === 0) return "0 minutes";
+    if (mins === 0) return `${secs} seconds`;
+    if (secs === 0) return `${mins} minutes`;
+    return `${mins} minutes ${secs} seconds`;
   };
 
   // xác định text, màu sắc và icon dựa trên trạng thái cuộc gọi
@@ -41,13 +41,13 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
     if (callMode === "group") {
       if (callStatus === "active") {
         return {
-          text: "Cuộc gọi nhóm đang diễn ra",
+          text: "Group call is ongoing",
           color: "text-indigo-600 font-bold animate-pulse",
           icon: callType === "video" ? Video : Phone,
         };
       }
       return {
-        text: "Cuộc gọi nhóm đã kết thúc",
+        text: "Group call has ended",
         color: "text-slate-500 font-semibold",
         icon: callType === "video" ? Video : Phone,
       };
@@ -55,7 +55,7 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
 
     if (callStatus === "active") {
       return {
-        text: "Cuộc gọi nhóm đang diễn ra",
+        text: "Group call is in progress.",
         color: "text-indigo-600 font-bold animate-pulse",
         icon: callType === "video" ? Video : Phone,
       };
@@ -63,7 +63,7 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
 
     if (callStatus === "completed") {
       return {
-        text: `Cuộc gọi ${callType === "video" ? "video" : "thoại"} ${isMe ? "đi" : "đến"}`,
+        text: `Call ${callType === "video" ? "video" : "audio"} ${isMe ? "outgoing" : "incoming"}`,
         color: "text-green-500",
         icon: callType === "video" ? Video : Phone,
       };
@@ -71,7 +71,7 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
 
     if (callStatus === "missed") {
       return {
-        text: isMe ? "Bạn đã hủy" : "Bạn bị nhỡ",
+        text: isMe ? "You canceled" : "You missed",
         color: "text-red-500",
         icon: PhoneOff,
       };
@@ -80,14 +80,14 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
     // callStatus === "declined": caller sees receiver declined, receiver sees self declined
     if (isMe) {
       return {
-        text: "Người nhận từ chối",
+        text: "The other person declined",
         color: "text-orange-500",
         icon: PhoneOff,
       };
     }
 
     return {
-      text: "Bạn đã từ chối",
+      text: "You declined",
       color: "text-orange-500",
       icon: PhoneOff,
     };
@@ -132,7 +132,7 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
           onClick={onJoinCall}
           className="w-full px-3 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-sm"
         >
-          Tham gia
+          Join Call
         </button>
       ) : (
         <button
@@ -143,7 +143,7 @@ export const CallHistoryCard: React.FC<CallHistoryData & { onCallBack?: () => vo
               : "bg-blue-500 hover:bg-blue-600 text-white"
           }`}
         >
-          Gọi lại
+          Call back
         </button>
       )}
     </div>
