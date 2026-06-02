@@ -58,6 +58,7 @@ import { conversationApi } from '../../services/conversationApi';
 import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 import { debugAuthStatus, getToken, getUser } from '../../utils/token';
 import { getUserInfo } from '../../services/userService';
+import { friendListService, type FriendApiItem } from '../../services/friendListService';
 import { useCall } from '../../hooks/useCall';
 import { useGroupCallContext } from '../../hooks/useGroupCallContext';
 import type { PinnedMessageItem } from '../../types/conversation';
@@ -359,6 +360,20 @@ export const ChatPage: React.FC = () => {
     const [selectedConversationId, setSelectedConversationId] = useState<
         string | null
     >(null);
+
+    const [friends, setFriends] = useState<FriendApiItem[]>([]);
+
+    useEffect(() => {
+        if (!USER_ID) return;
+        friendListService.getFriends(USER_ID)
+            .then((res) => {
+                setFriends(res || []);
+            })
+            .catch((err) => {
+                console.error('Failed to fetch friends:', err);
+            });
+    }, [USER_ID, selectedConversationId]);
+
     const [hiddenMessageKeys, setHiddenMessageKeys] = useState<Set<string>>(
         new Set(),
     );
@@ -2885,6 +2900,13 @@ export const ChatPage: React.FC = () => {
         ? iAmBlocked || iAmTheBlocker
         : false;
 
+    const isFriend = useMemo(() => {
+        if (!otherParticipant?.userId) return false;
+        return friends.some((f) => f.id === otherParticipant.userId);
+    }, [friends, otherParticipant]);
+
+    const hideCallButtons = isPrivateConversation && !isFriend;
+
     const handleStartCall = useCallback(
         async (callType: 'audio' | 'video') => {
             if (!selectedConversation || !otherParticipant) return;
@@ -3608,6 +3630,7 @@ export const ChatPage: React.FC = () => {
                                 (iAmBlocked || iAmTheBlocker)
                             }
                             disableCallButtons={disableCallButtons}
+                            hideCallButtons={hideCallButtons}
                             onAudioCall={() => {
                                 void handleStartCall('audio');
                             }}

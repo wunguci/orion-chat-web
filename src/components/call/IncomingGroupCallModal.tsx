@@ -82,31 +82,39 @@ export const IncomingGroupCallModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl border border-slate-200">
+    <div className="fixed inset-0 bg-[var(--app-overlay)] flex items-center justify-center z-50">
+      <div className="bg-[var(--app-surface)] rounded-2xl p-6 max-w-sm w-full mx-4 border border-[var(--app-primary-border)] shadow-2xl">
         <div className="text-center">
           {/* Group call icon */}
-          <div className="w-20 h-20 rounded-full bg-[var(--chat-primary)] mx-auto mb-4 flex items-center justify-center shadow-lg">
-            <FaUsers className="text-4xl text-white" />
+          <div className="w-20 h-20 rounded-full bg-[var(--chat-primary-bg)] mx-auto mb-4 flex items-center justify-center border border-[var(--app-primary-border)] overflow-hidden">
+            {incomingCall.callerAvatar ? (
+              <img
+                src={incomingCall.callerAvatar}
+                alt={incomingCall.initiatorName || incomingCall.callerName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <FaUsers className="text-4xl text-[var(--chat-primary)]" />
+            )}
           </div>
 
           {/* Header text */}
-          <h3 className="text-xl font-bold text-slate-900 mb-2">
+          <h3 className="text-xl font-bold text-[var(--app-text)] mb-2">
             Incoming group call
           </h3>
 
           {/* Caller info */}
-          <p className="text-slate-700 mb-2 font-semibold">
+          <p className="text-[var(--app-text)] mb-2 font-semibold">
             {incomingCall.initiatorName || incomingCall.callerName || "Unknown"} is calling...
           </p>
 
           {/* Participant count */}
-          <p className="text-sm text-slate-500 mb-6">
+          <p className="text-sm text-[var(--app-muted)] mb-6">
             {incomingCall.participantCount} members
           </p>
 
           {/* Call type badge */}
-          <div className="inline-block px-4 py-2 bg-slate-100 rounded-full text-slate-700 text-sm font-semibold mb-6 border border-slate-200">
+          <div className="inline-block px-4 py-2 bg-[var(--chat-primary-bg)] text-[var(--chat-primary)] text-sm font-semibold mb-6 border border-[var(--app-primary-border)] rounded-full">
             {incomingCall.callType === "video" ? "Video call" : "Voice call"}
           </div>
 

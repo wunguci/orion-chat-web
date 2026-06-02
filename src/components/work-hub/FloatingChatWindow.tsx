@@ -8,7 +8,7 @@ import { onMessageNew, offMessageNew } from '../../services/websocket/chatSocket
 import type { User } from '../../types/work-hub.types';
 import { mapConversationMessage } from './FloatingWorkHubChat';
 import ChatAvatar from '../common/ChatAvatar';
-import { useGroupCallContext } from '../../hooks/useGroupCallContext';
+import { useCall } from '../../hooks/useCall';
 
 interface FloatingChatWindowProps {
     user: User;
@@ -35,7 +35,7 @@ const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
         handleRef: headerRef,
     });
 
-    const { startCall } = useGroupCallContext();
+    const { initiateCall } = useCall();
 
     useEffect(() => {
         let isMounted = true;
@@ -112,14 +112,16 @@ const FloatingChatWindow: React.FC<FloatingChatWindowProps> = ({
 
     const handleCall = (type: 'audio' | 'video') => {
         if (!conversationId) return;
-        startCall({
+        initiateCall(
             conversationId,
-            conversationName: user.name,
-            conversationAvatar: user.avatar,
-            isGroup: false,
-            isVideo: type === 'video',
-            members: [],
-        });
+            user.id,
+            type,
+            {
+                id: user.id,
+                name: user.name,
+                avatar: user.avatar,
+            }
+        );
     };
 
     return (

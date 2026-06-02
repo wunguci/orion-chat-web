@@ -61,15 +61,19 @@ export const MainLayout = () => {
     };
   }, []);
 
-  const appThemeVars = useMemo(
-    () =>
-      buildAppearanceThemeVars({
-        theme: appAppearance.theme,
-        appearanceColor: appAppearance.appearanceColor,
-        prefix: "app",
-      }) as React.CSSProperties,
-    [appAppearance.appearanceColor, appAppearance.theme],
-  );
+  const appThemeVars = useMemo(() => {
+    const appVars = buildAppearanceThemeVars({
+      theme: appAppearance.theme,
+      appearanceColor: appAppearance.appearanceColor,
+      prefix: "app",
+    });
+    const chatVars = buildAppearanceThemeVars({
+      theme: appAppearance.theme,
+      appearanceColor: appAppearance.appearanceColor,
+      prefix: "chat",
+    });
+    return { ...appVars, ...chatVars } as React.CSSProperties;
+  }, [appAppearance.appearanceColor, appAppearance.theme]);
 
   useEffect(() => {
     if (!isAuthenticated || !user || !userId) {
@@ -102,12 +106,12 @@ export const MainLayout = () => {
           <div className="flex-1 overflow-hidden">
             <Outlet />
           </div>
-        </div>
 
-        {/* Global call modals */}
-        <IncomingCallModal />
-        <IncomingGroupCallModal />
-        <CallModal />
+          {/* Global call modals */}
+          <IncomingCallModal />
+          <IncomingGroupCallModal />
+          <CallModal />
+        </div>
       </GroupCallProvider>
       </CallProvider>
     </StreamVideoProvider>

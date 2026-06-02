@@ -66,11 +66,11 @@ export const IncomingCallModal: React.FC = () => {
   if (!incomingCall) return null;
 
   return (
-    <div className="fixed inset-0 bg-wh-green-text-primary/60 flex items-center justify-center z-50">
-      <div className="bg-wh-green-bg-light rounded-2xl p-6 max-w-sm w-full mx-4 border border-wh-green-border-light shadow-lg">
+    <div className="fixed inset-0 bg-[var(--app-overlay)] flex items-center justify-center z-50">
+      <div className="bg-[var(--app-surface)] rounded-2xl p-6 max-w-sm w-full mx-4 border border-[var(--app-primary-border)] shadow-lg">
         <div className="text-center">
           {/* avatar */}
-          <div className="w-20 h-20 rounded-full bg-wh-green-bg-heavy mx-auto mb-4 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-[var(--chat-primary-bg)] mx-auto mb-4 flex items-center justify-center border border-[var(--app-primary-border)] overflow-hidden">
             {incomingCall.callerAvatar ? (
               <img
                 src={incomingCall.callerAvatar}
@@ -78,17 +78,17 @@ export const IncomingCallModal: React.FC = () => {
                 className="w-full h-full rounded-full object-cover"
               />
             ) : (
-              <FaUser className="text-3xl text-wh-green-text-muted" />
+              <FaUser className="text-3xl text-[var(--chat-primary)]" />
             )}
           </div>
 
           {/* caller name */}
-          <h3 className="text-xl font-semibold mb-2 text-wh-green-text-primary">
+          <h3 className="text-xl font-semibold mb-2 text-[var(--app-text)]">
             {incomingCall.callerName || "Unknown"}
           </h3>
 
           {/* call type */}
-          <p className="text-wh-green-text-secondary mb-6">
+          <p className="text-[var(--app-muted)] mb-6">
             Incoming {incomingCall.callType} call...
           </p>
 
@@ -96,13 +96,13 @@ export const IncomingCallModal: React.FC = () => {
           <div className="flex gap-4 justify-center">
             <button
               onClick={rejectCall}
-              className="px-6 py-3 bg-wh-priority-critical text-white rounded-full hover:bg-wh-priority-high transition"
+              className="px-6 py-3 bg-red-600 text-white rounded-full hover:bg-red-700 transition"
             >
               <BsFillTelephoneXFill className="inline-block mr-2" />
             </button>
             <button
               onClick={acceptCall}
-              className="px-6 py-3 bg-wh-green-primary text-white rounded-full hover:bg-wh-green-primary-hover transition"
+              className="px-6 py-3 bg-[var(--chat-primary)] text-white rounded-full hover:bg-[var(--chat-primary-hover)] transition"
             >
               <BsFillTelephoneOutboundFill className="inline-block mr-2" />
             </button>

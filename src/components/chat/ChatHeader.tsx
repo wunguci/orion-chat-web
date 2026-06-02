@@ -16,6 +16,7 @@ type ChatHeaderProps = {
     isBlocked?: boolean;
     isGroupChat?: boolean;
     disableCallButtons?: boolean;
+    hideCallButtons?: boolean;
     onAudioCall?: () => void;
     onVideoCall?: () => void;
     onGroupAudioCall?: () => void;
@@ -36,6 +37,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     isBlocked = false,
     isGroupChat = false,
     disableCallButtons = false,
+    hideCallButtons = false,
     onAudioCall,
     onVideoCall,
     onGroupAudioCall,
@@ -121,22 +123,24 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 ) : (
                     <>
                         {/* Audio call button - disabled if blocked */}
-                        <button
-                            className={`p-1 rounded transition-colors ${
-                                isBlocked
-                                    ? 'opacity-50 cursor-not-allowed bg-slate-100'
-                                    : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
-                            }`}
-                            disabled={isCallDisabled}
-                            onClick={onAudioCall}
-                            title={
-                                isCallDisabled
-                                    ? 'Cannot call in this conversation.'
-                                    : 'Voice call'
-                            }
-                        >
-                            <Phone className="w-5 h-5" />
-                        </button>
+                        {!hideCallButtons && (
+                            <button
+                                className={`p-1 rounded transition-colors ${
+                                    isBlocked
+                                        ? 'opacity-50 cursor-not-allowed bg-slate-100'
+                                        : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
+                                }`}
+                                disabled={isCallDisabled}
+                                onClick={onAudioCall}
+                                title={
+                                    isCallDisabled
+                                        ? 'Cannot call in this conversation.'
+                                        : 'Voice call'
+                                }
+                            >
+                                <Phone className="w-5 h-5" />
+                            </button>
+                        )}
                     </>
                 )}
                 <button
@@ -147,24 +151,26 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     <Search className="w-5 h-5" />
                 </button>
                 {/* Video call button - disabled if blocked */}
-                <button
-                    className={`p-1 rounded transition-colors ${
-                        isCallDisabled
-                            ? 'opacity-50 cursor-not-allowed bg-slate-100'
-                            : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
-                    }`}
-                    disabled={isCallDisabled}
-                    onClick={isGroupChat ? onGroupVideoCall : onVideoCall}
-                    title={
-                        isCallDisabled
-                            ? 'Cannot video call in this conversation.'
-                            : isGroupChat
-                              ? 'Group video call'
-                              : 'Video call'
-                    }
-                >
-                    <Video className="w-5 h-5" />
-                </button>
+                {(!isGroupChat && !hideCallButtons || isGroupChat) && (
+                    <button
+                        className={`p-1 rounded transition-colors ${
+                            isCallDisabled
+                                ? 'opacity-50 cursor-not-allowed bg-slate-100'
+                                : 'cursor-pointer hover:bg-slate-200 text-gray-primary'
+                        }`}
+                        disabled={isCallDisabled}
+                        onClick={isGroupChat ? onGroupVideoCall : onVideoCall}
+                        title={
+                            isCallDisabled
+                                ? 'Cannot video call in this conversation.'
+                                : isGroupChat
+                                  ? 'Group video call'
+                                  : 'Video call'
+                        }
+                    >
+                        <Video className="w-5 h-5" />
+                    </button>
+                )}
                 <button
                     onClick={onPanelToggle}
                     className="cursor-pointer p-1 hover:bg-slate-200 rounded text-gray-primary"

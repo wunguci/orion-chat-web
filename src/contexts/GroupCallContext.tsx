@@ -245,7 +245,48 @@ export const GroupCallProvider: React.FC<GroupCallProviderProps> = ({
     // Listen to participant joined
     const handleParticipantJoined = async (data: GroupParticipantJoinedData) => {
       if (data.callId !== currentCallIdRef.current) return;
-      if (data.userId === userId) return;
+
+      if (data.userId === userId) {
+        console.log("[GroupCallContext] We successfully joined/rejoined the group call. Syncing existing participants:", data.participants);
+        if (data.participants) {
+          const existingParticipants = data.participants
+            .filter((p: any) => p.id !== userId)
+            .map((p: any) => ({
+              id: p.id,
+              name: p.name || `User ${p.id}`,
+              avatar: p.avatar || "",
+              isVideoEnabled: true,
+              isAudioEnabled: true,
+              isHost: false,
+            }));
+
+          setCallState((prev) => {
+            const updated = [...prev.participants];
+            existingParticipants.forEach((ep: any) => {
+              if (!updated.some((u: any) => u.id === ep.id)) {
+                updated.push(ep);
+              }
+            });
+            return {
+              ...prev,
+              participants: updated,
+            };
+          });
+
+          if (!streamVideoEnabled) {
+            for (const participant of existingParticipants) {
+              try {
+                if (!getAllParticipantIds().includes(participant.id)) {
+                  await createPeerForParticipant(participant.id, participant.name, false);
+                }
+              } catch (error) {
+                console.error(`[GroupCallContext] Error pre-creating peer for existing participant ${participant.id}:`, error);
+              }
+            }
+          }
+        }
+        return;
+      }
 
       console.log(`[GroupCallContext] Participant joined: ${data.userId}`);
 

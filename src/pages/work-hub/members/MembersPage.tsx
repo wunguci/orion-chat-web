@@ -17,37 +17,41 @@ import {
 import { getUser } from "../../../utils/token";
 import MemberList from "../../../components/work-hub/workspace/MemberList";
 import InviteMemberDialog from "../../../components/work-hub/workspace/InviteMemberDialog";
-import { useWorkspace } from "../../../contexts/WorkspaceContext";
 
 const MembersPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
-  const [inviteLinkData, setInviteLinkData] = useState<WorkspaceInviteLinkResponse | null>(null);
+  const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [inviteLinkData, setInviteLinkData] =
+    useState<WorkspaceInviteLinkResponse | null>(null);
   const [joinRequests, setJoinRequests] = useState<
     WorkspaceJoinRequestResponse[]
   >([]);
 
   const [showInvite, setShowInvite] = useState(false);
-  const { workspace, isOwner, isAdmin, refreshWorkspace } = useWorkspace();
-  const members = workspace?.members ?? [];
 
   const reloadWorkspace = useCallback(async () => {
     if (!workspaceId) return;
-    await refreshWorkspace();
+
+    const data = await workHubApi.getWorkspace(workspaceId);
+    const mapped = mapWorkspace(data);
+    setWorkspace(mapped);
+    setMembers(mapped.members);
     workHubApi
       .getJoinRequests(workspaceId)
       .then(setJoinRequests)
       .catch(() => setJoinRequests([]));
-  }, [workspaceId, refreshWorkspace]);
+  }, [workspaceId]);
 
+  // Fetch workspace data từ API
   useEffect(() => {
     if (!workspaceId) return;
-    if (isOwner || isAdmin) {
-      workHubApi
-        .getJoinRequests(workspaceId)
-        .then(setJoinRequests)
-        .catch(() => setJoinRequests([]));
-    }
-  }, [workspaceId, isOwner, isAdmin]);
+    setLoading(true);
+    reloadWorkspace()
+      .catch(() => setWorkspace(null))
+      .finally(() => setLoading(false));
+  }, [workspaceId, reloadWorkspace]);
 
   const handleRemoveMember = async (userId: string) => {
     if (
@@ -57,7 +61,7 @@ const MembersPage = () => {
       return;
     try {
       await workHubApi.removeMember(workspaceId, userId);
-      setMembers(members.filter((m) => m.user.id !== userId));
+      await refreshWorkspace();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to remove member");
     }
@@ -69,9 +73,7 @@ const MembersPage = () => {
       await workHubApi.updateMemberRole(workspaceId, userId, {
         role: roleToBE(role),
       });
-      setMembers(
-        members.map((m) => (m.user.id === userId ? { ...m, role } : m)),
-      );
+      await refreshWorkspace();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to change role");
     }
@@ -125,9 +127,9 @@ const MembersPage = () => {
     }
   };
 
-  const currentUser = getUser();
-  const currentUserId = currentUser?.userId ?? currentUser?.id ?? "";
-  const currentUserRole = workspace?.members.find((member) => member.user.id === currentUserId)?.role ?? "member";
+  const currentUserId = getUser()?.userId ?? getUser()?.id ?? "";
+  const currentUserRole =
+    members.find((member) => member.user.id === currentUserId)?.role ?? "member";
 
   const handleGenerateLink = async () => {
     if (!workspaceId) return;
@@ -153,15 +155,13 @@ const MembersPage = () => {
               Manage workspace members and permissions
             </p>
           </div>
-          {(isOwner || isAdmin) && (
-            <button
-              onClick={() => setShowInvite(true)}
-              className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors flex items-center gap-2"
-            >
-              <i className="fas fa-user-plus"></i>
-              Invite Member
-            </button>
-          )}
+          <button
+            onClick={() => setShowInvite(true)}
+            className="px-4 py-2 bg-wh-green-primary text-white rounded-lg text-sm font-medium hover:bg-wh-green-primary-hover transition-colors flex items-center gap-2"
+          >
+            <i className="fas fa-user-plus"></i>
+            Invite Member
+          </button>
         </div>
       </div>
 
