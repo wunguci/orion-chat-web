@@ -122,7 +122,7 @@ export default function SettingsModal({
 
     // Privacy Settings
     profileVisibility: "friends",
-    messagePermission: "everyone",
+    messagePermission: "friends",
     lastSeenVisibility: true,
     onlineStatusVisibility: true,
     allowAIToSeeProfile: false,
@@ -215,7 +215,7 @@ export default function SettingsModal({
         profileVisibility:
           privacySettings.settings?.profileVisibility || "friends",
         messagePermission:
-          privacySettings.settings?.messagePermission || "everyone",
+          privacySettings.settings?.messagePermission || "friends",
         lastSeenVisibility:
           privacySettings.settings?.lastSeenVisibility ?? true,
         onlineStatusVisibility:
@@ -406,6 +406,7 @@ export default function SettingsModal({
         const result = await privacySettings.updateSettings({
           profileVisibility: formData.profileVisibility,
           messagePermission: formData.messagePermission,
+          callPermission: formData.callPermission,
           lastSeenVisibility: formData.lastSeenVisibility,
           onlineStatusVisibility: formData.onlineStatusVisibility,
         });
@@ -414,6 +415,7 @@ export default function SettingsModal({
           ...prev,
           profileVisibility: result.profileVisibility || prev.profileVisibility,
           messagePermission: result.messagePermission || prev.messagePermission,
+          callPermission: result.callPermission || prev.callPermission,
           lastSeenVisibility:
             result.lastSeenVisibility ?? prev.lastSeenVisibility,
           onlineStatusVisibility:
@@ -477,13 +479,15 @@ export default function SettingsModal({
       ...(notificationSettings.settings && {
         groupNotifications:
           notificationSettings.settings.groupNotifications ?? true,
-        tagNotifications: notificationSettings.settings.tagNotifications ?? true,
+        tagNotifications:
+          notificationSettings.settings.tagNotifications ?? true,
         muteAll: notificationSettings.settings.muteAll ?? false,
         messageNotifications:
           notificationSettings.settings.messageNotifications ?? true,
         friendRequestNotifications:
           notificationSettings.settings.friendRequestNotifications ?? true,
-        callNotifications: notificationSettings.settings.callNotifications ?? true,
+        callNotifications:
+          notificationSettings.settings.callNotifications ?? true,
         notificationSound:
           notificationSettings.settings.notificationSound || "Crystal Clear",
         doNotDisturbStart: notificationSettings.settings.doNotDisturbStart || 0,
@@ -494,7 +498,7 @@ export default function SettingsModal({
         profileVisibility:
           privacySettings.settings.profileVisibility || "friends",
         messagePermission:
-          privacySettings.settings.messagePermission || "everyone",
+          privacySettings.settings.messagePermission || "friends",
         lastSeenVisibility: privacySettings.settings.lastSeenVisibility ?? true,
         onlineStatusVisibility:
           privacySettings.settings.onlineStatusVisibility ?? true,
@@ -535,18 +539,12 @@ export default function SettingsModal({
       icon: Palette,
       description: "Themes, wallpapers, fonts",
     },
-    {
-      id: "devices",
-      label: "Devices",
-      icon: Smartphone,
-      description: "Active sessions and logins",
-    },
-    {
-      id: "ai",
-      label: "AI",
-      icon: Bot,
-      description: "Assistant and smart detection",
-    },
+    // {
+    //   id: "devices",
+    //   label: "Devices",
+    //   icon: Smartphone,
+    //   description: "Active sessions and logins",
+    // },
   ];
 
   const toggleOption = (field: string) => {
@@ -662,109 +660,24 @@ export default function SettingsModal({
           />
         );
 
-      case "devices":
-        return (
-          <LinkedDevices
-            userDevices={{
-              ...userDevices,
-              devices: userDevices.devices.map((device) => ({
-                ...device,
-                lastLogin:
-                  device.lastLogin instanceof Date
-                    ? device.lastLogin.toISOString()
-                    : device.lastLogin,
-                isCurrent: device.isCurrent ?? false,
-              })),
-            }}
-            saveError={saveError}
-            saveSuccess={saveSuccess}
-          />
-        );
-
-      case "ai":
-        return (
-          <div className="flex flex-col gap-8">
-            <div>
-              <span className="text-[26px] font-bold text-[var(--settings-text)] mb-1">
-                AI Assistant
-              </span>
-              <p className="text-[var(--settings-text)]">
-                Configure Orion AI behavior in chat and WorkHub.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-5">
-              {[
-                {
-                  label: "Smart Emotion Detection",
-                  description:
-                    "Show subtle emotion hints for incoming chat messages.",
-                  field: "smartEmotionDetection",
-                },
-                {
-                  label: "Auto Workflow Suggestions",
-                  description:
-                    "Suggest task and calendar drafts from messages with deadlines or action items.",
-                  field: "autoWorkflowSuggestions",
-                },
-                {
-                  label: "AI Memory",
-                  description:
-                    "Let Orion AI use your notes, calendar, tasks, and workspace context.",
-                  field: "aiMemoryEnabled",
-                },
-              ].map(({ label, description, field }) => (
-                <div
-                  key={field}
-                  className="flex items-center justify-between px-4 py-3 bg-[var(--settings-surface-bg)] rounded-xl border border-[var(--settings-primary-border)]"
-                >
-                  <div>
-                    <p className="font-semibold text-[var(--settings-text)]">{label}</p>
-                    <p className="text-sm text-[var(--settings-text)]">{description}</p>
-                  </div>
-                  <ToggleSwitch
-                    checked={
-                      formData[field as keyof typeof formData] as boolean
-                    }
-                    onChange={() => toggleOption(field)}
-                  />
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-4 pt-4 border-t border-[var(--settings-primary-border)]">
-              {saveError && (
-                <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-                  {saveError}
-                </div>
-              )}
-              {saveSuccess && (
-                <div className="px-4 py-3 bg-[var(--settings-primary-bg)] border border-[var(--settings-primary-border)] rounded-lg text-[var(--settings-primary)] text-sm">
-                  {saveSuccess}
-                </div>
-              )}
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={handleDiscardSettings}
-                  disabled={isSaving}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg text-[var(--settings-text)] bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Discard Changes
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveSettings}
-                  disabled={isSaving || !hasSettingsChanges}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg text-white bg-[var(--settings-primary)] hover:bg-[var(--settings-primary-hover)] disabled:opacity-50"
-                >
-                  {isSaving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-
+      // case "devices":
+      //   return (
+      //     <LinkedDevices
+      //       userDevices={{
+      //         ...userDevices,
+      //         devices: userDevices.devices.map((device) => ({
+      //           ...device,
+      //           lastLogin:
+      //             device.lastLogin instanceof Date
+      //               ? device.lastLogin.toISOString()
+      //               : device.lastLogin,
+      //           isCurrent: device.isCurrent ?? false,
+      //         })),
+      //       }}
+      //       saveError={saveError}
+      //       saveSuccess={saveSuccess}
+      //     />
+      //   );
       default:
         return null;
     }

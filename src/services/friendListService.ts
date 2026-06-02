@@ -7,6 +7,7 @@ export interface FriendApiItem {
   avatarUrl?: string | null;
   isOnline: boolean;
   createdAt?: string;
+  isProfileRestricted?: boolean;
 }
 
 export interface FriendRequestApiItem {
@@ -70,6 +71,7 @@ export interface FriendProfileApiItem {
   createdAt?: string;
   isOnline: boolean;
   friendshipSince?: string;
+  isProfileRestricted?: boolean;
 }
 
 export const friendListService = {

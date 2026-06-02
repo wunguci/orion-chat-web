@@ -62,6 +62,12 @@ const FriendInfoModal: React.FC<FriendInfoModalProps> = ({
 }) => {
   if (!isOpen || !profile) return null;
 
+  const restrictedText = "****";
+  const visibleText = (value?: string | null) =>
+    profile.isProfileRestricted ? restrictedText : value || "Not yet updated";
+  const visibleDate = (value?: string | null) =>
+    profile.isProfileRestricted ? restrictedText : formatDate(value);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-[2px] animate-in fade-in duration-200"
@@ -166,26 +172,32 @@ const FriendInfoModal: React.FC<FriendInfoModalProps> = ({
           <div className="grid grid-cols-1 gap-3 text-sm text-slate-700 sm:grid-cols-2">
             <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <Phone size={16} className="text-green-primary" />
-              <span>{profile.phoneNumber || "Not yet updated"}</span>
+              <span>{visibleText(profile.phoneNumber)}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <Mail size={16} className="text-green-primary" />
-              <span>{profile.email || "Not yet updated"}</span>
+              <span>{visibleText(profile.email)}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <UserIcon size={16} className="text-green-primary" />
-              <span>{profile.gender || "Not yet updated"}</span>
+              <span>{visibleText(profile.gender)}</span>
             </div>
             <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
               <Calendar size={16} className="text-green-primary" />
-              <span>Birthdate: {formatDate(profile.birthDate)}</span>
+              <span>Birthdate: {visibleDate(profile.birthDate)}</span>
             </div>
           </div>
 
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-            <p>Account created on: {formatDate(profile.createdAt)}</p>
-            <p>Friend since: {formatDate(profile.friendshipSince)}</p>
+            <p>Account created on: {visibleDate(profile.createdAt)}</p>
+            <p>Friend since: {visibleDate(profile.friendshipSince)}</p>
           </div>
+
+          {profile.isProfileRestricted && (
+            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              This user only shares profile details with their selected audience.
+            </div>
+          )}
 
           {mode === "friend" && (
             <div className="mt-5 space-y-2 border-t border-slate-200 pt-4">
