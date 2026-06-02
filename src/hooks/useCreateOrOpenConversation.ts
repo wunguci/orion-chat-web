@@ -8,6 +8,53 @@ interface UseCreateOrOpenConversationResult {
     error: string | null;
 }
 
+const getApiErrorMessage = (
+    err: unknown,
+    fallback = 'Failed to create or open conversation',
+) => {
+    const responseData = (
+        err as {
+            response?: {
+                data?: {
+                    code?: unknown;
+                    message?: unknown;
+                    error?: unknown;
+                } | string;
+            };
+        }
+    )?.response?.data;
+
+    if (typeof responseData === 'string') {
+        return responseData;
+    }
+
+    if (Array.isArray(responseData?.message)) {
+        return responseData.message.join(', ');
+    }
+
+    if (typeof responseData?.message === 'string') {
+        return responseData.message;
+    }
+
+    if (typeof responseData?.code === 'string') {
+        return responseData.code;
+    }
+
+    if (typeof responseData?.error === 'string') {
+        return responseData.error;
+    }
+
+    return err instanceof Error ? err.message : fallback;
+};
+
+const isMessagePrivacyError = (message: string) => {
+    const normalized = message.toLowerCase();
+    return (
+        normalized.includes('message_not_allowed') ||
+        normalized.includes('not accepting messages')
+    );
+};
+
 /**
  * Hook to get or create a PRIVATE conversation with a friend
  * Calls backend API to create/fetch conversation
@@ -47,13 +94,17 @@ export const useCreateOrOpenConversation =
 
                     return conversation.conversationId;
                 } catch (err) {
-                    const errorMessage =
-                        err instanceof Error
-                            ? err.message
-                            : 'Failed to create or open conversation';
+                    const errorMessage = getApiErrorMessage(err);
                     setError(errorMessage);
-                    console.error('Error in useCreateOrOpenConversation:', err);
-                    return null;
+
+                    if (!isMessagePrivacyError(errorMessage)) {
+                        console.error(
+                            'Error in useCreateOrOpenConversation:',
+                            err,
+                        );
+                    }
+
+                    throw new Error(errorMessage);
                 } finally {
                     setLoading(false);
                 }

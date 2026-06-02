@@ -6,6 +6,7 @@ import FriendSidebar, {
 import MainContent from "../../components/friend/MainContent";
 import FriendInfoModal from "../../components/friend/FriendInfoModal";
 import ConfirmDialog from "../../components/common/ConfirmDialog";
+import Modal from "../../components/common/Modal";
 import { ToastUndo } from "../../components/common/ToastUndo";
 import type {
   CommunityGroup,
@@ -29,6 +30,8 @@ import { useCreateOrOpenConversation } from "../../hooks/useCreateOrOpenConversa
 
 const DEFAULT_AVATAR = "https://picsum.photos/seed/orion-friend/100/100";
 const UNDO_DURATION_MS = 4000;
+const MESSAGE_PRIVACY_WARNING =
+  "Người này hiện không muốn nhận tin nhắn từ người lạ. Bạn có thể gửi lời mời kết bạn hoặc thử lại khi hai người đã là bạn bè.";
 
 type PendingFriendAction = {
   kind: "remove" | "block";
@@ -47,6 +50,17 @@ const formatAgo = (iso: string) => {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+const isMessagePrivacyError = (message: string) => {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("message_not_allowed") ||
+    normalized.includes("not accepting messages")
+  );
 };
 
 const FriendListPage = () => {
@@ -84,6 +98,8 @@ const FriendListPage = () => {
     null,
   );
   const [chatErrorMessage, setChatErrorMessage] = useState("");
+  const [isMessagePrivacyWarningOpen, setIsMessagePrivacyWarningOpen] =
+    useState(false);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -112,6 +128,10 @@ const FriendListPage = () => {
     [blockedFriends],
   );
   const isBlockedFriend = (friendId: string) => blockedFriendIds.has(friendId);
+  const showMessagePrivacyWarning = () => {
+    setChatErrorMessage("");
+    setIsMessagePrivacyWarningOpen(true);
+  };
 
   useEffect(() => {
     if (!chatErrorMessage) return;
@@ -726,10 +746,12 @@ const FriendListPage = () => {
         state: { selectedConversationId: conversationId },
       });
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to open conversation";
+      const message = getErrorMessage(error, "Failed to open conversation");
+      if (isMessagePrivacyError(message)) {
+        showMessagePrivacyWarning();
+        return;
+      }
+
       window.alert(message);
     }
   };
@@ -751,10 +773,15 @@ const FriendListPage = () => {
         state: { selectedConversationId: conversationId },
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to open conversation";
+      const errorMessage = getErrorMessage(
+        error,
+        "Failed to open conversation",
+      );
+      if (isMessagePrivacyError(errorMessage)) {
+        showMessagePrivacyWarning();
+        return;
+      }
+
       setChatErrorMessage(errorMessage);
     }
   };
@@ -855,10 +882,15 @@ const FriendListPage = () => {
         },
       });
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to open conversation with friend";
+      const errorMessage = getErrorMessage(
+        error,
+        "Failed to open conversation with friend",
+      );
+      if (isMessagePrivacyError(errorMessage)) {
+        showMessagePrivacyWarning();
+        return;
+      }
+
       setChatErrorMessage(errorMessage);
       console.error("Failed to open chat with friend:", error);
     } finally {
@@ -980,6 +1012,36 @@ const FriendListPage = () => {
         cancelText="Cancel"
         variant="danger"
       />
+      <Modal
+        isOpen={isMessagePrivacyWarningOpen}
+        onClose={() => setIsMessagePrivacyWarningOpen(false)}
+        size="sm"
+        showHeader={false}
+      >
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-exclamation-circle text-amber-500 text-lg"></i>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Không thể bắt đầu trò chuyện
+              </h4>
+              <p className="text-sm text-gray-600 leading-6">
+                {MESSAGE_PRIVACY_WARNING}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={() => setIsMessagePrivacyWarningOpen(false)}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-sm font-medium cursor-pointer"
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </div>
+      </Modal>
       <ToastUndo
         isVisible={showUndoToast}
         message={undoMessage}

@@ -469,13 +469,20 @@ export const CallProvider: React.FC<CallProviderProps> = ({
     socket.on("call:video-upgrade-response", handleVideoUpgradeResponse);
 
     // listen to errors
-    const handleCallError = (error: { message: string; code?: string }) => {
+    const handleCallError = (error: {
+      message: string;
+      error?: string;
+      code?: string;
+    }) => {
       console.error("[CallContext] Call error:", error);
 
-      let errorMessage = error.message;
+      let errorMessage = error.error || error.message;
       if (error.code === "USER_OFFLINE") {
         errorMessage =
           "User is not online. Please make sure they are connected.";
+      } else if (error.code === "CALL_NOTIFICATIONS_DISABLED") {
+        errorMessage =
+          "This user has turned off call notifications right now.";
       }
 
       setCallState((prev) => ({

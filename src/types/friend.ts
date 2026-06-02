@@ -82,4 +82,5 @@ export interface FriendProfile {
   createdAt?: string;
   isOnline: boolean;
   friendshipSince?: string;
+  isProfileRestricted?: boolean;
 }
