@@ -1,9 +1,8 @@
 /*eslint-disable*/
-import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { VideoMessage } from './VideoMessage';
 import { Reply, RotateCcw, SmilePlus, Trash2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import {
     FaFileArchive,
     FaFileExcel,
@@ -13,6 +12,7 @@ import {
 } from 'react-icons/fa';
 import { FiFile, FiFileText, FiImage, FiMusic, FiVideo } from 'react-icons/fi';
 import { REACTION_OPTIONS, ReactionIcon } from './reactions';
+import { VideoMessage } from './VideoMessage';
 
 /**
  * Message interface matching MongoDB schema
@@ -43,16 +43,16 @@ export interface Message {
     fileName?: string;
     fileSize?: number;
     fileIcon?:
-        | 'image'
-        | 'video'
-        | 'audio'
-        | 'file'
-        | 'file-pdf'
-        | 'file-word'
-        | 'file-excel'
-        | 'file-powerpoint'
-        | 'file-archive'
-        | 'file-text';
+    | 'image'
+    | 'video'
+    | 'audio'
+    | 'file'
+    | 'file-pdf'
+    | 'file-word'
+    | 'file-excel'
+    | 'file-powerpoint'
+    | 'file-archive'
+    | 'file-text';
 }
 
 interface MessageItemNewProps {
@@ -243,9 +243,8 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
 
             {/* Message Container */}
             <div
-                className={`flex flex-col gap-1 ${
-                    isCurrentUser ? 'items-end' : 'items-start'
-                } flex-1 max-w-xs lg:max-w-md`}
+                className={`flex flex-col gap-1 ${isCurrentUser ? 'items-end' : 'items-start'
+                    } flex-1 max-w-xs lg:max-w-md`}
             >
                 {/* Sender Name (for group chats) */}
                 {!isCurrentUser && senderName && (
@@ -259,9 +258,8 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
                     {/* Action Menu */}
                     {hovered && !isMessageDeleted && (
                         <div
-                            className={`absolute bottom-full ${
-                                isCurrentUser ? 'right-0' : 'left-0'
-                            } mb-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 flex flex-col min-w-max`}
+                            className={`absolute bottom-full ${isCurrentUser ? 'right-0' : 'left-0'
+                                } mb-2 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50 flex flex-col min-w-max`}
                         >
                             {/* Emoji Reaction Trigger */}
                             <div className="relative group/emoji px-2 py-1">
@@ -344,22 +342,20 @@ export const MessageItemNew: React.FC<MessageItemNewProps> = ({
 
                     {/* Message Bubble Content */}
                     <div
-                        className={`px-4 py-2 rounded-2xl ${
-                            isCurrentUser
+                        className={`px-4 py-2 rounded-2xl ${isCurrentUser
                                 ? 'bg-green-message text-white rounded-br-none shadow-md'
                                 : 'bg-gray-100 text-gray-900 rounded-bl-none shadow-sm border border-gray-200'
-                        } ${isLoading ? 'opacity-60' : ''}`}
+                            } ${isLoading ? 'opacity-60' : ''}`}
                     >
                         {renderMessageContent()}
                     </div>
 
                     {/* Timestamp */}
                     <p
-                        className={`text-xs mt-1 px-2 ${
-                            isCurrentUser
+                        className={`text-xs mt-1 px-2 ${isCurrentUser
                                 ? 'text-gray-500 text-right'
                                 : 'text-gray-400 text-left'
-                        }`}
+                            }`}
                     >
                         {timeStr}
                         {isCurrentUser &&

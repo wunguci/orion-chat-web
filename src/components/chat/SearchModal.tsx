@@ -3,27 +3,7 @@ import { ArrowLeft, Search, File } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
-export type SocketMessage = {
-    id: string;
-    clientMessageId?: string;
-    senderId: string;
-    senderName: string;
-    senderAvatar?: string;
-    content: string;
-    timestamp: string;
-    conversationId?: string;
-    type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
-    isFile?: boolean;
-    fileUrl?: string;
-    fileName?: string;
-    fileType?: string;
-    isRecalled?: boolean;
-    reactions?: Array<{
-        userId: string;
-        emoji: string;
-        reactedAt?: string;
-    }>;
-};
+import { type SocketMessage } from './MessageList';
 
 interface SearchModalProps {
     isOpen: boolean;

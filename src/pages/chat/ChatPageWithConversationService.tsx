@@ -53,6 +53,7 @@ import {
     useConversationMessages,
 } from '../../hooks/useConversation';
 import { useChatRoom } from '../../hooks/useChatRoom';
+import { useToast } from '../../hooks/useToast';
 import { conversationApi } from '../../services/conversationApi';
 import { getCurrentUserId, getCurrentUserName } from '../../utils/auth';
 import { debugAuthStatus, getToken, getUser } from '../../utils/token';
@@ -107,6 +108,8 @@ export const ChatPage: React.FC = () => {
         conversationId?: string;
         type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
         messageType?: string;
+        mentions?: string[];
+        mentionAll?: boolean;
         callData?: {
             callType?: 'audio' | 'video';
             callStatus?: 'completed' | 'missed' | 'declined';
@@ -137,12 +140,14 @@ export const ChatPage: React.FC = () => {
             | 'VIDEO'
             | 'AUDIO'
             | 'CALL'
+            | 'SYSTEM'
             | 'text'
             | 'image'
             | 'file'
             | 'video'
             | 'audio'
-            | 'call';
+            | 'call'
+            | 'system';
         fileUrl?: string;
         mediaUrl?: string;
         fileName?: string;
@@ -193,6 +198,8 @@ export const ChatPage: React.FC = () => {
             reactedAt?: string;
         }>;
         conversationId?: string;
+        mentions?: string[];
+        mentionAll?: boolean;
         callData?: {
             callType?: 'audio' | 'video';
             callStatus?: 'completed' | 'missed' | 'declined';
@@ -339,6 +346,7 @@ export const ChatPage: React.FC = () => {
         useGroupCallContext();
     const location = useLocation();
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
     const [socketMessages, setSocketMessages] = useState<ChatSocketMessage[]>(
         [],
@@ -427,6 +435,11 @@ export const ChatPage: React.FC = () => {
         updateConversationLastMessage,
         markConversationLastMessageRecalled,
     } = useConversations();
+
+    const conversationsRef = useRef(conversations);
+    useEffect(() => {
+        conversationsRef.current = conversations;
+    }, [conversations]);
 
     useEffect(() => {
         conversationIdsRef.current = new Set(
@@ -1064,6 +1077,8 @@ export const ChatPage: React.FC = () => {
                 conversationId: payload?.conversationId,
                 type: resolvedType,
                 messageType: payload?.messageType,
+                mentions: payload?.mentions || [],
+                mentionAll: !!payload?.mentionAll,
                 callData: payload?.callData,
             };
         },
@@ -1256,6 +1271,22 @@ export const ChatPage: React.FC = () => {
             return current;
         };
 
+        const getConversationDisplayNameFromRef = (conversationId: string) => {
+            const conversation = conversationsRef.current.find(
+                (item) => item.conversationId === conversationId,
+            );
+
+            if (!conversation) return 'Group Chat';
+            if (conversation.type === 'GROUP') {
+                return conversation.groupInfo?.groupName || 'Group Chat';
+            }
+
+            return (
+                conversation.participants.find((p) => p.userId !== USER_ID)
+                    ?.fullName || 'Unknown user'
+            );
+        };
+
         const messageHandler = (payload: IncomingSocketPayload) => {
             const rawPayload = payload?.message || payload?.data || payload;
             const msg = toSocketMessage(rawPayload);
@@ -1340,6 +1371,34 @@ export const ChatPage: React.FC = () => {
             }
 
             if (msg.conversationId) {
+                const isMentioned = msg.senderId !== USER_ID && !msg.isRecalled && (
+                    (Array.isArray(msg.mentions) && msg.mentions.includes(USER_ID)) ||
+                    msg.mentionAll === true
+                );
+
+                if (isMentioned) {
+                    const isTabHidden = document.hidden;
+                    const isDifferentRoom = msg.conversationId !== selectedConversationId;
+
+                    if (isTabHidden || isDifferentRoom) {
+                        const convName = getConversationDisplayNameFromRef(msg.conversationId);
+                        showToast(
+                            `${msg.senderName} đã nhắc đến bạn trong nhóm ${convName}`,
+                            'warning',
+                            5000
+                        );
+
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            new Notification(`Orion Chat - Nhắc tên`, {
+                                body: `${msg.senderName} đã nhắc đến bạn trong nhóm ${convName}`,
+                                icon: msg.senderAvatar || '/favicon.ico'
+                            });
+                        } else if ('Notification' in window && Notification.permission !== 'denied') {
+                            void Notification.requestPermission();
+                        }
+                    }
+                }
+
                 const normalizedType = (
                     msg.type || (msg.isFile ? 'file' : 'text')
                 ).toUpperCase();
@@ -1679,6 +1738,7 @@ export const ChatPage: React.FC = () => {
         updateConversationLastMessage,
         USER_ID,
         selectedConversation?.participants,
+        showToast,
     ]);
 
     // Handle conversation selection
@@ -2537,7 +2597,11 @@ export const ChatPage: React.FC = () => {
     const handleSend = useCallback(
         async (
             text: string,
-            options?: { replyToMessageId?: string | null },
+            options?: {
+                replyToMessageId?: string | null;
+                mentions?: string[];
+                mentionAll?: boolean;
+            },
         ) => {
             if (joinStatus === 'error') {
                 setError(
@@ -2576,6 +2640,8 @@ export const ChatPage: React.FC = () => {
                         type: 'text',
                         replyToMessageId:
                             options?.replyToMessageId || undefined,
+                        mentions: options?.mentions || [],
+                        mentionAll: !!options?.mentionAll,
                         replyToMessagePreview: replyDraft
                             ? {
                                   messageId: replyDraft.replyToMessageId,
@@ -2597,6 +2663,8 @@ export const ChatPage: React.FC = () => {
                         messageType: 'TEXT',
                         replyToMessageId:
                             options?.replyToMessageId || undefined,
+                        mentions: options?.mentions,
+                        mentionAll: options?.mentionAll,
                     },
                 );
 
@@ -2616,6 +2684,8 @@ export const ChatPage: React.FC = () => {
                     content: text,
                     conversationId: selectedConversationId,
                     replyToMessageId: options?.replyToMessageId || undefined,
+                    mentions: options?.mentions,
+                    mentionAll: options?.mentionAll,
                 });
 
                 if (ack?.ok === false) {
@@ -3704,6 +3774,7 @@ export const ChatPage: React.FC = () => {
                             onAISummarize={handleAISummarize}
                             onAIReplySuggestions={handleAIReplySuggestions}
                             emotionByMessageId={emotionByMessageId}
+                            participants={selectedConversation?.participants}
                         />
 
                         {/* Input */}
@@ -3724,6 +3795,7 @@ export const ChatPage: React.FC = () => {
                             onCancelReply={() => setReplyDraft(null)}
                             draftText={composerDraftText}
                             onDraftTextApplied={() => setComposerDraftText('')}
+                            participants={selectedConversation?.type === 'GROUP' ? selectedConversation.participants : undefined}
                         />
                     </>
                 ) : (

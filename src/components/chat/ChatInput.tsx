@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { IoMdAdd, IoMdSend } from 'react-icons/io';
 import { FiImage, FiVideo, FiFile, FiX } from 'react-icons/fi';
 import { Ban, LoaderCircle, RotateCcw, Smile, WandSparkles } from 'lucide-react';
@@ -10,6 +10,8 @@ import {
 } from '../../utils/chatMedia';
 import { orionAiService } from '../../services/orionAiService';
 import type { RewriteTone } from '../../types/orion-ai';
+import type { ParticipantInfo } from '../../types/conversation';
+import { getCurrentUserId } from '../../utils/auth';
 
 type AttachFile = {
     file: File;
@@ -53,7 +55,11 @@ const MENU_ITEMS: {
 export const ChatInput: React.FC<{
     onSend?: (
         text: string,
-        options?: { replyToMessageId?: string | null },
+        options?: {
+            replyToMessageId?: string | null;
+            mentions?: string[];
+            mentionAll?: boolean;
+        },
     ) => void;
     onSendFile?: (file: File) => Promise<void>;
     onSendFiles?: (files: File[]) => Promise<void>;
@@ -69,6 +75,7 @@ export const ChatInput: React.FC<{
     onCancelReply?: () => void;
     draftText?: string;
     onDraftTextApplied?: () => void;
+    participants?: ParticipantInfo[];
 }> = ({
     onSend,
     onSendFile,
@@ -81,6 +88,7 @@ export const ChatInput: React.FC<{
     onCancelReply,
     draftText,
     onDraftTextApplied,
+    participants,
 }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const [emojiOpen, setEmojiOpen] = useState(false);
@@ -93,6 +101,102 @@ export const ChatInput: React.FC<{
     const [isRewriting, setIsRewriting] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
     const typingTimeoutRef = useRef<number | null>(null);
+
+    // ================= MENTION STATES & HELPERS =================
+    const [mentionSearch, setMentionSearch] = useState<{ query: string; index: number } | null>(null);
+    const [activeMentionIdx, setActiveMentionIdx] = useState(0);
+    const [taggedMembers, setTaggedMembers] = useState<{ userId: string; fullName: string }[]>([]);
+    const [mentionAll, setMentionAll] = useState(false);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const getMentionSearch = (val: string, selectionStart: number | null) => {
+        if (selectionStart === null) return null;
+        const textBeforeCursor = val.substring(0, selectionStart);
+        const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+        if (lastAtIndex === -1) return null;
+
+        const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
+        if (/\s/.test(textAfterAt)) return null;
+
+        if (lastAtIndex > 0 && !/\s/.test(textBeforeCursor[lastAtIndex - 1])) {
+            return null;
+        }
+
+        return {
+            query: textAfterAt,
+            index: lastAtIndex,
+        };
+    };
+
+    const filteredParticipants = useMemo(() => {
+        if (!mentionSearch || !participants) return [];
+        const query = mentionSearch.query.toLowerCase();
+        
+        const allOption = {
+            userId: 'all',
+            fullName: 'tất cả',
+            avatarUrl: null,
+            role: null,
+        };
+        
+        const currentUserId = getCurrentUserId();
+
+        const membersList = participants
+            .filter(p => p.userId !== currentUserId)
+            .map(p => ({
+                userId: p.userId,
+                fullName: p.fullName || 'Thành viên',
+                avatarUrl: p.avatarUrl,
+                role: p.role,
+            }));
+
+        let result = [allOption, ...membersList];
+
+        if (query) {
+            result = result.filter(p => {
+                if (p.userId === 'all') {
+                    return 'tất cả'.includes(query) || 'all'.includes(query);
+                }
+                return p.fullName.toLowerCase().includes(query);
+            });
+        }
+        
+        return result;
+    }, [mentionSearch, participants]);
+
+    const selectMention = (p: { userId: string; fullName: string }) => {
+        if (!mentionSearch) return;
+
+        const val = text;
+        const selectionStart = inputRef.current?.selectionStart || val.length;
+
+        const beforeAt = val.substring(0, mentionSearch.index);
+        const afterCursor = val.substring(selectionStart);
+        
+        const insertText = `@${p.fullName} `;
+        const newText = `${beforeAt}${insertText}${afterCursor}`;
+        
+        setText(newText);
+        setMentionSearch(null);
+
+        if (p.userId === 'all') {
+            setMentionAll(true);
+        } else {
+            setTaggedMembers(prev => {
+                if (prev.some(m => m.userId === p.userId)) return prev;
+                return [...prev, { userId: p.userId, fullName: p.fullName }];
+            });
+        }
+
+        setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+                const newCursorPos = beforeAt.length + insertText.length;
+                inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+            }
+        }, 10);
+    };
+    // ============================================================
 
     const inputRefs = useRef<Record<MediaType, HTMLInputElement | null>>({
         image: null,
@@ -204,8 +308,17 @@ export const ChatInput: React.FC<{
         const messageText = text.trim();
 
         if (messageText) {
+            const finalMentions = taggedMembers
+                .filter((m) => text.includes(`@${m.fullName}`))
+                .map((m) => m.userId);
+            const finalMentionAll =
+                mentionAll &&
+                (text.includes('@tất cả') || text.includes('@all'));
+
             onSend?.(messageText, {
                 replyToMessageId: replyDraft?.replyToMessageId || null,
+                mentions: finalMentions.length > 0 ? finalMentions : undefined,
+                mentionAll: finalMentionAll ? true : undefined,
             });
         }
 
@@ -234,6 +347,9 @@ export const ChatInput: React.FC<{
         setText('');
         setValidationError(null);
         onTypingChange?.(false);
+        setTaggedMembers([]);
+        setMentionAll(false);
+        setMentionSearch(null);
     };
 
     const triggerPicker = (type: MediaType) => {
@@ -459,12 +575,116 @@ export const ChatInput: React.FC<{
                         </div>
 
                         {/* Input with Gemini animation when rewriting */}
-                        <div className={`flex-1 ${isRewriting ? 'rewriting-glow-wrapper' : ''}`}>
+                        <div className={`flex-1 relative ${isRewriting ? 'rewriting-glow-wrapper' : ''}`}>
+                            {mentionSearch && filteredParticipants.length > 0 && (
+                                <div className="absolute bottom-full left-0 mb-3 w-72 bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-2xl z-50 max-h-60 overflow-y-auto py-2 transition-all duration-200">
+                                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                        Nhắc đến thành viên
+                                    </div>
+                                    {filteredParticipants.map((p: any, idx: number) => (
+                                        <button
+                                            key={p.userId || 'all'}
+                                            type="button"
+                                            onClick={() => selectMention(p)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors ${
+                                                idx === activeMentionIdx
+                                                    ? 'bg-sky-50 text-sky-900 font-semibold border-l-4 border-sky-500'
+                                                    : 'hover:bg-slate-50 text-slate-700'
+                                            }`}
+                                        >
+                                            {p.userId === 'all' ? (
+                                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white font-bold text-xs shrink-0 shadow-sm">
+                                                    @
+                                                </div>
+                                            ) : (
+                                                <img
+                                                    src={p.avatarUrl || '/default-avatar.png'}
+                                                    alt={p.fullName}
+                                                    className="w-8 h-8 rounded-full object-cover shrink-0 bg-slate-100 border border-slate-200"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${p.fullName}`;
+                                                    }}
+                                                />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="truncate font-semibold text-slate-900">
+                                                    {p.userId === 'all' ? 'Tất cả cả nhóm' : p.fullName}
+                                                </p>
+                                                {p.userId !== 'all' && p.role && (
+                                                    <span className={`inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full mt-0.5 ${
+                                                        p.role === 'admin'
+                                                            ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                                                            : p.role === 'co-admin'
+                                                            ? 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                            : 'bg-slate-50 text-slate-500'
+                                                    }`}>
+                                                        {p.role}
+                                                    </span>
+                                                )}
+                                                {p.userId === 'all' && (
+                                                    <span className="inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full mt-0.5 bg-amber-50 text-amber-600 border border-amber-100">
+                                                        @all
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <input
+                                ref={inputRef}
                                 value={text}
-                                onChange={(e) => setText(e.target.value)}
-                                onBlur={() => onTypingChange?.(false)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setText(val);
+                                    const search = getMentionSearch(val, e.target.selectionStart);
+                                    setMentionSearch(search);
+                                    if (search) {
+                                        setActiveMentionIdx(0);
+                                    }
+                                }}
+                                onClick={(e) => {
+                                    const target = e.target as HTMLInputElement;
+                                    const search = getMentionSearch(target.value, target.selectionStart);
+                                    setMentionSearch(search);
+                                    if (search) {
+                                        setActiveMentionIdx(0);
+                                    }
+                                }}
+                                onKeyUp={(e) => {
+                                    const target = e.target as HTMLInputElement;
+                                    const search = getMentionSearch(target.value, target.selectionStart);
+                                    setMentionSearch(search);
+                                }}
+                                onBlur={() => {
+                                    // Delay hiding dropdown so click triggers first
+                                    setTimeout(() => setMentionSearch(null), 200);
+                                    onTypingChange?.(false);
+                                }}
                                 onKeyDown={(e) => {
+                                    if (mentionSearch && filteredParticipants.length > 0) {
+                                        if (e.key === 'ArrowDown') {
+                                            e.preventDefault();
+                                            setActiveMentionIdx((prev) => (prev + 1) % filteredParticipants.length);
+                                            return;
+                                        }
+                                        if (e.key === 'ArrowUp') {
+                                            e.preventDefault();
+                                            setActiveMentionIdx((prev) => (prev - 1 + filteredParticipants.length) % filteredParticipants.length);
+                                            return;
+                                        }
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            selectMention(filteredParticipants[activeMentionIdx]);
+                                            return;
+                                        }
+                                        if (e.key === 'Escape') {
+                                            e.preventDefault();
+                                            setMentionSearch(null);
+                                            return;
+                                        }
+                                    }
+
                                     if (e.key === 'Enter' && !e.shiftKey) {
                                         e.preventDefault();
                                         void handleSend();

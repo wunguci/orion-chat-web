@@ -51,6 +51,8 @@ type ChatSendMessagePayload = {
         callId?: string;
         callMode?: string;
     };
+    mentions?: string[];
+    mentionAll?: boolean;
 };
 
 type ChatMessageSeenPayload = {
@@ -858,29 +860,7 @@ export const joinConversation = (requestId: string, conversationId: string) => {
     return chatSocketService.joinConversation(requestId, conversationId);
 };
 
-export const sendMessage = (data: {
-    requestId: string;
-    clientMessageId: string;
-    conversationId: string;
-    receiverId?: string;
-    type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
-    content: string;
-    mediaUrl?: string;
-    fileName?: string;
-    fileType?: string;
-    fileSize?: number;
-    replyToMessageId?: string;
-    forwardedFromMessageId?: string;
-    callData?: {
-        callType?: 'audio' | 'video';
-        callStatus?: 'completed' | 'missed' | 'declined' | 'active';
-        duration?: number;
-        isInitiator?: boolean;
-        wasRejected?: boolean;
-        callId?: string;
-        callMode?: string;
-    };
-}) => {
+export const sendMessage = (data: ChatSendMessagePayload) => {
     return chatSocketService.sendMessage(data);
 };
 

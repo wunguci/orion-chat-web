@@ -25,6 +25,7 @@ import CallHistoryCard from './CallHistoryCard';
 import ChatAvatar from '../common/ChatAvatar';
 import { useGroupCallContext } from '../../hooks/useGroupCallContext';
 import { REACTION_OPTIONS, ReactionIcon } from './reactions';
+import type { ParticipantInfo } from '../../types/conversation';
 
 // const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
 const MEDIA_BASE_URL =
@@ -133,6 +134,8 @@ export type SocketMessage = {
     pinnedAt?: string;
     forwardedFromMessageId?: string;
     seenBy?: Array<string | { userId: string; seenAt?: string }>;
+    mentions?: string[];
+    mentionAll?: boolean;
     reactions?: MessageReaction[];
     callData?: {
         callType?: 'audio' | 'video';
@@ -165,6 +168,7 @@ export const MessageList: React.FC<{
         string,
         { label: string; icon?: string; summary?: string; tone?: string }
     >;
+    participants?: ParticipantInfo[];
 }> = ({
     socketMessages = [],
     currentUserId,
@@ -181,6 +185,7 @@ export const MessageList: React.FC<{
     onAISummarize,
     onAIReplySuggestions,
     emotionByMessageId = {},
+    participants,
 }) => {
     const { joinGroupCall } = useGroupCallContext();
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
@@ -188,6 +193,71 @@ export const MessageList: React.FC<{
         null,
     );
     const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // ================= MENTION BADGES RENDER COMPILER =================
+    const participantNames = useMemo(() => {
+        if (!participants) return [];
+        return participants
+            .filter((p) => p.userId !== currentUserId)
+            .map((p) => p.fullName || '')
+            .filter((name) => name.length > 0)
+            .sort((a, b) => b.length - a.length); // Match longer names first
+    }, [participants, currentUserId]);
+
+    const renderContentText = (text: string, isMe: boolean) => {
+        const escapedNames = participantNames.map((name) =>
+            name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+        );
+        const patterns = [
+            '@all',
+            '@tất cả',
+            ...escapedNames.map((name) => `@${name}`),
+        ];
+
+        if (patterns.length === 0) {
+            return renderContentWithLinks(text, isMe);
+        }
+
+        // Case-insensitive boundary match for all tag patterns
+        const regex = new RegExp(`(${patterns.join('|')})\\b`, 'gi');
+        const parts = text.split(regex);
+
+        return parts.map((part, idx) => {
+            if (!part) return null;
+
+            if (regex.test(part)) {
+                const lower = part.toLowerCase();
+                const isAll = lower === '@all' || lower === '@tất cả';
+
+                if (isAll) {
+                    return (
+                        <span
+                            key={idx}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-md font-bold text-xs bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white shadow-xs mx-0.5"
+                        >
+                            {part}
+                        </span>
+                    );
+                } else {
+                    return (
+                        <span
+                            key={idx}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-md font-semibold text-xs mx-0.5 transition-all ${
+                                isMe
+                                    ? 'bg-white/20 text-white border border-white/30 backdrop-blur-xs'
+                                    : 'bg-blue-50 text-blue-600 border border-blue-100'
+                            }`}
+                        >
+                            {part}
+                        </span>
+                    );
+                }
+            }
+
+            return renderContentWithLinks(part, isMe);
+        });
+    };
+    // ==================================================================
 
     const getMessageKey = (message: SocketMessage) =>
         message.clientMessageId || message.id;
@@ -338,7 +408,12 @@ export const MessageList: React.FC<{
     }, [socketMessages]);
 
     const groupedItems = useMemo(() => {
-        return socketMessages.map((msg) => ({ kind: 'single' as const, msg }));
+        return socketMessages.map((msg) => ({
+            kind: 'single' as 'single' | 'imageGroup',
+            msg,
+            msgs: [] as SocketMessage[],
+            isMe: false,
+        }));
     }, [socketMessages]);
 
     const renderImageGrid = (msgs: SocketMessage[]): React.ReactNode => {
@@ -540,6 +615,12 @@ export const MessageList: React.FC<{
                         const { msg } = item;
                         const isMe =
                             !!currentUserId && msg.senderId === currentUserId;
+                        const isUserMentioned =
+                            !isMe &&
+                            !msg.isRecalled &&
+                            ((Array.isArray(msg.mentions) &&
+                                msg.mentions.includes(currentUserId || '')) ||
+                                msg.mentionAll === true);
                         const normalizedMessageType = String(
                             msg.messageType || '',
                         ).toUpperCase();
@@ -782,7 +863,9 @@ export const MessageList: React.FC<{
                                                         ? 'bg-gray-100 text-gray-500 shadow-none border border-gray-200'
                                                         : isMe
                                                           ? 'bg-[var(--chat-message-sent)] text-white rounded-br-none shadow-md'
-                                                          : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
+                                                          : isUserMentioned
+                                                            ? 'bg-amber-50/90 text-slate-950 rounded-tl-none border-2 border-dashed border-amber-400 shadow-md ring-4 ring-amber-100/50'
+                                                            : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
                                                 }`}
                                             >
                                                 {msg.isPinned && (
@@ -833,7 +916,7 @@ export const MessageList: React.FC<{
                                                     </a>
                                                 ) : (
                                                     <p className="break-all whitespace-pre-wrap">
-                                                        {renderContentWithLinks(
+                                                        {renderContentText(
                                                             msg.content,
                                                             isMe,
                                                         )}

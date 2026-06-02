@@ -1,8 +1,8 @@
 import React from 'react';
-import type { SocketMessage } from './MessageList';
-import ReplyPreview from './ReplyPreview';
-import ReactionBar from './ReactionBar';
 import MediaMessageRenderer from './MediaMessageRenderer';
+import type { SocketMessage } from './MessageList';
+import ReactionBar from './ReactionBar';
+import ReplyPreview from './ReplyPreview';
 
 type GroupMessageItemProps = {
     message: SocketMessage;

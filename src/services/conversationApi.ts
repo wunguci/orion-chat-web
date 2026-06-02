@@ -397,6 +397,8 @@ class ConversationApiService {
             mediaUrl?: string;
             fileName?: string;
             fileSize?: number;
+            mentions?: string[];
+            mentionAll?: boolean;
         },
     ) {
         const response = await this.api.post(`/${conversationId}/messages`, {

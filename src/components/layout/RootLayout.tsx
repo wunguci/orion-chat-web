@@ -3,6 +3,7 @@ import { useSessionCheck } from '../../hooks/useSessionCheck';
 import { useActivityTimeout } from '../../hooks/useActivityTimeout';
 import { useTokenExpiry } from '../../hooks/useTokenExpiry';
 import { useSessionConflictDetection } from '../../hooks/useSessionConflictDetection';
+import { ToastProvider } from '../../contexts/ToastContext';
 
 /**
  * Root layout wrapper that sets up global hooks
@@ -23,5 +24,10 @@ export function RootLayout() {
     // Track user activity and logout after 15 minutes of inactivity
     useActivityTimeout(15);
 
-    return <Outlet />;
+    return (
+        <ToastProvider>
+            <Outlet />
+        </ToastProvider>
+    );
 }
+

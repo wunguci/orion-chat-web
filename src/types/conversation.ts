@@ -83,6 +83,8 @@ export interface MessageDetail {
   uploadStatus?: "uploading" | "sent" | "failed";
   errorMessage?: string;
   reactions?: MessageReaction[];
+  mentions?: string[];
+  mentionAll?: boolean;
   // Call history fields
   callData?: {
     callType?: "audio" | "video";
