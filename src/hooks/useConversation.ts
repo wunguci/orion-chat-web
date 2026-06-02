@@ -354,7 +354,7 @@ export const useConversationMessages = (
                 limit: pageSize,
             });
 
-            setMessages((prev) => [...prev, ...result.items]);
+            setMessages((prev) => [...result.items, ...prev]);
             setNextCursor(result.nextCursor);
             cursorRef.current = result.nextCursor ?? undefined;
             setHasMore(!!result.nextCursor);
@@ -393,7 +393,7 @@ export const useConversationMessages = (
     }, [clear, conversationId, loadMessages]);
 
     const addMessage = useCallback((message: MessageDetail) => {
-        setMessages((prev) => [message, ...prev]);
+        setMessages((prev) => [...prev, message]);
     }, []);
 
     const updateMessage = useCallback(

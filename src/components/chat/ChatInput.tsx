@@ -134,7 +134,7 @@ export const ChatInput: React.FC<{
         
         const allOption = {
             userId: 'all',
-            fullName: 'tất cả',
+            fullName: 'all',
             avatarUrl: null,
             role: null,
         };
@@ -155,7 +155,7 @@ export const ChatInput: React.FC<{
         if (query) {
             result = result.filter(p => {
                 if (p.userId === 'all') {
-                    return 'tất cả'.includes(query) || 'all'.includes(query);
+                    return 'all'.includes(query);
                 }
                 return p.fullName.toLowerCase().includes(query);
             });
@@ -313,7 +313,7 @@ export const ChatInput: React.FC<{
                 .map((m) => m.userId);
             const finalMentionAll =
                 mentionAll &&
-                (text.includes('@tất cả') || text.includes('@all'));
+                text.includes('@all');
 
             onSend?.(messageText, {
                 replyToMessageId: replyDraft?.replyToMessageId || null,
@@ -608,7 +608,7 @@ export const ChatInput: React.FC<{
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 <p className="truncate font-semibold text-slate-900">
-                                                    {p.userId === 'all' ? 'Tất cả cả nhóm' : p.fullName}
+                                                    {p.userId === 'all' ? 'All members' : p.fullName}
                                                 </p>
                                                 {p.userId !== 'all' && p.role && (
                                                     <span className={`inline-block text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full mt-0.5 ${

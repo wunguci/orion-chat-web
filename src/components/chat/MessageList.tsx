@@ -210,7 +210,6 @@ export const MessageList: React.FC<{
         );
         const patterns = [
             '@all',
-            '@tất cả',
             ...escapedNames.map((name) => `@${name}`),
         ];
 
@@ -227,13 +226,15 @@ export const MessageList: React.FC<{
 
             if (regex.test(part)) {
                 const lower = part.toLowerCase();
-                const isAll = lower === '@all' || lower === '@tất cả';
+                const isAll = lower === '@all';
 
                 if (isAll) {
                     return (
                         <span
                             key={idx}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded-md font-bold text-xs bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white shadow-xs mx-0.5"
+                            className={`inline-flex items-center px-1.5 py-0.5 font-bold text-md ${
+                                isMe ? 'text-white' : 'text-blue-600'
+                            }`}
                         >
                             {part}
                         </span>
@@ -244,8 +245,8 @@ export const MessageList: React.FC<{
                             key={idx}
                             className={`inline-flex items-center px-1.5 py-0.5 rounded-md font-semibold text-xs mx-0.5 transition-all ${
                                 isMe
-                                    ? 'bg-white/20 text-white border border-white/30 backdrop-blur-xs'
-                                    : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                    ? 'text-white backdrop-blur-xs'
+                                    : 'text-blue-600'
                             }`}
                         >
                             {part}

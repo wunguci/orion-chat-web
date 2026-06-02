@@ -2189,7 +2189,7 @@ export const ConversationGroupInfoPanel: React.FC<
                             </button>
                         </div>
 
-                        <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
+                        {/* <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
                             <span className="font-semibold">Group info</span>
                             <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 transition-colors text-gray-primary">
                                 <AlarmClockCheck size={20} />
@@ -2215,7 +2215,7 @@ export const ConversationGroupInfoPanel: React.FC<
                                     Polls
                                 </span>
                             </button>
-                        </div>
+                        </div> */}
 
                         <div className="p-3 flex flex-col gap-1 bg-color-gray-secondary border-b border-slate-200">
                             <span className="font-semibold">
