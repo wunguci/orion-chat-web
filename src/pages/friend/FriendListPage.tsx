@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import FriendSidebar, {
   type FriendCategory,
 } from "../../components/friend/FriendSidebar";
 import MainContent from "../../components/friend/MainContent";
+import FriendInfoModal from "../../components/friend/FriendInfoModal";
+import ConfirmDialog from "../../components/common/ConfirmDialog";
+import Modal from "../../components/common/Modal";
+import { ToastUndo } from "../../components/common/ToastUndo";
 import type {
   CommunityGroup,
+  BlockedFriend,
+  FriendProfile,
   CommunityInvite,
   Friend,
   FriendRequest,
@@ -12,10 +19,28 @@ import type {
   SuggestedFriend,
 } from "../../types/friend";
 import { friendListService } from "../../services/friendListService";
-import socketService from "../../services/socket";
+import { presenceSocketService } from "../../services/websocket/presenceSocket";
+import {
+  chatSocketService,
+  sendMessage,
+} from "../../services/websocket/chatSocket";
 import { getUser } from "../../utils/token";
+import { useCall } from "../../hooks/useCall";
+import { useCreateOrOpenConversation } from "../../hooks/useCreateOrOpenConversation";
 
 const DEFAULT_AVATAR = "https://picsum.photos/seed/orion-friend/100/100";
+const UNDO_DURATION_MS = 4000;
+const MESSAGE_PRIVACY_WARNING =
+  "Người này hiện không muốn nhận tin nhắn từ người lạ. Bạn có thể gửi lời mời kết bạn hoặc thử lại khi hai người đã là bạn bè.";
+
+type PendingFriendAction = {
+  kind: "remove" | "block";
+  friendId: string;
+  friendsSnapshot: Friend[];
+  recentlyActiveSnapshot: RecentlyActive[];
+};
+
+type InfoModalMode = "friend" | "suggested";
 
 const formatAgo = (iso: string) => {
   const ms = Date.now() - new Date(iso).getTime();
@@ -25,6 +50,17 @@ const formatAgo = (iso: string) => {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
+
+const isMessagePrivacyError = (message: string) => {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("message_not_allowed") ||
+    normalized.includes("not accepting messages")
+  );
 };
 
 const FriendListPage = () => {
@@ -37,36 +73,239 @@ const FriendListPage = () => {
   const [groupInvites, setGroupInvites] = useState<CommunityInvite[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestedFriend[]>([]);
   const [recentlyActive, setRecentlyActive] = useState<RecentlyActive[]>([]);
+  const [blockedFriends, setBlockedFriends] = useState<BlockedFriend[]>([]);
+  const [selectedFriendProfile, setSelectedFriendProfile] =
+    useState<FriendProfile | null>(null);
+  const [infoModalMode, setInfoModalMode] = useState<InfoModalMode>("friend");
+  const [isSendingAddFriend, setIsSendingAddFriend] = useState(false);
+  const [pendingSentRequestIds, setPendingSentRequestIds] = useState<
+    Set<string>
+  >(new Set());
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+  const [isBlockConfirmOpen, setIsBlockConfirmOpen] = useState(false);
+  const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
+  const [pendingBlockFriendId, setPendingBlockFriendId] = useState<
+    string | null
+  >(null);
+  const [pendingRemoveFriendId, setPendingRemoveFriendId] = useState<
+    string | null
+  >(null);
+  const [showUndoToast, setShowUndoToast] = useState(false);
+  const [undoMessage, setUndoMessage] = useState("");
+  const [pendingAction, setPendingAction] =
+    useState<PendingFriendAction | null>(null);
+  const [chatLoadingFriendId, setChatLoadingFriendId] = useState<string | null>(
+    null,
+  );
+  const [chatErrorMessage, setChatErrorMessage] = useState("");
+  const [isMessagePrivacyWarningOpen, setIsMessagePrivacyWarningOpen] =
+    useState(false);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    initiateCall,
+    status: callStatus,
+    startTime: callStartTime,
+    isInitiator,
+    wasRejected,
+  } = useCall();
+  const prevCallStatusRef = useRef<typeof callStatus>("idle");
+  const wasInitiatorRef = useRef(false);
+  const activeCallMetaRef = useRef<{
+    conversationId: string;
+    receiverId: string;
+    callType: "audio" | "video";
+  } | null>(null);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { createOrOpenConversation } = useCreateOrOpenConversation();
 
   const authUser = getUser();
   const userId = authUser?.userId || authUser?.id || "";
+  const blockedFriendIds = useMemo(
+    () => new Set(blockedFriends.map((item) => item.id)),
+    [blockedFriends],
+  );
+  const isBlockedFriend = (friendId: string) => blockedFriendIds.has(friendId);
+  const showMessagePrivacyWarning = () => {
+    setChatErrorMessage("");
+    setIsMessagePrivacyWarningOpen(true);
+  };
+
+  useEffect(() => {
+    if (!chatErrorMessage) return;
+
+    const timer = setTimeout(() => {
+      setChatErrorMessage("");
+    }, 4000); // Tự động ẩn sau 4 giây
+
+    return () => clearTimeout(timer);
+  }, [chatErrorMessage]);
+
+  useEffect(() => {
+    const state = location.state as { activeCategory?: FriendCategory } | null;
+    if (!state?.activeCategory) return;
+
+    // Cho phép notification điều hướng tới đúng tab (ví dụ: Requests).
+    setActiveCategory(state.activeCategory);
+
+    // Xóa state sau khi đã áp dụng để tránh bị lặp lại khi back/refresh.
+    navigate(location.pathname, {
+      replace: true,
+      state: null,
+    });
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const prevStatus = prevCallStatusRef.current;
+
+    if (
+      isInitiator &&
+      (callStatus === "calling" ||
+        callStatus === "ringing" ||
+        callStatus === "connected")
+    ) {
+      wasInitiatorRef.current = true;
+    }
+
+    if (!wasInitiatorRef.current) {
+      prevCallStatusRef.current = callStatus;
+      return;
+    }
+
+    const hadActiveCall =
+      prevStatus === "calling" ||
+      prevStatus === "ringing" ||
+      prevStatus === "connected";
+    const callJustEnded =
+      hadActiveCall &&
+      (callStatus === "idle" ||
+        callStatus === "failed" ||
+        callStatus === "rejected" ||
+        callStatus === "ended");
+
+    if (!callJustEnded) {
+      prevCallStatusRef.current = callStatus;
+      return;
+    }
+
+    const activeMeta = activeCallMetaRef.current;
+    if (activeMeta) {
+      let callHistoryStatus: "completed" | "missed" | "declined" = "completed";
+
+      if (wasRejected || callStatus === "rejected" || callStatus === "failed") {
+        callHistoryStatus = "declined";
+      } else if (prevStatus === "connected") {
+        callHistoryStatus = "completed";
+      } else {
+        callHistoryStatus = "missed";
+      }
+
+      const duration = callStartTime
+        ? Math.floor((Date.now() - callStartTime) / 1000)
+        : 0;
+
+      const emitCallHistory = async () => {
+        try {
+          const socket = chatSocketService.connect();
+
+          if (!socket.connected) {
+            await new Promise<void>((resolve) => {
+              socket.once("connect", () => resolve());
+            });
+          }
+
+          sendMessage({
+            requestId: `req_${Date.now()}`,
+            clientMessageId: `call_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            receiverId: activeMeta.receiverId,
+            type: "call",
+            content: "",
+            conversationId: activeMeta.conversationId,
+            callData: {
+              callType: activeMeta.callType,
+              callStatus: callHistoryStatus,
+              duration,
+              isInitiator: true,
+              wasRejected: callHistoryStatus === "declined",
+            },
+          });
+        } catch (error) {
+          console.error(
+            "Failed to persist call history from friend list:",
+            error,
+          );
+        }
+      };
+
+      void emitCallHistory();
+    }
+
+    wasInitiatorRef.current = false;
+    activeCallMetaRef.current = null;
+    prevCallStatusRef.current = callStatus;
+  }, [callStatus, callStartTime, isInitiator, wasRejected]);
+
+  const mapFriendFromApi = (item: {
+    id: string;
+    fullName: string;
+    isOnline: boolean;
+    avatarUrl?: string | null;
+  }): Friend => ({
+    id: item.id,
+    name: item.fullName,
+    status: item.isOnline ? "online" : "offline",
+    isOnline: item.isOnline,
+    subtext: item.isOnline ? "Online" : "Offline",
+    avatar: item.avatarUrl || "",
+  });
 
   useEffect(() => {
     if (!userId) return;
 
     const loadData = async () => {
-      const [friendsRes, requestsRes, groupsRes, invitesRes] =
-        await Promise.all([
-          friendListService.getFriends(userId),
-          friendListService.getIncomingFriendRequests(userId),
-          friendListService.getMyGroups(userId),
-          friendListService.getIncomingGroupInvites(userId),
-        ]);
+      const [
+        friendsRes,
+        requestsRes,
+        outgoingRequestsRes,
+        groupsRes,
+        invitesRes,
+      ] = await Promise.all([
+        friendListService.getFriends(userId),
+        friendListService.getIncomingFriendRequests(userId),
+        friendListService.getOutgoingFriendRequests(userId),
+        friendListService.getMyGroups(userId),
+        friendListService.getIncomingGroupInvites(userId),
+      ]);
 
       const [suggestionsRes, recentlyActiveRes] = await Promise.all([
         friendListService.getSuggestionsByMutualGroups(userId),
         friendListService.getRecentlyActive(userId),
       ]);
 
+      const blockedRes = await friendListService.getBlockedFriends(userId);
+      const blockedIds = new Set(blockedRes.map((item) => item.id));
+
       setFriends(
-        friendsRes.map((item) => ({
-          id: item.id,
-          name: item.fullName,
-          status: item.isOnline ? "online" : "offline",
-          isOnline: item.isOnline,
-          subtext: item.isOnline ? "Online" : "Offline",
-          avatar: item.avatarUrl || DEFAULT_AVATAR,
-        })),
+        friendsRes
+          .filter((item) => !blockedIds.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            name: item.fullName,
+            status: item.isOnline ? "online" : "offline",
+            isOnline: item.isOnline,
+            subtext: item.isOnline ? "Online" : "Offline",
+            avatar: item.avatarUrl || DEFAULT_AVATAR,
+          })),
       );
 
       setRequests(
@@ -75,11 +314,14 @@ const FriendListPage = () => {
           senderId: item.sender.userId,
           receiverId: item.receiver.userId,
           name: item.sender.fullName,
-          avatar: item.sender.avatarUrl || DEFAULT_AVATAR,
+          avatar: item.sender.avatarUrl || "",
           timeAgo: formatAgo(item.createdAt),
           status: item.status,
           createdAt: item.createdAt,
         })),
+      );
+      setPendingSentRequestIds(
+        new Set(outgoingRequestsRes.map((item) => item.receiver.userId)),
       );
 
       setGroups(groupsRes);
@@ -97,22 +339,35 @@ const FriendListPage = () => {
       );
 
       setSuggestions(
-        suggestionsRes.map((item) => ({
-          id: item.id,
-          name: item.fullName,
-          avatar: item.avatarUrl || DEFAULT_AVATAR,
-          mutualFriends: item.mutualGroupCount,
-          mutualGroupCount: item.mutualGroupCount,
-          mutualGroupNames: item.mutualGroupNames,
-        })),
+        suggestionsRes
+          .filter((item) => !blockedIds.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            name: item.fullName,
+            avatar: item.avatarUrl || "",
+            mutualFriends: item.mutualGroupCount,
+            mutualGroupCount: item.mutualGroupCount,
+            mutualGroupNames: item.mutualGroupNames,
+          })),
       );
 
       setRecentlyActive(
-        recentlyActiveRes.map((item) => ({
+        recentlyActiveRes
+          .filter((item) => !blockedIds.has(item.id))
+          .map((item) => ({
+            id: item.id,
+            name: item.fullName,
+            avatar: item.avatarUrl || "",
+            isActive: item.isOnline,
+          })),
+      );
+      setBlockedFriends(
+        blockedRes.map((item) => ({
           id: item.id,
           name: item.fullName,
-          avatar: item.avatarUrl || DEFAULT_AVATAR,
-          isActive: item.isOnline,
+          avatar: item.avatarUrl || "",
+          blockedAt: item.blockedAt,
+          isOnline: item.isOnline,
         })),
       );
     };
@@ -123,15 +378,25 @@ const FriendListPage = () => {
   useEffect(() => {
     if (!userId) return;
 
-    const presenceSocket = socketService.connectPresence(userId);
+    const presenceSocket = presenceSocketService.connect(userId);
     if (!presenceSocket) return;
 
     const onOnline = ({ userId: onlineUserId }: { userId: string }) => {
       setFriends((prev) =>
         prev.map((f) =>
           f.id === onlineUserId
-            ? { ...f, isOnline: true, status: "online", subtext: "Online" }
+            ? {
+                ...f,
+                isOnline: true,
+                status: "online",
+                subtext: "Online",
+              }
             : f,
+        ),
+      );
+      setRecentlyActive((prev) =>
+        prev.map((item) =>
+          item.id === onlineUserId ? { ...item, isActive: true } : item,
         ),
       );
     };
@@ -140,8 +405,18 @@ const FriendListPage = () => {
       setFriends((prev) =>
         prev.map((f) =>
           f.id === offlineUserId
-            ? { ...f, isOnline: false, status: "offline", subtext: "Offline" }
+            ? {
+                ...f,
+                isOnline: false,
+                status: "offline",
+                subtext: "Offline",
+              }
             : f,
+        ),
+      );
+      setRecentlyActive((prev) =>
+        prev.map((item) =>
+          item.id === offlineUserId ? { ...item, isActive: false } : item,
         ),
       );
     };
@@ -156,6 +431,12 @@ const FriendListPage = () => {
           subtext: onlineSet.has(f.id) ? "Online" : "Offline",
         })),
       );
+      setRecentlyActive((prev) =>
+        prev.map((item) => ({
+          ...item,
+          isActive: onlineSet.has(item.id),
+        })),
+      );
     };
 
     presenceSocket.on("presence:user-online", onOnline);
@@ -163,7 +444,12 @@ const FriendListPage = () => {
     presenceSocket.on("presence:online-list", onOnlineList);
     presenceSocket.emit("presence:get-online");
 
+    const refreshTimer = setInterval(() => {
+      presenceSocket.emit("presence:get-online");
+    }, 20000);
+
     return () => {
+      clearInterval(refreshTimer);
       presenceSocket.off("presence:user-online", onOnline);
       presenceSocket.off("presence:user-offline", onOffline);
       presenceSocket.off("presence:online-list", onOnlineList);
@@ -177,14 +463,16 @@ const FriendListPage = () => {
 
     const refreshed = await friendListService.getFriends(userId);
     setFriends(
-      refreshed.map((item) => ({
-        id: item.id,
-        name: item.fullName,
-        status: item.isOnline ? "online" : "offline",
-        isOnline: item.isOnline,
-        subtext: item.isOnline ? "Online" : "Offline",
-        avatar: item.avatarUrl || DEFAULT_AVATAR,
-      })),
+      refreshed
+        .filter((item) => !isBlockedFriend(item.id))
+        .map((item) => ({
+          id: item.id,
+          name: item.fullName,
+          status: item.isOnline ? "online" : "offline",
+          isOnline: item.isOnline,
+          subtext: item.isOnline ? "Online" : "Offline",
+          avatar: item.avatarUrl || DEFAULT_AVATAR,
+        })),
     );
   };
 
@@ -213,6 +501,7 @@ const FriendListPage = () => {
     const result = await friendListService.searchUsers(userId, phone);
     const found = result[0];
     if (!found) return null;
+    if (isBlockedFriend(found.id)) return null;
 
     return {
       id: found.id,
@@ -220,13 +509,401 @@ const FriendListPage = () => {
       status: found.isOnline ? "online" : "offline",
       isOnline: found.isOnline,
       subtext: found.phoneNumber || "User found",
-      avatar: found.avatarUrl || DEFAULT_AVATAR,
+      avatar: found.avatarUrl || "",
     };
   };
 
-  const handleSendFriendRequest = async (targetUserId: string) => {
+  const handleSendFriendRequest = async (
+    targetUserId: string,
+    _message?: string,
+  ) => {
     if (!userId) return;
     await friendListService.sendFriendRequest(userId, targetUserId);
+    setPendingSentRequestIds((prev) => {
+      const next = new Set(prev);
+      next.add(targetUserId);
+      return next;
+    });
+  };
+
+  const openProfileWithFallback = async (
+    targetUserId: string,
+    fallback?: {
+      fullName: string;
+      avatarUrl?: string;
+      isOnline?: boolean;
+    },
+  ) => {
+    if (!userId) return;
+
+    try {
+      const profile = await friendListService.getFriendProfile(
+        userId,
+        targetUserId,
+      );
+      setSelectedFriendProfile(profile);
+      setIsInfoModalOpen(true);
+      return;
+    } catch {
+      if (!fallback) {
+        window.alert("Failed to load details");
+        return;
+      }
+    }
+
+    setSelectedFriendProfile({
+      id: targetUserId,
+      fullName: fallback.fullName,
+      avatarUrl: fallback.avatarUrl || undefined,
+      isOnline: Boolean(fallback.isOnline),
+      phoneNumber: "",
+      email: null,
+      gender: null,
+      birthDate: null,
+      createdAt: undefined,
+      friendshipSince: undefined,
+    });
+    setIsInfoModalOpen(true);
+  };
+
+  const handleViewFriendInfo = async (friendId: string) => {
+    setInfoModalMode("friend");
+    await openProfileWithFallback(friendId);
+  };
+
+  const handleViewSuggestedInfo = async (friendId: string) => {
+    const suggested = suggestions.find((item) => item.id === friendId);
+    if (!suggested) return;
+
+    setInfoModalMode("suggested");
+    await openProfileWithFallback(friendId, {
+      fullName: suggested.name,
+      avatarUrl: suggested.avatar,
+      isOnline: false,
+    });
+  };
+
+  const handleViewRecentlyActiveInfo = async (friendId: string) => {
+    const active = recentlyActive.find((item) => item.id === friendId);
+    if (!active) return;
+
+    setInfoModalMode("friend");
+    await openProfileWithFallback(friendId, {
+      fullName: active.name,
+      avatarUrl: active.avatar,
+      isOnline: Boolean(active.isActive),
+    });
+  };
+
+  const handleAddFriendFromProfile = async (friendId: string) => {
+    if (isSendingAddFriend || pendingSentRequestIds.has(friendId)) return;
+
+    setIsSendingAddFriend(true);
+    try {
+      await handleSendFriendRequest(friendId);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to send friend request";
+      window.alert(message);
+    } finally {
+      setIsSendingAddFriend(false);
+    }
+  };
+
+  const handleRequestBlockFriend = (friendId: string) => {
+    setPendingBlockFriendId(friendId);
+    setIsBlockConfirmOpen(true);
+  };
+
+  const startUndoAction = (kind: "remove" | "block", friendId: string) => {
+    if (!userId) return;
+
+    if (pendingAction) {
+      window.alert("Please complete or undo the previous action first.");
+      return;
+    }
+
+    const action: PendingFriendAction = {
+      kind,
+      friendId,
+      friendsSnapshot: friends,
+      recentlyActiveSnapshot: recentlyActive,
+    };
+
+    setPendingAction(action);
+    setFriends((prev) => prev.filter((item) => item.id !== friendId));
+    setRecentlyActive((prev) => prev.filter((item) => item.id !== friendId));
+    if (kind === "block") {
+      const target = friends.find((item) => item.id === friendId);
+      if (target) {
+        setBlockedFriends((prev) => [
+          {
+            id: target.id,
+            name: target.name,
+            avatar: target.avatar,
+            blockedAt: new Date().toISOString(),
+            isOnline: target.isOnline,
+          },
+          ...prev,
+        ]);
+      }
+    }
+
+    if (selectedFriendProfile?.id === friendId) {
+      setIsInfoModalOpen(false);
+      setSelectedFriendProfile(null);
+    }
+
+    setUndoMessage(kind === "remove" ? "Friend removed" : "Friend blocked");
+    setShowUndoToast(true);
+
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+    }
+
+    undoTimerRef.current = setTimeout(() => {
+      void commitPendingAction(action);
+    }, UNDO_DURATION_MS);
+  };
+
+  const commitPendingAction = async (action: PendingFriendAction) => {
+    try {
+      if (action.kind === "remove") {
+        await friendListService.removeFriend(userId, action.friendId);
+      } else {
+        await friendListService.blockFriend(userId, action.friendId);
+      }
+      setPendingAction(null);
+      setShowUndoToast(false);
+    } catch (error) {
+      setFriends(action.friendsSnapshot);
+      setRecentlyActive(action.recentlyActiveSnapshot);
+      if (action.kind === "block") {
+        setBlockedFriends((prev) =>
+          prev.filter((item) => item.id !== action.friendId),
+        );
+      }
+      setPendingAction(null);
+      setShowUndoToast(false);
+      const message = error instanceof Error ? error.message : "Action failed";
+      window.alert(message);
+    }
+  };
+
+  const handleUndoFriendAction = () => {
+    if (!pendingAction) return;
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+    }
+
+    setFriends(pendingAction.friendsSnapshot);
+    setRecentlyActive(pendingAction.recentlyActiveSnapshot);
+    if (pendingAction.kind === "block") {
+      setBlockedFriends((prev) =>
+        prev.filter((item) => item.id !== pendingAction.friendId),
+      );
+    }
+    setPendingAction(null);
+    setShowUndoToast(false);
+  };
+
+  const handleConfirmBlockFriend = () => {
+    if (!pendingBlockFriendId) return;
+    startUndoAction("block", pendingBlockFriendId);
+    setPendingBlockFriendId(null);
+  };
+
+  const handleRequestRemoveFriend = (friendId: string) => {
+    setPendingRemoveFriendId(friendId);
+    setIsRemoveConfirmOpen(true);
+  };
+
+  const handleConfirmRemoveFriend = () => {
+    if (!pendingRemoveFriendId) return;
+    startUndoAction("remove", pendingRemoveFriendId);
+    setPendingRemoveFriendId(null);
+  };
+
+  const handleMessageFromProfile = async (friendId: string) => {
+    if (isBlockedFriend(friendId)) {
+      setChatErrorMessage("Cannot message a blocked user.");
+      return;
+    }
+
+    setIsInfoModalOpen(false);
+    setSelectedFriendProfile(null);
+
+    try {
+      const conversationId = await createOrOpenConversation(friendId);
+      if (!conversationId) {
+        window.alert("Failed to open conversation. Please try again.");
+        return;
+      }
+
+      navigate("/chat", {
+        state: { selectedConversationId: conversationId },
+      });
+    } catch (error) {
+      const message = getErrorMessage(error, "Failed to open conversation");
+      if (isMessagePrivacyError(message)) {
+        showMessagePrivacyWarning();
+        return;
+      }
+
+      window.alert(message);
+    }
+  };
+
+  const handleDirectMessageSearch = async (friendId: string) => {
+    if (isBlockedFriend(friendId)) {
+      setChatErrorMessage("Cannot message a blocked user.");
+      return;
+    }
+
+    try {
+      const conversationId = await createOrOpenConversation(friendId);
+      if (!conversationId) {
+        setChatErrorMessage("Failed to open conversation. Please try again.");
+        return;
+      }
+
+      navigate("/chat", {
+        state: { selectedConversationId: conversationId },
+      });
+    } catch (error) {
+      const errorMessage = getErrorMessage(
+        error,
+        "Failed to open conversation",
+      );
+      if (isMessagePrivacyError(errorMessage)) {
+        showMessagePrivacyWarning();
+        return;
+      }
+
+      setChatErrorMessage(errorMessage);
+    }
+  };
+
+  const handleUnblockFriend = async (friendId: string) => {
+    if (!userId) return;
+
+    try {
+      await friendListService.unblockFriend(userId, friendId);
+      setBlockedFriends((prev) => prev.filter((item) => item.id !== friendId));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Cannot be unblocked";
+      window.alert(message);
+    }
+  };
+
+  const handleStartCallFromFriend = async (
+    friendId: string,
+    callType: "audio" | "video",
+  ) => {
+    const currentUser = getUser();
+    const currentUserId = currentUser?.userId || currentUser?.id;
+    const friend = friends.find((item) => item.id === friendId);
+    if (!currentUserId || !friend) return;
+
+    if (isBlockedFriend(friendId)) {
+      window.alert("Cannot call a blocked user.");
+      return;
+    }
+
+    if (callStatus !== "idle") {
+      window.alert("I'm currently on another call. Please try again later.");
+      return;
+    }
+
+    try {
+      const conversationId = await createOrOpenConversation(friend.id);
+      if (!conversationId) {
+        window.alert("Failed to create or open conversation for calling.");
+        return;
+      }
+
+      wasInitiatorRef.current = true;
+      activeCallMetaRef.current = {
+        conversationId,
+        receiverId: friend.id,
+        callType,
+      };
+
+      await initiateCall(
+        conversationId,
+        friend.id,
+        callType,
+        {
+          name: friend.name,
+          avatar: friend.avatar,
+        },
+        {
+          name: currentUser.fullName,
+          avatar: currentUser.avatarUrl || undefined,
+        },
+      );
+    } catch (error) {
+      wasInitiatorRef.current = false;
+      activeCallMetaRef.current = null;
+      const message =
+        error instanceof Error ? error.message : "Failed to start call";
+      window.alert(message);
+    }
+  };
+
+  const handleCallFromProfile = async (friendId: string) => {
+    await handleStartCallFromFriend(friendId, "audio");
+  };
+
+  const handleChatClick = async (friendId: string) => {
+    if (isBlockedFriend(friendId)) {
+      setChatErrorMessage("Cannot message a blocked user.");
+      return;
+    }
+
+    try {
+      setChatLoadingFriendId(friendId);
+      setChatErrorMessage("");
+
+      const conversationId = await createOrOpenConversation(friendId);
+
+      if (!conversationId) {
+        setChatErrorMessage("Failed to open conversation. Please try again.");
+        return;
+      }
+
+      // Điều hướng sang trang chat và truyền conversation ID qua state
+      navigate("/chat", {
+        state: {
+          selectedConversationId: conversationId,
+        },
+      });
+    } catch (error) {
+      const errorMessage = getErrorMessage(
+        error,
+        "Failed to open conversation with friend",
+      );
+      if (isMessagePrivacyError(errorMessage)) {
+        showMessagePrivacyWarning();
+        return;
+      }
+
+      setChatErrorMessage(errorMessage);
+      console.error("Failed to open chat with friend:", error);
+    } finally {
+      setChatLoadingFriendId(null);
+    }
+  };
+
+  const handleOpenGroupChat = (groupId: string) => {
+    navigate("/chat", {
+      state: {
+        selectedConversationId: groupId,
+      },
+    });
   };
 
   const counts = useMemo(
@@ -246,9 +923,19 @@ const FriendListPage = () => {
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
         friends={friends}
+        onViewFriendInfo={handleViewFriendInfo}
+        onRemoveFriend={handleRequestRemoveFriend}
+        onBlockFriend={handleRequestBlockFriend}
+        onStartCall={(friendId, callType) => {
+          void handleStartCallFromFriend(friendId, callType);
+        }}
+        isCallingBusy={callStatus !== "idle"}
         requestCount={counts.requestCount}
         groupCount={counts.groupCount}
         groupInviteCount={counts.groupInviteCount}
+        blockedCount={blockedFriends.length}
+        onChatClick={handleChatClick}
+        chatLoadingFriendId={chatLoadingFriendId}
       />
       <MainContent
         activeCategory={activeCategory}
@@ -258,13 +945,120 @@ const FriendListPage = () => {
         groupInvites={groupInvites}
         suggestions={suggestions}
         recentlyActive={recentlyActive}
+        blockedFriends={blockedFriends}
+        pendingSentRequestIds={pendingSentRequestIds}
+        onUnblockFriend={handleUnblockFriend}
+        onViewSuggestedInfo={(friendId) => {
+          void handleViewSuggestedInfo(friendId);
+        }}
+        onViewRecentlyActiveInfo={(friendId) => {
+          void handleViewRecentlyActiveInfo(friendId);
+        }}
         onSearchByPhone={handleSearchByPhone}
         onSendFriendRequest={handleSendFriendRequest}
+        onDirectMessageSearch={handleDirectMessageSearch}
         onAcceptFriendRequest={handleAcceptFriendRequest}
         onDeclineFriendRequest={handleDeclineFriendRequest}
         onAcceptGroupInvite={handleAcceptGroupInvite}
         onDeclineGroupInvite={handleDeclineGroupInvite}
+        onOpenGroupChat={handleOpenGroupChat}
       />
+      <FriendInfoModal
+        isOpen={isInfoModalOpen}
+        profile={selectedFriendProfile}
+        mode={infoModalMode}
+        onMessage={handleMessageFromProfile}
+        onCall={(friendId) => {
+          void handleCallFromProfile(friendId);
+        }}
+        onAddFriend={(friendId) => {
+          void handleAddFriendFromProfile(friendId);
+        }}
+        isSendingAddFriend={isSendingAddFriend}
+        hasSentAddFriend={Boolean(
+          selectedFriendProfile &&
+          pendingSentRequestIds.has(selectedFriendProfile.id),
+        )}
+        onBlock={handleRequestBlockFriend}
+        onRemove={handleRequestRemoveFriend}
+        onClose={() => {
+          setIsInfoModalOpen(false);
+          setSelectedFriendProfile(null);
+        }}
+      />
+      <ConfirmDialog
+        isOpen={isBlockConfirmOpen}
+        onClose={() => {
+          setIsBlockConfirmOpen(false);
+          setPendingBlockFriendId(null);
+        }}
+        onConfirm={handleConfirmBlockFriend}
+        title="Block Friend"
+        message="Are you sure you want to block this friend? They won't be able to send you messages or calls."
+        confirmText="Block"
+        cancelText="Cancel"
+        variant="danger"
+      />
+      <ConfirmDialog
+        isOpen={isRemoveConfirmOpen}
+        onClose={() => {
+          setIsRemoveConfirmOpen(false);
+          setPendingRemoveFriendId(null);
+        }}
+        onConfirm={handleConfirmRemoveFriend}
+        title="Delete Friend"
+        message="Are you sure you want to remove this friend from your friend list?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
+      <Modal
+        isOpen={isMessagePrivacyWarningOpen}
+        onClose={() => setIsMessagePrivacyWarningOpen(false)}
+        size="sm"
+        showHeader={false}
+      >
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <i className="fas fa-exclamation-circle text-amber-500 text-lg"></i>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                Không thể bắt đầu trò chuyện
+              </h4>
+              <p className="text-sm text-gray-600 leading-6">
+                {MESSAGE_PRIVACY_WARNING}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={() => setIsMessagePrivacyWarningOpen(false)}
+              className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors text-sm font-medium cursor-pointer"
+            >
+              Đã hiểu
+            </button>
+          </div>
+        </div>
+      </Modal>
+      <ToastUndo
+        isVisible={showUndoToast}
+        message={undoMessage}
+        onUndo={handleUndoFriendAction}
+        duration={UNDO_DURATION_MS}
+      />
+      {chatErrorMessage && (
+        <div className="fixed bottom-4 right-4 bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 max-w-xs animate-fade-in">
+          <p className="text-sm font-medium">{chatErrorMessage}</p>
+          <button
+            onClick={() => setChatErrorMessage("")}
+            className="ml-2 inline-block text-white hover:text-red-100 text-xs"
+          >
+            ✕
+          </button>
+        </div>
+      )}{" "}
     </div>
   );
 };

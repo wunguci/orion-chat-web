@@ -1,127 +1,104 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import type {
-  Board,
-  ActivityEntry,
-  Workspace,
-  Task,
-} from "../../../types/work-hub.types";
+import type { Board, Workspace } from "../../../types/work-hub.types";
+import type { WorkspaceDashboardStatsResponse } from "../../../features/work-hub/work-hub.api.types";
 import { workHubApi } from "../../../features/work-hub/work-hub.api";
-import {
-  mapWorkspace,
-  mapTask,
-} from "../../../features/work-hub/work-hub.mappers";
+import { mapWorkspace } from "../../../features/work-hub/work-hub.mappers";
+import { dispatchWorkhubWorkspaceUpdated } from "../../../utils/workhubEvents";
+import { getUser } from "../../../utils/token";
 import BoardCard from "../../../components/work-hub/workspace/BoardCard";
 import BoardFormDialog from "../../../components/work-hub/workspace/BoardFormDialog";
+
+import { useWorkspace } from "../../../contexts/WorkspaceContext";
+import { AlertTriangle } from "lucide-react";
 
 const WorkHubPage = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
   const navigate = useNavigate();
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
+  const { workspace } = useWorkspace();
+  const [dashboardStats, setDashboardStats] =
+    useState<WorkspaceDashboardStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBoardForm, setShowBoardForm] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  const [showDisbandConfirm, setShowDisbandConfirm] = useState(false);
 
-  useEffect(() => {
+  const loadWorkspaceDashboard = useCallback(async () => {
     if (!workspaceId) return;
     setLoading(true);
 
-    workHubApi
-      .getWorkspace(workspaceId)
-      .then(async (data) => {
-        const mapped = mapWorkspace(data);
-        setWorkspace(mapped);
-
-        const allTasks: Task[] = [];
-        for (const board of mapped.boards) {
-          try {
-            const tasks = await workHubApi.getTasksByBoard(board.id);
-            allTasks.push(...tasks.map(mapTask));
-          } catch {}
-        }
-        setWorkspaceTasks(allTasks);
-      })
-      .catch(() => setWorkspace(null))
-      .finally(() => setLoading(false));
+    try {
+      const statsData = await workHubApi.getDashboardStats(workspaceId);
+      setDashboardStats(statsData);
+    } catch {
+      setDashboardStats(null);
+    } finally {
+      setLoading(false);
+    }
   }, [workspaceId]);
 
-  // Tínhhhhh
-  const stats = useMemo(() => {
-    const total = workspaceTasks.length;
-    const completed = workspaceTasks.filter((t) => t.status === "done").length;
-    const inProgress = workspaceTasks.filter(
-      (t) => t.status === "inprogress",
-    ).length;
+  useEffect(() => {
+    void loadWorkspaceDashboard();
+  }, [loadWorkspaceDashboard]);
 
-    const now = new Date();
-    const overdue = workspaceTasks.filter((t) => {
-      if (t.status === "done" || !t.deadline) return false;
-      return new Date(t.deadline) < now;
-    }).length;
+  const stats =
+    dashboardStats?.summary ??
+    {
+      totalTasks: 0,
+      completedTasks: 0,
+      inProgressTasks: 0,
+      reviewTasks: 0,
+      todoTasks: 0,
+      overdueTasks: 0,
+      completionRate: 0,
+      totalBoards: workspace?.boards.length ?? 0,
+      totalMembers: workspace?.members.length ?? 0,
+    };
 
-    return { total, completed, inProgress, overdue };
-  }, [workspaceTasks]);
-
-  const todoCount = workspaceTasks.filter((t) => t.status === "todo").length;
+  const todoCount = stats.todoTasks;
 
   const boardTaskCounts = useMemo(() => {
     const map: Record<string, { total: number; completed: number }> = {};
-    if (!workspace) return map;
-    for (const board of workspace.boards) {
-      const boardTasks = workspaceTasks.filter((t) => t.boardId === board.id);
-      map[board.id] = {
-        total: boardTasks.length,
-        completed: boardTasks.filter((t) => t.status === "done").length,
+    for (const boardStat of dashboardStats?.boardStats ?? []) {
+      map[boardStat.boardId] = {
+        total: boardStat.totalTasks,
+        completed: boardStat.completedTasks,
       };
     }
     return map;
-  }, [workspace, workspaceTasks]);
+  }, [dashboardStats]);
 
-  const recentActivities = useMemo(() => {
-    const all: Array<ActivityEntry & { taskTitle: string }> = [];
-    for (const task of workspaceTasks) {
-      for (const entry of task.activityHistory) {
-        all.push({ ...entry, taskTitle: task.title });
-      }
-    }
-    all.sort(
-      (a, b) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    );
-    return all.slice(0, 5);
-  }, [workspaceTasks]);
+  const recentActivities = dashboardStats?.recentActivities ?? [];
 
-  const completionRate =
-    stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+  const completionRate = stats.completionRate;
+  
+  const { isOwner, isAdmin } = useWorkspace();
+  const canManageWorkspace = isOwner || isAdmin;
+  const canDisbandWorkspace = isOwner;
 
   const trendSeries = useMemo(() => {
+    const source = dashboardStats?.trendLast7Days ?? [];
+
+    if (source.length > 0) {
+      return source.map((item) => {
+        const date = new Date(item.date);
+        const label = date.toLocaleDateString("en-US", { weekday: "short" });
+        return {
+          label,
+          value: item.completed,
+        };
+      });
+    }
+
     const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const series = labels.map((label, idx) => ({ label, idx, value: 0 }));
+    return labels.map((label, index) => ({
+      label,
+      value: [2, 3, 4, 3, 2, 5, 3][index],
+    }));
+  }, [dashboardStats]);
 
-    for (const task of workspaceTasks) {
-      for (const entry of task.activityHistory) {
-        if (entry.type !== "completed") continue;
-        const date = new Date(entry.timestamp);
-        const diffDays =
-          (new Date().getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDays > 7 || diffDays < 0) continue;
-        series[date.getDay()].value += 1;
-      }
-    }
-
-    const hasData = series.some((s) => s.value > 0);
-    if (!hasData) {
-      return series.map((s, index) => ({
-        ...s,
-        value: [2, 3, 4, 3, 2, 5, 3][index],
-      }));
-    }
-    return series;
-  }, [workspaceTasks]);
-
-  const getActivityIcon = (type: ActivityEntry["type"]): string => {
-    const icons: Record<ActivityEntry["type"], string> = {
+  const getActivityIcon = (type: string): string => {
+    const icons: Record<string, string> = {
       created: "fa-plus-circle",
       updated: "fa-edit",
       status_changed: "fa-exchange-alt",
@@ -134,8 +111,8 @@ const WorkHubPage = () => {
     return icons[type] || "fa-info-circle";
   };
 
-  const getActivityColor = (type: ActivityEntry["type"]): string => {
-    const colors: Record<ActivityEntry["type"], string> = {
+  const getActivityColor = (type: string): string => {
+    const colors: Record<string, string> = {
       created: "#0d9488",
       updated: "#5a9e9e",
       status_changed: "#F59E0B",
@@ -184,8 +161,8 @@ const WorkHubPage = () => {
           icon: data.icon,
         });
       }
-      const wsData = await workHubApi.getWorkspace(workspaceId);
-      setWorkspace(mapWorkspace(wsData));
+      await loadWorkspaceDashboard();
+      dispatchWorkhubWorkspaceUpdated(workspaceId);
       setShowBoardForm(false);
       setEditingBoard(null);
     } catch (err) {
@@ -197,10 +174,20 @@ const WorkHubPage = () => {
     if (!workspaceId || !confirm("Ban co chac muon xoa board nay?")) return;
     try {
       await workHubApi.deleteBoard(workspaceId, boardId);
-      const wsData = await workHubApi.getWorkspace(workspaceId);
-      setWorkspace(mapWorkspace(wsData));
+      await loadWorkspaceDashboard();
+      dispatchWorkhubWorkspaceUpdated(workspaceId);
     } catch (err) {
       console.error("Failed to delete board:", err);
+    }
+  };
+
+  const handleDisbandWorkspace = async () => {
+    if (!workspaceId || !canDisbandWorkspace) return;
+    try {
+      await workHubApi.deleteWorkspace(workspaceId);
+      navigate("/work-hub");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to disband WorkHub");
     }
   };
 
@@ -281,9 +268,15 @@ const WorkHubPage = () => {
                   )}
                 </div>
 
-                <button className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition-colors">
-                  <i className="fas fa-cog"></i>
-                </button>
+                {canDisbandWorkspace && (
+                  <button
+                    onClick={() => setShowDisbandConfirm(true)}
+                    className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 transition-colors"
+                    title="Disband WorkHub"
+                  >
+                    <i className="fas fa-trash"></i>
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -309,13 +302,13 @@ const WorkHubPage = () => {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                       <div className="text-xl font-bold text-slate-800">
-                        {stats.total}
+                        {stats.totalTasks}
                       </div>
                       <div className="text-xs text-slate-500 mt-1">Total</div>
                     </div>
                     <div className="rounded-xl border border-teal-200 bg-teal-50 p-3">
                       <div className="text-xl font-bold text-teal-700">
-                        {stats.inProgress}
+                        {stats.inProgressTasks}
                       </div>
                       <div className="text-xs text-slate-500 mt-1">
                         In Progress
@@ -323,7 +316,7 @@ const WorkHubPage = () => {
                     </div>
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                       <div className="text-xl font-bold text-emerald-700">
-                        {stats.completed}
+                        {stats.completedTasks}
                       </div>
                       <div className="text-xs text-slate-500 mt-1">
                         Completed
@@ -331,7 +324,7 @@ const WorkHubPage = () => {
                     </div>
                     <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
                       <div className="text-xl font-bold text-rose-700">
-                        {stats.overdue}
+                        {stats.overdueTasks}
                       </div>
                       <div className="text-xs text-slate-500 mt-1">Overdue</div>
                     </div>
@@ -361,7 +354,7 @@ const WorkHubPage = () => {
                       </p>
                       <div className="mt-4 text-sm font-semibold text-emerald-600">
                         <i className="fas fa-arrow-up-right-dots mr-1"></i>
-                        {stats.completed} completed
+                        {stats.completedTasks} completed
                       </div>
                     </div>
 
@@ -402,11 +395,12 @@ const WorkHubPage = () => {
                     </h2>
                     <div className="flex items-center gap-3">
                       <button
+                        disabled={!canManageWorkspace}
                         onClick={() => {
                           setEditingBoard(null);
                           setShowBoardForm(true);
                         }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-teal-600 transition-colors hover:bg-teal-700"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-teal-600 transition-colors hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <i className="fas fa-plus text-xs"></i>
                         Create Board
@@ -418,7 +412,7 @@ const WorkHubPage = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-3 auto-rows-fr">
                     {workspace.boards.map((board: Board) => (
                       <BoardCard
                         key={board.id}
@@ -435,10 +429,13 @@ const WorkHubPage = () => {
                           )
                         }
                         onEdit={(b) => {
+                          if (!canManageWorkspace) return;
                           setEditingBoard(b);
                           setShowBoardForm(true);
                         }}
-                        onDelete={handleDeleteBoard}
+                        onDelete={
+                          canManageWorkspace ? handleDeleteBoard : undefined
+                        }
                       />
                     ))}
                   </div>
@@ -448,11 +445,14 @@ const WorkHubPage = () => {
               <div className="space-y-5">
                 <div className="bg-white rounded-2xl border border-slate-200 p-5">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium text-slate-500">
                         Good day
                       </div>
-                      <h3 className="text-2xl font-bold text-slate-800 mt-1">
+                      <h3
+                        className="text-xl font-bold text-slate-800 mt-1 truncate"
+                        title={workspace.name}
+                      >
                         {workspace.name}
                       </h3>
                       <p className="text-sm text-slate-500 mt-1">
@@ -460,7 +460,7 @@ const WorkHubPage = () => {
                       </p>
                     </div>
                     <div
-                      className="w-24 h-24 rounded-full grid place-items-center"
+                      className="w-24 h-24 rounded-full grid place-items-center flex-shrink-0 ml-4"
                       style={{
                         background: `conic-gradient(#0d9488 ${completionRate * 3.6}deg, #e2e8f0 0deg)`,
                       }}
@@ -488,7 +488,7 @@ const WorkHubPage = () => {
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                       <div className="text-xs text-slate-500">In progress</div>
                       <div className="text-lg font-bold text-amber-600 mt-1">
-                        {stats.inProgress}
+                        {stats.inProgressTasks}
                       </div>
                     </div>
                   </div>
@@ -514,10 +514,10 @@ const WorkHubPage = () => {
                   ) : (
                     <div className="space-y-1">
                       {recentActivities.map((activity, index) => {
-                        const iconColor = getActivityColor(activity.type);
+                        const iconColor = getActivityColor(activity.action);
                         return (
                           <div
-                            key={activity.id}
+                            key={activity.activityId}
                             className={`flex gap-3 py-3 ${
                               index !== recentActivities.length - 1
                                 ? "border-b border-slate-200"
@@ -532,14 +532,14 @@ const WorkHubPage = () => {
                               }}
                             >
                               <i
-                                className={`fas ${getActivityIcon(activity.type)}`}
+                                className={`fas ${getActivityIcon(activity.action)}`}
                               ></i>
                             </div>
 
                             <div className="flex-1 min-w-0">
                               <div className="text-sm mb-0.5">
                                 <span className="font-semibold text-slate-900">
-                                  {activity.user.name}
+                                  {activity.user.fullName}
                                 </span>{" "}
                                 <span className="text-slate-600">
                                   {activity.description}
@@ -551,7 +551,7 @@ const WorkHubPage = () => {
                                 </span>
                                 <span>in</span>
                                 <span className="font-medium text-slate-700 truncate">
-                                  {activity.taskTitle}
+                                  {activity.task?.title || "Task"}
                                 </span>
                               </div>
                             </div>
@@ -570,7 +570,14 @@ const WorkHubPage = () => {
                     {workspace.members.slice(0, 6).map((member) => (
                       <div
                         key={member.user.id}
-                        className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50"
+                        onClick={() =>
+                          window.dispatchEvent(
+                            new CustomEvent("workhub:open-member-chat", {
+                              detail: { userId: member.user.id },
+                            }),
+                          )
+                        }
+                        className="flex cursor-pointer items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white"
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <img
@@ -587,7 +594,7 @@ const WorkHubPage = () => {
                             </div>
                           </div>
                         </div>
-                        <i className="fas fa-ellipsis-v text-slate-400 text-xs"></i>
+                        <i className="fas fa-comment text-slate-400 text-xs"></i>
                       </div>
                     ))}
                   </div>
@@ -608,6 +615,32 @@ const WorkHubPage = () => {
         onSave={handleSaveBoard}
         board={editingBoard ?? undefined}
       />
+
+      {showDisbandConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-rose-100 bg-white p-6 shadow-xl">
+            <h2 className="text-lg font-bold text-gray-900">Disband WorkHub?</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              This will permanently remove the workspace, boards, tasks, files,
+              and member access. This action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setShowDisbandConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => void handleDisbandWorkspace()}
+                className="px-4 py-2 rounded-lg bg-rose-600 text-sm font-medium text-white hover:bg-rose-700"
+              >
+                Disband
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

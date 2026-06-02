@@ -1,254 +1,1458 @@
+/*eslint-disable*/
 // Call
-import { io, Socket } from "socket.io-client";
+import { io, Socket } from 'socket.io-client';
 
 const RAW_SOCKET_URL =
-  (import.meta.env["VITE_SOCKET_URL"] as string | undefined) ||
-  "http://localhost:3000"; /* Đảm bảo không có dấu gạch chéo ở cuối */
+    (import.meta.env['VITE_SOCKET_URL'] as string | undefined) ||
+    'http://localhost:3000'; /* Đảm bảo không có dấu gạch chéo ở cuối */
 
 const normalizeSocketBaseUrl = (url: string) =>
-  url.replace(/\/$/, "").replace(/\/call$/, "");
+    url.replace(/\/$/, '').replace(/\/call$/, '');
 
 const SOCKET_BASE_URL = normalizeSocketBaseUrl(RAW_SOCKET_URL);
 const CALL_NAMESPACE_URL = `${SOCKET_BASE_URL}/call`;
 const PRESENCE_NAMESPACE_URL = `${SOCKET_BASE_URL}/presence`;
+const NOTIFICATION_NAMESPACE_URL = `${SOCKET_BASE_URL}/notifications`;
 
 class SocketService {
-  private socket: Socket | null = null;
-  private callSocket: Socket | null = null;
-  private presenceSocket: Socket | null = null;
-  private currentUserId: string | null = null; // Track userId hiện tại
+    private socket: Socket | null = null;
+    private callSocket: Socket | null = null;
+    private presenceSocket: Socket | null = null;
+    private notificationSocket: Socket | null = null;
+    private notificationUserId: string | null = null;
+    private currentUserId: string | null = null; // Track userId hiện tại
+    private presenceHeartbeatTimer: ReturnType<typeof setInterval> | null =
+        null;
 
-  // connect main socket
-  connect(userId: string, token?: string) {
-    if (this.socket?.connected) {
-      return this.socket;
+    // connect main socket
+    connect(userId: string, token?: string) {
+        if (this.socket?.connected) {
+            return this.socket;
+        }
+
+        this.socket = io(SOCKET_BASE_URL, {
+            query: { userId },
+            auth: { token }, // nếu có authentication
+            transports: ['websocket'],
+        });
+
+        this.socket.on('connect', () => {
+            console.log('Main socket connected:', this.socket?.id);
+        });
+
+        this.socket.on('disconnect', () => {
+            console.log('Main socket disconnected');
+        });
+
+        return this.socket;
     }
 
-    this.socket = io(SOCKET_BASE_URL, {
-      query: { userId },
-      auth: { token }, // nếu có authentication
-      transports: ["websocket"],
-    });
+    // kết nối call socket (namespace /call)
+    connectCall(userId: string, token?: string) {
+        // nếu userId thay đổi, ngắt kết nối socket cũ.
+        if (this.currentUserId && this.currentUserId !== userId) {
+            console.log(
+                `[SocketService] UserId changed from ${this.currentUserId} to ${userId}, reconnecting...`,
+            );
+            this.disconnectCall();
+        }
 
-    this.socket.on("connect", () => {
-      console.log("Main socket connected:", this.socket?.id);
-    });
+        // nếu đã kết nối hoặc đang kết nối với cùng userId, trả về socket hiện có.
+        if (this.callSocket && this.currentUserId === userId) {
+            console.log(`[SocketService] Already connected/connecting as ${userId}`);
+            return this.callSocket;
+        }
 
-    this.socket.on("disconnect", () => {
-      console.log("Main socket disconnected");
-    });
+        console.log(
+            `[SocketService] Connecting call socket for userId: ${userId} via ${CALL_NAMESPACE_URL}`,
+        );
+        this.currentUserId = userId;
 
-    return this.socket;
-  }
+        this.callSocket = io(CALL_NAMESPACE_URL, {
+            query: { userId },
+            auth: { token },
+            forceNew: true, // buộc kết nối mới
+            transports: ['websocket'],
+        });
 
-  // kết nối call socket (namespace /call)
-  connectCall(userId: string, token?: string) {
-    // nếu userId thay đổi, ngắt kết nối socket cũ.
-    if (this.currentUserId && this.currentUserId !== userId) {
-      console.log(
-        `[SocketService] UserId changed from ${this.currentUserId} to ${userId}, reconnecting...`,
-      );
-      this.disconnectCall();
+        this.callSocket.on('connect', () => {
+            console.log(
+                `[SocketService] Call socket connected: ${this.callSocket?.id} (userId: ${userId})`,
+            );
+        });
+
+        this.callSocket.on('disconnect', (reason) => {
+            console.log(
+                `[SocketService] Call socket disconnected. Reason: ${reason}`,
+            );
+        });
+
+        this.callSocket.on('connect_error', (error: any) => {
+            console.error(
+                '[SocketService] Call socket connection error:',
+                error?.message || error,
+            );
+            if (error) {
+                console.error('[SocketService] Connection error details:', {
+                    message: error.message,
+                    code: error.code,
+                    type: error.type,
+                    reason: error.reason,
+                });
+            }
+
+            this.disconnectCall();
+        });
+
+        return this.callSocket;
     }
 
-    // nếu đã kết nối với cùng userId, trả về socket hiện có.
-    if (this.callSocket?.connected && this.currentUserId === userId) {
-      console.log(`[SocketService] Already connected as ${userId}`);
-      return this.callSocket;
+    // get main socket instance
+    getSocket(): Socket | null {
+        return this.socket;
     }
 
-    // ngắt kết nối nếu tồn tại nhưng chưa được kết nối.
-    if (this.callSocket && !this.callSocket.connected) {
-      this.callSocket.disconnect();
-      this.callSocket = null;
+    // get call socket instance
+    getCallSocket(): Socket | null {
+        return this.callSocket;
     }
 
-    console.log(
-      `[SocketService] Connecting call socket for userId: ${userId} via ${CALL_NAMESPACE_URL}`,
-    );
-    this.currentUserId = userId;
+    // wait for call socket to be connected
+    async waitForCallSocketConnection(
+        timeoutMs: number = 6000,
+    ): Promise<boolean> {
+        if (!this.callSocket) {
+            console.log('[SocketService] Call socket not initialized');
+            return false;
+        }
 
-    this.callSocket = io(CALL_NAMESPACE_URL, {
-      query: { userId },
-      auth: { token },
-      forceNew: true, // buộc kết nối mới
-      transports: ["websocket"],
-    });
+        if (this.callSocket.connected) {
+            console.log('[SocketService] Call socket already connected');
+            return true;
+        }
 
-    this.callSocket.on("connect", () => {
-      console.log(
-        `[SocketService] Call socket connected: ${this.callSocket?.id} (userId: ${userId})`,
-      );
-    });
+        return new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                console.error('[SocketService] Call socket connection timeout');
+                if (this.callSocket) {
+                    this.callSocket.off('connect', handleConnect);
+                }
+                resolve(false);
+            }, timeoutMs);
 
-    this.callSocket.on("disconnect", (reason) => {
-      console.log(
-        `[SocketService] Call socket disconnected. Reason: ${reason}`,
-      );
-    });
+            const handleConnect = () => {
+                clearTimeout(timeout);
+                if (this.callSocket) {
+                    this.callSocket.off('connect', handleConnect);
+                }
+                console.log('[SocketService] Call socket connected (waited)');
+                resolve(true);
+            };
 
-    this.callSocket.on("connect_error", (error) => {
-      // console.error("[SocketService] Call socket connection error:", error);
-      this.disconnectCall();
-    });
-
-    return this.callSocket;
-  }
-
-  // get main socket instance
-  getSocket(): Socket | null {
-    return this.socket;
-  }
-
-  // get call socket instance
-  getCallSocket(): Socket | null {
-    return this.callSocket;
-  }
-
-  // connect presence socket (namespace /presence)
-  connectPresence(userId: string, token?: string) {
-    if (this.presenceSocket?.connected) {
-      return this.presenceSocket;
+            if (this.callSocket) {
+                this.callSocket.on('connect', handleConnect);
+            }
+        });
     }
 
-    this.presenceSocket = io(PRESENCE_NAMESPACE_URL, {
-      query: { userId },
-      auth: { token },
-      transports: ["websocket"],
-    });
+    // connect presence socket (namespace /presence)
+    connectPresence(userId: string, token?: string) {
+        if (this.presenceSocket && this.presenceSocket.connected) {
+            return this.presenceSocket;
+        }
 
-    this.presenceSocket.on("connect", () => {
-      console.log(
-        `[SocketService] Presence socket connected: ${this.presenceSocket?.id} (userId: ${userId})`,
-      );
-    });
+        if (this.presenceSocket) {
+            this.presenceSocket.disconnect();
+            this.presenceSocket = null;
+        }
 
-    this.presenceSocket.on("disconnect", (reason) => {
-      console.log(
-        `[SocketService] Presence socket disconnected. Reason: ${reason}`,
-      );
-    });
+        this.presenceSocket = io(PRESENCE_NAMESPACE_URL, {
+            query: { userId, platform: 'web' },
+            auth: { token },
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+        });
 
-    this.presenceSocket.on("connect_error", (error) => {
-      // console.error("[SocketService] Presence socket connection error:", error);
-    });
+        this.presenceSocket.on('connect', () => {
+            console.log(
+                `[SocketService] Presence socket connected: ${this.presenceSocket?.id} (userId: ${userId}, platform: web)`,
+            );
 
-    return this.presenceSocket;
-  }
+            // Prime online list right after connect/reconnect.
+            this.presenceSocket?.emit('presence:get-online');
 
-  getPresenceSocket(): Socket | null {
-    return this.presenceSocket;
-  }
+            if (this.presenceHeartbeatTimer) {
+                clearInterval(this.presenceHeartbeatTimer);
+            }
 
-  // disconnect all sockets
-  disconnect() {
-    console.log("[SocketService] Disconnecting all sockets");
-    this.socket?.disconnect();
-    this.callSocket?.disconnect();
-    this.presenceSocket?.disconnect();
-    this.socket = null;
-    this.callSocket = null;
-    this.presenceSocket = null;
-    this.currentUserId = null;
-  }
+            this.presenceHeartbeatTimer = setInterval(() => {
+                this.presenceSocket?.emit('presence:heartbeat', { userId });
+            }, 15000);
+        });
 
-  // disconnect only call socket
-  disconnectCall() {
-    console.log("[SocketService] Disconnecting call socket");
-    this.callSocket?.disconnect();
-    this.callSocket = null;
-    this.currentUserId = null;
-  }
+        this.presenceSocket.on('disconnect', (reason) => {
+            console.log(
+                `[SocketService] Presence socket disconnected. Reason: ${reason}`,
+            );
 
-  disconnectPresence() {
-    console.log("[SocketService] Disconnecting presence socket");
-    this.presenceSocket?.disconnect();
-    this.presenceSocket = null;
-  }
+            if (this.presenceHeartbeatTimer) {
+                clearInterval(this.presenceHeartbeatTimer);
+                this.presenceHeartbeatTimer = null;
+            }
+        });
+
+        this.presenceSocket.on('connect_error', (error) => {
+            // console.error("[SocketService] Presence socket connection error:", error);
+        });
+
+        this.presenceSocket.on('disconnect', (reason) => {
+            console.log(
+                `[SocketService] Presence socket disconnected. Reason: ${reason}`,
+            );
+        });
+
+        this.presenceSocket.on('connect_error', () => {
+            // console.error("[SocketService] Presence socket connection error:", error);
+        });
+
+        return this.presenceSocket;
+    }
+
+    getPresenceSocket(): Socket | null {
+        return this.presenceSocket;
+    }
+
+    connectNotification(userId: string, token?: string) {
+        if (
+            this.notificationSocket?.connected &&
+            this.notificationUserId === userId
+        ) {
+            this.notificationSocket.emit('notifications:join', { userId });
+            return this.notificationSocket;
+        }
+
+        // Disconnect socket cũ (đang connecting hoặc disconnected) trước khi tạo mới
+        if (this.notificationSocket && this.notificationUserId !== userId) {
+            console.log(
+                `[SocketService] Notification userId changed from ${this.notificationUserId} to ${userId}, reconnecting...`,
+            );
+            this.notificationSocket.disconnect();
+            this.notificationSocket = null;
+            this.notificationUserId = null;
+        }
+
+        if (this.notificationSocket) {
+            return this.notificationSocket;
+        }
+
+        this.notificationUserId = userId;
+        this.notificationSocket = io(NOTIFICATION_NAMESPACE_URL, {
+            query: { userId },
+            auth: { token },
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+        });
+
+        this.notificationSocket.on('connect', () => {
+            console.log(
+                `[SocketService] Notification socket connected: ${this.notificationSocket?.id} (userId: ${userId})`,
+            );
+            this.notificationSocket?.emit('notifications:join', { userId });
+        });
+
+        this.notificationSocket.on('disconnect', (reason) => {
+            console.log(
+                `[SocketService] Notification socket disconnected. Reason: ${reason}`,
+            );
+        });
+
+        this.notificationSocket.on('connect_error', (error: Error) => {
+            console.error(
+                '[SocketService] Notification socket connection error:',
+                error?.message || error,
+            );
+        });
+
+        return this.notificationSocket;
+    }
+
+    getNotificationSocket(): Socket | null {
+        return this.notificationSocket;
+    }
+
+    // disconnect all sockets
+    disconnect() {
+        console.log('[SocketService] Disconnecting all sockets');
+        this.socket?.disconnect();
+        this.callSocket?.disconnect();
+        this.presenceSocket?.disconnect();
+        this.notificationSocket?.disconnect();
+        this.socket = null;
+        this.callSocket = null;
+        this.presenceSocket = null;
+        this.notificationSocket = null;
+        this.notificationUserId = null;
+        this.currentUserId = null;
+
+        if (this.presenceHeartbeatTimer) {
+            clearInterval(this.presenceHeartbeatTimer);
+            this.presenceHeartbeatTimer = null;
+        }
+    }
+
+    // disconnect only call socket
+    disconnectCall() {
+        console.log('[SocketService] Disconnecting call socket');
+        this.callSocket?.disconnect();
+        this.callSocket = null;
+        this.currentUserId = null;
+    }
+
+    disconnectPresence() {
+        console.log('[SocketService] Disconnecting presence socket');
+        this.presenceSocket?.disconnect();
+        this.presenceSocket = null;
+
+        if (this.presenceHeartbeatTimer) {
+            clearInterval(this.presenceHeartbeatTimer);
+            this.presenceHeartbeatTimer = null;
+        }
+    }
+
+    disconnectNotification() {
+        console.log('[SocketService] Disconnecting notification socket');
+        this.notificationSocket?.disconnect();
+        this.notificationSocket = null;
+        this.notificationUserId = null;
+    }
 }
 
 export const socketService = new SocketService();
 export default socketService;
 
-// Chat
-// import { io, Socket } from 'socket.io-client';
+// Chat Socket Service (JWT-based)
 
-const SERVER_URL =
-  (import.meta.env["VITE_SERVER_URL"] as string | undefined) ||
-  "http://localhost:3001";
+const CHAT_NAMESPACE_URL = `${SOCKET_BASE_URL}/chat`;
 
-let socket: Socket | null = null;
+type SocketAckSuccess<T> = {
+    ok: true;
+    requestId: string;
+    data: T;
+};
 
-export const connectSocket = (userId: string, username: string): Socket => {
-  if (socket?.connected) return socket;
+type SocketAckError = {
+    ok: false;
+    requestId: string;
+    error: {
+        code: string;
+        message: string;
+        retriable: boolean;
+    };
+};
 
-  socket = io(SERVER_URL, { transports: ["websocket"] });
+type SocketAckResponse<T> = SocketAckSuccess<T> | SocketAckError;
 
-  socket.on("connect", () => {
-    console.log("✅ WebSocket connected:", socket?.id);
-    socket?.emit("register", { userId, username });
-  });
+type ChatSendMessagePayload = {
+    requestId: string;
+    clientMessageId: string;
+    conversationId: string;
+    receiverId?: string;
+    type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
+    content: string;
+    mediaUrl?: string;
+    fileName?: string;
+    fileType?: string;
+    fileSize?: number;
+    replyToMessageId?: string;
+    forwardedFromMessageId?: string;
+    callData?: {
+        callType?: 'audio' | 'video';
+        callStatus?: 'completed' | 'missed' | 'declined';
+        duration?: number;
+        isInitiator?: boolean;
+        wasRejected?: boolean;
+    };
+};
 
-  socket.on("connect_error", (err) => {
-    // console.error("❌ Lỗi kết nối:", err.message);
-  });
+type ChatMessageSeenPayload = {
+    conversationId: string;
+    messageId: string;
+    userId: string;
+    seenAt: string;
+};
 
-  return socket;
+type ChatMessageDeletedPayload = {
+    conversationId: string;
+    messageId: string;
+    deletedBy: string;
+    isDeleted: boolean;
+    at: string;
+};
+
+type ChatTypingPayload = {
+    conversationId: string;
+    userId: string;
+    isTyping: boolean;
+    at: string;
+};
+
+type ChatMessageReactionPayload = {
+    conversationId: string;
+    messageId: string;
+    reactions: Array<{
+        userId: string;
+        emoji: string;
+        reactedAt: string;
+    }>;
+    actedBy: string;
+    action: 'set' | 'remove';
+    emoji?: string;
+    at: string;
+};
+
+type ChatMessageRecalledPayload = {
+    conversationId: string;
+    messageId: string;
+    revokedBy: string;
+    revokedAt: string;
+    isDeleted: boolean;
+};
+
+type ChatMessagePinnedPayload = {
+    conversationId: string;
+    messageId: string;
+    pinnedBy: string;
+    pinnedAt: string;
+};
+
+type ChatMessageUnpinnedPayload = {
+    conversationId: string;
+    messageId: string;
+    unpinnedBy: string;
+    unpinnedAt: string;
+};
+
+type GroupAutoDeleteUpdatedPayload = {
+    groupId: string;
+    autoDeleteDuration: number;
+    updatedBy: string;
+    updatedAt: string;
+};
+
+type GroupMemberLeftPayload = {
+    groupId: string;
+    userId: string;
+    leftAt: string;
+    groupDeleted: boolean;
+};
+
+type GroupMemberChangedPayload = {
+    type: 'join' | 'leave' | 'kick';
+    groupId?: string;
+    conversationId?: string;
+    userId?: string;
+    user?: {
+        userId: string;
+        fullName?: string | null;
+        avatarUrl?: string | null;
+    };
+    addedBy?: string;
+    at: string;
+    groupDeleted?: boolean;
+};
+
+type GroupJoinApprovalSettingUpdatedPayload = {
+    groupId: string;
+    joinRequireApproval: boolean;
+    updatedBy: string;
+    updatedAt: string;
+};
+
+type GroupJoinRequestCreatedPayload = {
+    groupId: string;
+    requestId: string;
+    requesterId: string;
+    createdAt: string;
+};
+
+type GroupJoinRequestUpdatedPayload = {
+    groupId: string;
+    requestId: string;
+    status: 'approved' | 'rejected';
+    actedBy: string;
+    actedAt: string;
+    requesterId: string;
+};
+
+type GroupMemberJoinedPayload = {
+    groupId: string;
+    userId: string;
+    joinedAt: string;
+};
+
+type GroupAdminTransferredPayload = {
+    groupId: string;
+    oldAdminUserId: string;
+    newAdminUserId: string;
+    transferredAt: string;
+};
+
+type GroupDissolvedPayload = {
+    groupId: string;
+    dissolvedBy: string;
+    dissolvedAt: string;
+};
+
+type GroupInfoUpdatedPayload = {
+    groupId: string;
+    groupName?: string;
+    groupAvatar?: string;
+    updatedBy: string;
+    updatedAt: string;
+};
+
+type GroupCreatedPayload = {
+    groupId: string;
+    groupName: string;
+    createdBy: string;
+    createdAt: string;
+};
+
+type ConversationHiddenUpdatedPayload = {
+    conversationId: string;
+    userId: string;
+    hidden: boolean;
+    updatedAt: string;
+};
+
+type ConversationHistoryClearedPayload = {
+    conversationId: string;
+    userId: string;
+    deletedMessagesCount: number;
+    clearedAt: string;
+};
+
+type ConversationDeletedPayload = {
+    conversationId: string;
+    userId: string;
+    deletedAt: string;
+};
+
+class ChatSocketService {
+    private chatSocket: Socket | null = null;
+    private joinedConversationIds = new Set<string>();
+    private listenersBound = false;
+    private memberChangedHandlers = new Set<
+        (payload: GroupMemberChangedPayload) => void
+    >();
+    private legacyMemberLeftHandlers = new Map<
+        (payload: GroupMemberLeftPayload) => void,
+        (payload: GroupMemberChangedPayload) => void
+    >();
+    private legacyMemberJoinedHandlers = new Map<
+        (payload: GroupMemberJoinedPayload) => void,
+        (payload: GroupMemberChangedPayload) => void
+    >();
+
+    /**
+     * Kết nối socket chat sử dụng JWT token từ localStorage
+     * Tự động handle authentication mà không cần userId parameter
+     */
+    connect(): Socket {
+        if (this.chatSocket?.connected) {
+            console.log('[ChatSocketService] Already connected');
+            return this.chatSocket;
+        }
+
+        const token = localStorage.getItem('auth_token');
+
+        if (!token) {
+            console.error(
+                '[ChatSocketService] No auth token found, redirecting to login',
+            );
+            window.location.href = '/login';
+            throw new Error('No auth token found');
+        }
+
+        console.log(
+            `[ChatSocketService] Connecting to chat namespace: ${CHAT_NAMESPACE_URL}`,
+        );
+        console.log(
+            `[ChatSocketService] Using JWT token: ${token.substring(0, 20)}...`,
+        );
+
+        this.chatSocket = io(CHAT_NAMESPACE_URL, {
+            transports: ['websocket'],
+            auth: { token }, // Sử dụng JWT token
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: 5,
+        });
+
+        this.bindLifecycleListeners();
+
+        this.chatSocket.on('connect', () => {
+            console.log(
+                `[ChatSocketService] Connected: ${this.chatSocket?.id}`,
+            );
+            this.resubscribeJoinedRooms();
+        });
+
+        this.chatSocket.on('disconnect', (reason) => {
+            console.warn(`[ChatSocketService] Disconnected: ${reason}`);
+
+            // Log disconnect reasons
+            if (reason === 'io server disconnect') {
+                console.error(
+                    '[ChatSocketService] Server disconnected - likely auth/validation error',
+                );
+            } else if (reason === 'io client disconnect') {
+                console.log('[ChatSocketService] Client initiated disconnect');
+            }
+        });
+
+        this.chatSocket.on(
+            'connect_error',
+            (err: { message?: string; data?: { message?: string } }) => {
+                console.error(
+                    '[ChatSocketService] Connection error:',
+                    err?.message || err,
+                );
+                console.error('[ChatSocketService] Error data:', err?.data);
+
+                // Handle 401 - redirect to login
+                if (
+                    err?.message?.includes('Authentication') ||
+                    err?.data?.message?.includes('Authentication')
+                ) {
+                    console.error(
+                        '[ChatSocketService] Auth failed - clearing token and redirecting',
+                    );
+                    localStorage.removeItem('auth_token');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1000);
+                }
+            },
+        );
+
+        this.chatSocket.on('error', (error: unknown) => {
+            console.error('[ChatSocketService] Socket error:', error);
+        });
+
+        return this.chatSocket;
+    }
+
+    disconnect() {
+        console.log('[ChatSocketService] Disconnecting');
+        this.chatSocket?.disconnect();
+        this.chatSocket = null;
+        this.joinedConversationIds.clear();
+        this.listenersBound = false;
+        this.memberChangedHandlers.clear();
+        this.legacyMemberLeftHandlers.clear();
+        this.legacyMemberJoinedHandlers.clear();
+    }
+
+    getSocket(): Socket | null {
+        return this.chatSocket;
+    }
+
+    // ===== Chat Event Emitters =====
+
+    private emitWithAck<T>(
+        event: string,
+        data: Record<string, unknown>,
+    ): Promise<SocketAckResponse<T>> {
+        return new Promise((resolve, reject) => {
+            if (!this.chatSocket) {
+                reject(new Error('Chat socket is not initialized'));
+                return;
+            }
+
+            this.chatSocket
+                .timeout(10000)
+                .emit(
+                    event,
+                    data,
+                    (error: Error | null, response: SocketAckResponse<T>) => {
+                        if (error) {
+                            reject(error);
+                            return;
+                        }
+
+                        resolve(response);
+                    },
+                );
+        });
+    }
+
+    private bindLifecycleListeners() {
+        if (!this.chatSocket || this.listenersBound) {
+            return;
+        }
+
+        this.listenersBound = true;
+        this.chatSocket.on('reconnect', () => {
+            this.resubscribeJoinedRooms();
+        });
+    }
+
+    private resubscribeJoinedRooms() {
+        if (!this.chatSocket?.connected) return;
+
+        for (const conversationId of this.joinedConversationIds) {
+            this.chatSocket.emit('chat:join_conversation', {
+                requestId: `rejoin_${conversationId}_${Date.now()}`,
+                conversationId,
+            });
+        }
+    }
+
+    async joinConversation(requestId: string, conversationId: string) {
+        if (!this.chatSocket) return null;
+
+        const response = await this.emitWithAck<{ conversationId: string }>(
+            'chat:join_conversation',
+            {
+                requestId,
+                conversationId,
+            },
+        );
+
+        if (response.ok) {
+            this.joinedConversationIds.add(conversationId);
+        }
+
+        return response;
+    }
+
+    async leaveConversation(requestId: string, conversationId: string) {
+        if (!this.chatSocket) return null;
+
+        const response = await this.emitWithAck<{ conversationId: string }>(
+            'chat:leave_conversation',
+            {
+                requestId,
+                conversationId,
+            },
+        );
+
+        if (response.ok) {
+            this.joinedConversationIds.delete(conversationId);
+        }
+
+        return response;
+    }
+
+    async sendMessage(data: ChatSendMessagePayload) {
+        if (!this.chatSocket) {
+            console.error(
+                '[ChatSocketService] Socket not initialized! Call connect() first.',
+            );
+            throw new Error('Socket not initialized');
+        }
+
+        if (!this.chatSocket.connected) {
+            console.error(
+                `[ChatSocketService] Socket not connected. Status: connected=${this.chatSocket.connected}`,
+            );
+            console.error(
+                '[ChatSocketService] Try reconnecting or check socket connection status',
+            );
+
+            // Attempt to reconnect
+            if (this.chatSocket.disconnected) {
+                console.log('[ChatSocketService] Attempting to reconnect...');
+                this.chatSocket.connect();
+            }
+            throw new Error('Socket not connected');
+        }
+
+        console.log(
+            `[ChatSocketService] Sending message: clientId=${data.clientMessageId}, to=${data.receiverId}, conversationId=${data.conversationId}`,
+        );
+        console.log('[ChatSocketService] Message content:', data.content);
+
+        const response = await this.emitWithAck<{
+            messageId: string;
+            clientMessageId: string;
+            timestamp: string;
+        }>('chat:send_message', data);
+
+        console.log(
+            '[ChatSocketService] Message emitted successfully via socket',
+        );
+        return response;
+    }
+
+    async markMessageRead(data: {
+        requestId: string;
+        conversationId: string;
+        messageId: string;
+    }) {
+        if (!this.chatSocket) return null;
+
+        return this.emitWithAck<{
+            conversationId: string;
+            messageId: string;
+            seenAt: string;
+        }>('chat:message_read', data);
+    }
+
+    sendTyping(conversationId: string, isTyping: boolean) {
+        if (!this.chatSocket) return;
+        this.chatSocket.emit('chat:typing', { conversationId, isTyping });
+    }
+
+    // ===== Chat Event Listeners =====
+
+    onAck(cb: (ack: unknown) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:ack', cb);
+    }
+
+    offAck() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:ack');
+    }
+
+    onMessageNew(cb: (payload: unknown) => void) {
+        if (!this.chatSocket) {
+            console.warn(
+                '[ChatSocketService] onMessageNew: Socket not initialized',
+            );
+            return;
+        }
+
+        console.log('[ChatSocketService] Registering onMessageNew listener');
+        this.chatSocket.on('chat:message_new', (payload) => {
+            console.log(
+                '[ChatSocketService] chat:message_new event received:',
+                payload,
+            );
+            cb(payload);
+        });
+    }
+
+    offMessageNew() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_new');
+    }
+
+    onTyping(cb: (payload: ChatTypingPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:typing', cb);
+    }
+
+    offTyping() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:typing');
+    }
+
+    onMessageReactionUpdated(
+        cb: (payload: ChatMessageReactionPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_reaction_updated', cb);
+    }
+
+    offMessageReactionUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_reaction_updated');
+    }
+
+    onMessageRecalled(cb: (payload: ChatMessageRecalledPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_recalled', cb);
+    }
+
+    offMessageRecalled() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_recalled');
+    }
+
+    onMessagePinned(cb: (payload: ChatMessagePinnedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_pinned', cb);
+    }
+
+    offMessagePinned() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_pinned');
+    }
+
+    onMessageUnpinned(cb: (payload: ChatMessageUnpinnedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_unpinned', cb);
+    }
+
+    offMessageUnpinned() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_unpinned');
+    }
+
+    onMessageDeleted(cb: (payload: ChatMessageDeletedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_deleted', cb);
+    }
+
+    offMessageDeleted() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_deleted');
+    }
+
+    onMessageSeen(cb: (payload: ChatMessageSeenPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('chat:message_seen', cb);
+    }
+
+    offMessageSeen() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('chat:message_seen');
+    }
+
+    onGroupAutoDeleteUpdated(
+        cb: (payload: GroupAutoDeleteUpdatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:auto_delete_updated', cb);
+    }
+
+    offGroupAutoDeleteUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:auto_delete_updated');
+    }
+
+    onGroupMemberLeft(cb: (payload: GroupMemberLeftPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:member_left', cb);
+
+        const mappedHandler = (payload: GroupMemberChangedPayload) => {
+            if (payload.type !== 'leave' && payload.type !== 'kick') return;
+
+            const targetUserId = payload.userId || payload.user?.userId;
+            if (!targetUserId) return;
+
+            cb({
+                groupId: String(
+                    payload.groupId || payload.conversationId || '',
+                ),
+                userId: targetUserId,
+                leftAt: payload.at,
+                groupDeleted: Boolean(payload.groupDeleted),
+            });
+        };
+
+        this.legacyMemberLeftHandlers.set(cb, mappedHandler);
+        this.chatSocket.on('group:member_changed', mappedHandler);
+    }
+
+    offGroupMemberLeft() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:member_left');
+
+        for (const mappedHandler of this.legacyMemberLeftHandlers.values()) {
+            this.chatSocket.off('group:member_changed', mappedHandler);
+        }
+        this.legacyMemberLeftHandlers.clear();
+    }
+
+    onGroupJoinApprovalSettingUpdated(
+        cb: (payload: GroupJoinApprovalSettingUpdatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:join_approval_setting_updated', cb);
+    }
+
+    offGroupJoinApprovalSettingUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:join_approval_setting_updated');
+    }
+
+    onGroupJoinRequestCreated(
+        cb: (payload: GroupJoinRequestCreatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:join_request_created', cb);
+    }
+
+    offGroupJoinRequestCreated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:join_request_created');
+    }
+
+    onGroupJoinRequestUpdated(
+        cb: (payload: GroupJoinRequestUpdatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:join_request_updated', cb);
+    }
+
+    offGroupJoinRequestUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:join_request_updated');
+    }
+
+    onGroupMemberJoined(cb: (payload: GroupMemberJoinedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:member_joined', cb);
+
+        const mappedHandler = (payload: GroupMemberChangedPayload) => {
+            if (payload.type !== 'join') return;
+
+            const targetUserId = payload.user?.userId || payload.userId;
+            if (!targetUserId) return;
+
+            cb({
+                groupId: String(
+                    payload.groupId || payload.conversationId || '',
+                ),
+                userId: targetUserId,
+                joinedAt: payload.at,
+            });
+        };
+
+        this.legacyMemberJoinedHandlers.set(cb, mappedHandler);
+        this.chatSocket.on('group:member_changed', mappedHandler);
+    }
+
+    offGroupMemberJoined() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:member_joined');
+
+        for (const mappedHandler of this.legacyMemberJoinedHandlers.values()) {
+            this.chatSocket.off('group:member_changed', mappedHandler);
+        }
+        this.legacyMemberJoinedHandlers.clear();
+    }
+
+    onGroupMemberChanged(cb: (payload: GroupMemberChangedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.memberChangedHandlers.add(cb);
+        this.chatSocket.on('group:member_changed', cb);
+    }
+
+    offGroupMemberChanged() {
+        if (!this.chatSocket) return;
+
+        for (const cb of this.memberChangedHandlers) {
+            this.chatSocket.off('group:member_changed', cb);
+        }
+        this.memberChangedHandlers.clear();
+    }
+
+    onGroupAdminTransferred(
+        cb: (payload: GroupAdminTransferredPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:admin_transferred', cb);
+    }
+
+    offGroupAdminTransferred() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:admin_transferred');
+    }
+
+    onGroupDissolved(cb: (payload: GroupDissolvedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:dissolved', cb);
+    }
+
+    offGroupDissolved() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:dissolved');
+    }
+
+    onGroupCreated(cb: (payload: GroupCreatedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:created', cb);
+    }
+
+    offGroupCreated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:created');
+    }
+
+    onGroupInfoUpdated(cb: (payload: GroupInfoUpdatedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('group:info_updated', cb);
+    }
+
+    offGroupInfoUpdated(cb?: (payload: GroupInfoUpdatedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('group:info_updated', cb);
+    }
+
+    onConversationHiddenUpdated(
+        cb: (payload: ConversationHiddenUpdatedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('conversation:hidden_updated', cb);
+    }
+
+    offConversationHiddenUpdated() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('conversation:hidden_updated');
+    }
+
+    onConversationHistoryCleared(
+        cb: (payload: ConversationHistoryClearedPayload) => void,
+    ) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('conversation:history_cleared', cb);
+    }
+
+    offConversationHistoryCleared() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('conversation:history_cleared');
+    }
+
+    onConversationDeleted(cb: (payload: ConversationDeletedPayload) => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('conversation:deleted', cb);
+    }
+
+    offConversationDeleted() {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('conversation:deleted');
+    }
+
+    onReconnect(cb: () => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.on('reconnect', cb);
+    }
+
+    offReconnect(cb: () => void) {
+        if (!this.chatSocket) return;
+        this.chatSocket.off('reconnect', cb);
+    }
+
+    fetchMessages(data: {
+        requestId: string;
+        conversationId: string;
+        cursor?: string | null;
+        limit?: number;
+    }) {
+        if (!this.chatSocket) return;
+        this.chatSocket.emit('chat:fetch_messages', data);
+    }
+}
+
+// ===== Factory Instance =====
+export const chatSocketService = new ChatSocketService();
+
+// ===== Legacy Backward-Compatible Exports (for ChatPageWithConversationService) =====
+/**
+ * @deprecated Use chatSocketService.connect() instead
+ * Kept for backward compatibility
+ */
+export const connectSocket = (): Socket => {
+    return chatSocketService.connect();
 };
 
 export const disconnectSocket = () => {
-  socket?.disconnect();
-  socket = null;
+    chatSocketService.disconnect();
 };
-export const getSocket = () => socket;
+
+export const getSocket = (): Socket | null => {
+    return chatSocketService.getSocket();
+};
+
+export const joinConversation = (requestId: string, conversationId: string) => {
+    return chatSocketService.joinConversation(requestId, conversationId);
+};
 
 export const sendMessage = (data: {
-  senderId: string;
-  senderName: string;
-  content: string;
-  timestamp: string;
-}) => socket?.emit("send_message", data);
-
-export const onReceiveMessage = (
-  callback: (msg: {
-    id: string;
-    senderId: string;
-    senderName: string;
+    requestId: string;
+    clientMessageId: string;
+    conversationId: string;
+    receiverId?: string;
+    type: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call';
     content: string;
-    timestamp: string;
-  }) => void,
-) => socket?.on("receive_message", callback);
-
-export const offReceiveMessage = () => socket?.off("receive_message");
-
-export const onOnlineUsers = (
-  callback: (users: { userId: string; username: string }[]) => void,
-) => socket?.on("online_users", callback);
-
-export const uploadFile = async (
-  file: File,
-): Promise<{
-  url: string;
-  name: string;
-  type: string;
-}> => {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const res = await fetch(`${SERVER_URL}/upload`, {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!res.ok) throw new Error("Upload thất bại");
-  return res.json();
+    mediaUrl?: string;
+    fileName?: string;
+    fileSize?: number;
+    replyToMessageId?: string;
+    forwardedFromMessageId?: string;
+    callData?: {
+        callType?: 'audio' | 'video';
+        callStatus?: 'completed' | 'missed' | 'declined';
+        duration?: number;
+        isInitiator?: boolean;
+        wasRejected?: boolean;
+    };
+}) => {
+    return chatSocketService.sendMessage(data);
 };
 
-export const sendFileMessage = (data: {
-  senderId: string;
-  senderName: string;
-  fileUrl: string;
-  fileName: string;
-  fileType: string;
-  timestamp: string;
-}) => socket?.emit("send_message", { ...data, content: "", isFile: true });
+export const leaveConversation = (
+    requestId: string,
+    conversationId: string,
+) => {
+    return chatSocketService.leaveConversation(requestId, conversationId);
+};
+
+export const fetchMessages = (data: {
+    requestId: string;
+    conversationId: string;
+    cursor?: string | null;
+    limit?: number;
+}) => {
+    chatSocketService.fetchMessages(data);
+};
+
+export const sendTyping = (conversationId: string, isTyping: boolean) => {
+    chatSocketService.sendTyping(conversationId, isTyping);
+};
+
+export const markMessageRead = (data: {
+    requestId: string;
+    conversationId: string;
+    messageId: string;
+}) => {
+    return chatSocketService.markMessageRead(data);
+};
+
+export const onAck = (cb: (ack: unknown) => void) => {
+    chatSocketService.onAck(cb);
+};
+
+export const offAck = () => {
+    chatSocketService.offAck();
+};
+
+export const onMessageNew = (cb: (payload: unknown) => void) => {
+    chatSocketService.onMessageNew(cb);
+};
+
+export const offMessageNew = () => {
+    chatSocketService.offMessageNew();
+};
+
+export const onTyping = (cb: (payload: unknown) => void) => {
+    chatSocketService.onTyping(cb);
+};
+
+export const offTyping = () => {
+    chatSocketService.offTyping();
+};
+
+export const onMessageReactionUpdated = (
+    cb: (payload: {
+        conversationId: string;
+        messageId: string;
+        reactions: Array<{ userId: string; emoji: string; reactedAt: string }>;
+        actedBy: string;
+        action: 'set' | 'remove';
+        emoji?: string;
+        at: string;
+    }) => void,
+) => {
+    chatSocketService.onMessageReactionUpdated(cb);
+};
+
+export const offMessageReactionUpdated = () => {
+    chatSocketService.offMessageReactionUpdated();
+};
+
+export const onMessageRecalled = (
+    cb: (payload: {
+        conversationId: string;
+        messageId: string;
+        revokedBy: string;
+        revokedAt: string;
+        isDeleted: boolean;
+    }) => void,
+) => {
+    chatSocketService.onMessageRecalled(cb);
+};
+
+export const offMessageRecalled = () => {
+    chatSocketService.offMessageRecalled();
+};
+
+export const onMessagePinned = (
+    cb: (payload: ChatMessagePinnedPayload) => void,
+) => {
+    chatSocketService.onMessagePinned(cb);
+};
+
+export const offMessagePinned = () => {
+    chatSocketService.offMessagePinned();
+};
+
+export const onMessageUnpinned = (
+    cb: (payload: ChatMessageUnpinnedPayload) => void,
+) => {
+    chatSocketService.onMessageUnpinned(cb);
+};
+
+export const offMessageUnpinned = () => {
+    chatSocketService.offMessageUnpinned();
+};
+
+export const onMessageDeleted = (
+    cb: (payload: ChatMessageDeletedPayload) => void,
+) => {
+    chatSocketService.onMessageDeleted(cb);
+};
+
+export const offMessageDeleted = () => {
+    chatSocketService.offMessageDeleted();
+};
+
+export const onMessageSeen = (
+    cb: (payload: ChatMessageSeenPayload) => void,
+) => {
+    chatSocketService.onMessageSeen(cb);
+};
+
+export const offMessageSeen = () => {
+    chatSocketService.offMessageSeen();
+};
+
+export const onGroupAutoDeleteUpdated = (
+    cb: (payload: GroupAutoDeleteUpdatedPayload) => void,
+) => {
+    chatSocketService.onGroupAutoDeleteUpdated(cb);
+};
+
+export const offGroupAutoDeleteUpdated = () => {
+    chatSocketService.offGroupAutoDeleteUpdated();
+};
+
+export const onGroupMemberLeft = (
+    cb: (payload: GroupMemberLeftPayload) => void,
+) => {
+    chatSocketService.onGroupMemberLeft(cb);
+};
+
+export const offGroupMemberLeft = () => {
+    chatSocketService.offGroupMemberLeft();
+};
+
+export const onGroupJoinApprovalSettingUpdated = (
+    cb: (payload: GroupJoinApprovalSettingUpdatedPayload) => void,
+) => {
+    chatSocketService.onGroupJoinApprovalSettingUpdated(cb);
+};
+
+export const offGroupJoinApprovalSettingUpdated = () => {
+    chatSocketService.offGroupJoinApprovalSettingUpdated();
+};
+
+export const onGroupJoinRequestCreated = (
+    cb: (payload: GroupJoinRequestCreatedPayload) => void,
+) => {
+    chatSocketService.onGroupJoinRequestCreated(cb);
+};
+
+export const offGroupJoinRequestCreated = () => {
+    chatSocketService.offGroupJoinRequestCreated();
+};
+
+export const onGroupJoinRequestUpdated = (
+    cb: (payload: GroupJoinRequestUpdatedPayload) => void,
+) => {
+    chatSocketService.onGroupJoinRequestUpdated(cb);
+};
+
+export const offGroupJoinRequestUpdated = () => {
+    chatSocketService.offGroupJoinRequestUpdated();
+};
+
+export const onGroupMemberJoined = (
+    cb: (payload: GroupMemberJoinedPayload) => void,
+) => {
+    chatSocketService.onGroupMemberJoined(cb);
+};
+
+export const offGroupMemberJoined = () => {
+    chatSocketService.offGroupMemberJoined();
+};
+
+export const onGroupMemberChanged = (
+    cb: (payload: GroupMemberChangedPayload) => void,
+) => {
+    chatSocketService.onGroupMemberChanged(cb);
+};
+
+export const offGroupMemberChanged = () => {
+    chatSocketService.offGroupMemberChanged();
+};
+
+export const onGroupAdminTransferred = (
+    cb: (payload: GroupAdminTransferredPayload) => void,
+) => {
+    chatSocketService.onGroupAdminTransferred(cb);
+};
+
+export const offGroupAdminTransferred = () => {
+    chatSocketService.offGroupAdminTransferred();
+};
+
+export const onGroupDissolved = (
+    cb: (payload: GroupDissolvedPayload) => void,
+) => {
+    chatSocketService.onGroupDissolved(cb);
+};
+
+export const offGroupDissolved = () => {
+    chatSocketService.offGroupDissolved();
+};
+
+export const onGroupInfoUpdated = (
+    cb: (payload: GroupInfoUpdatedPayload) => void,
+) => {
+    chatSocketService.onGroupInfoUpdated(cb);
+};
+
+export const offGroupInfoUpdated = (
+    cb?: (payload: GroupInfoUpdatedPayload) => void,
+) => {
+    chatSocketService.offGroupInfoUpdated(cb);
+};
+
+export const onGroupCreated = (cb: (payload: GroupCreatedPayload) => void) => {
+    chatSocketService.onGroupCreated(cb);
+};
+
+export const offGroupCreated = () => {
+    chatSocketService.offGroupCreated();
+};
+
+export const onConversationHiddenUpdated = (
+    cb: (payload: ConversationHiddenUpdatedPayload) => void,
+) => {
+    chatSocketService.onConversationHiddenUpdated(cb);
+};
+
+export const offConversationHiddenUpdated = () => {
+    chatSocketService.offConversationHiddenUpdated();
+};
+
+export const onConversationHistoryCleared = (
+    cb: (payload: ConversationHistoryClearedPayload) => void,
+) => {
+    chatSocketService.onConversationHistoryCleared(cb);
+};
+
+export const offConversationHistoryCleared = () => {
+    chatSocketService.offConversationHistoryCleared();
+};
+
+export const onConversationDeleted = (
+    cb: (payload: ConversationDeletedPayload) => void,
+) => {
+    chatSocketService.onConversationDeleted(cb);
+};
+
+export const offConversationDeleted = () => {
+    chatSocketService.offConversationDeleted();
+};

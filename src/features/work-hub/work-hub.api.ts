@@ -2,6 +2,7 @@ import { api } from "../../services/api";
 import type {
   WorkspaceResponse,
   WorkspaceMemberResponse,
+  WorkspaceJoinRequestResponse,
   TaskBoardResponse,
   BoardColumnResponse,
   TaskResponse,
@@ -9,6 +10,11 @@ import type {
   CreateWorkspaceRequest,
   UpdateWorkspaceRequest,
   AddMemberRequest,
+  InviteMemberByMethodRequest,
+  InviteCandidateResponse,
+  WorkspaceInviteLinkResponse,
+  JoinByLinkRequest,
+  JoinByLinkResponse,
   UpdateMemberRoleRequest,
   CreateBoardRequest,
   UpdateBoardRequest,
@@ -54,8 +60,10 @@ import type {
   WorkspaceFileResponse,
   CreateWorkspaceFileRequest,
   UpdateWorkspaceFileRequest,
+  OnlyOfficeConfigResponse,
   WorkloadMemberResponse,
   ReportDataResponse,
+  WorkspaceDashboardStatsResponse,
 } from "./work-hub.api.types";
 
 export const workHubApi = {
@@ -92,6 +100,19 @@ export const workHubApi = {
    */
   deleteWorkspace: (id: string) => api.delete(`/workspaces/${id}`),
 
+  transferWorkspaceOwner: (id: string, targetUserId: string) =>
+    api.patch<WorkspaceResponse>(
+      `/workspaces/${id}/transfer-owner/${targetUserId}`,
+      {},
+    ),
+
+  /**
+   * GET /workspaces/:id/dashboard-stats
+   * Lấy thống kê dashboard từ database
+   */
+  getDashboardStats: (id: string) =>
+    api.get<WorkspaceDashboardStatsResponse>(`/workspaces/${id}/dashboard-stats`),
+
   /**
    * GET /workspaces/:workspaceId/members
    * Lấy danh sách thành viên workspace
@@ -107,6 +128,66 @@ export const workHubApi = {
     api.post<WorkspaceMemberResponse>(
       `/workspaces/${workspaceId}/members`,
       data,
+    ),
+
+  /**
+   * POST /workspaces/:workspaceId/members/invite
+   * Mời thành viên theo userId/phone/name
+   */
+  inviteMemberByMethod: (
+    workspaceId: string,
+    data: InviteMemberByMethodRequest,
+  ) =>
+    api.post<WorkspaceMemberResponse>(
+      `/workspaces/${workspaceId}/members/invite`,
+      data,
+    ),
+
+  /**
+   * GET /workspaces/:workspaceId/members/search?q=...
+   * Tìm user theo tên/sđt để mời vào workspace
+   */
+  searchMemberCandidates: (workspaceId: string, query: string) =>
+    api.get<InviteCandidateResponse[]>(
+      `/workspaces/${workspaceId}/members/search?q=${encodeURIComponent(query)}`,
+    ),
+
+  /**
+   * GET /workspaces/:workspaceId/members/invite-link
+   * Tạo invite link + dữ liệu QR
+   */
+  getInviteLink: (workspaceId: string, role?: string) =>
+    api.get<WorkspaceInviteLinkResponse>(
+      `/workspaces/${workspaceId}/members/invite-link${
+        role ? `?role=${encodeURIComponent(role)}` : ""
+      }`,
+    ),
+
+  /**
+   * POST /workspaces/:workspaceId/members/join-by-link
+   * Tham gia workspace thông qua token từ invite link
+   */
+  joinByInviteLink: (workspaceId: string, data: JoinByLinkRequest) =>
+    api.post<JoinByLinkResponse>(
+      `/workspaces/${workspaceId}/members/join-by-link`,
+      data,
+    ),
+
+  getJoinRequests: (workspaceId: string) =>
+    api.get<WorkspaceJoinRequestResponse[]>(
+      `/workspaces/${workspaceId}/members/join-requests`,
+    ),
+
+  approveJoinRequest: (workspaceId: string, requestId: string) =>
+    api.post<WorkspaceMemberResponse>(
+      `/workspaces/${workspaceId}/members/join-requests/${requestId}/approve`,
+      {},
+    ),
+
+  rejectJoinRequest: (workspaceId: string, requestId: string) =>
+    api.post<WorkspaceJoinRequestResponse>(
+      `/workspaces/${workspaceId}/members/join-requests/${requestId}/reject`,
+      {},
     ),
 
   /**
@@ -333,7 +414,6 @@ export const workHubApi = {
    */
   deleteComment: (commentId: string) => api.delete(`/comments/${commentId}`),
 
-  // ---- Attachment CRUD ----
 
   /**
    * GET /tasks/:taskId/attachments
@@ -349,14 +429,22 @@ export const workHubApi = {
   createAttachment: (taskId: string, data: CreateAttachmentRequest) =>
     api.post<AttachmentResponse>(`/tasks/${taskId}/attachments`, data),
 
+  uploadTaskAttachment: (taskId: string, file: File, uploadedById?: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (uploadedById) formData.append("uploadedById", uploadedById);
+    return api.postForm<AttachmentResponse>(
+      `/tasks/${taskId}/attachments`,
+      formData,
+    );
+  },
+
   /**
    * DELETE /attachments/:attachmentId
    * Xóa attachment
    */
   deleteAttachment: (attachmentId: string) =>
     api.delete(`/attachments/${attachmentId}`),
-
-  // ---- Activity Log ----
 
   /**
    * GET /tasks/:taskId/activities
@@ -375,8 +463,6 @@ export const workHubApi = {
   /** GET /workspaces/:workspaceId/activities - Activity feed workspace-level */
   getWorkspaceActivities: (workspaceId: string) =>
     api.get<ActivityLogResponse[]>(`/workspaces/${workspaceId}/activities`),
-
-  // ---- Goal CRUD ----
 
   getGoals: (workspaceId: string) =>
     api.get<GoalResponse[]>(`/workspaces/${workspaceId}/goals`),
@@ -397,8 +483,6 @@ export const workHubApi = {
 
   deleteKeyResult: (krId: string) => api.delete(`/key-results/${krId}`),
 
-  // ---- Sprint CRUD ----
-
   getSprints: (workspaceId: string) =>
     api.get<SprintResponse[]>(`/workspaces/${workspaceId}/sprints`),
 
@@ -413,8 +497,6 @@ export const workHubApi = {
   getSprintTasks: (sprintId: string) =>
     api.get<TaskResponse[]>(`/sprints/${sprintId}/tasks`),
 
-  // ---- Epic CRUD ----
-
   getEpics: (workspaceId: string) =>
     api.get<EpicResponse[]>(`/workspaces/${workspaceId}/epics`),
 
@@ -426,8 +508,6 @@ export const workHubApi = {
 
   deleteEpic: (id: string) => api.delete(`/epics/${id}`),
 
-  // ---- Milestone CRUD ----
-
   getMilestones: (workspaceId: string) =>
     api.get<MilestoneResponse[]>(`/workspaces/${workspaceId}/milestones`),
 
@@ -438,8 +518,6 @@ export const workHubApi = {
     api.patch<MilestoneResponse>(`/milestones/${id}`, data),
 
   deleteMilestone: (id: string) => api.delete(`/milestones/${id}`),
-
-  // ---- Automation CRUD ----
 
   getAutomations: (workspaceId: string) =>
     api.get<AutomationRuleResponse[]>(`/workspaces/${workspaceId}/automations`),
@@ -457,8 +535,6 @@ export const workHubApi = {
     api.patch<AutomationRuleResponse>(`/automations/${id}/toggle`, {}),
 
   deleteAutomation: (id: string) => api.delete(`/automations/${id}`),
-
-  // ---- Document CRUD ----
 
   getDocuments: (workspaceId: string) =>
     api.get<DocumentResponse[]>(`/workspaces/${workspaceId}/documents`),
@@ -482,8 +558,6 @@ export const workHubApi = {
   resolveInlineComment: (commentId: string) =>
     api.patch(`/inline-comments/${commentId}/resolve`, {}),
 
-  // ---- WorkspaceFile CRUD ----
-
   getWorkspaceFiles: (workspaceId: string, parentId?: string) =>
     api.get<WorkspaceFileResponse[]>(
       `/workspaces/${workspaceId}/files${parentId ? `?parentId=${parentId}` : ""}`,
@@ -494,6 +568,22 @@ export const workHubApi = {
     data: CreateWorkspaceFileRequest,
   ) =>
     api.post<WorkspaceFileResponse>(`/workspaces/${workspaceId}/files`, data),
+
+  uploadWorkspaceFile: (
+    workspaceId: string,
+    file: File,
+    data?: Omit<CreateWorkspaceFileRequest, "name" | "type" | "mimeType" | "size">,
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    if (data?.parentId) formData.append("parentId", data.parentId);
+    if (data?.accessLevel) formData.append("accessLevel", data.accessLevel);
+
+    return api.postForm<WorkspaceFileResponse>(
+      `/workspaces/${workspaceId}/files`,
+      formData,
+    );
+  },
 
   createWorkspaceFolder: (
     workspaceId: string,
@@ -506,12 +596,12 @@ export const workHubApi = {
 
   deleteWorkspaceFile: (id: string) => api.delete(`/workspace-files/${id}`),
 
-  // ---- Workload Aggregate ----
+  getOnlyOfficeConfig: (id: string) =>
+    api.get<OnlyOfficeConfigResponse>(`/workspace-files/${id}/onlyoffice/config`),
 
   getWorkload: (workspaceId: string) =>
     api.get<WorkloadMemberResponse[]>(`/workspaces/${workspaceId}/workload`),
 
-  // ---- Reports Aggregate ----
 
   getReports: (workspaceId: string) =>
     api.get<ReportDataResponse>(`/workspaces/${workspaceId}/reports`),

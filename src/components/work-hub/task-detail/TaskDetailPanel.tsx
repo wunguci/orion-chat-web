@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Task, TaskStatus, User } from "../../../types/work-hub.types";
 import SubTaskList from "./SubTaskList";
 import CommentSection from "./CommentSection";
@@ -17,6 +17,8 @@ interface TaskDetailPanelProps {
   onToggleSubtask: (taskId: string, subtaskId: string) => void;
   onDeleteSubtask: (taskId: string, subtaskId: string) => void;
   onAddSubtask: (taskId: string, parentId: string | null) => void;
+  onAddAttachment: (taskId: string, file: File) => Promise<void>;
+  onRemoveAttachment: (taskId: string, attachmentId: string) => void;
   onTransfer: (taskId: string, toUserId: string, reason: string) => void;
   users: User[];
 }
@@ -47,11 +49,15 @@ const TaskDetailPanel = ({
   onToggleSubtask,
   onDeleteSubtask,
   onAddSubtask,
+  onAddAttachment,
+  onRemoveAttachment,
   onTransfer,
   users,
 }: TaskDetailPanelProps) => {
   const [activeTab, setActiveTab] = useState<TabKey>("details");
   const [showTransfer, setShowTransfer] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!isOpen || !task) return null;
 
@@ -236,11 +242,30 @@ const TaskDetailPanel = ({
           {activeTab === "activity" && <ActivityTimeline activities={task.activityHistory} />}
 
           {activeTab === "attachments" && (
-            <AttachmentList
-              attachments={task.attachments}
-              onAdd={() => {}}
-              onRemove={() => {}}
-            />
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file) return;
+                  setUploadingAttachment(true);
+                  void onAddAttachment(task.id, file).finally(() =>
+                    setUploadingAttachment(false),
+                  );
+                }}
+              />
+              <AttachmentList
+                attachments={task.attachments}
+                onAdd={() => fileInputRef.current?.click()}
+                onRemove={(attachmentId) =>
+                  onRemoveAttachment(task.id, attachmentId)
+                }
+                busy={uploadingAttachment}
+              />
+            </>
           )}
         </div>
       </div>

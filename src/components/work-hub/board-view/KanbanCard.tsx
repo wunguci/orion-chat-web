@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Task } from "../../../types/work-hub.types";
 import Badge from "../../common/Badge";
 import AvatarGroup from "../../common/AvatarGroup";
@@ -19,16 +20,26 @@ const KanbanCard = ({ task, onClick, onDragStart }: KanbanCardProps) => {
   const subtaskTotal = task.subtasks.length;
   const subtaskDone = task.subtasks.filter((s) => s.status === "done").length;
   const hasSubtasks = subtaskTotal > 0;
+  const [isDragging, setIsDragging] = useState(false);
 
   return (
     <div
       draggable
       onDragStart={(e) => {
+        // CRITICAL: set dataTransfer so KanbanColumn drop handler receives the taskId
         e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", task.id);
+        setIsDragging(true);
         onDragStart(task.id);
       }}
+      onDragEnd={() => setIsDragging(false)}
       onClick={() => onClick(task.id)}
-      className="bg-white border border-wh-green-border-light rounded-lg p-4 cursor-pointer transition-all duration-200 hover:border-wh-green-primary hover:shadow-md group"
+      className={`bg-white border rounded-lg p-4 cursor-grab transition-all duration-200 hover:shadow-md group select-none ${
+        isDragging
+          ? "opacity-50 border-dashed border-wh-green-primary shadow-none scale-95"
+          : "border-wh-green-border-light hover:border-wh-green-primary hover:shadow-md"
+      }`}
+      style={{ cursor: isDragging ? "grabbing" : "grab" }}
     >
       {task.labels.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mb-2.5">

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { IoIosClose, IoIosArrowUp, IoIosArrowDown, IoIosArrowForward, IoIosArrowBack } from 'react-icons/io';
 
 export type ViewerImage = {
     src: string;
@@ -67,7 +68,7 @@ const ImageViewer: React.FC<Props> = ({ images, initialIndex, onClose }) => {
                         className="text-white/70 hover:text-white text-xl leading-none"
                         title="Close"
                     >
-                        ✕
+                        <IoIosClose className="w-6 h-6" />
                     </button>
                 </div>
             </div>
@@ -82,7 +83,7 @@ const ImageViewer: React.FC<Props> = ({ images, initialIndex, onClose }) => {
                             onClick={() => goTo(current - 1)}
                             className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center z-10"
                         >
-                            ‹
+                            <IoIosArrowBack className="w-4 h-4" />
                         </button>
                     )}
 
@@ -103,7 +104,7 @@ const ImageViewer: React.FC<Props> = ({ images, initialIndex, onClose }) => {
                             onClick={() => goTo(current + 1)}
                             className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center z-10"
                         >
-                            ›
+                            <IoIosArrowForward className="w-4 h-4" />
                         </button>
                     )}
                 </div>
@@ -117,14 +118,14 @@ const ImageViewer: React.FC<Props> = ({ images, initialIndex, onClose }) => {
                             disabled={current === 0}
                             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white flex items-center justify-center"
                         >
-                            ∧
+                            <IoIosArrowUp className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => goTo(current + 1)}
                             disabled={current === images.length - 1}
                             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white flex items-center justify-center"
                         >
-                            ∨
+                            <IoIosArrowDown className="w-4 h-4" />
                         </button>
                     </div>
 

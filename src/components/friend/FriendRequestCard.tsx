@@ -2,6 +2,7 @@ import React from "react";
 import type { FriendRequest } from "../../types/friend";
 import { FaCheck } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
+import { Avatar } from "../common/Avatar";
 
 interface FriendRequestCardProps {
   request: FriendRequest;
@@ -17,9 +18,10 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
   return (
     <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl group hover:shadow-sm transition-all flex flex-col gap-4">
       <div className="flex items-center gap-4">
-        <div
-          className="w-14 h-14 rounded-full bg-slate-300 bg-cover bg-center shrink-0 border-2 border-white shadow-sm"
-          style={{ backgroundImage: `url('${request.avatar}')` }}
+        <Avatar
+          src={request.avatar || undefined}
+          alt={request.name}
+          size="lg"
         />
         <div className="flex-1 overflow-hidden">
           <p className="font-bold text-slate-900 truncate">{request.name}</p>

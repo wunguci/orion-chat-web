@@ -1,5 +1,6 @@
 import React from 'react';
 import SearchBox from '../common/SearchBox';
+import ChatAvatar from '../common/ChatAvatar';
 
 export const ChatSidebar: React.FC = () => {
     const [searchChatQuery, setSearchChatQuery] = React.useState('');
@@ -39,20 +40,18 @@ export const ChatSidebar: React.FC = () => {
                     placeholder="Search chat ..."
                 />
             </div>
-            <div className="px-3 py-2 text-sm text-slate-400">Tất cả</div>
+            <div className="px-3 py-2 text-sm text-slate-400">All</div>
             <div className="flex-1 overflow-y-auto">
                 {chats.map((c, i) => (
                     <div
                         key={i}
                         className="flex items-center gap-3 px-3 py-3 hover:bg-green-bg-heavy cursor-pointer rounded"
                     >
-                        {c.avatar && (
-                            <img
-                                src={c.avatar}
-                                alt="avatar"
-                                className="w-10 h-10 rounded-full object-cover"
-                            />
-                        )}
+                        <ChatAvatar
+                            name={c.name}
+                            avatarUrl={c.avatar}
+                            sizeClassName="w-10 h-10"
+                        />
                         <div className="flex-1">
                             <div className="flex justify-between items-center">
                                 <div className="font-medium">{c.name}</div>

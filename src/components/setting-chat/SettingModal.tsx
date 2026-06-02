@@ -1,3 +1,4 @@
+/*eslint-disable*/
 import React, { useState, useEffect, useRef } from "react";
 import {
   User,
@@ -18,6 +19,7 @@ import {
   Chrome,
   Info,
   Play,
+  Bot,
 } from "lucide-react";
 import clsx from "clsx";
 import "./SettingModal.css";
@@ -30,8 +32,12 @@ import SelectionButton from "../common/SelectionButton";
 import Button from "../common/Button";
 import { getUser, saveUserData } from "../../utils/token";
 import { updateUserProfile } from "../../services/userService";
+import { orionAiService } from "../../services/orionAiService";
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
 
 function toAbsoluteMediaUrl(url?: string | null): string | null {
   if (!url) return null;
@@ -44,7 +50,8 @@ type TabType =
   | "privacy"
   | "notifications"
   | "appearance"
-  | "devices";
+  | "devices"
+  | "ai";
 
 interface SettingsModalProps {
   isOpen?: boolean;
@@ -80,6 +87,9 @@ export default function SettingsModal({
     themeMode: "light",
     selectedWallpaper: "teal",
     textSize: "medium",
+    smartEmotionDetection: false,
+    autoWorkflowSuggestions: true,
+    aiMemoryEnabled: true,
   });
 
   const [hasChanges, setHasChanges] = useState(false);
@@ -88,7 +98,6 @@ export default function SettingsModal({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<{
     avatar?: File;
     cover?: File;
@@ -114,7 +123,21 @@ export default function SettingsModal({
     }
   }, []);
 
-  const handleInputChange = (field: string, value: any) => {
+  useEffect(() => {
+    orionAiService
+      .getSettings()
+      .then((settings) => {
+        setFormData((prev) => ({
+          ...prev,
+          smartEmotionDetection: settings.smartEmotionDetection,
+          autoWorkflowSuggestions: settings.autoWorkflowSuggestions,
+          aiMemoryEnabled: settings.aiMemoryEnabled,
+        }));
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const handleInputChange = (field: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
@@ -139,6 +162,18 @@ export default function SettingsModal({
     setSuccessMessage(null);
 
     try {
+      if (activeTab === "ai") {
+        await orionAiService.updateSettings({
+          smartEmotionDetection: formData.smartEmotionDetection,
+          autoWorkflowSuggestions: formData.autoWorkflowSuggestions,
+          aiMemoryEnabled: formData.aiMemoryEnabled,
+        });
+        setHasChanges(false);
+        setSuccessMessage("AI settings updated successfully!");
+        setTimeout(() => setSuccessMessage(null), 3000);
+        return;
+      }
+
       // Prepare update data - only profile User fields
       const updateData = {
         fullName: formData.fullName,
@@ -154,7 +189,7 @@ export default function SettingsModal({
 
       // Call API
       const result = await updateUserProfile(updateData, selectedFiles);
-      
+
       console.log("updateUserProfile result:", result);
 
       // Update localStorage with new user data
@@ -256,6 +291,12 @@ export default function SettingsModal({
       label: "Devices",
       icon: Smartphone,
       description: "Active sessions and logins",
+    },
+    {
+      id: "ai",
+      label: "AI",
+      icon: Bot,
+      description: "Assistant and smart detection",
     },
   ];
 
@@ -876,7 +917,7 @@ export default function SettingsModal({
             </div>
 
             {/* Text Size */}
-            <div className="flex flex-col gap-3 items-start w-full">
+            {/* <div className="flex flex-col gap-3 items-start w-full">
               <span className="text-[22px] font-bold text-gray-primary">
                 Text Size
               </span>
@@ -900,7 +941,7 @@ export default function SettingsModal({
                 Adjusting the font size will change the scale all chat text
                 across the app.
               </p>
-            </div>
+            </div> */}
 
             {/* Action Buttons */}
             <div className="flex justify-between items-center pt-5 border-t border-gray-200">
@@ -1019,7 +1060,7 @@ export default function SettingsModal({
 
             {/* Security Tip */}
             <div className="flex gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-200">
-              <Info size={24} className="text-blue-500 flex-shrink-0 mt-1" />
+              <Info size={24} className="text-blue-500 shrink-0 mt-1" />
               <div>
                 <p className="font-bold text-gray-primary mb-1">Security Tip</p>
                 <p className="text-sm text-gray-primary">
@@ -1027,6 +1068,77 @@ export default function SettingsModal({
                   immediately and change your account password
                 </p>
               </div>
+            </div>
+          </div>
+        );
+
+      case "ai":
+        return (
+          <div className="flex flex-col gap-8">
+            <div>
+              <span className="text-[28px] font-bold text-gray-primary">
+                AI Assistant
+              </span>
+              <p className="text-gray-primary">
+                Configure Orion AI behavior in chat and WorkHub.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {[
+                {
+                  label: "Smart Emotion Detection",
+                  description:
+                    "Show subtle emotion hints for incoming chat messages.",
+                  field: "smartEmotionDetection",
+                },
+                {
+                  label: "Auto Workflow Suggestions",
+                  description:
+                    "Allow AI to suggest task and calendar drafts from text.",
+                  field: "autoWorkflowSuggestions",
+                },
+                {
+                  label: "AI Memory",
+                  description:
+                    "Let AI use your notes, calendar, tasks, and workspace context.",
+                  field: "aiMemoryEnabled",
+                },
+              ].map(({ label, description, field }) => (
+                <div
+                  key={field}
+                  className="flex items-center justify-between px-4 py-3 bg-green-bg-light border border-green-border-light rounded-xl"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-primary">{label}</p>
+                    <p className="text-sm text-gray-primary">{description}</p>
+                  </div>
+                  <ToggleSwitch
+                    checked={
+                      formData[field as keyof typeof formData] as boolean
+                    }
+                    onChange={() => toggleOption(field)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-3 pt-5 border-t border-gray-200">
+              {successMessage && (
+                <div className="mr-auto px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
+                  {successMessage}
+                </div>
+              )}
+              {error && (
+                <div className="mr-auto px-4 py-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
+              <Button
+                label={isSaving ? "Saving..." : "Save Changes"}
+                onClick={handleSave}
+                disabled={isSaving}
+              />
             </div>
           </div>
         );
@@ -1052,7 +1164,7 @@ export default function SettingsModal({
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
-          <div className="w-80 bg-green-bg-light border-r border-green-border-light p-6 overflow-y-auto flex-shrink-0">
+          <div className="w-80 bg-green-bg-light border-r border-green-border-light p-6 overflow-y-auto shrink-0">
             <h1 className="text-2xl font-bold text-gray-primary mb-2">
               Settings
             </h1>
@@ -1075,7 +1187,7 @@ export default function SettingsModal({
                   <Icon
                     size={24}
                     className={clsx(
-                      "mt-1 flex-shrink-0",
+                      "mt-1 shrink-0",
                       activeTab === id
                         ? "text-green-primary"
                         : "text-gray-primary",

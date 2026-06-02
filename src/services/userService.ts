@@ -10,7 +10,71 @@ interface UpdateProfileDto {
   coverImage?: string;
 }
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
+
+/**
+ * User info cache to avoid repeated API calls
+ */
+const userInfoCache = new Map<
+  string,
+  { fullName: string; avatarUrl?: string }
+>();
+
+/**
+ * Get user information by userId or phone number
+ * Uses cache to avoid repeated API calls
+ */
+export async function getUserInfo(
+  userIdOrPhone: string,
+): Promise<{ fullName: string; avatarUrl?: string } | null> {
+  if (!userIdOrPhone) return null;
+
+  // Check cache first
+  if (userInfoCache.has(userIdOrPhone)) {
+    return userInfoCache.get(userIdOrPhone) || null;
+  }
+
+  try {
+    const token = getToken();
+    if (!token) return null;
+
+    const response = await fetch(`${API_BASE_URL}/users/${userIdOrPhone}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      console.warn(
+        `[getUserInfo] Failed to fetch user info for ${userIdOrPhone}: ${response.statusText}`,
+      );
+      // Cache null result to avoid repeated failed requests
+      userInfoCache.set(userIdOrPhone, { fullName: userIdOrPhone });
+      return null;
+    }
+
+    const data = await response.json();
+    const userInfo = {
+      fullName: data?.fullName || data?.name || userIdOrPhone,
+      avatarUrl: data?.avatarUrl,
+    };
+
+    // Cache the result
+    userInfoCache.set(userIdOrPhone, userInfo);
+    return userInfo;
+  } catch (error) {
+    console.error(`[getUserInfo] Error fetching user info:`, error);
+    // Cache the phone/userId as fallback
+    userInfoCache.set(userIdOrPhone, { fullName: userIdOrPhone });
+    return null;
+  }
+}
 
 export async function updateUserProfile(
   updateData: UpdateProfileDto,

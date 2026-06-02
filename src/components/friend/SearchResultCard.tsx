@@ -1,53 +1,51 @@
 import type React from "react";
 import type { Friend } from "../../types/friend";
 import { useState } from "react";
-import { FaCheck } from "react-icons/fa";
 import { IoClose } from "react-icons/io5";
 import { MdEditNote } from "react-icons/md";
 import { MdOutlinePersonAddAlt1, MdOutlineChat } from "react-icons/md";
+import { Avatar } from "../common/Avatar";
 
 interface SearchResultCardProps {
   friend: Friend;
   onClose: () => void;
-  onSendFriendRequest?: (targetUserId: string, message: string) => Promise<void>;
+  isPending?: boolean;
+  onSendFriendRequest?: (
+    targetUserId: string,
+    message?: string,
+  ) => Promise<void>;
+  onDirectMessage?: (friendId: string) => void;
 }
 
 const SearchResultCard: React.FC<SearchResultCardProps> = ({
   friend,
   onClose,
+  isPending = false,
   onSendFriendRequest,
+  onDirectMessage,
 }) => {
   const [message, setMessage] = useState(
     "Hi! I'd like to connect with you on ConnectApp.",
   );
-  const [isSent, setIsSent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
   const handleAddFriend = async () => {
-    if (onSendFriendRequest) {
-      await onSendFriendRequest(friend.id, message);
+    if (isPending || isSending) return;
+    setIsSending(true);
+    try {
+      if (onSendFriendRequest) {
+        await onSendFriendRequest(friend.id, message);
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to send friend request";
+      window.alert(message);
+    } finally {
+      setIsSending(false);
     }
-
-    setIsSent(true);
-
-    // tự động đóng sau 2 giây
-    setTimeout(() => {
-      onClose();
-    }, 2000);
   };
-
-  if (isSent) {
-    return (
-      <div className="p-8 bg-teal-50 border border-teal-200 rounded-3xl animate-in fade-in zoom-in duration-300 flex flex-col items-center justify-center text-center gap-3">
-        <div className="w-12 h-12 bg-green-primary rounded-full flex items-center justify-center text-white mb-2">
-          <FaCheck className="text-2xl" />
-        </div>
-        <h3 className="text-xl font-bold text-green-secondary">Request Sent!</h3>
-        <p className="text-green-primary italic">
-          Your friend request with message has been sent to {friend.name}.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 bg-slate-50 border-2 border-slate-200 rounded-3xl animate-in fade-in slide-in-from-top-4 duration-300 relative overflow-hidden">
@@ -63,9 +61,10 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
       <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <div className="relative shrink-0">
-            <div
-              className="w-20 h-20 rounded-full bg-slate-300 bg-cover bg-center border-4 border-white shadow-md"
-              style={{ backgroundImage: `url('${friend.avatar}')` }}
+            <Avatar
+              src={friend.avatar || undefined}
+              alt={friend.name}
+              size="xl"
             />
             <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
           </div>
@@ -96,13 +95,21 @@ const SearchResultCard: React.FC<SearchResultCardProps> = ({
         <div className="flex flex-wrap justify-center sm:justify-start gap-3 pt-2">
           <button
             onClick={() => void handleAddFriend()}
-            className="flex-1 sm:flex-none px-8 py-3 bg-green-primary text-white font-bold rounded-2xl hover:bg-green-secondary transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+            disabled={isPending || isSending}
+            className="flex-1 sm:flex-none px-8 py-3 bg-green-primary text-white font-bold rounded-2xl hover:bg-green-secondary transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2 active:scale-95 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
           >
             <MdOutlinePersonAddAlt1 className="text-xl" />
-            Send Friend Request
+            {isPending
+              ? "Invitations have been sent."
+              : isSending
+                ? "Sending..."
+                : "Send Friend Request"}
           </button>
 
-          <button className="flex-1 sm:flex-none px-8 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+          <button
+            onClick={() => onDirectMessage?.(friend.id)}
+            className="flex-1 sm:flex-none px-8 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-2xl hover:bg-slate-50 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
+          >
             <MdOutlineChat className="text-lg" />
             Direct Message
           </button>

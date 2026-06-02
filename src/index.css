@@ -19,7 +19,7 @@
   --color-blue-dark: #0052cc;
 } */
 
-/* ==================== CUSTOM CSS VARIABLES ==================== */
+/*  CUSTOM CSS VARIABLES  */
 :root {
   /* Colors - Palette chính cho ứng dụng chat */
   --color-primary: #0068ff; /* Màu xanh chủ đạo (như Zalo) */
@@ -111,7 +111,7 @@
   --header-height: 64px;
   --message-input-height: auto;
 
-  /* ==================== WORKHUB TEAL THEME (unified with chat) ==================== */
+  /*  WORKHUB TEAL THEME (unified with chat)  */
   /* Primary teal */
   --wh-green-primary: #0d9488;
   --wh-green-primary-hover: #0f766e;
@@ -156,7 +156,7 @@
   --scrollbar-thumb-hover: #9ca3af;
 }
 
-/* ==================== HELPER CLASSES ==================== */
+/*  HELPER CLASSES  */
 .animate-fade-in {
   animation: fadeIn var(--transition-base);
 }
@@ -173,7 +173,7 @@
   animation: slideInUp var(--transition-base);
 }
 
-/* ==================== RESPONSIVE BREAKPOINTS ==================== */
+/*  RESPONSIVE BREAKPOINTS  */
 /* Tailwind already handles this, but document for reference:
   - sm: 640px
   - md: 768px
@@ -182,7 +182,7 @@
   - 2xl: 1536px
 }
 
-/* ==================== PRINT STYLES ==================== */
+/*  PRINT STYLES  */
 @media print {
   body {
     background: white;
@@ -301,4 +301,82 @@
 }
 .contact-list-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover);
+}
+
+/*  GEMINI REWRITE ANIMATION  */
+/*  GEMINI BORDER SPIN  */
+
+.rewriting-glow-wrapper {
+  position: relative;
+  border-radius: 9999px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rewriting-glow-wrapper > input {
+  position: relative;
+  z-index: 1;
+  margin: 2px;
+  width: calc(100% - 4px);
+  background-color: var(--color-background);
+}
+
+/* Rotating "beam" */
+.rewriting-glow-wrapper::before {
+  content: "";
+  display: block;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    var(--wh-green-primary) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  height: 800px; /* Made it taller to cover wide inputs */
+  width: 100px;
+  position: absolute;
+  top: 50%;
+  left: calc(50% - 50px); /* Exactly center horizontally without translate */
+  transform-origin: top center;
+  animation: glow-rotate 5s linear forwards infinite;
+  z-index: 0;
+}
+
+@keyframes glow-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*  GENERAL ANIMATIONS  */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/*  WORKHUB DRAG HANDLE  */
+.kanban-drag-handle {
+  cursor: grab;
+}
+.kanban-drag-handle:active {
+  cursor: grabbing;
 }

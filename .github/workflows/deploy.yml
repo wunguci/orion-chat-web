@@ -20,7 +20,17 @@ jobs:
 
             # 2. build bằng docker
             - name: Build Docker image
-              run: docker build -t orion-chat-web .
+              run: |
+                docker build -t orion-chat-web \
+                  --build-arg VITE_GEMINI_API_KEY="${{ secrets.VITE_GEMINI_API_KEY }}" \
+                  --build-arg VITE_SOCKET_URL="${{ github.ref == 'refs/heads/main' && (secrets.VITE_SOCKET_URL_PROD || secrets.VITE_SOCKET_URL) || (secrets.VITE_SOCKET_URL_STAGING || secrets.VITE_SOCKET_URL) }}" \
+                  --build-arg VITE_TURN_URLS="${{ secrets.VITE_TURN_URLS }}" \
+                  --build-arg VITE_TURN_USERNAME="${{ secrets.VITE_TURN_USERNAME }}" \
+                  --build-arg VITE_TURN_CREDENTIAL="${{ secrets.VITE_TURN_CREDENTIAL }}" \
+                  --build-arg VITE_FORCE_TURN_RELAY="${{ secrets.VITE_FORCE_TURN_RELAY }}" \
+                  --build-arg VITE_ENABLE_STREAM_VIDEO="${{ secrets.VITE_ENABLE_STREAM_VIDEO }}" \
+                  --build-arg VITE_MEDIA_BASE_URL="${{ secrets.VITE_MEDIA_BASE_URL }}" \
+                  .
 
             - name: Extract dist
               run: |

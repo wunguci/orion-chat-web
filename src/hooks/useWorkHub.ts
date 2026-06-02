@@ -13,6 +13,7 @@ import {
   typeToBE,
 } from "../features/work-hub/work-hub.mappers";
 import type { CreateWorkspaceRequest } from "../features/work-hub/work-hub.api.types";
+import { dispatchWorkhubWorkspaceUpdated } from "../utils/workhubEvents";
 
 export function useWorkHub(userId?: string) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -174,6 +175,7 @@ export function useWorkHub(userId?: string) {
         w.id === workspaceId ? { ...w, boards: [...w.boards, mapped] } : w,
       ),
     );
+    dispatchWorkhubWorkspaceUpdated(workspaceId);
     return mapped;
   };
 
@@ -202,6 +204,7 @@ export function useWorkHub(userId?: string) {
           : w,
       ),
     );
+    dispatchWorkhubWorkspaceUpdated(workspaceId);
   };
 
   const deleteBoard = async (workspaceId: string, boardId: string) => {
@@ -213,6 +216,7 @@ export function useWorkHub(userId?: string) {
           : w,
       ),
     );
+    dispatchWorkhubWorkspaceUpdated(workspaceId);
   };
 
   return {

@@ -2,24 +2,53 @@ import type { User } from '../types/auth.types';
 
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'auth_user';
+const AUTH_STORAGE_KEYS = [
+    TOKEN_KEY,
+    USER_KEY,
+    'token',
+    'authToken',
+    'jwt',
+    'access_token',
+    'refresh_token',
+    'auth',
+    'currentUser',
+    'profile',
+    'authUser',
+    'user',
+    'userId',
+    'auth_session_id',
+    'auth_device_id',
+];
 
 /**
- * Save any object to localStorage as user data
- * This is flexible - saves everything from server response
+ * lưu dữ liệu người dùng vào localStorage
  */
 export function saveUserData(data: Record<string, unknown>): void {
     try {
         const jsonStr = JSON.stringify(data);
 
         localStorage.setItem(USER_KEY, jsonStr);
+
+        window.dispatchEvent(
+            new StorageEvent('storage', {
+                key: USER_KEY,
+                oldValue: null,
+                newValue: jsonStr,
+                storageArea: localStorage,
+            }),
+        );
     } catch (error) {
-        console.error('❌ [saveUserData] Error:', error);
+        console.error('[saveUserData] Error:', error);
     }
 }
 
 export function setToken(token: string): void {
     try {
         const oldToken = localStorage.getItem(TOKEN_KEY);
+        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('access_token');
         localStorage.setItem(TOKEN_KEY, token);
 
         window.dispatchEvent(
@@ -48,30 +77,48 @@ export function getToken(): string | null {
 }
 
 /**
- * Remove JWT token from localStorage
+ * xóa token khỏi localStorage
  */
 export function removeToken(): void {
     try {
-        localStorage.removeItem(TOKEN_KEY);
+        for (const key of AUTH_STORAGE_KEYS) {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+        }
+
+        window.dispatchEvent(
+            new StorageEvent('storage', {
+                key: TOKEN_KEY,
+                oldValue: null,
+                newValue: null,
+                storageArea: localStorage,
+            }),
+        );
     } catch (error) {
         console.error('Error removing token:', error);
     }
 }
 
 /**
- * Store user data in localStorage
+ * Lưu dữ liệu người dùng vào localStorage
  */
 export function setUser(user: User): void {
     try {
         const jsonStr = JSON.stringify(user);
         localStorage.setItem(USER_KEY, jsonStr);
+        const userId = user.userId || user.id;
+        if (userId) {
+            localStorage.setItem('userId', userId);
+        } else {
+            localStorage.removeItem('userId');
+        }
     } catch (error) {
-        console.error('❌ Error storing user data:', error);
+        console.error('Error storing user data:', error);
     }
 }
 
 /**
- * Retrieve user data from localStorage
+ * nhận dữ liệu người dùng từ localStorage
  */
 export function getUser(): User | null {
     try {
@@ -89,19 +136,35 @@ export function getUser(): User | null {
 }
 
 /**
- * Remove user data from localStorage
+ * kiểm tra trạng thái xác thực
+ */
+export function debugAuthStatus(): void {
+    // const token = getToken();
+    // const user = getUser();
+    // console.log(
+    //     `[Auth Debug] Token: ${token ? `${token.substring(0, 20)}...` : 'NOT FOUND'}`,
+    // );
+    // console.log(`[Auth Debug] User:`, user);
+    // console.log(
+    //     `[Auth Debug] Auth Status: ${token && user ? 'AUTHENTICATED' : 'NOT AUTHENTICATED'}`,
+    // );
+}
+
+/**
+ * xóa dữ liệu người dùng khỏi localStorage
  */
 export function removeUser(): void {
     try {
         localStorage.removeItem(USER_KEY);
+        sessionStorage.removeItem(USER_KEY);
     } catch (error) {
         console.error('Error removing user data:', error);
     }
 }
 
 /**
- * Check if token exists and is not expired
- * JWT format: header.payload.signature
+ * nếu token không tồn tại hoặc đã hết hạn
+ * trả về false
  */
 export function isTokenValid(): boolean {
     const token = getToken();
@@ -132,12 +195,11 @@ export function isTokenValid(): boolean {
  */
 export function logout(): void {
     removeToken();
-    removeUser();
 }
 
 /**
- * Get authorization header with JWT token
- * Used for API requests that require authentication
+ * xác thực header của yêu cầu API
+ * dùng cho các yêu cầu API cần xác thực
  */
 export function getAuthHeader(): Record<string, string> {
     const token = getToken();

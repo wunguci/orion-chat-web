@@ -1,77 +1,390 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    ArrowRight,
+    Bot,
+    Lock,
+    Pin,
+    PinOff,
+    Reply,
+    SmilePlus,
+    Sparkles,
+    Trash2,
+    Undo2Icon,
+} from 'lucide-react';
+import {
+    FaFileArchive,
+    FaFileExcel,
+    FaFilePdf,
+    FaFilePowerpoint,
+    FaFileWord,
+} from 'react-icons/fa';
+import { FiFile, FiFileText, FiImage, FiMusic, FiVideo } from 'react-icons/fi';
 import ImageViewer from './ImageViewer';
 import type { ViewerImage } from './ImageViewer';
+import CallHistoryCard from './CallHistoryCard';
+import ChatAvatar from '../common/ChatAvatar';
+import { useGroupCallContext } from '../../hooks/useGroupCallContext';
+import { REACTION_OPTIONS, ReactionIcon } from './reactions';
+import type { ParticipantInfo } from '../../types/conversation';
 
-const EMOJI_LIST = ['❤️', '😆', '😮', '😢', '😡', '👍'];
+// const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3001";
+const MEDIA_BASE_URL =
+    import.meta.env.VITE_MEDIA_BASE_URL ||
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    import.meta.env.VITE_SOCKET_URL ||
+    'http://localhost:3000';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+const toAbsoluteMediaUrl = (url?: string | null): string | undefined => {
+    if (!url) return undefined;
 
-type ReactionMap = Record<
-    number,
-    Record<string, { count: number; reactedByMe: boolean }>
->;
+    const mediaBase = MEDIA_BASE_URL.replace(/\/$/, '');
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (url.includes('/uploads/')) {
+            const uploadsPath = url.split('/uploads/').pop();
+            if (uploadsPath) {
+                return `${mediaBase}/${uploadsPath.replace(/^\/+/, '')}`;
+            }
+        }
+        return url;
+    }
+
+    if (url.startsWith('blob:') || url.startsWith('data:')) {
+        return url;
+    }
+
+    const normalizedPath = url.replace(/^\/?uploads\//, '/');
+    return `${mediaBase}${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
+};
+
+const renderMessageSenderAvatar = (
+    name?: string,
+    avatarUrl?: string | null,
+) => (
+    <button
+        type="button"
+        disabled
+        className="w-10 h-10 rounded-full  flex items-center justify-center overflow-hidden"
+    >
+        <ChatAvatar
+            name={name}
+            avatarUrl={avatarUrl || undefined}
+            sizeClassName="w-full h-full"
+        />
+    </button>
+);
+
+type MessageReaction = {
+    userId: string;
+    emoji: string;
+    reactedAt?: string;
+};
 
 export type SocketMessage = {
     id: string;
+    clientMessageId?: string;
     senderId: string;
     senderName: string;
+    senderAvatar?: string;
     content: string;
     timestamp: string;
+    messageStatus?:
+        | 'SENDING'
+        | 'SENT'
+        | 'DELIVERED'
+        | 'READ'
+        | 'SEEN'
+        | 'FAILED'
+        | 'UPLOADING';
+    conversationId?: string;
+    type?: 'text' | 'image' | 'file' | 'audio' | 'video' | 'call' | 'system' | 'SYSTEM' | 'TEXT' | 'IMAGE' | 'FILE' | 'VIDEO' | 'AUDIO' | 'CALL';
+    messageType?: string;
     isFile?: boolean;
     fileUrl?: string;
     fileName?: string;
     fileType?: string;
+    fileExtension?: string;
+    fileCategory?: 'image' | 'video' | 'audio' | 'file';
+    fileIcon?:
+        | 'image'
+        | 'video'
+        | 'audio'
+        | 'file'
+        | 'file-pdf'
+        | 'file-word'
+        | 'file-excel'
+        | 'file-powerpoint'
+        | 'file-archive'
+        | 'file-text';
+    uploadStatus?: 'uploading' | 'sent' | 'failed';
+    errorMessage?: string;
+    isRecalled?: boolean;
+    isDeleted?: boolean;
+    deletedForUsers?: string[];
+    replyToMessageId?: string;
+    replyToMessagePreview?: {
+        messageId?: string;
+        content?: string;
+        senderName?: string;
+        snippet?: string;
+        createdAt?: string | Date;
+    } | null;
+    isPinned?: boolean;
+    pinnedAt?: string;
+    forwardedFromMessageId?: string;
+    seenBy?: Array<string | { userId: string; seenAt?: string }>;
+    mentions?: string[];
+    mentionAll?: boolean;
+    reactions?: MessageReaction[];
+    callData?: {
+        callType?: 'audio' | 'video';
+        callStatus?: 'completed' | 'missed' | 'declined' | 'active';
+        duration?: number;
+        participants?: string[];
+        isInitiator?: boolean;
+        wasRejected?: boolean;
+        callId?: string;
+        callMode?: 'group' | 'direct' | string;
+    };
 };
 
 export const MessageList: React.FC<{
     socketMessages?: SocketMessage[];
     currentUserId?: string;
-}> = ({ socketMessages = [], currentUserId }) => {
+    conversationId?: string | null;
+    myIsHidden?: boolean;
+    onCallBackMessage?: (message: SocketMessage) => void;
+    onRecallMessage?: (message: SocketMessage) => void;
+    onDeleteMessage?: (message: SocketMessage) => void;
+    onForwardMessage?: (message: SocketMessage) => void;
+    onReactMessage?: (message: SocketMessage, emoji: string) => void;
+    onReplyMessage?: (message: SocketMessage) => void;
+    onTogglePinMessage?: (message: SocketMessage, shouldPin: boolean) => void;
+    canForwardMessage?: boolean;
+    onAISummarize?: (mode: 'range' | 'unread', rangeMonths?: 1 | 2 | 3) => void;
+    onAIReplySuggestions?: () => void;
+    emotionByMessageId?: Record<
+        string,
+        { label: string; icon?: string; summary?: string; tone?: string }
+    >;
+    participants?: ParticipantInfo[];
+}> = ({
+    socketMessages = [],
+    currentUserId,
+    conversationId,
+    myIsHidden = false,
+    onCallBackMessage,
+    onRecallMessage,
+    onDeleteMessage,
+    onForwardMessage,
+    onReactMessage,
+    onReplyMessage,
+    onTogglePinMessage,
+    canForwardMessage = true,
+    onAISummarize,
+    onAIReplySuggestions,
+    emotionByMessageId = {},
+    participants,
+}) => {
+    const { joinGroupCall } = useGroupCallContext();
     const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-    const [reactionMap, setReactionMap] = useState<ReactionMap>({});
+    const [openActionMenuKey, setOpenActionMenuKey] = useState<string | null>(
+        null,
+    );
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-    const handleReact = (msgIndex: number, emoji: string) => {
-        setReactionMap((prev) => {
-            const msgReactions = prev[msgIndex] ?? {};
-            const existing = msgReactions[emoji];
-            if (existing?.reactedByMe) {
-                const newCount = existing.count - 1;
-                if (newCount === 0) {
-                    const rest = Object.fromEntries(
-                        Object.entries(msgReactions).filter(
-                            ([k]) => k !== emoji,
-                        ),
+    // ================= MENTION BADGES RENDER COMPILER =================
+    const participantNames = useMemo(() => {
+        if (!participants) return [];
+        return participants
+            .filter((p) => p.userId !== currentUserId)
+            .map((p) => p.fullName || '')
+            .filter((name) => name.length > 0)
+            .sort((a, b) => b.length - a.length); // Match longer names first
+    }, [participants, currentUserId]);
+
+    const renderContentText = (text: string, isMe: boolean) => {
+        const escapedNames = participantNames.map((name) =>
+            name.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
+        );
+        const patterns = [
+            '@all',
+            '@tất cả',
+            ...escapedNames.map((name) => `@${name}`),
+        ];
+
+        if (patterns.length === 0) {
+            return renderContentWithLinks(text, isMe);
+        }
+
+        // Case-insensitive boundary match for all tag patterns
+        const regex = new RegExp(`(${patterns.join('|')})\\b`, 'gi');
+        const parts = text.split(regex);
+
+        return parts.map((part, idx) => {
+            if (!part) return null;
+
+            if (regex.test(part)) {
+                const lower = part.toLowerCase();
+                const isAll = lower === '@all' || lower === '@tất cả';
+
+                if (isAll) {
+                    return (
+                        <span
+                            key={idx}
+                            className="inline-flex items-center px-1.5 py-0.5 rounded-md font-bold text-xs bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white shadow-xs mx-0.5"
+                        >
+                            {part}
+                        </span>
                     );
-                    return { ...prev, [msgIndex]: rest };
+                } else {
+                    return (
+                        <span
+                            key={idx}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-md font-semibold text-xs mx-0.5 transition-all ${
+                                isMe
+                                    ? 'bg-white/20 text-white border border-white/30 backdrop-blur-xs'
+                                    : 'bg-blue-50 text-blue-600 border border-blue-100'
+                            }`}
+                        >
+                            {part}
+                        </span>
+                    );
                 }
-                return {
-                    ...prev,
-                    [msgIndex]: {
-                        ...msgReactions,
-                        [emoji]: { count: newCount, reactedByMe: false },
-                    },
-                };
             }
-            return {
-                ...prev,
-                [msgIndex]: {
-                    ...msgReactions,
-                    [emoji]: {
-                        count: (existing?.count ?? 0) + 1,
-                        reactedByMe: true,
-                    },
-                },
-            };
+
+            return renderContentWithLinks(part, isMe);
         });
+    };
+    // ==================================================================
+
+    const getMessageKey = (message: SocketMessage) =>
+        message.clientMessageId || message.id;
+
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+        });
+    }, [conversationId, socketMessages.length]);
+
+    useEffect(() => {
+        setOpenActionMenuKey(null);
+    }, [conversationId]);
+
+    const getReactionStats = (message: SocketMessage) => {
+        const raw = Array.isArray(message.reactions) ? message.reactions : [];
+        const grouped = new Map<
+            string,
+            { count: number; reactedByMe: boolean }
+        >();
+
+        for (const reaction of raw) {
+            if (!reaction?.emoji) continue;
+            const existing = grouped.get(reaction.emoji);
+            grouped.set(reaction.emoji, {
+                count: (existing?.count || 0) + 1,
+                reactedByMe:
+                    existing?.reactedByMe ||
+                    false ||
+                    reaction.userId === currentUserId,
+            });
+        }
+
+        return grouped;
+    };
+
+    const renderFileIcon = (icon?: SocketMessage['fileIcon']) => {
+        switch (icon) {
+            case 'image':
+                return <FiImage className="w-5 h-5 text-emerald-600" />;
+            case 'video':
+                return <FiVideo className="w-5 h-5 text-blue-600" />;
+            case 'audio':
+                return <FiMusic className="w-5 h-5 text-indigo-600" />;
+            case 'file-pdf':
+                return <FaFilePdf className="w-5 h-5 text-red-600" />;
+            case 'file-word':
+                return <FaFileWord className="w-5 h-5 text-blue-700" />;
+            case 'file-excel':
+                return <FaFileExcel className="w-5 h-5 text-green-700" />;
+            case 'file-powerpoint':
+                return <FaFilePowerpoint className="w-5 h-5 text-orange-600" />;
+            case 'file-archive':
+                return <FaFileArchive className="w-5 h-5 text-amber-700" />;
+            case 'file-text':
+                return <FiFileText className="w-5 h-5 text-slate-600" />;
+            default:
+                return <FiFile className="w-5 h-5 text-slate-600" />;
+        }
+    };
+
+    const getUploadStatusLabel = (status?: SocketMessage['uploadStatus']) => {
+        if (status === 'uploading') return 'Uploading';
+        if (status === 'failed') return 'Failed';
+        return 'Sent';
+    };
+
+    const renderContentWithLinks = (content: string, isMe: boolean) => {
+        const urlRegex = /(https?:\/\/\S+|www\.\S+)/gi;
+        const parts = content.split(urlRegex);
+
+        return (
+            <>
+                {parts.map((part, idx) => {
+                    if (!part) return null;
+
+                    if (/^https?:\/\/|^www\./i.test(part)) {
+                        const href = part.startsWith('http')
+                            ? part
+                            : `https://${part}`;
+
+                        return (
+                            <a
+                                key={idx}
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`break-all hover:underline ${
+                                    isMe ? 'text-white' : 'text-blue-500'
+                                }`}
+                                onClick={(e) => {
+                                    if (!e.ctrlKey && !e.metaKey) {
+                                        e.preventDefault();
+                                    }
+                                }}
+                            >
+                                {part}
+                            </a>
+                        );
+                    }
+
+                    return (
+                        <span key={idx} className="break-all">
+                            {part}
+                        </span>
+                    );
+                })}
+            </>
+        );
     };
 
     const allImages: ViewerImage[] = socketMessages
         .filter(
             (m): m is SocketMessage & { fileUrl: string; fileType: string } =>
-                !!m.fileUrl && m.fileType?.startsWith('image/') === true,
+                !!m.fileUrl &&
+                (m.fileType?.startsWith('image/') === true ||
+                    m.fileCategory === 'image' ||
+                    m.type === 'image' ||
+                    /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
+                        `${m.fileName || ''} ${m.fileUrl || ''} ${m.content || ''}`,
+                    )),
         )
         .map((m) => ({
-            src: `${SERVER_URL}${m.fileUrl}`,
+            src: toAbsoluteMediaUrl(m.fileUrl) || m.fileUrl,
             time: new Date(m.timestamp).toLocaleTimeString('vi-VN', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -79,113 +392,604 @@ export const MessageList: React.FC<{
             date: new Date(m.timestamp).toLocaleDateString('vi-VN'),
             senderName: m.senderName,
             senderAvatar:
+                m.senderAvatar ||
                 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + m.senderId,
         }));
+
+    const messageLookup = useMemo(() => {
+        const lookup = new Map<string, SocketMessage>();
+        socketMessages.forEach((msg) => {
+            lookup.set(msg.id, msg);
+            if (msg.clientMessageId) {
+                lookup.set(msg.clientMessageId, msg);
+            }
+        });
+        return lookup;
+    }, [socketMessages]);
+
+    const groupedItems = useMemo(() => {
+        return socketMessages.map((msg) => ({
+            kind: 'single' as 'single' | 'imageGroup',
+            msg,
+            msgs: [] as SocketMessage[],
+            isMe: false,
+        }));
+    }, [socketMessages]);
+
+    const renderImageGrid = (msgs: SocketMessage[]): React.ReactNode => {
+        if (msgs.length === 1) {
+            const msg = msgs[0];
+            return (
+                <img
+                    key={msg.id}
+                    src={toAbsoluteMediaUrl(msg.fileUrl) || msg.fileUrl}
+                    alt={msg.fileName}
+                    className="max-w-sm rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => {
+                        const idx = allImages.findIndex(
+                            (img) =>
+                                img.src ===
+                                (toAbsoluteMediaUrl(msg.fileUrl) ||
+                                    msg.fileUrl),
+                        );
+                        if (idx >= 0) setViewerIndex(idx);
+                    }}
+                />
+            );
+        }
+
+        // Grid layout for multiple images
+        return (
+            <div className="grid grid-cols-2 gap-1 rounded-2xl overflow-hidden max-w-sm">
+                {msgs.map((msg) => (
+                    <img
+                        key={msg.id}
+                        src={toAbsoluteMediaUrl(msg.fileUrl) || msg.fileUrl}
+                        alt={msg.fileName}
+                        className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => {
+                            const idx = allImages.findIndex(
+                                (img) =>
+                                    img.src ===
+                                    (toAbsoluteMediaUrl(msg.fileUrl) ||
+                                        msg.fileUrl),
+                            );
+                            if (idx >= 0) setViewerIndex(idx);
+                        }}
+                    />
+                ))}
+            </div>
+        );
+    };
+
+    const getSeenCount = (message: SocketMessage) => {
+        if (!Array.isArray(message.seenBy)) return 0;
+
+        return message.seenBy.reduce((count, item) => {
+            if (typeof item === 'string') {
+                return item && item !== currentUserId ? count + 1 : count;
+            }
+
+            return item.userId && item.userId !== currentUserId
+                ? count + 1
+                : count;
+        }, 0);
+    };
+
+    const resolveReplyMessage = (message: SocketMessage) => {
+        if (!message.replyToMessageId) return null;
+        return messageLookup.get(message.replyToMessageId) || null;
+    };
+
+    const getReplyPreview = (message: SocketMessage) => {
+        if (!message.replyToMessageId && !message.replyToMessagePreview) {
+            return null;
+        }
+
+        const directPreview = message.replyToMessagePreview;
+        if (directPreview) {
+            return {
+                messageId: directPreview.messageId || message.replyToMessageId,
+                senderName: directPreview.senderName || 'Original message',
+                content:
+                    directPreview.snippet ||
+                    directPreview.content ||
+                    'Original message is not available',
+                createdAt: directPreview.createdAt,
+            };
+        }
+
+        const replied = resolveReplyMessage(message);
+        if (replied) {
+            return {
+                messageId: replied.id || message.replyToMessageId,
+                senderName: replied.senderName || 'Original message',
+                content:
+                    replied.content ||
+                    replied.fileName ||
+                    'Original message is not available',
+                createdAt: replied.timestamp,
+            };
+        }
+
+        return {
+            messageId: message.replyToMessageId,
+            senderName: 'Original message',
+            content: 'Original message is not available',
+            createdAt: undefined,
+        };
+    };
+
+    const jumpToOriginalMessage = (messageId?: string) => {
+        if (!messageId) return;
+
+        const messageElement = document.getElementById(`message-${messageId}`);
+        if (!messageElement) return;
+
+        messageElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        });
+        messageElement.classList.add('bg-yellow-100');
+        window.setTimeout(() => {
+            messageElement.classList.remove('bg-yellow-100');
+        }, 1500);
+    };
 
     let imgCounter = -1;
 
     return (
         <>
-            <div className="flex-1 bg-[#f5f7fa] overflow-y-auto py-4 space-y-4">
-                {socketMessages.length === 0 ? (
+            <div
+                ref={scrollContainerRef}
+                className="flex-1 bg-[#f5f7fa] overflow-y-auto py-4 space-y-4"
+            >
+                {myIsHidden ? (
                     <div className="flex items-center justify-center h-full text-slate-400">
-                        <p>Không có tin nhắn nào. Bắt đầu cuộc trò chuyện!</p>
+                        <div className="text-center space-y-4">
+                            <div className="flex justify-center">
+                                <Lock size={48} className="text-yellow-400" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-gray-700">
+                                    Chat has been hidden
+                                </p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Please enter the correct password to view the message history
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : socketMessages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-slate-400">
+                        <p>No messages yet. Start the conversation!</p>
                     </div>
                 ) : (
-                    socketMessages.map((msg, i) => {
-                        const isMe = msg.senderId === currentUserId;
-                        const hasImage =
-                            msg.isFile &&
-                            msg.fileType?.startsWith('image/') === true;
-                        if (hasImage) imgCounter++;
-                        const imgIdx = imgCounter;
-
-                        return (
-                            <div
-                                key={msg.id}
-                                className={`flex gap-2 px-4 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
-                            >
-                                {/* Avatar */}
-                                <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden shadow-sm">
-                                    <img
-                                        src={
-                                            'https://api.dicebear.com/7.x/avataaars/svg?seed=' +
-                                            msg.senderId
-                                        }
-                                        alt={msg.senderName}
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
-
-                                {/* Message bubble */}
+                    groupedItems.map((item) => {
+                        // ── IMAGE GROUP ──
+                        if (item.kind === 'imageGroup') {
+                            const { msgs, isMe } = item;
+                            const rep = msgs[0]; // representative message for avatar/name/time
+                            const groupKey = `imggroup-${rep.clientMessageId || rep.id}`;
+                            const lastMsg = msgs[msgs.length - 1];
+                            return (
                                 <div
-                                    className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}
+                                    key={groupKey}
+                                    className={`flex gap-3 px-4 py-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
                                 >
-                                    {/* Sender name cho tin nhắn từ người khác */}
-                                    {!isMe && (
-                                        <p className="text-xs font-semibold text-slate-600 mb-0.5 px-3">
-                                            {msg.senderName}
-                                        </p>
+                                    {!isMe ? (
+                                        <div >
+                                            {renderMessageSenderAvatar(
+                                                rep.senderName,
+                                                rep.senderAvatar,
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="shrink-0 w-8" />
                                     )}
-
-                                    {/* Content */}
                                     <div
-                                        className={`px-4 py-2 rounded-2xl text-sm ${
-                                            isMe
-                                                ? 'bg-green-message text-white rounded-tr-none'
-                                                : 'bg-white text-slate-800 rounded-tl-none shadow-sm'
-                                        }`}
+                                        className={`flex flex-col gap-1 max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}
                                     >
-                                        {msg.isFile && msg.fileUrl ? (
-                                            msg.fileType?.startsWith(
-                                                'image/',
-                                            ) ? (
-                                                <img
-                                                    src={`${SERVER_URL}${msg.fileUrl}`}
-                                                    alt={msg.fileName}
-                                                    className="max-w-[200px] rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                                                    onClick={() =>
-                                                        setViewerIndex(imgIdx)
-                                                    }
-                                                />
-                                            ) : (
-                                                <a
-                                                    href={`${SERVER_URL}${msg.fileUrl}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-2 text-blue-500 hover:text-blue-600 hover:underline text-sm"
-                                                >
-                                                    📎 {msg.fileName}
-                                                </a>
-                                            )
-                                        ) : (
-                                            <p className="break-words">
-                                                {msg.content}
+                                        {!isMe && rep.senderName && (
+                                            <p className="text-xs font-semibold text-slate-600 px-1">
+                                                {rep.senderName}
                                             </p>
                                         )}
-
-                                        {/* Timestamp */}
+                                        {renderImageGrid(msgs)}
                                         <p
-                                            className={`text-[10px] mt-1 ${isMe ? 'text-green-message' : 'text-slate-400'}`}
+                                            className={`text-[11px] px-1 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}
                                         >
                                             {new Date(
-                                                msg.timestamp,
+                                                lastMsg.timestamp,
                                             ).toLocaleTimeString('vi-VN', {
                                                 hour: '2-digit',
                                                 minute: '2-digit',
                                             })}
                                         </p>
                                     </div>
+                                </div>
+                            );
+                        }
 
-                                    {/* Reactions */}
-                                    {reactionMap[i] &&
-                                        Object.keys(reactionMap[i]).length >
-                                            0 && (
+                        // ── SINGLE MESSAGE ──
+                        const { msg } = item;
+                        const isMe =
+                            !!currentUserId && msg.senderId === currentUserId;
+                        const isUserMentioned =
+                            !isMe &&
+                            !msg.isRecalled &&
+                            ((Array.isArray(msg.mentions) &&
+                                msg.mentions.includes(currentUserId || '')) ||
+                                msg.mentionAll === true);
+                        const normalizedMessageType = String(
+                            msg.messageType || '',
+                        ).toUpperCase();
+                        const isSystemMessage =
+                            normalizedMessageType === 'SYSTEM';
+
+                        const messageKey = getMessageKey(msg);
+                        const reactionStats = getReactionStats(msg);
+                        const emotionHint =
+                            emotionByMessageId[msg.id] ||
+                            (msg.clientMessageId
+                                ? emotionByMessageId[msg.clientMessageId]
+                                : undefined);
+                        const hasImage =
+                            msg.isFile &&
+                            (msg.fileType?.startsWith('image/') === true ||
+                                msg.fileCategory === 'image' ||
+                                msg.type === 'image' ||
+                                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
+                                    `${msg.fileName || ''} ${msg.fileUrl || ''} ${msg.content || ''}`,
+                                ));
+                        if (hasImage) imgCounter++;
+                        const imgIdx = imgCounter;
+                        const isVideoFile =
+                            msg.isFile &&
+                            (msg.fileType?.startsWith('video/') === true ||
+                                msg.fileCategory === 'video' ||
+                                msg.type === 'video' ||
+                                /\.(mp4|mov|webm|mkv|avi|wmv|flv|m4v)$/i.test(
+                                    `${msg.fileName || ''} ${msg.fileUrl || ''} ${msg.content || ''}`,
+                                ));
+                        const isAudioFile =
+                            msg.isFile &&
+                            (msg.fileType?.startsWith('audio/') === true ||
+                                msg.fileCategory === 'audio' ||
+                                msg.type === 'audio');
+
+                        if (isSystemMessage) {
+                            return (
+                                <div
+                                    key={messageKey}
+                                    id={`message-${msg.id}`}
+                                    className="flex justify-center px-4 py-1"
+                                >
+                                    <div className="rounded-full bg-slate-800/90 px-4 py-2 text-xs font-semibold text-slate-100 shadow">
+                                        {msg.content}
+                                    </div>
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div
+                                key={messageKey}
+                                id={`message-${msg.id}`}
+                                className={`flex gap-3 px-4 py-1 ${
+                                    isMe ? 'flex-row-reverse' : 'flex-row'
+                                }`}
+                            >
+                                {!isMe ? (
+                                    <div >
+                                        {renderMessageSenderAvatar(
+                                            msg.senderName,
+                                            msg.senderAvatar,
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="shrink-0 w-8" />
+                                )}
+
+                                <div
+                                    className={`flex flex-col gap-1 max-w-[70%] ${
+                                        isMe ? 'items-end' : 'items-start'
+                                    } relative group`}
+                                >
+                                    {!isMe && msg.senderName && (
+                                        <p className="text-xs font-semibold text-slate-600 px-3">
+                                            {msg.senderName}
+                                        </p>
+                                    )}
+
+                                    {!msg.isRecalled && msg.type === 'call' ? (
+                                        <CallHistoryCard
+                                            callType={
+                                                msg.callData?.callType ||
+                                                'audio'
+                                            }
+                                            callStatus={
+                                                msg.callData?.callStatus ||
+                                                'completed'
+                                            }
+                                            duration={msg.callData?.duration}
+                                            isMe={isMe}
+                                            isInitiator={
+                                                msg.callData?.isInitiator ||
+                                                false
+                                            }
+                                            callId={msg.callData?.callId}
+                                            callMode={msg.callData?.callMode}
+                                            onJoinCall={() => {
+                                                if (msg.callData?.callId && conversationId) {
+                                                    joinGroupCall(msg.callData.callId, conversationId, msg.callData.callType);
+                                                }
+                                            }}
+                                            onCallBack={() => {
+                                                onCallBackMessage?.(msg);
+                                            }}
+                                        />
+                                    ) : !msg.isRecalled &&
+                                      msg.isFile &&
+                                      msg.fileUrl &&
+                                      hasImage ? (
+                                        <img
+                                            src={
+                                                toAbsoluteMediaUrl(
+                                                    msg.fileUrl,
+                                                ) || msg.fileUrl
+                                            }
+                                            alt={msg.fileName}
+                                            className="max-w-sm rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                                            onClick={() =>
+                                                setViewerIndex(imgIdx)
+                                            }
+                                        />
+                                    ) : !msg.isRecalled &&
+                                      msg.isFile &&
+                                      msg.fileUrl &&
+                                      isVideoFile ? (
+                                        <video
+                                            src={
+                                                toAbsoluteMediaUrl(
+                                                    msg.fileUrl,
+                                                ) || msg.fileUrl
+                                            }
+                                            controls
+                                            className="max-w-sm rounded-2xl"
+                                        />
+                                    ) : !msg.isRecalled &&
+                                      msg.isFile &&
+                                      msg.fileUrl &&
+                                      isAudioFile ? (
+                                        <div
+                                            className={`px-4 py-3 rounded-2xl ${
+                                                isMe
+                                                    ? 'bg-[var(--chat-message-sent)] text-white rounded-br-none shadow-md'
+                                                    : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
+                                            }`}
+                                        >
+                                            <audio
+                                                src={
+                                                    toAbsoluteMediaUrl(
+                                                        msg.fileUrl,
+                                                    ) || msg.fileUrl
+                                                }
+                                                controls
+                                                className="max-w-xs"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {getReplyPreview(msg) && (
+                                                <div
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() =>
+                                                        jumpToOriginalMessage(
+                                                            getReplyPreview(msg)
+                                                                ?.messageId,
+                                                        )
+                                                    }
+                                                    onKeyDown={(event) => {
+                                                        if (
+                                                            event.key ===
+                                                                'Enter' ||
+                                                            event.key === ' '
+                                                        ) {
+                                                            event.preventDefault();
+                                                            jumpToOriginalMessage(
+                                                                getReplyPreview(
+                                                                    msg,
+                                                                )?.messageId,
+                                                            );
+                                                        }
+                                                    }}
+                                                    title="Go to original message"
+                                                    className={`mb-2 max-w-full rounded-xl border px-3 py-2 text-xs ${
+                                                        isMe
+                                                            ? 'border-white/40 bg-white text-[var(--chat-message-sent)]'
+                                                            : 'border-[var(--chat-primary-border)] bg-white text-slate-700'
+                                                    } cursor-pointer hover:opacity-90`}
+                                                >
+                                                    <div className="font-semibold">
+                                                        {getReplyPreview(msg)
+                                                            ?.senderName ||
+                                                            'Original message'}
+                                                    </div>
+                                                    <div
+                                                        className={`truncate ${isMe ? 'opacity-95' : 'opacity-90'}`}
+                                                    >
+                                                        {getReplyPreview(msg)
+                                                            ?.content ||
+                                                            'Original message is not available'}
+                                                    </div>
+                                                    {getReplyPreview(msg)
+                                                        ?.createdAt && (
+                                                        <div
+                                                            className={`mt-1 ${isMe ? 'text-emerald-200' : 'text-slate-500'}`}
+                                                        >
+                                                            {new Date(
+                                                                getReplyPreview(
+                                                                    msg,
+                                                                )?.createdAt ||
+                                                                    '',
+                                                            ).toLocaleTimeString(
+                                                                'vi-VN',
+                                                                {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                },
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {msg.forwardedFromMessageId && (
+                                                <div
+                                                    className={`mb-2 rounded-xl border px-3 py-2 text-[11px] italic ${
+                                                        isMe
+                                                            ? 'border-white/20 bg-white/10 text-white'
+                                                            : 'border-slate-200 bg-slate-50 text-slate-500'
+                                                    }`}
+                                                >
+                                                    Forwarded message
+                                                </div>
+                                            )}
+
                                             <div
-                                                className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}
+                                                className={`px-4 py-2 rounded-2xl text-sm ${
+                                                    msg.isRecalled
+                                                        ? 'bg-gray-100 text-gray-500 shadow-none border border-gray-200'
+                                                        : isMe
+                                                          ? 'bg-[var(--chat-message-sent)] text-white rounded-br-none shadow-md'
+                                                          : isUserMentioned
+                                                            ? 'bg-amber-50/90 text-slate-950 rounded-tl-none border-2 border-dashed border-amber-400 shadow-md ring-4 ring-amber-100/50'
+                                                            : 'bg-white text-slate-800 rounded-tl-none shadow-sm border border-slate-200'
+                                                }`}
                                             >
-                                                {Object.entries(
-                                                    reactionMap[i],
+                                                {msg.isPinned && (
+                                                    <div
+                                                        className={`mb-1 text-[11px] font-semibold ${
+                                                            isMe
+                                                                ? 'text-white/80'
+                                                                : 'text-amber-600'
+                                                        }`}
+                                                    >
+                                                        <Pin
+                                                            size={12}
+                                                            className="inline mr-1"
+                                                        />
+                                                        Pinned
+                                                    </div>
+                                                )}
+                                                {msg.isRecalled ? (
+                                                    <div className="rounded-2xl">
+                                                        <p className="italic text-gray-500">
+                                                            Message has been recalled
+                                                        </p>
+                                                    </div>
+                                                ) : msg.isFile &&
+                                                  msg.fileUrl ? (
+                                                    <a
+                                                        href={
+                                                            toAbsoluteMediaUrl(
+                                                                msg.fileUrl,
+                                                            ) || msg.fileUrl
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className={`flex items-center gap-2 p-2 rounded-xl border ${
+                                                            isMe
+                                                                ? 'text-white border-white/30'
+                                                                : 'text-[var(--chat-primary)] hover:text-[var(--chat-primary-hover)] border-slate-200'
+                                                        }`}
+                                                    >
+                                                        <span className="shrink-0">
+                                                            {renderFileIcon(
+                                                                msg.fileIcon,
+                                                            )}
+                                                        </span>
+                                                        <span className="truncate">
+                                                            {msg.fileName}
+                                                        </span>
+                                                    </a>
+                                                ) : (
+                                                    <p className="break-all whitespace-pre-wrap">
+                                                        {renderContentText(
+                                                            msg.content,
+                                                            isMe,
+                                                        )}
+                                                    </p>
+                                                )}
+
+                                                <p
+                                                    className={`text-[11px] mt-1 ${
+                                                        isMe
+                                                            ? 'text-white/80'
+                                                            : 'text-slate-400'
+                                                    }`}
+                                                >
+                                                    {new Date(
+                                                        msg.timestamp,
+                                                    ).toLocaleTimeString(
+                                                        'vi-VN',
+                                                        {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        },
+                                                    )}
+                                                    {isMe && (
+                                                        <span
+                                                            className={`ml-2 font-medium ${
+                                                                msg.uploadStatus ===
+                                                                'failed'
+                                                                    ? 'text-rose-200'
+                                                                    : msg.uploadStatus ===
+                                                                        'uploading'
+                                                                      ? 'text-amber-100'
+                                                                      : 'text-white/80'
+                                                            }`}
+                                                        >
+                                                            {getUploadStatusLabel(
+                                                                msg.uploadStatus,
+                                                            )}
+                                                        </span>
+                                                    )}
+                                                    {isMe &&
+                                                        getSeenCount(msg) >
+                                                            0 && (
+                                                            <span className="ml-2 text-emerald-200 font-medium">
+                                                                Seen{' '}
+                                                                {getSeenCount(
+                                                                    msg,
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                </p>
+                                                {isMe &&
+                                                    msg.uploadStatus ===
+                                                        'failed' &&
+                                                    msg.errorMessage && (
+                                                        <p className="text-[11px] mt-1 text-rose-200 break-all">
+                                                            {msg.errorMessage}
+                                                        </p>
+                                                    )}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {!msg.isRecalled &&
+                                        reactionStats.size > 0 && (
+                                            <div
+                                                className={`flex items-center gap-1 mt-1 ${
+                                                    isMe
+                                                        ? 'justify-end'
+                                                        : 'justify-start'
+                                                }`}
+                                            >
+                                                {Array.from(
+                                                    reactionStats.entries(),
                                                 ).map(
                                                     ([
                                                         emoji,
@@ -194,18 +998,21 @@ export const MessageList: React.FC<{
                                                         <button
                                                             key={emoji}
                                                             onClick={() =>
-                                                                handleReact(
-                                                                    i,
+                                                                onReactMessage?.(
+                                                                    msg,
                                                                     emoji,
                                                                 )
                                                             }
-                                                            className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                                                            className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs border transition-colors ${
                                                                 reactedByMe
-                                                                    ? 'bg-green-message border-green-message text-white'
+                                                                    ? 'bg-[var(--chat-primary-bg)] border-[var(--chat-primary)] text-[var(--chat-primary)]'
                                                                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                                                             }`}
                                                         >
-                                                            <span>{emoji}</span>
+                                                            <ReactionIcon
+                                                                emoji={emoji}
+                                                                size={14}
+                                                            />
                                                             {count > 1 && (
                                                                 <span>
                                                                     {count}
@@ -216,35 +1023,226 @@ export const MessageList: React.FC<{
                                                 )}
                                             </div>
                                         )}
-                                </div>
 
-                                {/* Emoji reaction trigger */}
-                                <div className="flex items-end h-8">
-                                    <div className="peer group">
-                                        <button
-                                            className="w-6 h-6 rounded-full bg-white border border-slate-200 shadow text-sm hover:bg-slate-50 transition-colors opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                                            onClick={() =>
-                                                handleReact(i, EMOJI_LIST[0])
-                                            }
-                                            title="Bày tỏ cảm xúc"
+                                    {!msg.isRecalled && (
+                                        <div
+                                            className={`absolute -bottom-3 ${
+                                                isMe ? '-left-10' : '-right-10'
+                                            } opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
                                         >
-                                            😊
-                                        </button>
-                                        <div className="absolute bottom-9 left-0 bg-white border border-slate-200 rounded-full shadow-lg px-2 py-1.5 flex gap-1 z-50 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                                            {EMOJI_LIST.map((e) => (
+                                            <div className="relative group/emoji">
                                                 <button
-                                                    key={e}
-                                                    className="text-lg hover:scale-125 transition-transform leading-none"
-                                                    onClick={() =>
-                                                        handleReact(i, e)
-                                                    }
-                                                    title={e}
+                                                    className="w-7 h-7 rounded-full bg-white border border-slate-300 shadow-md text-lg flex items-center justify-center hover:scale-110 transition-transform"
+                                                    title="Add reaction"
                                                 >
-                                                    {e}
+                                                    <SmilePlus size={16} />
                                                 </button>
-                                            ))}
+
+                                                <div
+                                                    className={`absolute bottom-9 ${
+                                                        isMe
+                                                            ? 'right-0'
+                                                            : 'left-0'
+                                                    } opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible transition-all duration-150 z-50 bg-white border border-slate-200 rounded-lg shadow-xl p-2`}
+                                                >
+                                                    <div className="grid grid-cols-6 w-40">
+                                                        {REACTION_OPTIONS.map((reaction) => (
+                                                            <button
+                                                                key={reaction.emoji}
+                                                                className="flex h-8 w-8 items-center justify-center rounded hover:scale-110 hover:bg-slate-100 transition-transform"
+                                                                onClick={() =>
+                                                                    onReactMessage?.(
+                                                                        msg,
+                                                                        reaction.emoji,
+                                                                    )
+                                                                }
+                                                                title={reaction.label}
+                                                            >
+                                                                <ReactionIcon
+                                                                    emoji={reaction.emoji}
+                                                                    size={18}
+                                                                    className={reaction.className}
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {!msg.isRecalled && (
+                                        <div
+                                            className={`absolute top-0 ${
+                                                isMe ? '-left-10' : '-right-10'
+                                            } opacity-0 group-hover:opacity-100 transition-opacity duration-200`}
+                                        >
+                                            <button
+                                                onClick={() =>
+                                                    setOpenActionMenuKey(
+                                                        (prev) =>
+                                                            prev === messageKey
+                                                                ? null
+                                                                : messageKey,
+                                                    )
+                                                }
+                                                className="w-7 h-7 rounded-full bg-white border border-slate-300 shadow text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors font-bold text-lg flex items-center justify-center"
+                                                title="More options"
+                                            >
+                                                ⋮
+                                            </button>
+
+                                            {openActionMenuKey ===
+                                                messageKey && (
+                                                <div
+                                                    className={`absolute top-8 ${
+                                                        isMe
+                                                            ? 'left-0'
+                                                            : 'right-0'
+                                                    } z-50 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-40`}
+                                                >
+                                                    {isMe && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onRecallMessage?.(
+                                                                    msg,
+                                                                );
+                                                                setOpenActionMenuKey(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
+                                                        >
+                                                            <Undo2Icon
+                                                                size={16}
+                                                                className="inline mr-2"
+                                                            />
+                                                            Recall
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        onClick={() => {
+                                                            onReplyMessage?.(
+                                                                msg,
+                                                            );
+                                                            setOpenActionMenuKey(
+                                                                null,
+                                                            );
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
+                                                    >
+                                                        <Reply
+                                                            size={16}
+                                                            className="inline mr-2"
+                                                        />
+                                                        Reply
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            onTogglePinMessage?.(
+                                                                msg,
+                                                                !msg.isPinned,
+                                                            );
+                                                            setOpenActionMenuKey(
+                                                                null,
+                                                            );
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
+                                                    >
+                                                        {msg.isPinned ? (
+                                                            <>
+                                                                <PinOff
+                                                                    size={16}
+                                                                    className="inline mr-2"
+                                                                />
+                                                                Unpin
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Pin
+                                                                    size={16}
+                                                                    className="inline mr-2"
+                                                                />
+                                                                Pin message
+                                                            </>
+                                                        )}
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            onDeleteMessage?.(
+                                                                msg,
+                                                            );
+                                                            setOpenActionMenuKey(
+                                                                null,
+                                                            );
+                                                        }}
+                                                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 border-b border-slate-100"
+                                                    >
+                                                        <Trash2
+                                                            size={16}
+                                                            className="inline mr-2"
+                                                        />
+                                                        Delete
+                                                    </button>
+
+                                                    {canForwardMessage && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onForwardMessage?.(
+                                                                    msg,
+                                                                );
+                                                                setOpenActionMenuKey(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 border-b border-slate-100"
+                                                        >
+                                                            <ArrowRight
+                                                                size={16}
+                                                                className="inline mr-2"
+                                                            />
+                                                            Forward
+                                                        </button>
+                                                    )}
+                                                    {(onAISummarize ||
+                                                        onAIReplySuggestions) && (
+                                                        <div className="my-1 border-t border-slate-100" />
+                                                    )}
+
+
+                                                    {onAIReplySuggestions && (
+                                                        <button
+                                                            onClick={() => {
+                                                                onAIReplySuggestions();
+                                                                setOpenActionMenuKey(
+                                                                    null,
+                                                                );
+                                                            }}
+                                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-sky-50"
+                                                        >
+                                                            <SmilePlus
+                                                                size={16}
+                                                                className="inline mr-2"
+                                                            />
+                                                            AI reply suggestions
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {!isMe && emotionHint && (
+                                        <div className="mt-1 flex items-center gap-1 rounded-full border border-slate-200 bg-white/70 px-2 py-0.5 text-[11px] text-slate-500 opacity-60">
+                                            <SmilePlus className="h-3 w-3" />
+                                            <span className="capitalize">
+                                                {emotionHint.label}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );

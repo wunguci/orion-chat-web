@@ -6,7 +6,88 @@ import type {
   ErrorResponse,
 } from "../types/auth.types";
 
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000";
+
+type NavigatorUADataLike = {
+  brands?: Array<{ brand: string; version: string }>;
+};
+
+const getUaBrands = (): string[] => {
+  if (typeof navigator === "undefined") return [];
+  const nav = navigator as Navigator & {
+    userAgentData?: NavigatorUADataLike;
+  };
+  const brands = nav.userAgentData?.brands || [];
+  return brands.map((item) => item.brand.toLowerCase());
+};
+
+function detectBrowserName(userAgent: string): string {
+  const brands = getUaBrands();
+  if (brands.some((brand) => /(coc coc|coccoc|coc_coc)/i.test(brand))) {
+    return "Coc Coc";
+  }
+
+  if (/coc\s*coc/i.test(navigator.vendor || "")) {
+    return "Coc Coc";
+  }
+
+  if (/(coc_coc_browser|coccoc|cocbrowser)/i.test(userAgent)) {
+    return "Coc Coc";
+  }
+  if (/edg\//i.test(userAgent)) return "Microsoft Edge";
+  if (/chrome\//i.test(userAgent) && !/edg\//i.test(userAgent)) {
+    return "Google Chrome";
+  }
+  if (/firefox\//i.test(userAgent)) return "Mozilla Firefox";
+  if (/safari\//i.test(userAgent) && !/chrome\//i.test(userAgent)) {
+    return "Safari";
+  }
+  return "Web Browser";
+}
+
+function detectOsName(userAgent: string): string {
+  if (/windows nt/i.test(userAgent)) return "Windows";
+  if (/mac os x/i.test(userAgent)) return "macOS";
+  if (/android/i.test(userAgent)) return "Android";
+  if (/(iphone|ipad|ipod)/i.test(userAgent)) return "iOS";
+  if (/linux/i.test(userAgent)) return "Linux";
+  return "Unknown OS";
+}
+
+function detectOsVersion(userAgent: string): string {
+  const windows = /windows nt\s*([\d.]+)/i.exec(userAgent);
+  if (windows?.[1]) return windows[1];
+
+  const mac = /mac os x\s*([\d_]+)/i.exec(userAgent);
+  if (mac?.[1]) return mac[1].replace(/_/g, ".");
+
+  const android = /android\s*([\d.]+)/i.exec(userAgent);
+  if (android?.[1]) return android[1];
+
+  const ios = /(?:iphone os|cpu (?:iphone )?os)\s*([\d_]+)/i.exec(userAgent);
+  if (ios?.[1]) return ios[1].replace(/_/g, ".");
+
+  return "unknown";
+}
+
+function buildDeviceMetadata() {
+  const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "";
+  const browser = detectBrowserName(userAgent);
+  const os = detectOsName(userAgent);
+  const osVersion = detectOsVersion(userAgent);
+
+  return {
+    deviceName: `${browser} on ${os}`,
+    deviceType: "web",
+    deviceModel: browser,
+    osType: os,
+    osVersion,
+    appVersion: "web",
+  };
+}
 
 // send OTP to phone number
 
@@ -15,19 +96,31 @@ export async function sendOtp(phoneNumber: string): Promise<SendOtpResponse> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-Platform": "web",
     },
     credentials: "include",
     body: JSON.stringify({ phoneNumber }),
   });
 
   if (!response.ok) {
-    const errorData: ErrorResponse = await response.json();
-    throw new Error(
-      errorData.message || `Failed to send OTP: ${response.statusText}`,
-    );
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData: ErrorResponse = await response.json();
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+      errorMessage = response.statusText || "Gửi OTP thất bại";
+    }
+    throw new Error(errorMessage);
   }
 
-  return response.json();
+  const result = await response.json();
+  if (result && result.success === false) {
+    throw new Error(result.message || "Gửi OTP thất bại");
+  }
+
+  return result;
 }
 
 // Step 2: Verify OTP
@@ -39,16 +132,23 @@ export async function verifyOtp(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-Platform": "web",
     },
     credentials: "include",
     body: JSON.stringify({ phoneNumber, otp }),
   });
 
   if (!response.ok) {
-    const errorData: ErrorResponse = await response.json();
-    throw new Error(
-      errorData.message || `Failed to verify OTP: ${response.statusText}`,
-    );
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData: ErrorResponse = await response.json();
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+      errorMessage = response.statusText || "Xác minh OTP thất bại";
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -67,16 +167,23 @@ export async function completeRegister(formData: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      "X-Platform": "web",
     },
     credentials: "include",
     body: JSON.stringify(formData),
   });
 
   if (!response.ok) {
-    const errorData: ErrorResponse = await response.json();
-    throw new Error(
-      errorData.message || `Failed to register: ${response.statusText}`,
-    );
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData: ErrorResponse = await response.json();
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+      errorMessage = response.statusText || "Đăng ký thất bại";
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -88,25 +195,34 @@ export async function login(
   phoneNumber: string,
   password: string,
 ): Promise<LoginResponse> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ phoneNumber, password }),
-    });
+    try {
+        const deviceMetadata = buildDeviceMetadata();
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Platform': 'web',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                phoneNumber,
+                password,
+                ...deviceMetadata,
+            }),
+        });
 
     if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       try {
         const errorData: ErrorResponse = await response.json();
-        throw new Error(
-          errorData.message || `Failed to login: ${response.statusText}`,
-        );
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        }
       } catch {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Nếu không parse được JSON, sử dụng statusText
+        errorMessage = response.statusText || "Đăng nhập thất bại";
       }
+      throw new Error(errorMessage);
     }
 
     return response.json();
@@ -116,44 +232,106 @@ export async function login(
       error.message.includes("Failed to fetch")
     ) {
       throw new Error(
-        `Không thể kết nối tới server. Vui lòng kiểm tra backend đang chạy trên http://localhost:3000`,
+        `Không thể kết nối tới server. Vui lòng kiểm tra backend đang chạy trên ${API_BASE_URL}`,
       );
     }
     throw error;
   }
 }
 
+export async function createQrLoginSession(): Promise<{
+  success: boolean;
+  data: {
+    sessionId: string;
+    qrToken: string;
+    qrData: string;
+    expiresAt: string;
+    expiresIn: number;
+  };
+  message?: string;
+}> {
+  const deviceMetadata = buildDeviceMetadata();
+  const response = await fetch(`${API_BASE_URL}/auth/qr/session`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Platform": "web",
+    },
+    credentials: "include",
+    body: JSON.stringify(deviceMetadata),
+  });
+
+  if (!response.ok) {
+    const errorData: ErrorResponse = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Không thể tạo mã QR đăng nhập");
+  }
+
+  return response.json();
+}
+
+export async function getQrLoginStatus(sessionId: string): Promise<{
+  success: boolean;
+  data: {
+    status: "pending" | "confirmed" | "expired";
+    expiresAt?: string;
+    confirmedAt?: string;
+    loginData?: LoginResponse["data"];
+  };
+}> {
+  const response = await fetch(`${API_BASE_URL}/auth/qr/status`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Platform": "web",
+    },
+    credentials: "include",
+    body: JSON.stringify({ sessionId }),
+  });
+
+  if (!response.ok) {
+    const errorData: ErrorResponse = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Không thể kiểm tra mã QR");
+  }
+
+  return response.json();
+}
+
 // Logout user
 export async function logout(token: string): Promise<{ message: string }> {
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/logout`, {
+        // Try the new logout-with-token endpoint first (doesn't require Authorization header)
+        // This handles the case where token was invalidated by session conflict
+        const response = await fetch(`${API_BASE_URL}/auth/logout-with-token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
+                'X-Platform': 'web',
             },
             credentials: 'include',
+            body: JSON.stringify({
+                token,
+                platform: 'web',
+            }),
         });
 
-        if (!response.ok) {
-            try {
-                const errorData: ErrorResponse = await response.json();
-                throw new Error(
-                    errorData.message ||
-                        `Failed to logout: ${response.statusText}`,
-                );
-            } catch {
-                throw new Error(
-                    `HTTP ${response.status}: ${response.statusText}`,
-                );
-            }
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData: ErrorResponse = await response.json();
+        if (errorData.message) {
+          errorMessage = errorData.message;
         }
-
-        return response.json();
-    } catch (error) {
-        console.error('[authService] Logout error:', error);
-        throw error;
+      } catch {
+        errorMessage = response.statusText || "Đăng xuất thất bại";
+      }
+      throw new Error(errorMessage);
     }
+
+    return response.json();
+  } catch (error) {
+    console.error("[authService] Logout error:", error);
+    throw error;
+  }
 }
 
 export function validatePhoneNumber(phoneNumber: string): boolean {
@@ -206,4 +384,110 @@ export function validateRegistrationForm(formData: {
     valid: errors.length === 0,
     errors,
   };
+}
+// quên mật khẩu
+
+// Step 1: gửi OTP
+export async function sendOtpForgetPassword(
+  phoneNumber: string,
+): Promise<SendOtpResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/send-otp-forget-password`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Platform": "web",
+      },
+      credentials: "include",
+      body: JSON.stringify({ phoneNumber }),
+    },
+  );
+
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData: ErrorResponse = await response.json();
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+      errorMessage = response.statusText || "Gửi OTP thất bại";
+    }
+    throw new Error(errorMessage);
+  }
+
+  const result = await response.json();
+  if (result && result.success === false) {
+    throw new Error(result.message || "Gửi OTP thất bại");
+  }
+
+  return result;
+}
+
+// Step 2: xác minh OTP
+export async function verifyOtpForgetPassword(
+  phoneNumber: string,
+  otp: string,
+): Promise<VerifyOtpResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/verify-otp-forget-password`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Platform": "web",
+      },
+      credentials: "include",
+      body: JSON.stringify({ phoneNumber, otp }),
+    },
+  );
+
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData: ErrorResponse = await response.json();
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+      errorMessage = response.statusText || "Xác minh OTP thất bại";
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+// Step 3: Đặt lại mật khẩu
+export async function resetPassword(formData: {
+  phoneNumber: string;
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+}): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Platform": "web",
+    },
+    credentials: "include",
+    body: JSON.stringify(formData),
+  });
+
+  if (!response.ok) {
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    try {
+      const errorData: ErrorResponse = await response.json();
+      if (errorData.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+      errorMessage = response.statusText || "Đặt lại mật khẩu thất bại";
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 }

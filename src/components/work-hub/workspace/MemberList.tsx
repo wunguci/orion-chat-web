@@ -9,6 +9,7 @@ interface MemberListProps {
   currentUserRole: WorkspaceRole;
   onRemoveMember: (userId: string) => void;
   onChangeRole: (userId: string, role: WorkspaceRole) => void;
+  onTransferOwner?: (userId: string) => void;
 }
 
 const roleColors: Record<WorkspaceRole, string> = {
@@ -22,8 +23,10 @@ const MemberList = ({
   currentUserRole,
   onRemoveMember,
   onChangeRole,
+  onTransferOwner,
 }: MemberListProps) => {
   const canManage = currentUserRole === "owner" || currentUserRole === "admin";
+  const canTransferOwner = currentUserRole === "owner";
 
   return (
     <div className="bg-white rounded-xl border border-wh-green-border-light overflow-hidden">
@@ -81,15 +84,18 @@ const MemberList = ({
                   <select
                     value={member.role}
                     onChange={(e) =>
-                      onChangeRole(
-                        member.user.id,
-                        e.target.value as WorkspaceRole,
-                      )
+                      e.target.value === "owner"
+                        ? onTransferOwner?.(member.user.id)
+                        : onChangeRole(
+                            member.user.id,
+                            e.target.value as WorkspaceRole,
+                          )
                     }
                     className="text-xs font-semibold px-2.5 py-1 rounded-full border-none cursor-pointer bg-wh-green-bg-heavy text-wh-green-text-primary focus:outline-none focus:ring-2 focus:ring-wh-green-primary"
                   >
                     <option value="admin">Admin</option>
                     <option value="member">Member</option>
+                    {canTransferOwner && <option value="owner">Owner</option>}
                   </select>
                 ) : (
                   <span

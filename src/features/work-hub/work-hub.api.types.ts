@@ -1,4 +1,4 @@
-// --- User ---
+//  User 
 export interface UserResponse {
   userId: string;
   fullName: string;
@@ -8,7 +8,7 @@ export interface UserResponse {
   isOnline: boolean;
 }
 
-// --- Workspace ---
+//  Workspace 
 export interface WorkspaceResponse {
   workspaceId: string;
   workspaceName: string;
@@ -25,7 +25,7 @@ export interface WorkspaceResponse {
   boards: TaskBoardResponse[];
 }
 
-// --- WorkspaceMember ---
+//  WorkspaceMember 
 export interface WorkspaceMemberResponse {
   id: string;
   role: string; // 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST'
@@ -33,7 +33,15 @@ export interface WorkspaceMemberResponse {
   user: UserResponse;
 }
 
-// --- TaskBoard ---
+export interface WorkspaceJoinRequestResponse {
+  requestId: string;
+  requestedRole: string;
+  status: string;
+  requestedAt: string;
+  user: UserResponse;
+}
+
+//  TaskBoard 
 export interface TaskBoardResponse {
   boardId: string;
   boardName: string;
@@ -45,7 +53,7 @@ export interface TaskBoardResponse {
   columns?: BoardColumnResponse[];
 }
 
-// --- BoardColumn ---
+//  BoardColumn 
 export interface BoardColumnResponse {
   columnId: string;
   name: string;
@@ -55,7 +63,7 @@ export interface BoardColumnResponse {
   taskLimit: number | null;
 }
 
-// --- Task ---
+//  Task 
 export interface TaskResponse {
   taskId: string;
   title: string;
@@ -79,14 +87,14 @@ export interface TaskResponse {
   activityLogs?: ActivityLogResponse[];
 }
 
-// --- TaskAssignee ---
+//  TaskAssignee 
 export interface TaskAssigneeResponse {
   id: string;
   assignedAt: string;
   user: UserResponse;
 }
 
-// --- Label ---
+//  Label 
 export interface LabelResponse {
   labelId: string;
   text: string;
@@ -94,7 +102,7 @@ export interface LabelResponse {
   type: string; // 'FEATURE' | 'BUG' | 'DESIGN' | 'URGENT' | 'IMPROVEMENT'
 }
 
-// --- Workspace ---
+//  Workspace 
 export interface CreateWorkspaceRequest {
   workspaceName: string;
   description?: string;
@@ -116,17 +124,46 @@ export interface UpdateWorkspaceRequest {
   memberLimit?: number;
 }
 
-// --- Member ---
+//  Member 
 export interface AddMemberRequest {
   userId: string;
   role: string;
+}
+
+export interface InviteMemberByMethodRequest {
+  method: "userId" | "phone" | "name";
+  value: string;
+  role?: string;
+}
+
+export interface InviteCandidateResponse extends UserResponse {}
+
+export interface WorkspaceInviteLinkResponse {
+  workspaceId: string;
+  workspaceName: string;
+  role: string;
+  token: string;
+  inviteUrl: string;
+  qrData: string;
+  expiresAt: string;
+}
+
+export interface JoinByLinkRequest {
+  token: string;
+}
+
+export interface JoinByLinkResponse {
+  status: "PENDING_APPROVAL";
+  requestId: string;
+  workspaceId: string;
+  workspaceName: string;
 }
 
 export interface UpdateMemberRoleRequest {
   role: string;
 }
 
-// --- Board ---
+//  Board 
 export interface CreateBoardRequest {
   boardName: string;
   description?: string;
@@ -141,7 +178,7 @@ export interface UpdateBoardRequest {
   icon?: string;
 }
 
-// --- Task ---
+//  Task 
 export interface CreateTaskRequest {
   title: string;
   description?: string;
@@ -150,7 +187,7 @@ export interface CreateTaskRequest {
   startDate?: string;
   dueDate?: string;
   columnId?: string;
-  createdById: string;
+  createdById?: string;
   assigneeIds?: string[];
   labelIds?: string[];
 }
@@ -173,7 +210,7 @@ export interface MoveTaskRequest {
   order?: number;
 }
 
-// --- Label ---
+//  Label 
 export interface CreateLabelRequest {
   text: string;
   color: string;
@@ -187,7 +224,7 @@ export interface UpdateLabelRequest {
   type?: string;
 }
 
-// --- Column ---
+//  Column 
 export interface CreateColumnRequest {
   name: string;
   status: string;
@@ -201,7 +238,7 @@ export interface UpdateColumnRequest {
   taskLimit?: number;
 }
 
-// --- SubTask ---
+//  SubTask 
 export interface SubTaskResponse {
   subTaskId: string;
   title: string;
@@ -232,7 +269,7 @@ export interface UpdateSubTaskRequest {
   deadline?: string;
 }
 
-// --- Comment ---
+//  Comment 
 export interface CommentResponse {
   commentId: string;
   content: string;
@@ -246,7 +283,7 @@ export interface CreateCommentRequest {
   authorId: string;
 }
 
-// --- Attachment ---
+//  Attachment 
 export interface AttachmentResponse {
   attachmentId: string;
   fileName: string;
@@ -265,7 +302,7 @@ export interface CreateAttachmentRequest {
   uploadedById: string;
 }
 
-// --- Activity Log ---
+//  Activity Log 
 export interface ActivityLogResponse {
   activityId: string;
   action: string;
@@ -283,7 +320,7 @@ export interface CreateActivityLogRequest {
   metadata?: Record<string, unknown>;
 }
 
-// --- Goal --- (ENTITY MỚI)
+//  Goal  (ENTITY MỚI)
 export interface GoalResponse {
   goalId: string;
   title: string;
@@ -342,7 +379,7 @@ export interface UpdateKeyResultRequest {
   unit?: string;
 }
 
-// --- Sprint --- (ENTITY MỚI)
+//  Sprint  (ENTITY MỚI)
 export interface SprintResponse {
   sprintId: string;
   name: string;
@@ -370,7 +407,7 @@ export interface UpdateSprintRequest {
   endDate?: string;
 }
 
-// --- Epic --- (ENTITY MỚI)
+//  Epic  (ENTITY MỚI)
 export interface EpicResponse {
   epicId: string;
   title: string;
@@ -408,7 +445,7 @@ export interface UpdateEpicRequest {
   endDate?: string;
 }
 
-// --- Milestone --- (ENTITY MỚI)
+//  Milestone  (ENTITY MỚI)
 export interface MilestoneResponse {
   milestoneId: string;
   title: string;
@@ -430,7 +467,7 @@ export interface UpdateMilestoneRequest {
   status?: string;
 }
 
-// --- Automation --- (ENTITY MỚI)
+//  Automation  (ENTITY MỚI)
 export interface AutomationRuleResponse {
   ruleId: string;
   name: string;
@@ -463,7 +500,7 @@ export interface UpdateAutomationRequest {
   action?: Record<string, unknown>;
 }
 
-// --- Document --- (ENTITY MỚI)
+//  Document  (ENTITY MỚI)
 export interface DocumentResponse {
   documentId: string;
   title: string;
@@ -523,7 +560,7 @@ export interface CreateInlineCommentRequest {
   parentCommentId?: string;
 }
 
-// --- WorkspaceFile --- (ENTITY MỚI)
+//  WorkspaceFile  (ENTITY MỚI)
 export interface WorkspaceFileResponse {
   fileId: string;
   name: string;
@@ -531,11 +568,42 @@ export interface WorkspaceFileResponse {
   mimeType: string | null;
   size: number | null;
   url: string | null;
+  s3Key?: string | null;
+  currentVersion?: number;
   accessLevel: string;
   uploadedAt: string;
   createdAt: string;
   uploadedBy: UserResponse | null;
   parent: { fileId: string } | null;
+}
+
+export interface OnlyOfficeConfigResponse {
+  documentServerUrl: string;
+  config: {
+    document: {
+      fileType: "doc" | "docx" | "xlsx";
+      key: string;
+      title: string;
+      url: string;
+      permissions: {
+        edit: boolean;
+        download: boolean;
+        print: boolean;
+      };
+    };
+    documentType: "word" | "cell";
+    editorConfig: {
+      callbackUrl: string;
+      lang: string;
+      mode: "edit" | "view";
+      user: {
+        id: string;
+        name: string;
+      };
+    };
+    height: string;
+    width: string;
+  };
 }
 
 export interface CreateWorkspaceFileRequest {
@@ -544,6 +612,7 @@ export interface CreateWorkspaceFileRequest {
   mimeType?: string;
   size?: number;
   url?: string;
+  fileFormat?: "doc" | "docx" | "xlsx";
   accessLevel?: string;
   parentId?: string;
 }
@@ -553,7 +622,7 @@ export interface UpdateWorkspaceFileRequest {
   accessLevel?: string;
 }
 
-// --- Workload aggregate ---
+//  Workload aggregate 
 export interface WorkloadMemberResponse {
   user: UserResponse;
   totalTasks: number;
@@ -568,7 +637,7 @@ export interface WorkloadMemberResponse {
   urgentPriority: number;
 }
 
-// --- Reports aggregate ---
+//  Reports aggregate 
 export interface ReportDataResponse {
   period: {
     totalTasks: number;
@@ -596,4 +665,38 @@ export interface ReportDataResponse {
     assignees: UserResponse[];
     daysOverdue: number;
   }[];
+}
+
+export interface WorkspaceDashboardStatsResponse {
+  summary: {
+    totalTasks: number;
+    completedTasks: number;
+    inProgressTasks: number;
+    reviewTasks: number;
+    todoTasks: number;
+    overdueTasks: number;
+    completionRate: number;
+    totalBoards: number;
+    totalMembers: number;
+  };
+  boardStats: Array<{
+    boardId: string;
+    boardName: string;
+    totalTasks: number;
+    completedTasks: number;
+    inProgressTasks: number;
+    overdueTasks: number;
+  }>;
+  recentActivities: Array<{
+    activityId: string;
+    action: string;
+    description: string;
+    timestamp: string;
+    task?: { taskId?: string; title?: string };
+    user: UserResponse;
+  }>;
+  trendLast7Days: Array<{
+    date: string;
+    completed: number;
+  }>;
 }

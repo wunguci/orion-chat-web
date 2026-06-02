@@ -20,7 +20,7 @@ import type {
 export const MOCK_USERS: User[] = [
   {
     id: "u1",
-    name: "Phan Phước Hiệp",
+    name: "Phan Phuoc Hiep",
     email: "hiep@orion.com",
     phone: "0901234567",
     avatar: "/avatar-user.png",
@@ -28,7 +28,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "u2",
-    name: "Mỹ Duyên",
+    name: "My Duyen",
     email: "duyen@orion.com",
     phone: "0912345678",
     avatar: "/avatar-user.png",
@@ -44,7 +44,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "u4",
-    name: "Quang Nhân",
+    name: "Quang Nhan",
     email: "nhan@orion.com",
     phone: "0934567890",
     avatar: "/avatar-user.png",
@@ -52,7 +52,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "u5",
-    name: "Long Vũ",
+    name: "Long Vu",
     email: "vu@orion.com",
     phone: "0945678901",
     avatar: "/avatar-user.png",
@@ -60,7 +60,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "u6",
-    name: "Minh Tuấn",
+    name: "Minh Tuan",
     email: "tuan@orion.com",
     avatar: "/avatar-user.png",
     status: "offline",
@@ -253,11 +253,11 @@ export const MOCK_TASKS: Task[] = [
     viewedBy: [
       {
         userId: "u1",
-        userName: "Phan Phước Hiệp",
+        userName: "Phan Phuoc Hiep",
         viewedAt: "2026-02-20T09:00:00",
       },
-      { userId: "u2", userName: "Mỹ Duyên", viewedAt: "2026-02-19T14:30:00" },
-      { userId: "u5", userName: "Long Vũ", viewedAt: "2026-02-20T08:15:00" },
+      { userId: "u2", userName: "My Duyen", viewedAt: "2026-02-19T14:30:00" },
+      { userId: "u5", userName: "Long Vu", viewedAt: "2026-02-20T08:15:00" },
     ],
     activityHistory: [
       {
@@ -271,7 +271,7 @@ export const MOCK_TASKS: Task[] = [
         id: "ah2",
         type: "assigned",
         user: MOCK_USERS[0],
-        description: "assigned Long Vũ to this task",
+        description: "assigned Long Vu to this task",
         timestamp: "2026-02-15T09:05:00",
       },
       {
@@ -1091,7 +1091,7 @@ export const MOCK_CHANNEL_MESSAGES: ChannelMessage[] = [
   {
     id: "cm3",
     channelId: "ch1",
-    text: "@Mỹ Duyên the login page fix has been deployed to staging",
+    text: "@My Duyen the login page fix has been deployed to staging",
     author: MOCK_USERS[4],
     createdAt: "2026-02-26T14:30:00",
     isPinned: false,
@@ -1364,7 +1364,7 @@ export const MOCK_INSIGHTS: InsightsSummary = {
       id: "r3",
       type: "overloaded",
       severity: "warning",
-      message: "Phan Phước Hiệp has 4 active tasks with overlapping deadlines.",
+      message: "Phan Phuoc Hiep has 4 active tasks with overlapping deadlines.",
       userId: "u1",
     },
     {
@@ -1417,7 +1417,7 @@ export const MOCK_INSIGHTS: InsightsSummary = {
       type: "reassign",
       title: "Reassign database optimization",
       description:
-        'Consider reassigning "Optimize database queries" to Long Vũ who has bandwidth and relevant experience.',
+        'Consider reassigning "Optimize database queries" to Long Vu who has bandwidth and relevant experience.',
       actionLabel: "Reassign Task",
     },
     {
@@ -1441,7 +1441,7 @@ export const MOCK_INSIGHTS: InsightsSummary = {
     {
       id: "d1",
       type: "completed",
-      message: 'Long Vũ completed "Configure build pipeline"',
+      message: 'Long Vu completed "Configure build pipeline"',
       timestamp: "2026-02-28T16:00:00",
     },
     {
@@ -1459,7 +1459,7 @@ export const MOCK_INSIGHTS: InsightsSummary = {
     {
       id: "d4",
       type: "assigned",
-      message: 'Mỹ Duyên was assigned "Fix login page responsive issue"',
+      message: 'My Duyen was assigned "Fix login page responsive issue"',
       timestamp: "2026-02-28T10:30:00",
     },
   ],
@@ -2066,7 +2066,7 @@ export const MOCK_AUTOMATIONS: AutomationRule[] = [
     conditions: [],
     action: {
       type: "assign",
-      label: "Add Phan Phước Hiệp as reviewer",
+      label: "Add Phan Phuoc Hiep as reviewer",
       value: "u1",
     },
     isEnabled: true,

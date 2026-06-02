@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from '../types/auth.types';
 import { getToken, getUser, logout, isTokenValid } from '../utils/token';
+import { logout as apiLogout } from '../services/authService';
 
 interface AuthState {
     user: User | null;
@@ -26,7 +27,25 @@ function initAuthState(): AuthState {
     console.log('   User data:', storedUser);
 
     if (storedToken && isTokenValid()) {
-        console.log('✅ [useAuth] Authentication valid');
+        console.log('[useAuth] Authentication valid');
+
+        // Log token expiry info for debugging
+        try {
+            const parts = storedToken.split('.');
+            const payload = JSON.parse(atob(parts[1]));
+            if (payload.exp) {
+                const expiresAt = new Date(payload.exp * 1000);
+                const timeUntilExpiry = Math.floor(
+                    (expiresAt.getTime() - Date.now()) / 1000 / 60,
+                );
+                console.log(
+                    `   Token expires in ~${timeUntilExpiry} minutes at ${expiresAt.toLocaleTimeString()}`,
+                );
+            }
+        } catch (error) {
+            console.error('[useAuth] Error parsing token expiry:', error);
+        }
+
         return {
             token: storedToken,
             user: storedUser,
@@ -37,6 +56,20 @@ function initAuthState(): AuthState {
 
     // Token is invalid or missing, clear auth
     console.log('❌ [useAuth] Authentication invalid, clearing auth');
+    if (storedToken && !isTokenValid()) {
+        try {
+            const parts = storedToken.split('.');
+            const payload = JSON.parse(atob(parts[1]));
+            if (payload.exp) {
+                const expiresAt = new Date(payload.exp * 1000);
+                console.log(
+                    `   Token expired at ${expiresAt.toLocaleTimeString()}`,
+                );
+            }
+        } catch (error) {
+            console.error('[useAuth] Error parsing expired token:', error);
+        }
+    }
     logout();
     return {
         user: null,
@@ -60,6 +93,23 @@ export function useAuth(): UseAuthReturn {
     }, []);
 
     const handleLogout = () => {
+        // Call backend logout endpoint first (if token exists)
+        if (authState.token) {
+            try {
+                apiLogout(authState.token).catch((error) => {
+                    console.warn(
+                        'Backend logout call failed, clearing local state anyway:',
+                        error,
+                    );
+                    // Continue with local logout even if API fails
+                });
+            } catch (error) {
+                console.warn('Error calling logout API:', error);
+                // Continue with local logout even if API fails
+            }
+        }
+
+        // Clear local auth data
         logout();
         setAuthState({
             user: null,

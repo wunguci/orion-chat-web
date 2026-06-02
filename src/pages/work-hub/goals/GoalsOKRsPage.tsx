@@ -94,13 +94,14 @@ const GoalsOKRsPage = () => {
   // ---- CRUD handlers ----
 
   const handleCreateGoal = async () => {
-    if (!workspaceId || !user?.id || !newGoalTitle.trim()) return;
+    const ownerId = user?.userId ?? user?.id;
+    if (!workspaceId || !ownerId || !newGoalTitle.trim()) return;
     try {
       setCreatingGoal(true);
       const created = await workHubApi.createGoal(workspaceId, {
         title: newGoalTitle.trim(),
         description: newGoalDescription.trim() || undefined,
-        ownerId: user.id,
+        ownerId,
       });
       const mapped = mapGoal(created);
       setGoals((prev) => [...prev, mapped]);

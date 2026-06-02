@@ -6,7 +6,7 @@ interface FetchOptions extends RequestInit {
 }
 
 /**
- * Enhanced fetch wrapper with automatic session validation
+ * xác thực phiên tự động
  */
 export async function apiFetch(
     url: string,
@@ -21,23 +21,36 @@ export async function apiFetch(
             try {
                 const data = await response.clone().json();
 
-                // If it's session expired, handle logout
-                if (
-                    data.message &&
-                    data.message.includes('Phiên làm việc đã hết hạn')
-                ) {
-                    console.warn(
-                        '[API Interceptor] Session expired detected:',
-                        data.message,
-                    );
-                    handleSessionExpired();
-                    throw new Error(data.message);
+                // nếu phiên làm việc đã hết hạn
+                if (data.message) {
+                    const messageText = String(data.message);
+                    const isExpired = messageText.includes('hết hạn') || messageText.toLowerCase().includes('expired');
+                    const isInactive = messageText.includes('không hoạt động') || messageText.toLowerCase().includes('inactivity') || messageText.toLowerCase().includes('inactive');
+                    const isOtherLogin =
+                        messageText.includes('đăng nhập') ||
+                        messageText.includes('thiết bị') ||
+                        messageText.toLowerCase().includes('logged in') ||
+                        messageText.toLowerCase().includes('device') ||
+                        messageText.toLowerCase().includes('conflict');
+
+                    if (isExpired || isInactive || isOtherLogin) {
+                        console.warn(
+                            '[API Interceptor] Session expired detected:',
+                            messageText,
+                        );
+
+                        void handleSessionExpired(
+                            `Your session has expired or has been replaced.\n\n${messageText}\n\nPlease log in again.`,
+                        );
+
+                        throw new Error(messageText);
+                    }
                 }
             } catch (error) {
-                // If response is not JSON or other error, just return the response
                 if (
                     error instanceof Error &&
-                    error.message.includes('Phiên làm việc')
+                    (error.message.includes('Phiên làm việc') ||
+                     error.message.toLowerCase().includes('session'))
                 ) {
                     throw error;
                 }
@@ -51,9 +64,7 @@ export async function apiFetch(
     }
 }
 
-/**
- * Wrapper for common GET requests
- */
+// GET request wrapper
 export function apiGet(url: string, options: FetchOptions = {}) {
     return apiFetch(url, {
         method: 'GET',
@@ -61,9 +72,7 @@ export function apiGet(url: string, options: FetchOptions = {}) {
     });
 }
 
-/**
- * Wrapper for common POST requests
- */
+// POST request wrapper
 export function apiPost(
     url: string,
     body?: unknown,
@@ -80,9 +89,7 @@ export function apiPost(
     });
 }
 
-/**
- * Wrapper for common PUT requests
- */
+// PUT request wrapper
 export function apiPut(
     url: string,
     body?: unknown,
@@ -99,9 +106,7 @@ export function apiPut(
     });
 }
 
-/**
- * Wrapper for common DELETE requests
- */
+// DELETE request wrapper
 export function apiDelete(url: string, options: FetchOptions = {}) {
     return apiFetch(url, {
         method: 'DELETE',

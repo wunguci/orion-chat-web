@@ -7,6 +7,7 @@ export interface FriendApiItem {
   avatarUrl?: string | null;
   isOnline: boolean;
   createdAt?: string;
+  isProfileRestricted?: boolean;
 }
 
 export interface FriendRequestApiItem {
@@ -18,6 +19,8 @@ export interface FriendRequestApiItem {
   };
   receiver: {
     userId: string;
+    fullName?: string;
+    avatarUrl?: string | null;
   };
   status: "pending" | "accepted" | "declined" | "canceled";
   createdAt: string;
@@ -47,6 +50,30 @@ export interface GroupInviteApiItem {
   createdAt: string;
 }
 
+export interface GroupMemberApiItem {
+  userId: string;
+  fullName: string;
+  avatarUrl?: string | null;
+  role?: string;
+  joinedAt?: string;
+  isMe?: boolean;
+}
+
+export interface FriendProfileApiItem {
+  id: string;
+  fullName: string;
+  phoneNumber?: string;
+  email?: string | null;
+  avatarUrl?: string | null;
+  coverImage?: string | null;
+  gender?: string | null;
+  birthDate?: string | null;
+  createdAt?: string;
+  isOnline: boolean;
+  friendshipSince?: string;
+  isProfileRestricted?: boolean;
+}
+
 export const friendListService = {
   getFriends: (userId: string) =>
     api.get<FriendApiItem[]>(`/friends?userId=${userId}`),
@@ -54,6 +81,11 @@ export const friendListService = {
   getIncomingFriendRequests: (userId: string) =>
     api.get<FriendRequestApiItem[]>(
       `/friend-requests/incoming?userId=${userId}`,
+    ),
+
+  getOutgoingFriendRequests: (userId: string) =>
+    api.get<FriendRequestApiItem[]>(
+      `/friend-requests/outgoing?userId=${userId}`,
     ),
 
   acceptFriendRequest: (requestId: string, userId: string) =>
@@ -67,6 +99,11 @@ export const friendListService = {
 
   getIncomingGroupInvites: (userId: string) =>
     api.get<GroupInviteApiItem[]>(`/group-invites/incoming?userId=${userId}`),
+
+  getGroupMembers: (groupId: string) =>
+    api.get<{ groupId: string; items: GroupMemberApiItem[] }>(
+      `/groups/${groupId}/members`,
+    ),
 
   acceptGroupInvite: (inviteId: string, userId: string) =>
     api.patch(`/group-invites/${inviteId}/accept`, { userId }),
@@ -96,4 +133,29 @@ export const friendListService = {
 
   getRecentlyActive: (userId: string) =>
     api.get<FriendApiItem[]>(`/friends/recently-active?userId=${userId}`),
+
+  getBlockedFriends: (userId: string) =>
+    api.get<Array<FriendApiItem & { blockedAt?: string }>>(
+      `/friends/blocked?userId=${userId}`,
+    ),
+
+  getFriendProfile: (userId: string, friendId: string) =>
+    api.get<FriendProfileApiItem>(`/friends/${userId}/${friendId}/profile`),
+
+  removeFriend: (userId: string, friendId: string) =>
+    api.delete<{ success: boolean; message: string }>(
+      `/friends/${userId}/${friendId}`,
+    ),
+
+  blockFriend: (userId: string, friendId: string) =>
+    api.patch<{ success: boolean; message: string }>(
+      `/friends/${userId}/${friendId}/block`,
+      {},
+    ),
+
+  unblockFriend: (userId: string, friendId: string) =>
+    api.patch<{ success: boolean; message: string }>(
+      `/friends/${userId}/${friendId}/unblock`,
+      {},
+    ),
 };

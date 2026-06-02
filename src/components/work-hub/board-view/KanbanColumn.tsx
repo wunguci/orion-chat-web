@@ -16,6 +16,8 @@ interface KanbanColumnProps {
   onDelete?: (columnId: string) => void;
 }
 
+import { useWorkspace } from "../../../contexts/WorkspaceContext";
+
 const KanbanColumn = ({
   column,
   tasks,
@@ -29,6 +31,7 @@ const KanbanColumn = ({
   onEditName,
   onDelete,
 }: KanbanColumnProps) => {
+  const { isOwner, isAdmin } = useWorkspace();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(column.name);
   const [isHovered, setIsHovered] = useState(false);
@@ -75,7 +78,12 @@ const KanbanColumn = ({
         e.preventDefault();
         onDragEnter();
       }}
-      onDragLeave={onDragLeave}
+      onDragLeave={(e) => {
+        // Only fire leave if we're actually leaving the column container
+        const relatedTarget = e.relatedTarget as Node | null;
+        if (e.currentTarget.contains(relatedTarget)) return;
+        onDragLeave();
+      }}
       onDrop={(e) => {
         e.preventDefault();
         const taskId = e.dataTransfer.getData("text/plain");
@@ -106,14 +114,14 @@ const KanbanColumn = ({
             />
           ) : (
             <h3
-              className={`font-semibold text-sm text-gray-800 truncate ${onEditName ? "cursor-pointer hover:text-wh-green-primary" : ""}`}
+              className={`font-semibold text-sm text-gray-800 truncate ${onEditName && (isOwner || isAdmin) ? "cursor-pointer hover:text-wh-green-primary" : ""}`}
               onClick={() => {
-                if (onEditName) {
+                if (onEditName && (isOwner || isAdmin)) {
                   setEditName(column.name);
                   setIsEditing(true);
                 }
               }}
-              title={onEditName ? "Click to edit column name" : undefined}
+              title={onEditName && (isOwner || isAdmin) ? "Click to edit column name" : undefined}
             >
               {column.name}
             </h3>
@@ -123,7 +131,7 @@ const KanbanColumn = ({
           </span>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          {onDelete && isHovered && (
+          {(isOwner || isAdmin) && onDelete && isHovered && (
             <button
               onClick={() => onDelete(column.id)}
               className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
@@ -132,13 +140,15 @@ const KanbanColumn = ({
               <i className="fas fa-trash text-xs"></i>
             </button>
           )}
-          <button
-            onClick={onAddTask}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-wh-green-primary hover:bg-wh-green-bg-heavy transition-colors"
-            title="Add task"
-          >
-            <i className="fas fa-plus text-xs"></i>
-          </button>
+          {(isOwner || isAdmin) && (
+            <button
+              onClick={onAddTask}
+              className="w-6 h-6 rounded-md flex items-center justify-center text-gray-400 hover:text-wh-green-primary hover:bg-wh-green-bg-heavy transition-colors"
+              title="Add task"
+            >
+              <i className="fas fa-plus text-xs"></i>
+            </button>
+          )}
         </div>
       </div>
 

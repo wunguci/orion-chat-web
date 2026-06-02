@@ -4,6 +4,7 @@ interface AttachmentListProps {
   attachments: Attachment[];
   onAdd: () => void;
   onRemove: (id: string) => void;
+  busy?: boolean;
 }
 
 const fileIcons: Record<string, string> = {
@@ -21,7 +22,12 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const AttachmentList = ({ attachments, onAdd, onRemove }: AttachmentListProps) => {
+const AttachmentList = ({
+  attachments,
+  onAdd,
+  onRemove,
+  busy = false,
+}: AttachmentListProps) => {
   return (
     <div>
       {attachments.length > 0 ? (
@@ -62,10 +68,11 @@ const AttachmentList = ({ attachments, onAdd, onRemove }: AttachmentListProps) =
 
       <button
         onClick={onAdd}
-        className="w-full py-2 border border-dashed border-wh-green-border-medium rounded-lg text-sm text-wh-green-text-muted hover:text-wh-green-primary hover:border-wh-green-primary transition-colors"
+        disabled={busy}
+        className="w-full py-2 border border-dashed border-wh-green-border-medium rounded-lg text-sm text-wh-green-text-muted hover:text-wh-green-primary hover:border-wh-green-primary transition-colors disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <i className="fas fa-plus mr-2"></i>
-        Add Attachment
+        <i className={`fas ${busy ? "fa-spinner fa-spin" : "fa-plus"} mr-2`}></i>
+        {busy ? "Uploading..." : "Add Attachment"}
       </button>
     </div>
   );

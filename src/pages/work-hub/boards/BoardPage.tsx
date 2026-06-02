@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import type {
   TaskStatus,
   TaskFormData,
@@ -28,6 +28,7 @@ const BoardPage = () => {
     workspaceId: string;
     boardId: string;
   }>();
+  const [searchParams] = useSearchParams();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [addToColumnId, setAddToColumnId] = useState<string | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -69,9 +70,9 @@ const BoardPage = () => {
   const authUser = getUser();
   const currentUser: User = authUser
     ? {
-        id: authUser.id ?? "",
+        id: authUser.userId ?? authUser.id ?? "",
         name: authUser.fullName,
-        email: "",
+        email: authUser.email ?? "",
         phone: authUser.phoneNumber ?? "",
         avatar: authUser.avatarUrl || "/avatar-user.png",
         status: "online" as const,
@@ -93,11 +94,18 @@ const BoardPage = () => {
     createTask,
     moveTask,
     addComment,
+    addAttachment,
+    deleteAttachment,
     updateSubtask,
     deleteSubtask,
     addSubtask,
     transferTask,
   } = useTask(boardId || "");
+
+  useEffect(() => {
+    const taskId = searchParams.get("task");
+    if (taskId) setSelectedTaskId(taskId);
+  }, [searchParams, setSelectedTaskId]);
 
   const {
     viewMode,
@@ -231,13 +239,17 @@ const BoardPage = () => {
   const handleTransfer = (taskId: string, toUserId: string, reason: string) => {
     const toUser = users.find((u) => u.id === toUserId);
     if (!toUser) return;
-    transferTask({
+    void transferTask({
       taskId,
       fromUser: currentUser,
       toUser,
       reason,
       timestamp: new Date().toISOString(),
     });
+  };
+
+  const handleAddAttachment = async (taskId: string, file: File) => {
+    await addAttachment(taskId, file, currentUser.id);
   };
 
   const refetchBoard = async () => {
@@ -398,6 +410,10 @@ const BoardPage = () => {
           deleteSubtask(taskId, subtaskId)
         }
         onAddSubtask={handleAddSubtask}
+        onAddAttachment={handleAddAttachment}
+        onRemoveAttachment={(taskId, attachmentId) =>
+          void deleteAttachment(taskId, attachmentId)
+        }
         onTransfer={handleTransfer}
         users={users}
       />

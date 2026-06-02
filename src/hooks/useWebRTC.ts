@@ -1,62 +1,12 @@
 import { useRef, useCallback, useEffect } from "react";
-
-const getIceConfiguration = (): RTCConfiguration => {
-  const turnUrls = import.meta.env.VITE_TURN_URLS as string | undefined;
-  const turnUsername = import.meta.env.VITE_TURN_USERNAME as string | undefined;
-  const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL as
-    | string
-    | undefined;
-  const forceRelayEnv =
-    (import.meta.env.VITE_FORCE_TURN_RELAY as string | undefined) === "true";
-  const isLocalhost =
-    typeof window !== "undefined" &&
-    ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  const forceRelay = forceRelayEnv && !isLocalhost;
-
-  const iceServers: RTCIceServer[] = [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-  ];
-
-  if (turnUrls && turnUsername && turnCredential) {
-    const parsedTurnUrls = turnUrls
-      .split(",")
-      .map((url) => url.trim())
-      .filter(
-        (url) =>
-          Boolean(url) && (url.startsWith("turn:") || url.startsWith("turns:")),
-      );
-
-    if (parsedTurnUrls.length > 0) {
-      iceServers.push({
-        urls: parsedTurnUrls,
-        username: turnUsername,
-        credential: turnCredential,
-      });
-      console.log("[WebRTC] TURN server enabled", {
-        forceRelay,
-        turnUrlCount: parsedTurnUrls.length,
-      });
-    }
-  } else {
-    console.warn(
-      "[WebRTC] TURN server is not configured. Cross-network calls may fail on strict NAT/firewall.",
-    );
-  }
-
-  return {
-    iceServers,
-    iceCandidatePoolSize: 10,
-    iceTransportPolicy: forceRelay ? "relay" : "all",
-  };
-};
+import { getIceConfiguration } from "../config/webrtcIce";
 
 interface UseWebRTCProps {
   onRemoteStream: (stream: MediaStream) => void;
   onIceCandidate: (candidate: RTCIceCandidate) => void;
   onConnectionStateChange: (state: RTCPeerConnectionState) => void;
   onIceRestart?: (offer: RTCSessionDescriptionInit) => Promise<void>;
+  onRemoteTrackMuteChange?: (kind: "video" | "audio", muted: boolean) => void;
 }
 
 export const useWebRTC = ({
@@ -64,6 +14,7 @@ export const useWebRTC = ({
   onIceCandidate,
   onConnectionStateChange,
   onIceRestart,
+  onRemoteTrackMuteChange,
 }: UseWebRTCProps) => {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -75,6 +26,7 @@ export const useWebRTC = ({
   const onIceCandidateRef = useRef(onIceCandidate);
   const onConnectionStateChangeRef = useRef(onConnectionStateChange);
   const onIceRestartRef = useRef(onIceRestart);
+  const onRemoteTrackMuteChangeRef = useRef(onRemoteTrackMuteChange);
 
   useEffect(() => {
     onRemoteStreamRef.current = onRemoteStream;
@@ -91,6 +43,10 @@ export const useWebRTC = ({
   useEffect(() => {
     onIceRestartRef.current = onIceRestart;
   }, [onIceRestart]);
+
+  useEffect(() => {
+    onRemoteTrackMuteChangeRef.current = onRemoteTrackMuteChange;
+  }, [onRemoteTrackMuteChange]);
 
   // ICE restart - tạo lại offer với iceRestart flag
   const restartIce = useCallback(async () => {
@@ -155,6 +111,23 @@ export const useWebRTC = ({
     // xử lý luồng từ xa
     peerConnection.ontrack = (event) => {
       console.log("Received remote track:", event.track.kind);
+      
+      const track = event.track;
+      
+      track.onmute = () => {
+        console.log(`[WebRTC] Remote track muted: ${track.kind}`);
+        if (onRemoteTrackMuteChangeRef.current) {
+          onRemoteTrackMuteChangeRef.current(track.kind as "video" | "audio", true);
+        }
+      };
+
+      track.onunmute = () => {
+        console.log(`[WebRTC] Remote track unmuted: ${track.kind}`);
+        if (onRemoteTrackMuteChangeRef.current) {
+          onRemoteTrackMuteChangeRef.current(track.kind as "video" | "audio", false);
+        }
+      };
+
       if (event.streams && event.streams[0]) {
         onRemoteStreamRef.current(event.streams[0]);
       } else {

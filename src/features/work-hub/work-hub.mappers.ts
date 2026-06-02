@@ -93,6 +93,17 @@ const ROLE_TO_BE: Record<string, string> = {
   member: "MEMBER",
 };
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(
+  /\/+$/,
+  "",
+);
+
+const mapBackendAssetUrl = (url?: string | null) => {
+  if (!url) return undefined;
+  if (/^(https?:|blob:|data:)/i.test(url)) return url;
+  return `${API_BASE}${url.startsWith("/") ? url : `/${url}`}`;
+};
+
 export function statusToBE(s: TaskStatus): string {
   return STATUS_TO_BE[s] ?? "TODO";
 }
@@ -403,7 +414,7 @@ export function mapWorkspaceFile(f: WorkspaceFileResponse): FileItem {
     type: f.type as "file" | "folder",
     mimeType: f.mimeType ?? undefined,
     size: f.size ?? undefined,
-    url: f.url ?? undefined,
+    url: mapBackendAssetUrl(f.url),
     parentId: f.parent?.fileId ?? null,
     uploadedBy: f.uploadedBy ? mapUser(f.uploadedBy) : undefined,
     uploadedAt: f.uploadedAt,
