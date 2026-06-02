@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { Workspace, WorkspaceRole } from '../types/work-hub.types';
 import { workHubApi } from '../features/work-hub/work-hub.api';

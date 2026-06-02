@@ -61,7 +61,7 @@ const MembersPage = () => {
       return;
     try {
       await workHubApi.removeMember(workspaceId, userId);
-      await refreshWorkspace();
+      await reloadWorkspace();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to remove member");
     }
@@ -73,7 +73,7 @@ const MembersPage = () => {
       await workHubApi.updateMemberRole(workspaceId, userId, {
         role: roleToBE(role),
       });
-      await refreshWorkspace();
+      await reloadWorkspace();
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to change role");
     }

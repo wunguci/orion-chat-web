@@ -36,9 +36,9 @@ export const useDraggable = ({ initialPosition = { x: 0, y: 0 }, handleRef }: Us
         document.body.style.userSelect = 'none';
         
         // Use setPointerCapture if we have a react event to track mouse even if it leaves the window
-        if ('target' in e && 'setPointerCapture' in e.target && 'pointerId' in e) {
+        if ('target' in e && e.target && 'setPointerCapture' in e.target && 'pointerId' in e) {
             try {
-                (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                (e.target as any).setPointerCapture((e as any).pointerId);
             } catch (err) {
                 // Ignore capture errors
             }
