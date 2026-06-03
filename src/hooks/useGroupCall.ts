@@ -119,11 +119,28 @@ export const useGroupCall = ({
         userName,
         isInitiator,
         (event: RTCTrackEvent) => {
-          console.log(`[useGroupCall] Received track from ${userName}`);
-          if (event.streams && event.streams[0]) {
-            peerManager.setParticipantStream(userId, event.streams[0]);
-            onParticipantStream(userId, event.streams[0]);
+          console.log(`[useGroupCall] Received track from ${userName}: ${event.track.kind}`);
+          
+          let currentStream = peerManager.getParticipantStream(userId);
+          if (!currentStream) {
+            if (event.streams && event.streams[0]) {
+              currentStream = event.streams[0];
+            } else {
+              currentStream = new MediaStream();
+            }
+            peerManager.setParticipantStream(userId, currentStream);
           }
+          
+          // Add the track to the stream if it's not already added
+          const track = event.track;
+          if (!currentStream.getTracks().some((t) => t.id === track.id)) {
+            currentStream.addTrack(track);
+          }
+          
+          // Create a new MediaStream instance with the updated tracks to ensure React detects reference change
+          const updatedStream = new MediaStream(currentStream.getTracks());
+          peerManager.setParticipantStream(userId, updatedStream);
+          onParticipantStream(userId, updatedStream);
         },
         (candidate: RTCIceCandidate) => {
           onIceCandidate?.(userId, candidate);
