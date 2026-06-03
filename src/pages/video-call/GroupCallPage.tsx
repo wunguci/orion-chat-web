@@ -55,6 +55,12 @@ function MediaTile({
     video.play().catch((error) => {
       console.warn("[GroupCallPage] Media autoplay blocked:", error);
     });
+
+    return () => {
+      if (video) {
+        video.srcObject = null;
+      }
+    };
   }, [stream]);
 
   return (

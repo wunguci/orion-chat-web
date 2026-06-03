@@ -47,13 +47,17 @@ export const getIceConfiguration = (): RTCConfiguration => {
         ? { username: iceUsername, credential: iceCredential }
         : {}),
     });
-  } else if (allowPublicStun) {
+  }
+
+  if (allowPublicStun) {
     iceServers.push(
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
       { urls: "stun:stun2.l.google.com:19302" },
     );
-  } else {
+  }
+
+  if (iceServers.length === 0) {
     console.warn(
       "[WebRTC] No ICE servers configured. Calls may only work on the same network.",
     );
